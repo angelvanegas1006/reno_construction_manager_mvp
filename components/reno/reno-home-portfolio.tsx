@@ -1,0 +1,122 @@
+"use client";
+
+import { useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Property } from "@/lib/property-storage";
+import { RenoKanbanPhase, renoKanbanColumns } from "@/lib/reno-kanban-config";
+import { useI18n } from "@/lib/i18n";
+import { useRouter } from "next/navigation";
+
+interface RenoHomePortfolioProps {
+  properties: Property[];
+}
+
+export function RenoHomePortfolio({ properties }: RenoHomePortfolioProps) {
+  const { t, language } = useI18n();
+  const router = useRouter();
+
+  const stageCounts = useMemo(() => {
+    const counts: Record<RenoKanbanPhase, number> = {
+      "initial-check": 0,
+      "upcoming": 0,
+      "reno-in-progress": 0,
+      "furnishing-cleaning": 0,
+      "final-check": 0,
+      "reno-fixes": 0,
+      "done": 0,
+    };
+
+    // Map properties to stages based on IDs (for demo)
+    properties.forEach((p) => {
+      if (["4463801", "4463802", "4463803"].includes(p.id)) {
+        counts["initial-check"]++;
+      } else if (["4463804", "4463805"].includes(p.id)) {
+        counts["upcoming"]++;
+      } else if (["4463806", "4463807", "4463808"].includes(p.id)) {
+        counts["reno-in-progress"]++;
+      } else if (["4463809", "4463810"].includes(p.id)) {
+        counts["furnishing-cleaning"]++;
+      } else if (p.id === "4463811") {
+        counts["final-check"]++;
+      } else if (p.id === "4463812") {
+        counts["reno-fixes"]++;
+      } else if (["4463813", "4463814"].includes(p.id)) {
+        counts["done"]++;
+      }
+    });
+
+    return counts;
+  }, [properties]);
+
+  const maxCount = Math.max(...Object.values(stageCounts), 1);
+  const maxHeight = 200; // Max height in pixels for the bars
+
+  const getStageLabel = (stage: RenoKanbanPhase) => {
+    const stageMap: Record<RenoKanbanPhase, string> = {
+      "initial-check": language === "es" ? "Check inicial" : "Initial Check",
+      "upcoming": language === "es" ? "Próximas" : "Upcoming",
+      "reno-in-progress": language === "es" ? "Obras en proceso" : "Reno In Progress",
+      "furnishing-cleaning": language === "es" ? "Limpieza y amoblamiento" : "Furnishing & Cleaning",
+      "final-check": language === "es" ? "Check final" : "Final Check",
+      "reno-fixes": language === "es" ? "Reparaciones reno" : "Reno Fixes",
+      "done": language === "es" ? "Finalizadas" : "Done",
+    };
+    return stageMap[stage];
+  };
+
+  const getBarHeight = (count: number) => {
+    return (count / maxCount) * maxHeight;
+  };
+
+  const handleBarClick = (stage: RenoKanbanPhase) => {
+    router.push(`/reno/construction-manager/kanban?stage=${stage}`);
+  };
+
+  return (
+    <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">Portfolio</CardTitle>
+        <p className="text-sm text-muted-foreground mt-1">
+          Distribución de propiedades por fase
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Chart */}
+          <div className="flex items-end justify-between gap-2 h-[220px]">
+            {renoKanbanColumns.map((column) => {
+              const count = stageCounts[column.stage];
+              const height = getBarHeight(count);
+              
+              return (
+                <div
+                  key={column.stage}
+                  className="flex-1 flex flex-col items-center group cursor-pointer"
+                  onClick={() => handleBarClick(column.stage)}
+                >
+                  <div className="relative w-full flex items-end justify-center">
+                    <div
+                      className="w-full bg-[var(--prophero-blue-500)] dark:bg-[var(--prophero-blue-600)] rounded-t transition-all hover:opacity-80"
+                      style={{ height: `${height}px`, minHeight: count > 0 ? "4px" : "0" }}
+                      title={`${getStageLabel(column.stage)}: ${count}`}
+                    />
+                    {count > 0 && (
+                      <span className="absolute -top-5 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                        {count}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 text-center leading-tight">
+                    {getStageLabel(column.stage)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
