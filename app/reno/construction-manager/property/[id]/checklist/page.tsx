@@ -10,13 +10,11 @@ import { PropertyInfoSection } from "@/components/reno/property-info-section";
 import { MobileSidebarMenu } from "@/components/property/mobile-sidebar-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Property } from "@/lib/property-storage";
+import { getPropertyById, Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { RenoKanbanPhase } from "@/lib/reno-kanban-config";
-import { useSupabaseChecklist } from "@/hooks/useSupabaseChecklist";
+import { useChecklist } from "@/hooks/useChecklist";
 import { ChecklistType } from "@/lib/checklist-storage";
-import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
-import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
 
 // Checklist section components
 import { EntornoZonasComunesSection } from "@/components/checklist/sections/entorno-zonas-comunes-section";
@@ -44,41 +42,59 @@ export default function RenoChecklistPage() {
   const router = useRouter();
   const sectionRefs = useRef<Record<string, HTMLDivElement>>({});
   const { t } = useI18n();
+  const [property, setProperty] = useState<Property | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState("property-info");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  const propertyId = params.id && typeof params.id === "string" ? params.id : null;
-  const { property: supabaseProperty, loading: supabaseLoading, refetch } = useSupabaseProperty(propertyId);
-  
-  // Convert Supabase property to Property format
-  const property: Property | null = supabaseProperty ? convertSupabasePropertyToProperty(supabaseProperty) : null;
-  const isLoading = supabaseLoading;
+  // Determine property reno phase
+  const getPropertyRenoPhase = useCallback((prop: Property): RenoKanbanPhase => {
+    if (["4463793", "4463794", "4463795", "4463796", "4463797", "4463798", "4463799", "4463800"].includes(prop.id)) {
+      return "upcoming-settlements";
+    } else if (["4463801", "4463802", "4463803"].includes(prop.id)) {
+      return "initial-check";
+    } else if (["4463804", "4463805"].includes(prop.id)) {
+      return "upcoming";
+    } else if (["4463806", "4463807", "4463808"].includes(prop.id)) {
+      return "reno-in-progress";
+    } else if (["4463809", "4463810"].includes(prop.id)) {
+      return "furnishing-cleaning";
+    } else if (prop.id === "4463811") {
+      return "final-check";
+    } else if (prop.id === "4463812") {
+      return "reno-fixes";
+    } else if (["4463813", "4463814"].includes(prop.id)) {
+      return "done";
+    }
+    return "initial-check";
+  }, []);
 
-  // Determine property reno phase from Supabase
-  const getPropertyRenoPhase = useCallback((): RenoKanbanPhase | null => {
-    if (!supabaseProperty) return null;
-    return getPropertyRenoPhaseFromSupabase(supabaseProperty);
-  }, [supabaseProperty]);
-
-  // Redirect back if not in initial-check or final-check phase
+  // Load property
   useEffect(() => {
-    if (!isLoading && supabaseProperty) {
-      const phase = getPropertyRenoPhase();
-      if (phase !== "initial-check" && phase !== "final-check") {
-        router.replace(`/reno/construction-manager/property/${propertyId}`);
+    if (params.id && typeof params.id === "string") {
+      const found = getPropertyById(params.id);
+      setProperty(found);
+      setIsLoading(false);
+
+      // Redirect back if not in initial-check or final-check phase
+      if (found) {
+        const phase = getPropertyRenoPhase(found);
+        if (phase !== "initial-check" && phase !== "final-check") {
+          router.replace(`/reno/construction-manager/property/${found.id}`);
+        }
       }
     }
-  }, [isLoading, supabaseProperty, getPropertyRenoPhase, router, propertyId]);
+  }, [params.id, router, getPropertyRenoPhase]);
 
   // Determine checklist type based on phase
   const checklistType: ChecklistType = useMemo(() => {
-    if (!supabaseProperty) return "reno_initial";
-    const phase = getPropertyRenoPhase();
+    if (!property) return "reno_initial";
+    const phase = getPropertyRenoPhase(property);
     return phase === "final-check" ? "reno_final" : "reno_initial";
-  }, [supabaseProperty, getPropertyRenoPhase]);
+  }, [property, getPropertyRenoPhase]);
 
-  // Use Supabase checklist hook
-  const { checklist, isLoading: checklistLoading, updateSection, saveCurrentSection } = useSupabaseChecklist({
+  // Use checklist hook
+  const { checklist, updateSection } = useChecklist({
     propertyId: property?.id || "",
     checklistType,
   });
@@ -86,11 +102,11 @@ export default function RenoChecklistPage() {
   // Get property data
   const propertyData = useMemo(() => property?.data || {}, [property]);
 
-  // Update checklist section (guarda automáticamente al cambiar de sección)
+  // Update checklist section
   const updateChecklistSection = useCallback(
-    async (sectionId: string, updates: any) => {
-      await updateSection(sectionId, updates);
-      setHasUnsavedChanges(false); // Ya se guarda automáticamente
+    (sectionId: string, updates: any) => {
+      updateSection(sectionId, updates);
+      setHasUnsavedChanges(true);
     },
     [updateSection]
   );
@@ -106,12 +122,12 @@ export default function RenoChecklistPage() {
   }, []);
 
   // Handle save
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(() => {
     if (!checklist) return;
-    await saveCurrentSection();
+    // Save is handled automatically by useChecklist hook
     setHasUnsavedChanges(false);
-    toast.success(t.messages.saveSuccess);
-  }, [checklist, saveCurrentSection, t]);
+    toast.success(t.property.saveSuccess);
+  }, [checklist, t]);
 
   // Format address
   const formatAddress = () => {
@@ -136,13 +152,13 @@ export default function RenoChecklistPage() {
       );
     }
 
-    const phase = getPropertyRenoPhase() || "initial-check";
+    const phase = getPropertyRenoPhase(property);
 
     switch (activeSection) {
       case "property-info":
         return (
-          <PropertyInfoSection 
-            property={property} 
+          <PropertyInfoSection
+            property={property}
             phase={phase}
             onStartChecklist={() => handleSectionClick("checklist-entorno-zonas-comunes")}
           />
@@ -171,6 +187,7 @@ export default function RenoChecklistPage() {
             ref={(el) => {
               if (el) sectionRefs.current["checklist-entorno-zonas-comunes"] = el;
             }}
+            onContinue={() => handleSectionClick("checklist-estado-general")}
           />
         );
       case "checklist-estado-general":
@@ -198,6 +215,7 @@ export default function RenoChecklistPage() {
             ref={(el) => {
               if (el) sectionRefs.current["checklist-estado-general"] = el;
             }}
+            onContinue={() => handleSectionClick("checklist-entrada-pasillos")}
           />
         );
       case "checklist-entrada-pasillos":
@@ -232,6 +250,7 @@ export default function RenoChecklistPage() {
             ref={(el) => {
               if (el) sectionRefs.current["checklist-entrada-pasillos"] = el;
             }}
+            onContinue={() => handleSectionClick("checklist-habitaciones")}
           />
         );
       case "checklist-habitaciones":
@@ -240,16 +259,16 @@ export default function RenoChecklistPage() {
           dynamicItems: [],
           dynamicCount: propertyData?.habitaciones || 0,
         };
-        const habitacionesSection = habitacionesSectionRaw.dynamicItems 
+        const habitacionesSection = habitacionesSectionRaw.dynamicItems
           ? {
-              ...habitacionesSectionRaw,
-              dynamicItems: JSON.parse(JSON.stringify(habitacionesSectionRaw.dynamicItems)),
-            }
+            ...habitacionesSectionRaw,
+            dynamicItems: JSON.parse(JSON.stringify(habitacionesSectionRaw.dynamicItems)),
+          }
           : {
-              ...habitacionesSectionRaw,
-              dynamicItems: [],
-            };
-        
+            ...habitacionesSectionRaw,
+            dynamicItems: [],
+          };
+
         return (
           <HabitacionesSection
             section={habitacionesSection}
@@ -258,7 +277,8 @@ export default function RenoChecklistPage() {
             }}
             onPropertyUpdate={() => {
               // Reload property to get updated data
-              refetch();
+              const updated = getPropertyById(property.id);
+              if (updated) setProperty(updated);
             }}
             onNavigateToHabitacion={(index) => {
               handleSectionClick(`checklist-habitaciones-${index + 1}`);
@@ -299,16 +319,16 @@ export default function RenoChecklistPage() {
           dynamicItems: [],
           dynamicCount: propertyData?.banos || 0,
         };
-        const banosSection = banosSectionRaw.dynamicItems 
+        const banosSection = banosSectionRaw.dynamicItems
           ? {
-              ...banosSectionRaw,
-              dynamicItems: JSON.parse(JSON.stringify(banosSectionRaw.dynamicItems)),
-            }
+            ...banosSectionRaw,
+            dynamicItems: JSON.parse(JSON.stringify(banosSectionRaw.dynamicItems)),
+          }
           : {
-              ...banosSectionRaw,
-              dynamicItems: [],
-            };
-        
+            ...banosSectionRaw,
+            dynamicItems: [],
+          };
+
         return (
           <BanosSection
             section={banosSection}
@@ -316,8 +336,8 @@ export default function RenoChecklistPage() {
               updateChecklistSection("banos", updates);
             }}
             onPropertyUpdate={() => {
-              // Reload property to get updated data
-              refetch();
+              const updated = getPropertyById(property.id);
+              if (updated) setProperty(updated);
             }}
             onNavigateToBano={(index) => {
               handleSectionClick(`checklist-banos-${index + 1}`);
@@ -393,6 +413,7 @@ export default function RenoChecklistPage() {
             ref={(el) => {
               if (el) sectionRefs.current["checklist-exteriores"] = el;
             }}
+            onContinue={() => router.push("/reno/construction-manager/kanban")}
           />
         );
       default:
@@ -406,16 +427,16 @@ export default function RenoChecklistPage() {
               dynamicItems: [],
               dynamicCount: propertyData?.habitaciones || 0,
             };
-            const habitacionesSection = habitacionesSectionRaw.dynamicItems 
+            const habitacionesSection = habitacionesSectionRaw.dynamicItems
               ? {
-                  ...habitacionesSectionRaw,
-                  dynamicItems: JSON.parse(JSON.stringify(habitacionesSectionRaw.dynamicItems)),
-                }
+                ...habitacionesSectionRaw,
+                dynamicItems: JSON.parse(JSON.stringify(habitacionesSectionRaw.dynamicItems)),
+              }
               : {
-                  ...habitacionesSectionRaw,
-                  dynamicItems: [],
-                };
-            
+                ...habitacionesSectionRaw,
+                dynamicItems: [],
+              };
+
             return (
               <HabitacionesSection
                 section={habitacionesSection}
@@ -424,8 +445,8 @@ export default function RenoChecklistPage() {
                   updateChecklistSection("habitaciones", updates);
                 }}
                 onPropertyUpdate={() => {
-                  // Reload property to get updated data
-                  refetch();
+                  const updated = getPropertyById(property.id);
+                  if (updated) setProperty(updated);
                 }}
                 onNavigateToHabitacion={(newIndex) => {
                   handleSectionClick(`checklist-habitaciones-${newIndex + 1}`);
@@ -452,16 +473,16 @@ export default function RenoChecklistPage() {
               dynamicItems: [],
               dynamicCount: propertyData?.banos || 0,
             };
-            const banosSection = banosSectionRaw.dynamicItems 
+            const banosSection = banosSectionRaw.dynamicItems
               ? {
-                  ...banosSectionRaw,
-                  dynamicItems: JSON.parse(JSON.stringify(banosSectionRaw.dynamicItems)),
-                }
+                ...banosSectionRaw,
+                dynamicItems: JSON.parse(JSON.stringify(banosSectionRaw.dynamicItems)),
+              }
               : {
-                  ...banosSectionRaw,
-                  dynamicItems: [],
-                };
-            
+                ...banosSectionRaw,
+                dynamicItems: [],
+              };
+
             return (
               <BanosSection
                 section={banosSection}
@@ -470,8 +491,8 @@ export default function RenoChecklistPage() {
                   updateChecklistSection("banos", updates);
                 }}
                 onPropertyUpdate={() => {
-                  // Reload property to get updated data
-                  refetch();
+                  const updated = getPropertyById(property.id);
+                  if (updated) setProperty(updated);
                 }}
                 onNavigateToBano={(newIndex) => {
                   handleSectionClick(`checklist-banos-${newIndex + 1}`);
@@ -494,7 +515,7 @@ export default function RenoChecklistPage() {
     }
   };
 
-  if (isLoading || checklistLoading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen overflow-hidden">
         <RenoSidebar />
@@ -522,14 +543,14 @@ export default function RenoChecklistPage() {
     );
   }
 
-  const phase = getPropertyRenoPhase() || "initial-check";
+  const phase = getPropertyRenoPhase(property);
   const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
 
   return (
     <div className="flex h-screen overflow-hidden">
       <RenoSidebar />
-      
+
       {/* Desktop Sidebar */}
       <RenoChecklistSidebar
         address={formatAddress()}
@@ -575,25 +596,18 @@ export default function RenoChecklistPage() {
       {/* Mobile Sidebar Menu */}
       <MobileSidebarMenu
         sections={[
-          { sectionId: "property-info", name: "Información de la Propiedad", progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-salon", name: t.checklist.sections.salon.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-banos", name: t.checklist.sections.banos.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-cocina", name: t.checklist.sections.cocina.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-exteriores", name: t.checklist.sections.exteriores.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+          { id: "property-info", name: "Información de la Propiedad" },
+          { id: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title },
+          { id: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title },
+          { id: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title },
+          { id: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title },
+          { id: "checklist-salon", name: t.checklist.sections.salon.title },
+          { id: "checklist-banos", name: t.checklist.sections.banos.title },
+          { id: "checklist-cocina", name: t.checklist.sections.cocina.title },
+          { id: "checklist-exteriores", name: t.checklist.sections.exteriores.title },
         ]}
         activeSection={activeSection}
         onSectionClick={handleSectionClick}
-        address=""
-        overallProgress={0}
-        onSave={handleSave}
-        onSubmit={() => {}}
-        onDelete={() => {}}
-        canSubmit={false}
-        hasUnsavedChanges={hasUnsavedChanges}
       />
     </div>
   );
