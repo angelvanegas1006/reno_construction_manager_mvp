@@ -494,7 +494,7 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
               {t.checklist.sections.exteriores.observaciones.title}
             </Label>
             <Textarea
-              value={observacionesQuestion.notes || ""}
+              value={(observacionesQuestion as { id: string; notes?: string }).notes || ""}
               onChange={(e) => handleObservacionesChange(e.target.value)}
               placeholder={t.checklist.sections.exteriores.observaciones.placeholder}
               className="min-h-[120px] text-xs sm:text-sm leading-relaxed w-full"

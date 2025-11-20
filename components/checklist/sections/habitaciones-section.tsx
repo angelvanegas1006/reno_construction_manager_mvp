@@ -153,7 +153,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
           const currentCantidad = item.cantidad || 0;
           const newCantidad = Math.max(0, Math.min(MAX_QUANTITY, currentCantidad + delta));
           
-          let units = item.units || [];
+          let units = (item as ChecklistCarpentryItem).units || [];
           
           if (newCantidad > 1) {
             while (units.length < newCantidad) {
@@ -182,9 +182,12 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       };
       
       console.log("handleCarpentryQuantityChange - updatedDynamicItems before onUpdate:", updatedDynamicItems);
-      console.log("handleCarpentryQuantityChange - updatedDynamicItems[habitacionIndex].carpentryItems:", updatedDynamicItems[habitacionIndex].carpentryItems);
-      const ventanasInUpdated = updatedDynamicItems[habitacionIndex].carpentryItems.find(i => i.id === "ventanas");
-      console.log("handleCarpentryQuantityChange - ventanas in updatedDynamicItems:", ventanasInUpdated);
+      const habitacion = updatedDynamicItems[habitacionIndex];
+      if (habitacion) {
+        console.log("handleCarpentryQuantityChange - updatedDynamicItems[habitacionIndex].carpentryItems:", habitacion.carpentryItems);
+        const ventanasInUpdated = habitacion.carpentryItems?.find(i => i.id === "ventanas");
+        console.log("handleCarpentryQuantityChange - ventanas in updatedDynamicItems:", ventanasInUpdated);
+      }
       
       onUpdate({ dynamicItems: updatedDynamicItems });
     }, [section.dynamicItems, habitacionIndex, onUpdate]);
@@ -194,13 +197,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentItems = habitacion?.carpentryItems || carpentryItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const carpentryItem = item as ChecklistCarpentryItem;
+          if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+            const updatedUnits = carpentryItem.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, estado: status } : unit
             );
-            return { ...item, units: updatedUnits };
+            return { ...carpentryItem, units: updatedUnits };
           } else {
-            return { ...item, estado: status };
+            return { ...carpentryItem, estado: status };
           }
         }
         return item;
@@ -218,13 +222,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentItems = habitacion?.carpentryItems || carpentryItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const carpentryItem = item as ChecklistCarpentryItem;
+          if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+            const updatedUnits = carpentryItem.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, notes } : unit
             );
-            return { ...item, units: updatedUnits };
+            return { ...carpentryItem, units: updatedUnits };
           } else {
-            return { ...item, notes };
+            return { ...carpentryItem, notes };
           }
         }
         return item;
@@ -242,13 +247,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentItems = habitacion?.carpentryItems || carpentryItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const carpentryItem = item as ChecklistCarpentryItem;
+          if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+            const updatedUnits = carpentryItem.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, photos } : unit
             );
-            return { ...item, units: updatedUnits };
+            return { ...carpentryItem, units: updatedUnits };
           } else {
-            return { ...item, photos };
+            return { ...carpentryItem, photos };
           }
         }
         return item;
@@ -266,13 +272,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentItems = habitacion?.carpentryItems || carpentryItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const carpentryItem = item as ChecklistCarpentryItem;
+          if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+            const updatedUnits = carpentryItem.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, badElements } : unit
             );
-            return { ...item, units: updatedUnits };
+            return { ...carpentryItem, units: updatedUnits };
           } else {
-            return { ...item, badElements };
+            return { ...carpentryItem, badElements };
           }
         }
         return item;
@@ -301,7 +308,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
           const currentCantidad = item.cantidad || 0;
           const newCantidad = Math.max(0, Math.min(MAX_QUANTITY, currentCantidad + delta));
           
-          let units = item.units || [];
+          let units = (item as ChecklistClimatizationItem).units || [];
           
           if (newCantidad > 1) {
             while (units.length < newCantidad) {
@@ -335,13 +342,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentItems = habitacion?.climatizationItems || climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const climatizationItem = item as ChecklistClimatizationItem;
+          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
+            const updatedUnits = climatizationItem.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, estado: status } : unit
             );
-            return { ...item, units: updatedUnits };
+            return { ...climatizationItem, units: updatedUnits };
           } else {
-            return { ...item, estado: status };
+            return { ...climatizationItem, estado: status };
           }
         }
         return item;
@@ -359,13 +367,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentItems = habitacion?.climatizationItems || climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const climatizationItem = item as ChecklistClimatizationItem;
+          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
+            const updatedUnits = climatizationItem.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, notes } : unit
             );
-            return { ...item, units: updatedUnits };
+            return { ...climatizationItem, units: updatedUnits };
           } else {
-            return { ...item, notes };
+            return { ...climatizationItem, notes };
           }
         }
         return item;
@@ -383,13 +392,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentItems = habitacion?.climatizationItems || climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const climatizationItem = item as ChecklistClimatizationItem;
+          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
+            const updatedUnits = climatizationItem.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, photos } : unit
             );
-            return { ...item, units: updatedUnits };
+            return { ...climatizationItem, units: updatedUnits };
           } else {
-            return { ...item, photos };
+            return { ...climatizationItem, photos };
           }
         }
         return item;
@@ -511,7 +521,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
           if (item.cantidad > 0) {
             if (item.cantidad === 1) {
               // Single unit - check estado directly on item
-              if (!item.estado) {
+              if (!(item as ChecklistClimatizationItem).estado) {
                 climatizacionComplete = false;
                 break;
               }
@@ -578,7 +588,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
             const currentCantidad = item.cantidad || 0;
             const newCantidad = Math.max(0, Math.min(MAX_QUANTITY, currentCantidad + delta));
             
-            let units = item.units || [];
+            let units = (item as ChecklistCarpentryItem).units || [];
             
             if (newCantidad > 1) {
               while (units.length < newCantidad) {
@@ -619,7 +629,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
             const currentCantidad = item.cantidad || 0;
             const newCantidad = Math.max(0, Math.min(MAX_QUANTITY, currentCantidad + delta));
             
-            let units = item.units || [];
+            let units = (item as ChecklistCarpentryItem).units || [];
             
             if (newCantidad > 1) {
               while (units.length < newCantidad) {
@@ -655,13 +665,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
-            if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-              const updatedUnits = item.units.map((unit, idx) =>
+            const carpentryItem = item as ChecklistCarpentryItem;
+            if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+              const updatedUnits = carpentryItem.units.map((unit, idx) =>
                 idx === unitIndex ? { ...unit, estado: status } : unit
               );
-              return { ...item, units: updatedUnits };
+              return { ...carpentryItem, units: updatedUnits };
             } else {
-              return { ...item, estado: status };
+              return { ...carpentryItem, estado: status };
             }
           }
           return item;
@@ -680,13 +691,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
-            if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-              const updatedUnits = item.units.map((unit, idx) =>
+            const carpentryItem = item as ChecklistCarpentryItem;
+            if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+              const updatedUnits = carpentryItem.units.map((unit, idx) =>
                 idx === unitIndex ? { ...unit, badElements } : unit
               );
-              return { ...item, units: updatedUnits };
+              return { ...carpentryItem, units: updatedUnits };
             } else {
-              return { ...item, badElements };
+              return { ...carpentryItem, badElements };
             }
           }
           return item;
@@ -705,13 +717,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
-            if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-              const updatedUnits = item.units.map((unit, idx) =>
+            const carpentryItem = item as ChecklistCarpentryItem;
+            if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+              const updatedUnits = carpentryItem.units.map((unit, idx) =>
                 idx === unitIndex ? { ...unit, notes } : unit
               );
-              return { ...item, units: updatedUnits };
+              return { ...carpentryItem, units: updatedUnits };
             } else {
-              return { ...item, notes };
+              return { ...carpentryItem, notes };
             }
           }
           return item;
@@ -730,13 +743,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
-            if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-              const updatedUnits = item.units.map((unit, idx) =>
+            const carpentryItem = item as ChecklistCarpentryItem;
+            if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+              const updatedUnits = carpentryItem.units.map((unit, idx) =>
                 idx === unitIndex ? { ...unit, photos } : unit
               );
-              return { ...item, units: updatedUnits };
+              return { ...carpentryItem, units: updatedUnits };
             } else {
-              return { ...item, photos };
+              return { ...carpentryItem, photos };
             }
           }
           return item;
@@ -777,7 +791,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                 <button
                   type="button"
                   onClick={() => handleCountChange(-1)}
-                  disabled={dynamicCount === 0}
+                  disabled={(dynamicCount as number) === 0}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   aria-label="Decrementar cantidad"
                 >
@@ -888,7 +902,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
                 const needsValidation = cantidad > 0;
                 const hasMultipleUnits = cantidad > 1;
-                const units = item.units || [];
+                const units = (item as ChecklistCarpentryItem).units || [];
 
                 return (
                   <div key={`${item.id}-${cantidad}-single`} className="space-y-4">
@@ -991,7 +1005,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                                     const currentBadElements = unit.badElements || [];
                                                     const updatedBadElements = e.target.checked
                                                       ? [...currentBadElements, badElement.id]
-                                                      : currentBadElements.filter((id) => id !== badElement.id);
+                                                      : currentBadElements.filter((id: string) => id !== badElement.id);
                                                     handleSingleCarpentryBadElementsChange(item.id, index, updatedBadElements);
                                                   }}
                                                   className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
@@ -1025,12 +1039,22 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           type="file"
                                           accept="image/*"
                                           multiple
-                                          onChange={(e) => {
+                                          onChange={async (e) => {
                                             const files = Array.from(e.target.files || []);
-                                            const newPhotos: FileUpload[] = files.map((file) => ({
-                                              id: `${Date.now()}-${Math.random()}`,
-                                              file,
-                                              preview: URL.createObjectURL(file),
+                                            const newPhotos: FileUpload[] = await Promise.all(files.map(async (file) => {
+                                              const reader = new FileReader();
+                                              const data = await new Promise<string>((resolve) => {
+                                                reader.onload = () => resolve(reader.result as string);
+                                                reader.readAsDataURL(file);
+                                              });
+                                              return {
+                                                id: `${Date.now()}-${Math.random()}`,
+                                                name: file.name,
+                                                size: file.size,
+                                                type: file.type,
+                                                data: data.split(',')[1], // Remove data:image/...;base64, prefix
+                                                uploadedAt: new Date().toISOString(),
+                                              };
                                             }));
                                             handleSingleCarpentryPhotosChange(item.id, index, [...(unit.photos || []), ...newPhotos]);
                                           }}
@@ -1038,17 +1062,17 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                         />
                                         {unit.photos && unit.photos.length > 0 && (
                                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                            {unit.photos.map((photo) => (
+                                            {unit.photos.map((photo: FileUpload) => (
                                               <div key={photo.id} className="relative">
                                                 <img
-                                                  src={photo.preview}
+                                                  src={`data:${photo.type};base64,${photo.data}`}
                                                   alt="Preview"
                                                   className="w-full h-20 object-cover rounded"
                                                 />
                                                 <button
                                                   type="button"
                                                   onClick={() => {
-                                                    const updatedPhotos = unit.photos?.filter((p) => p.id !== photo.id) || [];
+                                                    const updatedPhotos = unit.photos?.filter((p: FileUpload) => p.id !== photo.id) || [];
                                                     handleSingleCarpentryPhotosChange(item.id, index, updatedPhotos);
                                                   }}
                                                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
@@ -1071,7 +1095,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
                               {STATUS_OPTIONS.map((option) => {
-                                const isSelected = item.estado === option.value;
+                                const carpentryItem = item as ChecklistCarpentryItem;
+                                const isSelected = carpentryItem.estado === option.value;
                                 return (
                                   <button
                                     key={option.value}
@@ -1094,7 +1119,10 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                             </div>
 
                             {/* Details for single unit (if necesita reparación or necesita reemplazo) */}
-                            {(item.estado === "necesita_reparacion" || item.estado === "necesita_reemplazo") && (
+                            {(() => {
+                              const carpentryItem = item as ChecklistCarpentryItem;
+                              return (carpentryItem.estado === "necesita_reparacion" || carpentryItem.estado === "necesita_reemplazo");
+                            })() && (
                               <div className="space-y-4 pt-2">
                                 {/* Bad Elements Checkboxes */}
                                 <div className="space-y-2">
@@ -1108,7 +1136,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       { id: "oxidacion", label: "Oxidación" },
                                       { id: "otros", label: "Otros" },
                                     ].map((badElement) => {
-                                      const isChecked = item.badElements?.includes(badElement.id) || false;
+                                      const carpentryItem = item as ChecklistCarpentryItem;
+                                      const isChecked = carpentryItem.badElements?.includes(badElement.id) || false;
                                       return (
                                         <label
                                           key={badElement.id}
@@ -1118,7 +1147,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                             type="checkbox"
                                             checked={isChecked}
                                             onChange={(e) => {
-                                              const currentBadElements = item.badElements || [];
+                                              const carpentryItem = item as ChecklistCarpentryItem;
+                                              const currentBadElements = carpentryItem.badElements || [];
                                               const updatedBadElements = e.target.checked
                                                 ? [...currentBadElements, badElement.id]
                                                 : currentBadElements.filter((id) => id !== badElement.id);
@@ -1139,7 +1169,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                     Notas:
                                   </Label>
                                   <Textarea
-                                    value={item.notes || ""}
+                                    value={(item as ChecklistCarpentryItem).notes || ""}
                                     onChange={(e) => handleSingleCarpentryNotesChange(item.id, null, e.target.value)}
                                     placeholder="Describe el estado del elemento..."
                                     className="min-h-[80px] text-xs sm:text-sm"
@@ -1155,30 +1185,43 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                     type="file"
                                     accept="image/*"
                                     multiple
-                                    onChange={(e) => {
+                                    onChange={async (e) => {
                                       const files = Array.from(e.target.files || []);
-                                      const newPhotos: FileUpload[] = files.map((file) => ({
-                                        id: `${Date.now()}-${Math.random()}`,
-                                        file,
-                                        preview: URL.createObjectURL(file),
+                                      const newPhotos: FileUpload[] = await Promise.all(files.map(async (file) => {
+                                        const reader = new FileReader();
+                                        const data = await new Promise<string>((resolve) => {
+                                          reader.onload = () => resolve(reader.result as string);
+                                          reader.readAsDataURL(file);
+                                        });
+                                        return {
+                                          id: `${Date.now()}-${Math.random()}`,
+                                          name: file.name,
+                                          size: file.size,
+                                          type: file.type,
+                                          data: data.split(',')[1], // Remove data:image/...;base64, prefix
+                                          uploadedAt: new Date().toISOString(),
+                                        };
                                       }));
-                                      handleSingleCarpentryPhotosChange(item.id, null, [...(item.photos || []), ...newPhotos]);
+                                      handleSingleCarpentryPhotosChange(item.id, null, [...((item as ChecklistCarpentryItem).photos || []), ...newPhotos]);
                                     }}
                                     className="w-full text-xs sm:text-sm"
                                   />
-                                  {item.photos && item.photos.length > 0 && (
+                                  {(() => {
+                                    const carpentryItem = item as ChecklistCarpentryItem;
+                                    return carpentryItem.photos && carpentryItem.photos.length > 0;
+                                  })() && (
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                      {item.photos.map((photo) => (
+                                      {((item as ChecklistCarpentryItem).photos || []).map((photo: FileUpload) => (
                                         <div key={photo.id} className="relative">
                                           <img
-                                            src={photo.preview}
+                                            src={`data:${photo.type};base64,${photo.data}`}
                                             alt="Preview"
                                             className="w-full h-20 object-cover rounded"
                                           />
                                           <button
                                             type="button"
                                             onClick={() => {
-                                              const updatedPhotos = item.photos?.filter((p) => p.id !== photo.id) || [];
+                                              const updatedPhotos = (item as ChecklistCarpentryItem).photos?.filter((p: FileUpload) => p.id !== photo.id) || [];
                                               handleSingleCarpentryPhotosChange(item.id, null, updatedPhotos);
                                             }}
                                             className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
@@ -1450,7 +1493,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                 const cantidad = item.cantidad || 0;
                 const needsValidation = cantidad > 0;
                 const hasMultipleUnits = cantidad > 1;
-                const units = item.units || [];
+                const units = (item as ChecklistCarpentryItem).units || [];
                 
                 if (itemConfig.id === "ventanas") {
                   console.log(`Rendering ${itemConfig.id}:`, {
@@ -1564,7 +1607,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                                     const currentBadElements = unit.badElements || [];
                                                     const updatedBadElements = e.target.checked
                                                       ? [...currentBadElements, badElement.id]
-                                                      : currentBadElements.filter((id) => id !== badElement.id);
+                                                      : currentBadElements.filter((id: string) => id !== badElement.id);
                                                     handleCarpentryBadElementsChange(item.id, index, updatedBadElements);
                                                   }}
                                                   className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
@@ -1598,12 +1641,22 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           type="file"
                                           accept="image/*"
                                           multiple
-                                          onChange={(e) => {
+                                          onChange={async (e) => {
                                             const files = Array.from(e.target.files || []);
-                                            const newPhotos: FileUpload[] = files.map((file) => ({
-                                              id: `${Date.now()}-${Math.random()}`,
-                                              file,
-                                              preview: URL.createObjectURL(file),
+                                            const newPhotos: FileUpload[] = await Promise.all(files.map(async (file) => {
+                                              const reader = new FileReader();
+                                              const data = await new Promise<string>((resolve) => {
+                                                reader.onload = () => resolve(reader.result as string);
+                                                reader.readAsDataURL(file);
+                                              });
+                                              return {
+                                                id: `${Date.now()}-${Math.random()}`,
+                                                name: file.name,
+                                                size: file.size,
+                                                type: file.type,
+                                                data: data.split(',')[1], // Remove data:image/...;base64, prefix
+                                                uploadedAt: new Date().toISOString(),
+                                              };
                                             }));
                                             handleCarpentryPhotosChange(item.id, index, [...(unit.photos || []), ...newPhotos]);
                                           }}
@@ -1611,17 +1664,17 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                         />
                                         {unit.photos && unit.photos.length > 0 && (
                                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                            {unit.photos.map((photo) => (
+                                            {unit.photos.map((photo: FileUpload) => (
                                               <div key={photo.id} className="relative">
                                                 <img
-                                                  src={photo.preview}
+                                                  src={`data:${photo.type};base64,${photo.data}`}
                                                   alt="Preview"
                                                   className="w-full h-20 object-cover rounded"
                                                 />
                                                 <button
                                                   type="button"
                                                   onClick={() => {
-                                                    const updatedPhotos = unit.photos?.filter((p) => p.id !== photo.id) || [];
+                                                    const updatedPhotos = unit.photos?.filter((p: FileUpload) => p.id !== photo.id) || [];
                                                     handleCarpentryPhotosChange(item.id, index, updatedPhotos);
                                                   }}
                                                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
@@ -1644,7 +1697,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                           <div className="space-y-4">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
                               {STATUS_OPTIONS.map((option) => {
-                                const isSelected = item.estado === option.value;
+                                const carpentryItem = item as ChecklistCarpentryItem;
+                                const isSelected = carpentryItem.estado === option.value;
                                 return (
                                   <button
                                     key={option.value}
@@ -1667,7 +1721,10 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                             </div>
 
                             {/* Details for single unit (if necesita reparación or necesita reemplazo) */}
-                            {(item.estado === "necesita_reparacion" || item.estado === "necesita_reemplazo") && (
+                            {(() => {
+                              const carpentryItem = item as ChecklistCarpentryItem;
+                              return (carpentryItem.estado === "necesita_reparacion" || carpentryItem.estado === "necesita_reemplazo");
+                            })() && (
                               <div className="space-y-4 pt-2">
                                 {/* Bad Elements Checkboxes */}
                                 <div className="space-y-2">
@@ -1681,7 +1738,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       { id: "oxidacion", label: "Oxidación" },
                                       { id: "otros", label: "Otros" },
                                     ].map((badElement) => {
-                                      const isChecked = item.badElements?.includes(badElement.id) || false;
+                                      const carpentryItem = item as ChecklistCarpentryItem;
+                                      const isChecked = carpentryItem.badElements?.includes(badElement.id) || false;
                                       return (
                                         <label
                                           key={badElement.id}
@@ -1691,10 +1749,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                             type="checkbox"
                                             checked={isChecked}
                                             onChange={(e) => {
-                                              const currentBadElements = item.badElements || [];
+                                              const carpentryItem = item as ChecklistCarpentryItem;
+                                              const currentBadElements = carpentryItem.badElements || [];
                                               const updatedBadElements = e.target.checked
                                                 ? [...currentBadElements, badElement.id]
-                                                : currentBadElements.filter((id) => id !== badElement.id);
+                                                : currentBadElements.filter((id: string) => id !== badElement.id);
                                               handleCarpentryBadElementsChange(item.id, null, updatedBadElements);
                                             }}
                                             className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
@@ -1712,7 +1771,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                     Notas:
                                   </Label>
                                   <Textarea
-                                    value={item.notes || ""}
+                                    value={(item as ChecklistCarpentryItem).notes || ""}
                                     onChange={(e) => handleCarpentryNotesChange(item.id, null, e.target.value)}
                                     placeholder="Describe el estado del elemento..."
                                     className="min-h-[80px] text-xs sm:text-sm"
@@ -1728,30 +1787,43 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                     type="file"
                                     accept="image/*"
                                     multiple
-                                    onChange={(e) => {
+                                    onChange={async (e) => {
                                       const files = Array.from(e.target.files || []);
-                                      const newPhotos: FileUpload[] = files.map((file) => ({
-                                        id: `${Date.now()}-${Math.random()}`,
-                                        file,
-                                        preview: URL.createObjectURL(file),
+                                      const newPhotos: FileUpload[] = await Promise.all(files.map(async (file) => {
+                                        const reader = new FileReader();
+                                        const data = await new Promise<string>((resolve) => {
+                                          reader.onload = () => resolve(reader.result as string);
+                                          reader.readAsDataURL(file);
+                                        });
+                                        return {
+                                          id: `${Date.now()}-${Math.random()}`,
+                                          name: file.name,
+                                          size: file.size,
+                                          type: file.type,
+                                          data: data.split(',')[1], // Remove data:image/...;base64, prefix
+                                          uploadedAt: new Date().toISOString(),
+                                        };
                                       }));
-                                      handleCarpentryPhotosChange(item.id, null, [...(item.photos || []), ...newPhotos]);
+                                      handleCarpentryPhotosChange(item.id, null, [...((item as ChecklistCarpentryItem).photos || []), ...newPhotos]);
                                     }}
                                     className="w-full text-xs sm:text-sm"
                                   />
-                                  {item.photos && item.photos.length > 0 && (
+                                  {(() => {
+                                    const carpentryItem = item as ChecklistCarpentryItem;
+                                    return carpentryItem.photos && carpentryItem.photos.length > 0;
+                                  })() && (
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                      {item.photos.map((photo) => (
+                                      {((item as ChecklistCarpentryItem).photos || []).map((photo: FileUpload) => (
                                         <div key={photo.id} className="relative">
                                           <img
-                                            src={photo.preview}
+                                            src={`data:${photo.type};base64,${photo.data}`}
                                             alt="Preview"
                                             className="w-full h-20 object-cover rounded"
                                           />
                                           <button
                                             type="button"
                                             onClick={() => {
-                                              const updatedPhotos = item.photos?.filter((p) => p.id !== photo.id) || [];
+                                              const updatedPhotos = (item as ChecklistCarpentryItem).photos?.filter((p: FileUpload) => p.id !== photo.id) || [];
                                               handleCarpentryPhotosChange(item.id, null, updatedPhotos);
                                             }}
                                             className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
@@ -1953,7 +2025,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
               <button
                 type="button"
                 onClick={() => handleCountChange(-1)}
-                disabled={dynamicCount === 0}
+                  disabled={(dynamicCount as number) === 0}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                 aria-label="Decrementar cantidad"
               >

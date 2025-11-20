@@ -125,16 +125,28 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
     try {
       setError(null);
 
-      // Update all categories in parallel
-      const updatePromises = Object.entries(percentages).map(([categoryId, percentage]) =>
-        supabase
+      // Solo actualizar categorías con cambios reales
+      const categoriesToUpdate = categories.filter(cat => {
+        const newPercentage = percentages[cat.id];
+        return newPercentage !== undefined && newPercentage !== cat.percentage;
+      });
+
+      if (categoriesToUpdate.length === 0) {
+        toast.info('No hay cambios para guardar');
+        return true;
+      }
+
+      // Update all changed categories in parallel
+      const updatePromises = categoriesToUpdate.map(cat => {
+        const newPercentage = percentages[cat.id];
+        return supabase
           .from('property_dynamic_categories')
           .update({
-            percentage: percentage,
+            percentage: newPercentage,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', categoryId)
-      );
+          .eq('id', cat.id);
+      });
 
       const results = await Promise.all(updatePromises);
       const hasErrors = results.some(result => result.error);
@@ -157,7 +169,7 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
       toast.error(errorMessage);
       return false;
     }
-  }, [supabase, updatePropertyLastUpdate, fetchCategories]);
+  }, [supabase, updatePropertyLastUpdate, fetchCategories, categories]);
 
   useEffect(() => {
     fetchCategories();

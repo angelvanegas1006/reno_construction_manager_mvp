@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useMemo, useCallback } from 'react';
-import { Trash2, Save, Send, Calendar, Clock } from 'lucide-react';
+import { Trash2, Save, Send, Calendar, Clock, Edit2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { useDynamicCategories } from '@/hooks/useDynamicCategories';
 import { SendUpdateDialog } from './send-update-dialog';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/lib/supabase/types';
 
 type SupabaseProperty = Database['public']['Tables']['properties']['Row'];
@@ -38,18 +41,29 @@ function formatActivitiesText(text: string): string {
 }
 
 export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgressProps) {
-  const { categories, loading, saveAllProgress, deleteCategory } = useDynamicCategories(property.id);
+  const { categories, loading, saveAllProgress, deleteCategory, refetch } = useDynamicCategories(property.id);
   const [localPercentages, setLocalPercentages] = useState<Record<string, number>>({});
+  const [savedPercentages, setSavedPercentages] = useState<Record<string, number>>({}); // Valores guardados (mínimos permitidos)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [sendUpdateOpen, setSendUpdateOpen] = useState(false);
+  const [editingInput, setEditingInput] = useState<Record<string, boolean>>({}); // Control de inputs manuales
+  const [isExtracting, setIsExtracting] = useState(false);
+  const supabase = createClient();
 
-  // Initialize local percentages from categories
+  // Show extract button only if: budget_pdf_url exists AND no categories created
+  const showExtractButton = property.budget_pdf_url && categories.length === 0;
+
+  // Initialize local and saved percentages from categories
   useMemo(() => {
     const initial: Record<string, number> = {};
+    const saved: Record<string, number> = {};
     categories.forEach(cat => {
-      initial[cat.id] = cat.percentage ?? 0;
+      const savedValue = cat.percentage ?? 0;
+      initial[cat.id] = savedValue;
+      saved[cat.id] = savedValue; // Guardar el valor guardado como mínimo permitido
     });
     setLocalPercentages(initial);
+    setSavedPercentages(saved);
     setHasUnsavedChanges(false);
   }, [categories]);
 
@@ -63,20 +77,82 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
     return Math.round(total / categories.length);
   }, [categories, localPercentages]);
 
+  // Get minimum allowed value for a category (last saved value or 0)
+  const getMinAllowedValue = useCallback((categoryId: string): number => {
+    const savedValue = savedPercentages[categoryId] ?? 0;
+    return Math.max(savedValue, 0);
+  }, [savedPercentages]);
+
+  // Handle slider change with NO RETROCESO logic
   const handleSliderChange = useCallback((categoryId: string, value: number) => {
+    const minAllowedValue = getMinAllowedValue(categoryId);
+    // Ajustar el valor si intenta bajar del mínimo permitido
+    const adjustedValue = Math.max(value, minAllowedValue);
+    
     setLocalPercentages(prev => ({
       ...prev,
-      [categoryId]: value,
+      [categoryId]: adjustedValue,
     }));
-    setHasUnsavedChanges(true);
-  }, []);
+    
+    // Verificar si hay cambios sin guardar
+    const savedValue = savedPercentages[categoryId] ?? 0;
+    if (adjustedValue !== savedValue) {
+      setHasUnsavedChanges(true);
+    }
+  }, [getMinAllowedValue, savedPercentages]);
+
+  // Handle manual input change
+  const handleInputChange = useCallback((categoryId: string, inputValue: string) => {
+    const minAllowedValue = getMinAllowedValue(categoryId);
+    const numValue = parseInt(inputValue, 10);
+    
+    // Validar: entre minAllowedValue y 100
+    if (!isNaN(numValue)) {
+      const clampedValue = Math.min(Math.max(numValue, minAllowedValue), 100);
+      setLocalPercentages(prev => ({
+        ...prev,
+        [categoryId]: clampedValue,
+      }));
+      
+      // Verificar si hay cambios sin guardar
+      const savedValue = savedPercentages[categoryId] ?? 0;
+      if (clampedValue !== savedValue) {
+        setHasUnsavedChanges(true);
+      }
+    }
+  }, [getMinAllowedValue, savedPercentages]);
 
   const handleSave = useCallback(async () => {
-    const success = await saveAllProgress(property.id, localPercentages);
-    if (success) {
-      setHasUnsavedChanges(false);
+    // Solo guardar cambios reales (valores diferentes a los guardados)
+    const changesToSave: Record<string, number> = {};
+    categories.forEach(cat => {
+      const currentValue = localPercentages[cat.id];
+      const savedValue = savedPercentages[cat.id] ?? 0;
+      if (currentValue !== undefined && currentValue !== savedValue) {
+        changesToSave[cat.id] = currentValue;
+      }
+    });
+
+    // Si no hay cambios, no hacer nada
+    if (Object.keys(changesToSave).length === 0) {
+      toast.info('No hay cambios para guardar');
+      return;
     }
-  }, [property.id, localPercentages, saveAllProgress]);
+
+    const success = await saveAllProgress(property.id, changesToSave);
+    if (success) {
+      // Actualizar los valores guardados (nuevos mínimos permitidos)
+      setSavedPercentages(prev => {
+        const updated = { ...prev };
+        Object.entries(changesToSave).forEach(([catId, value]) => {
+          updated[catId] = value;
+        });
+        return updated;
+      });
+      setHasUnsavedChanges(false);
+      setEditingInput({}); // Cerrar todos los inputs
+    }
+  }, [property.id, localPercentages, savedPercentages, categories, saveAllProgress]);
 
   const handleDelete = useCallback(async (categoryId: string) => {
     const confirmed = window.confirm('¿Estás seguro de que quieres eliminar esta categoría?');
@@ -90,6 +166,49 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
       });
     }
   }, [deleteCategory]);
+
+  // Handle PDF extraction
+  const handleExtractPdfInfo = useCallback(async () => {
+    // Validación: verificar que existe budget_pdf_url
+    if (!property?.budget_pdf_url) {
+      toast.error("No hay URL de presupuesto disponible");
+      return;
+    }
+
+    setIsExtracting(true);
+
+    try {
+      // Invocar el Edge Function extract-pdf-info
+      const { data, error } = await supabase.functions.invoke('extract-pdf-info', {
+        body: {
+          budget_pdf_url: property.budget_pdf_url,
+          property_id: property.id,
+          unique_id: property["Unique ID From Engagements"],
+          property_name: property.name,
+          address: property.address,
+          client_name: property["Client Name"],
+          client_email: property["Client Email"],
+          renovation_type: property.renovation_type,
+          area_cluster: property.area_cluster,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Extracción de información PDF iniciada correctamente", {
+        description: "El proceso de extracción se está ejecutando. Las categorías aparecerán cuando se complete el procesamiento.",
+      });
+    } catch (err) {
+      console.error('Error al extraer información del PDF:', err);
+      toast.error("Error al iniciar la extracción", {
+        description: err instanceof Error ? err.message : "Ha ocurrido un error inesperado.",
+      });
+    } finally {
+      setIsExtracting(false);
+    }
+  }, [property, supabase.functions]);
 
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return 'No definida';
@@ -170,10 +289,34 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
         <div className="space-y-4">
           <Label className="text-base font-semibold">Categorías</Label>
           {categories.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay categorías definidas</p>
+            <div className="space-y-3">
+              {showExtractButton ? (
+                <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    No hay categorías definidas. Puedes extraer las categorías automáticamente desde el PDF del presupuesto.
+                  </p>
+                  <Button
+                    onClick={handleExtractPdfInfo}
+                    disabled={isExtracting}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {isExtracting ? "Extrayendo..." : "Extraer Información PDF"}
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No hay categorías definidas</p>
+              )}
+            </div>
           ) : (
             categories.map((category) => {
               const percentage = localPercentages[category.id] ?? category.percentage ?? 0;
+              const savedValue = savedPercentages[category.id] ?? category.percentage ?? 0;
+              const minAllowedValue = getMinAllowedValue(category.id);
+              const hasChanged = percentage !== savedValue;
+              const isEditingInput = editingInput[category.id] || false;
+
               return (
                 <div
                   key={category.id}
@@ -181,7 +324,14 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-foreground">{category.category_name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground">{category.category_name}</h3>
+                        {hasChanged && (
+                          <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700">
+                            Sin guardar
+                          </Badge>
+                        )}
+                      </div>
                       {category.activities_text && (
                         <div className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
                           {formatActivitiesText(category.activities_text)}
@@ -201,7 +351,44 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm">Progreso</Label>
-                      <span className="text-sm font-semibold">{percentage}%</span>
+                      <div className="flex items-center gap-2">
+                        {isEditingInput ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              min={minAllowedValue}
+                              max={100}
+                              value={percentage}
+                              onChange={(e) => handleInputChange(category.id, e.target.value)}
+                              onBlur={() => setEditingInput(prev => ({ ...prev, [category.id]: false }))}
+                              className="w-16 h-7 text-sm text-center"
+                              autoFocus
+                            />
+                            <span className="text-sm text-muted-foreground">%</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setEditingInput(prev => ({ ...prev, [category.id]: false }))}
+                            >
+                              ✓
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm font-semibold">{percentage}%</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setEditingInput(prev => ({ ...prev, [category.id]: true }))}
+                              title="Editar manualmente"
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     {/* Slider with blue background and visible thumb */}
                     <div className="relative h-3">
@@ -217,13 +404,20 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                       {/* Slider input on top - transparent track, only thumb visible */}
                       <input
                         type="range"
-                        min="0"
-                        max="100"
+                        min={minAllowedValue}
+                        max={100}
+                        step={5}
                         value={percentage}
                         onChange={(e) => handleSliderChange(category.id, parseInt(e.target.value))}
                         className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-10"
+                        title={`Mínimo permitido: ${minAllowedValue}%`}
                       />
                     </div>
+                    {minAllowedValue > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Mínimo permitido: {minAllowedValue}% (último valor guardado)
+                      </p>
+                    )}
                   </div>
                 </div>
               );

@@ -88,7 +88,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
           const newCantidad = Math.max(0, Math.min(MAX_CLIMATIZATION_QUANTITY, currentCantidad + delta));
           
           // Initialize or update units array based on new cantidad
-          let units = item.units || [];
+          let units = (item as ChecklistClimatizationItem).units || [];
           
           if (newCantidad > 1) {
             // Ensure we have exactly newCantidad units
@@ -122,15 +122,16 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
       const currentItems = section.climatizationItems || climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
+          const climatizationItem = item as ChecklistClimatizationItem;
+          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
             // Update specific unit
-            const updatedUnits = item.units.map((unit, idx) =>
+            const updatedUnits = climatizationItem.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, estado: status } : unit
             );
-            return { ...item, units: updatedUnits };
+            return { ...climatizationItem, units: updatedUnits };
           } else {
             // Update single estado
-            return { ...item, estado: status };
+            return { ...climatizationItem, estado: status };
           }
         }
         return item;
@@ -142,15 +143,16 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
       const currentItems = section.climatizationItems || climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
+          const climatizationItem = item as ChecklistClimatizationItem;
+          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
             // Update specific unit
-            const updatedUnits = item.units.map((unit, idx) =>
+            const updatedUnits = climatizationItem.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, notes } : unit
             );
-            return { ...item, units: updatedUnits };
+            return { ...climatizationItem, units: updatedUnits };
           } else {
             // Update single notes
-            return { ...item, notes };
+            return { ...climatizationItem, notes };
           }
         }
         return item;
@@ -162,15 +164,16 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
       const currentItems = section.climatizationItems || climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
+          const climatizationItem = item as ChecklistClimatizationItem;
+          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
             // Update specific unit
-            const updatedUnits = item.units.map((unit, idx) =>
+            const updatedUnits = climatizationItem.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, photos } : unit
             );
-            return { ...item, units: updatedUnits };
+            return { ...climatizationItem, units: updatedUnits };
           } else {
             // Update single photos
-            return { ...item, photos };
+            return { ...climatizationItem, photos };
           }
         }
         return item;
@@ -250,7 +253,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
               const cantidad = item.cantidad || 0;
               const needsValidation = cantidad > 0;
               const hasMultipleUnits = cantidad > 1;
-              const units = item.units || [];
+              const units = (item as ChecklistClimatizationItem).units || [];
 
               return (
                 <div key={item.id} className="space-y-4 border-b pb-6 last:border-b-0 last:pb-0">
@@ -369,8 +372,9 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                             {STATUS_OPTIONS.map((option) => {
                               const Icon = option.icon;
-                              const isSelected = item.estado === option.value;
-                              const requiresDetails = item.estado === "necesita_reparacion" || item.estado === "necesita_reemplazo";
+                              const climatizationItem = item as ChecklistClimatizationItem;
+                              const isSelected = climatizationItem.estado === option.value;
+                              const requiresDetails = climatizationItem.estado === "necesita_reparacion" || climatizationItem.estado === "necesita_reemplazo";
 
                               return (
                                 <button
@@ -394,13 +398,16 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                           </div>
 
                           {/* Notes (required when status is "necesita_reparacion" or "necesita_reemplazo") */}
-                          {(item.estado === "necesita_reparacion" || item.estado === "necesita_reemplazo") && (
+                          {(() => {
+                            const climatizationItem = item as ChecklistClimatizationItem;
+                            return (climatizationItem.estado === "necesita_reparacion" || climatizationItem.estado === "necesita_reemplazo");
+                          })() && (
                             <div className="space-y-2">
                               <Label className="text-sm font-medium text-foreground leading-tight">
                                 {t.checklist.notes} <span className="text-red-500">*</span>
                               </Label>
                               <Textarea
-                                value={item.notes || ""}
+                                value={(item as ChecklistClimatizationItem).notes || ""}
                                 onChange={(e) => handleClimatizationNotesChange(item.id, null, e.target.value)}
                                 placeholder={t.checklist.observationsPlaceholder}
                                 className="min-h-[80px] text-sm leading-relaxed"
@@ -410,12 +417,15 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                           )}
 
                           {/* Photos (required when status is "necesita_reparacion" or "necesita_reemplazo") */}
-                          {(item.estado === "necesita_reparacion" || item.estado === "necesita_reemplazo") && (
+                          {(() => {
+                            const climatizationItem = item as ChecklistClimatizationItem;
+                            return (climatizationItem.estado === "necesita_reparacion" || climatizationItem.estado === "necesita_reemplazo");
+                          })() && (
                             <div className="space-y-2">
                               <ChecklistUploadZoneComponent
                                 title="Fotos"
                                 description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: [] }}
+                                uploadZone={{ id: `${item.id}-photos`, photos: (item as ChecklistClimatizationItem).photos || [], videos: [] }}
                                 onUpdate={(updates) => {
                                   handleClimatizationPhotosChange(item.id, null, updates.photos);
                                 }}
