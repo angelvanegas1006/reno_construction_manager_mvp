@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { ArrowLeft, MapPin, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,37 +32,151 @@ export default function RenoPropertyDetailPage() {
   const property: Property | null = supabaseProperty ? convertSupabasePropertyToProperty(supabaseProperty) : null;
   const isLoading = supabaseLoading;
 
+  // Local state for form fields to enable fluid typing
+  const [localEstimatedVisitDate, setLocalEstimatedVisitDate] = useState<string | undefined>(property?.estimatedVisitDate);
+  const [localSetupStatusNotes, setLocalSetupStatusNotes] = useState<string | undefined>(property?.setupStatusNotes);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Update local state when property changes
+  useEffect(() => {
+    if (property) {
+      setLocalEstimatedVisitDate(property.estimatedVisitDate);
+      setLocalSetupStatusNotes(property.setupStatusNotes);
+      setHasUnsavedChanges(false);
+    }
+  }, [property?.estimatedVisitDate, property?.setupStatusNotes]);
+
+  // Debounce timer refs
+  const notesDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const dateDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
   // Determine phase using "Set Up Status" from Supabase
   const getPropertyRenoPhase = useCallback((): RenoKanbanPhase | null => {
     if (!supabaseProperty) return null;
     return getPropertyRenoPhaseFromSupabase(supabaseProperty);
   }, [supabaseProperty]);
 
-  // Auto-save function - saves to Supabase
-  const handleAutoSave = useCallback(async (updates: Partial<Property>) => {
-    if (!property || !supabaseProperty) return;
+  // Save function - saves to Supabase with correct field names
+  const saveToSupabase = useCallback(async (showToast = true) => {
+    if (!propertyId || !supabaseProperty) return false;
     
-    // Map Property updates to Supabase PropertyUpdate format
-    // Using 'any' to allow dynamic field names (estimated_visit_date or "Estimated Visit Date")
-    const supabaseUpdates: PropertyUpdate & Record<string, any> = {};
+    setIsSaving(true);
     
-    if (updates.estimatedVisitDate !== undefined) {
-      // Try snake_case first (most common in Supabase)
-      // TODO: Update this once you confirm the exact field name in Supabase
-      supabaseUpdates['estimated_visit_date'] = updates.estimatedVisitDate || null;
+    try {
+      // Get current phase before updating
+      const currentPhase = getPropertyRenoPhase();
+      
+      const supabaseUpdates: PropertyUpdate & Record<string, any> = {
+        'Estimated Visit Date': localEstimatedVisitDate || null,
+        'Setup Status Notes': localSetupStatusNotes || null,
+        updated_at: new Date().toISOString(),
+      };
+      
+      // If we're in "upcoming-settlements" phase and Estimated Visit Date is filled,
+      // automatically move to "initial-check" phase
+      const phaseChanged = currentPhase === 'upcoming-settlements' && localEstimatedVisitDate;
+      if (phaseChanged) {
+        // Update "Set Up Status" to move to initial-check phase
+        supabaseUpdates['Set Up Status'] = 'initial check';
+      }
+      
+      const success = await updateSupabaseProperty(supabaseUpdates);
+      
+      if (success) {
+        setHasUnsavedChanges(false);
+        
+        if (showToast) {
+          if (phaseChanged) {
+            toast.success("Cambios guardados. La propiedad ha pasado a Check Inicial", {
+              description: "La propiedad se ha movido automáticamente a la fase de Check Inicial.",
+            });
+          } else {
+            toast.success("Cambios guardados correctamente");
+          }
+        }
+        
+        // Refetch to sync with server and get updated phase
+        await refetch();
+        
+        // If phase changed, redirect to initial-check page (which will show checklist)
+        if (phaseChanged) {
+          // Small delay to let the toast show
+          setTimeout(() => {
+            router.push(`/reno/construction-manager/property/${propertyId}/checklist`);
+          }, 1500);
+        }
+      } else {
+        if (showToast) {
+          toast.error("Error al guardar los cambios");
+        }
+      }
+      
+      return success;
+    } catch (error) {
+      if (showToast) {
+        toast.error("Error al guardar los cambios");
+      }
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [propertyId, supabaseProperty, localEstimatedVisitDate, localSetupStatusNotes, updateSupabaseProperty, refetch, getPropertyRenoPhase, router]);
+
+  // Handle notes change
+  const handleNotesChange = useCallback((value: string) => {
+    setLocalSetupStatusNotes(value);
+    setHasUnsavedChanges(true);
+    
+    // Clear existing debounce timer
+    if (notesDebounceRef.current) {
+      clearTimeout(notesDebounceRef.current);
     }
     
-    if (updates.setupStatusNotes !== undefined) {
-      supabaseUpdates.notes = updates.setupStatusNotes || null;
+    // Auto-save after 2 seconds of inactivity (silent, no toast)
+    notesDebounceRef.current = setTimeout(async () => {
+      await saveToSupabase(false);
+    }, 2000);
+  }, [saveToSupabase]);
+
+  // Handle date change
+  const handleDateChange = useCallback((date: string | undefined) => {
+    setLocalEstimatedVisitDate(date);
+    setHasUnsavedChanges(true);
+    
+    // Clear existing debounce timer
+    if (dateDebounceRef.current) {
+      clearTimeout(dateDebounceRef.current);
     }
     
-    // Save to Supabase
-    const success = await updateSupabaseProperty(supabaseUpdates);
-    if (success) {
-      // Refetch to get updated data
-      await refetch();
+    // Auto-save after 2 seconds of inactivity (silent, no toast)
+    dateDebounceRef.current = setTimeout(async () => {
+      await saveToSupabase(false);
+    }, 2000);
+  }, [saveToSupabase]);
+
+  // Manual save handler
+  const handleManualSave = useCallback(async () => {
+    // Clear any pending debounce timers
+    if (notesDebounceRef.current) {
+      clearTimeout(notesDebounceRef.current);
+      notesDebounceRef.current = null;
     }
-  }, [property, supabaseProperty, updateSupabaseProperty, refetch]);
+    if (dateDebounceRef.current) {
+      clearTimeout(dateDebounceRef.current);
+      dateDebounceRef.current = null;
+    }
+    
+    await saveToSupabase(true);
+  }, [saveToSupabase]);
+
+  // Cleanup debounce timers on unmount
+  useEffect(() => {
+    return () => {
+      if (notesDebounceRef.current) clearTimeout(notesDebounceRef.current);
+      if (dateDebounceRef.current) clearTimeout(dateDebounceRef.current);
+    };
+  }, []);
 
   // Redirect to checklist page if phase is initial-check or final-check
   useEffect(() => {
@@ -123,7 +237,7 @@ export default function RenoPropertyDetailPage() {
               </h1>
               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-6">
                 <span>ID: {property.uniqueIdFromEngagements || property.id}</span>
-                <span>Estado: {getStageLabel(property.currentStage)}</span>
+                <span>Estado: {getRenoPhaseLabel(getPropertyRenoPhase(), t)}</span>
               </p>
             </div>
             <Button
@@ -194,21 +308,6 @@ export default function RenoPropertyDetailPage() {
                   </div>
                 )}
 
-                {/* Estimated Visit Date - Only for initial-check */}
-                {getPropertyRenoPhase() === "initial-check" && property.estimatedVisitDate && (
-                  <div className="pt-2 border-t">
-                    <label className="text-sm font-medium text-muted-foreground">
-                      {t.initialCheck.estimatedVisitDate}
-                    </label>
-                    <p className="mt-1 text-base">
-                      {new Date(property.estimatedVisitDate).toLocaleDateString("es-ES", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                )}
 
                 {/* Reno Type */}
                 {property.renoType && (
@@ -265,14 +364,14 @@ export default function RenoPropertyDetailPage() {
                       {t.upcomingSettlements.estimatedVisitDateDescription}
                     </p>
                     <FutureDatePicker
-                      value={property.estimatedVisitDate}
-                      onChange={(date) => handleAutoSave({ estimatedVisitDate: date })}
+                      value={localEstimatedVisitDate}
+                      onChange={handleDateChange}
                       placeholder="DD/MM/YYYY"
                       errorMessage={t.upcomingSettlements.dateMustBeFuture}
                     />
                   </div>
 
-                  {/* Set Up Status Notes */}
+                  {/* Setup Status Notes */}
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold">
                       {t.upcomingSettlements.setupStatusNotes}
@@ -281,12 +380,95 @@ export default function RenoPropertyDetailPage() {
                       {t.upcomingSettlements.setupStatusNotesDescription}
                     </p>
                     <Textarea
-                      value={property.setupStatusNotes || ""}
-                      onChange={(e) => handleAutoSave({ setupStatusNotes: e.target.value })}
+                      value={localSetupStatusNotes || ""}
+                      onChange={(e) => handleNotesChange(e.target.value)}
                       placeholder={t.upcomingSettlements.setupStatusNotesPlaceholder}
                       rows={4}
                       className="resize-none"
                     />
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      {hasUnsavedChanges && (
+                        <span className="text-amber-600 dark:text-amber-400">
+                          Tienes cambios sin guardar
+                        </span>
+                      )}
+                      {!hasUnsavedChanges && !isSaving && (
+                        <span className="text-green-600 dark:text-green-400">
+                          ✓ Todos los cambios guardados
+                        </span>
+                      )}
+                    </div>
+                    <Button
+                      onClick={handleManualSave}
+                      disabled={isSaving || !hasUnsavedChanges}
+                      className="min-w-[120px]"
+                    >
+                      {isSaving ? (
+                        <>
+                          <span className="mr-2">Guardando...</span>
+                          <span className="animate-spin">⏳</span>
+                        </>
+                      ) : (
+                        "Guardar cambios"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Editable Fields for Initial Check - Estimated Visit Date */}
+            {getPropertyRenoPhase() === "initial-check" && (
+              <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+                <div className="space-y-6">
+                  {/* Estimated Visit Date */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">
+                      {t.initialCheck.estimatedVisitDate}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {t.upcomingSettlements.estimatedVisitDateDescription}
+                    </p>
+                    <FutureDatePicker
+                      value={localEstimatedVisitDate}
+                      onChange={handleDateChange}
+                      placeholder="DD/MM/YYYY"
+                      errorMessage={t.upcomingSettlements.dateMustBeFuture}
+                    />
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      {hasUnsavedChanges && (
+                        <span className="text-amber-600 dark:text-amber-400">
+                          Tienes cambios sin guardar
+                        </span>
+                      )}
+                      {!hasUnsavedChanges && !isSaving && (
+                        <span className="text-green-600 dark:text-green-400">
+                          ✓ Todos los cambios guardados
+                        </span>
+                      )}
+                    </div>
+                    <Button
+                      onClick={handleManualSave}
+                      disabled={isSaving || !hasUnsavedChanges}
+                      className="min-w-[120px]"
+                    >
+                      {isSaving ? (
+                        <>
+                          <span className="mr-2">Guardando...</span>
+                          <span className="animate-spin">⏳</span>
+                        </>
+                      ) : (
+                        "Guardar cambios"
+                      )}
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -298,7 +480,11 @@ export default function RenoPropertyDetailPage() {
             )}
 
             {/* Read-only notice for other phases */}
-            {getPropertyRenoPhase() !== "upcoming-settlements" && getPropertyRenoPhase() !== "reno-in-progress" && (
+            {getPropertyRenoPhase() !== "upcoming-settlements" && 
+             getPropertyRenoPhase() !== "initial-check" && 
+             getPropertyRenoPhase() !== "upcoming" &&
+             getPropertyRenoPhase() !== "reno-in-progress" &&
+             getPropertyRenoPhase() !== "furnishing-cleaning" && (
               <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
                 <p className="text-sm text-muted-foreground">
                   Esta es una vista de solo lectura. El Jefe de Obra puede ver la información pero no editarla.
@@ -338,6 +524,23 @@ function getStageLabel(stage: Property["currentStage"]): string {
     rejected: "Rechazado",
   };
   return labels[stage] || stage;
+}
+
+function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof useI18n>["t"]): string {
+  if (!phase) return "N/A";
+  
+  const phaseLabels: Record<RenoKanbanPhase, string> = {
+    "upcoming-settlements": t.kanban.upcomingSettlements,
+    "initial-check": t.kanban.initialCheck,
+    "upcoming": t.kanban.upcoming,
+    "reno-in-progress": t.kanban.renoInProgress,
+    "furnishing-cleaning": t.kanban.furnishingCleaning,
+    "final-check": t.kanban.finalCheck,
+    "reno-fixes": t.kanban.renoFixes,
+    "done": t.kanban.done,
+  };
+  
+  return phaseLabels[phase] || phase;
 }
 
 

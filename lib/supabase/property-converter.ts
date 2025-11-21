@@ -42,10 +42,13 @@ export function convertSupabasePropertyToProperty(
     realSettlementDate: (supabaseProperty as any)['real_settlement_date'] || 
                        (supabaseProperty as any)['Real Settlement Date'] || 
                        undefined,
-    estimatedVisitDate: (supabaseProperty as any)['estimated_visit_date'] || 
-                        (supabaseProperty as any)['Estimated Visit Date'] || 
+    estimatedVisitDate: (supabaseProperty as any)['Estimated Visit Date'] || 
+                        (supabaseProperty as any)['estimated_visit_date'] || 
                         undefined,
-    setupStatusNotes: supabaseProperty.notes || undefined,
+    setupStatusNotes: (supabaseProperty as any)['Setup Status Notes'] || 
+                      (supabaseProperty as any)['SetUp Notes'] || 
+                      supabaseProperty.notes || 
+                      undefined,
     // Additional Supabase fields
     status: supabaseProperty.status || undefined,
     bedrooms: supabaseProperty.bedrooms || undefined,

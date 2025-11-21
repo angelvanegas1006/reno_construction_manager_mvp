@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Trash2, Save, Send, Calendar, Clock, Edit2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -49,22 +49,63 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
   const [editingInput, setEditingInput] = useState<Record<string, boolean>>({}); // Control de inputs manuales
   const [isExtracting, setIsExtracting] = useState(false);
   const supabase = createClient();
+  const justSavedRef = useRef<Record<string, number> | null>(null); // Track values we just saved
 
   // Show extract button only if: budget_pdf_url exists AND no categories created
   const showExtractButton = property.budget_pdf_url && categories.length === 0;
 
   // Initialize local and saved percentages from categories
-  useMemo(() => {
-    const initial: Record<string, number> = {};
-    const saved: Record<string, number> = {};
-    categories.forEach(cat => {
-      const savedValue = cat.percentage ?? 0;
-      initial[cat.id] = savedValue;
-      saved[cat.id] = savedValue; // Guardar el valor guardado como mínimo permitido
+  useEffect(() => {
+    // If we just saved, preserve those values and clear the ref
+    if (justSavedRef.current) {
+      const savedValues = justSavedRef.current;
+      setLocalPercentages(prev => {
+        const updated = { ...prev };
+        Object.entries(savedValues).forEach(([catId, value]) => {
+          updated[catId] = value;
+        });
+        return updated;
+      });
+      justSavedRef.current = null;
+    }
+    
+    // Only sync when categories change (new categories added/removed or initial load)
+    // Don't reset localPercentages if they already exist (preserves unsaved changes)
+    setLocalPercentages(prev => {
+      const updated = { ...prev };
+      let hasChanges = false;
+      
+      // Add missing categories
+      categories.forEach(cat => {
+        if (updated[cat.id] === undefined) {
+          updated[cat.id] = cat.percentage ?? 0;
+          hasChanges = true;
+        }
+      });
+      
+      // Remove categories that no longer exist
+      const currentCategoryIds = new Set(categories.map(cat => cat.id));
+      Object.keys(updated).forEach(catId => {
+        if (!currentCategoryIds.has(catId)) {
+          delete updated[catId];
+          hasChanges = true;
+        }
+      });
+      
+      return hasChanges ? updated : prev;
     });
-    setLocalPercentages(initial);
-    setSavedPercentages(saved);
-    setHasUnsavedChanges(false);
+    
+    // Always update savedPercentages to reflect current database state
+    setSavedPercentages(prev => {
+      const updated: Record<string, number> = {};
+      categories.forEach(cat => {
+        updated[cat.id] = cat.percentage ?? 0;
+      });
+      // Only update if there are actual changes
+      const hasChanges = categories.length !== Object.keys(prev).length ||
+        categories.some(cat => (prev[cat.id] ?? 0) !== (cat.percentage ?? 0));
+      return hasChanges ? updated : prev;
+    });
   }, [categories]);
 
   // Calculate global progress (average of all categories)
@@ -89,15 +130,18 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
     // Ajustar el valor si intenta bajar del mínimo permitido
     const adjustedValue = Math.max(value, minAllowedValue);
     
-    setLocalPercentages(prev => ({
-      ...prev,
-      [categoryId]: adjustedValue,
-    }));
-    
-    // Verificar si hay cambios sin guardar
-    const savedValue = savedPercentages[categoryId] ?? 0;
-    if (adjustedValue !== savedValue) {
-      setHasUnsavedChanges(true);
+    // Solo actualizar si el valor es válido
+    if (adjustedValue >= minAllowedValue && adjustedValue <= 100) {
+      setLocalPercentages(prev => ({
+        ...prev,
+        [categoryId]: adjustedValue,
+      }));
+      
+      // Verificar si hay cambios sin guardar
+      const savedValue = savedPercentages[categoryId] ?? 0;
+      if (adjustedValue !== savedValue) {
+        setHasUnsavedChanges(true);
+      }
     }
   }, [getMinAllowedValue, savedPercentages]);
 
@@ -141,8 +185,21 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
 
     const success = await saveAllProgress(property.id, changesToSave);
     if (success) {
+      // Guardar los valores que acabamos de guardar en el ref
+      // para que el useEffect no los resetee cuando categories se actualice
+      justSavedRef.current = { ...changesToSave };
+      
       // Actualizar los valores guardados (nuevos mínimos permitidos)
       setSavedPercentages(prev => {
+        const updated = { ...prev };
+        Object.entries(changesToSave).forEach(([catId, value]) => {
+          updated[catId] = value;
+        });
+        return updated;
+      });
+      // IMPORTANTE: Actualizar localPercentages con los valores guardados
+      // para que el slider se posicione correctamente después de guardar
+      setLocalPercentages(prev => {
         const updated = { ...prev };
         Object.entries(changesToSave).forEach(([catId, value]) => {
           updated[catId] = value;
@@ -402,13 +459,19 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                         }}
                       />
                       {/* Slider input on top - transparent track, only thumb visible */}
+                      {/* IMPORTANTE: Usar min={0} siempre para que el thumb se posicione correctamente en el porcentaje absoluto */}
+                      {/* La lógica de "no retroceso" se maneja en handleSliderChange */}
                       <input
+                        key={`slider-${category.id}-${percentage}`}
                         type="range"
-                        min={minAllowedValue}
+                        min={0}
                         max={100}
                         step={5}
-                        value={percentage}
-                        onChange={(e) => handleSliderChange(category.id, parseInt(e.target.value))}
+                        value={Math.max(0, Math.min(100, percentage))}
+                        onChange={(e) => {
+                          const newValue = parseInt(e.target.value, 10);
+                          handleSliderChange(category.id, newValue);
+                        }}
                         className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-10"
                         title={`Mínimo permitido: ${minAllowedValue}%`}
                       />

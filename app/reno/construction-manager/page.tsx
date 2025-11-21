@@ -165,6 +165,28 @@ export default function RenoConstructionManagerHomePage() {
     return sortPropertiesByExpired(filtered);
   }, [propertiesByPhase]);
 
+  // Get upcoming visits (initial-check properties with estimatedVisitDate)
+  const upcomingVisits = useMemo(() => {
+    const initialCheck = propertiesByPhase?.['initial-check'] || [];
+    
+    // Filter properties that have estimatedVisitDate and it's in the future
+    const filtered = initialCheck.filter((p) => {
+      if (!p.estimatedVisitDate) return false;
+      const visitDate = new Date(p.estimatedVisitDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day
+      visitDate.setHours(0, 0, 0, 0);
+      return visitDate >= today; // Only future or today visits
+    });
+    
+    // Sort by date (earliest first)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.estimatedVisitDate || "");
+      const dateB = new Date(b.estimatedVisitDate || "");
+      return dateA.getTime() - dateB.getTime();
+    });
+  }, [propertiesByPhase]);
+
   // Handle property click - navigate to property detail or task (to be defined)
   const handlePropertyClick = (property: Property) => {
     // For now, navigate to property detail page
@@ -221,7 +243,7 @@ export default function RenoConstructionManagerHomePage() {
                 onPropertyClick={handlePropertyClick}
               />
               <RenoHomeVisits
-                visits={visitsForToday}
+                visits={upcomingVisits}
                 onPropertyClick={handlePropertyClick}
                 onAddVisit={handleAddVisit}
               />
@@ -230,7 +252,7 @@ export default function RenoConstructionManagerHomePage() {
             {/* Recent Properties and Portfolio Row */}
             <div className="grid gap-6 md:grid-cols-2">
               <RenoHomeRecentProperties properties={filteredProperties} />
-              <RenoHomePortfolio properties={filteredProperties} />
+              <RenoHomePortfolio properties={filteredProperties} propertiesByPhase={propertiesByPhase} />
             </div>
           </div>
         </div>

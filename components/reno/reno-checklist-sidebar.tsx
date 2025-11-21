@@ -14,6 +14,9 @@ interface RenoChecklistSidebarProps {
   hasUnsavedChanges: boolean;
   habitacionesCount?: number;
   banosCount?: number;
+  onCompleteInspection?: () => void;
+  canCompleteInspection?: boolean;
+  isCompleting?: boolean;
 }
 
 export function RenoChecklistSidebar({
@@ -24,6 +27,9 @@ export function RenoChecklistSidebar({
   hasUnsavedChanges,
   habitacionesCount = 0,
   banosCount = 0,
+  onCompleteInspection,
+  canCompleteInspection = false,
+  isCompleting = false,
 }: RenoChecklistSidebarProps) {
   const { t } = useI18n();
   const [expandedGroups, setExpandedGroups] = useState<string[]>([
@@ -190,6 +196,20 @@ export function RenoChecklistSidebar({
         >
           {t.property.save}
         </Button>
+        {onCompleteInspection && (
+          <Button
+            onClick={onCompleteInspection}
+            className="w-full bg-[var(--prophero-blue-500)] hover:bg-[var(--prophero-blue-600)] text-white"
+            disabled={!canCompleteInspection || isCompleting}
+          >
+            {isCompleting ? "Completando..." : "Completar Inspección"}
+          </Button>
+        )}
+        {onCompleteInspection && !canCompleteInspection && (
+          <p className="text-xs text-muted-foreground text-center mt-1">
+            Completa todas las actividades para finalizar
+          </p>
+        )}
       </div>
     </div>
   );
