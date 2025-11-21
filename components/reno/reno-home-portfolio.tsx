@@ -91,7 +91,7 @@ export function RenoHomePortfolio({ properties }: RenoHomePortfolioProps) {
             {renoKanbanColumns.map((column) => {
               const count = stageCounts[column.stage];
               const height = getBarHeight(count);
-              
+
               return (
                 <div
                   key={column.stage}
@@ -110,7 +110,7 @@ export function RenoHomePortfolio({ properties }: RenoHomePortfolioProps) {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 text-center leading-tight">
+                  <p className="text-xs text-muted-foreground mt-2 text-center leading-tight h-8 flex items-start justify-center overflow-hidden">
                     {getStageLabel(column.stage)}
                   </p>
                 </div>

@@ -1246,6 +1246,55 @@ export const translations: Record<Language, Translations> = {
         },
         salon: {
           title: "Living Room",
+          description: "Visual documentation of the Living Room. The video should provide a complete view of the main space layout.",
+          fotosVideoSalon: {
+            title: "Living room photos and video",
+            description: "Video showing the flow and layout of the Living Room. The photo should capture the maximum breadth of the space.",
+          },
+          acabados: {
+            title: "Finishes",
+            description: "Evaluate the condition of walls, ceilings, floors, and baseboards. Look for marks, wear, and humidity.",
+            whatElementsBadCondition: "What elements are in bad condition?",
+            elements: {
+              paredes: "Walls",
+              techos: "Ceilings",
+              suelo: "Floor",
+              rodapies: "Baseboards",
+            },
+          },
+          carpinteria: {
+            title: "Carpentry",
+            description: "Review the condition and operation of windows, blinds, built-in wardrobes, and passage door.",
+            items: {
+              ventanas: "Windows",
+              persianas: "Blinds",
+              armarios: "Wardrobes",
+            },
+            puertaEntrada: "Entrance door",
+          },
+          electricidad: {
+            title: "Electricity",
+            description: "Evaluate lights, switches, and power outlets. Check if they work correctly.",
+            whatElementsBadCondition: "What elements are in bad condition?",
+            elements: {
+              luces: "Lights",
+              interruptores: "Switches",
+              tomasCorriente: "Power outlets",
+              tomaTelevision: "TV outlet",
+            },
+          },
+          climatizacion: {
+            title: "Climate Control",
+            description: "Indicate if there are radiators or air conditioning units and if they are in good condition.",
+            items: {
+              radiadores: "Radiators",
+              splitAc: "Split A/C Unit",
+            },
+          },
+          mobiliario: {
+            existeMobiliario: "Furniture exists",
+            elementoPuntuar: "Element to rate",
+          },
         },
         banos: {
           title: "Bathrooms",

@@ -1,7 +1,7 @@
 /**
  * User roles in the system
  */
-export type UserRole = "partner" | "reno_construction_manager" | "reno_admin";
+export type UserRole = "partner" | "reno_construction_manager" | "reno_admin" | "super_admin";
 
 /**
  * Simulated user data (will be replaced with Auth0 later)

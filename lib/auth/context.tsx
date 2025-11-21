@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { User, UserRole, AuthContextValue } from "./types";
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -29,11 +30,18 @@ const mockUsers: Record<UserRole, User> = {
     email: "maria@reno-admin.com",
     role: "reno_admin",
   },
+  super_admin: {
+    id: "4",
+    name: "Super Admin",
+    email: "admin@vistral.com",
+    role: "super_admin",
+  },
 };
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   // Initialize from localStorage
   useEffect(() => {
@@ -55,6 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem("userRole");
+    router.push("/");
   };
 
   const hasRole = (role: UserRole): boolean => {

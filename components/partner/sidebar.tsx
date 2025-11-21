@@ -16,6 +16,7 @@ import { VistralLogo } from "@/components/vistral-logo";
 import { ThemeSelector } from "@/components/user/theme-selector";
 import { LanguageSelector } from "@/components/user/language-selector";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
 
 // Navigation items - will be translated in component
 const getNavigationItems = (t: any) => [
@@ -60,6 +61,7 @@ interface PartnerSidebarProps {
 
 export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: PartnerSidebarProps) {
   const { t } = useI18n();
+  const { logout } = useAuth();
   const navigationItems = getNavigationItems(t);
   const settingsItems = getSettingsItems(t);
   const pathname = usePathname();
@@ -100,7 +102,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
             onClick={onMobileToggle}
           />
         )}
-        
+
         {/* Mobile sidebar */}
         <div
           className={cn(
@@ -134,7 +136,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
                   // More specific active check - avoid matching /partner when we want /partner/kanban
-                  const isActive = pathname === item.href || 
+                  const isActive = pathname === item.href ||
                     (pathname?.startsWith(item.href + "/") && item.href !== "/partner");
                   return (
                     <Link
@@ -211,7 +213,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
               <DropdownMenuContent align="start" className="w-56">
                 <DropdownMenuItem
                   onClick={() => {
-                    console.log("Logout");
+                    logout();
                     onMobileToggle?.();
                   }}
                   className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950"
@@ -270,7 +272,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 // More specific active check - avoid matching /partner when we want /partner/kanban
-                const isActive = pathname === item.href || 
+                const isActive = pathname === item.href ||
                   (pathname?.startsWith(item.href + "/") && item.href !== "/partner");
                 return (
                   <Link
@@ -301,7 +303,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
             {navigationItems.map((item) => {
               const Icon = item.icon;
               // More specific active check - avoid matching /partner when we want /partner/kanban
-              const isActive = pathname === item.href || 
+              const isActive = pathname === item.href ||
                 (pathname?.startsWith(item.href + "/") && item.href !== "/partner");
               return (
                 <Link
@@ -396,10 +398,13 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
+              <ThemeSelector />
+              <DropdownMenuSeparator />
+              <LanguageSelector />
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
-                  // TODO: Implement logout
-                  console.log("Logout");
+                  logout();
                 }}
                 className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950"
               >
@@ -422,19 +427,19 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                 <p className="text-sm font-medium">{mockUser.name}</p>
                 <p className="text-xs text-muted-foreground">{mockUser.email}</p>
               </div>
-              
+
               {/* Theme Selector */}
               <ThemeSelector />
-              
+              <DropdownMenuSeparator />
+
               {/* Language Selector */}
               <LanguageSelector />
-              
+
               <DropdownMenuSeparator />
-              
+
               <DropdownMenuItem
                 onClick={() => {
-                  // TODO: Implement logout
-                  console.log("Logout");
+                  logout();
                 }}
                 className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950"
               >
@@ -448,4 +453,3 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
     </div>
   );
 }
-

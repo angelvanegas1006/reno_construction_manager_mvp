@@ -1,94 +1,103 @@
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import ContactForm from "@/components/contact-form";
-import DemoTable from "@/components/demo-table";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { ArchitecturalWireframeBackground } from "@/components/architectural-wireframe-background";
+import { useAuth } from "@/lib/auth";
+import { UserRole } from "@/lib/auth/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+export default function LoginPage() {
+  const [selectedRole, setSelectedRole] = useState<UserRole | "">("");
+  const { login } = useAuth();
+  const router = useRouter();
+
+  const handleLogin = () => {
+    if (!selectedRole) return;
+
+    login(selectedRole);
+
+    // Redirect based on role
+    if (selectedRole === "partner") {
+      router.push("/partner");
+    } else if (selectedRole === "reno_construction_manager") {
+      router.push("/reno/construction-manager");
+    } else if (selectedRole === "reno_admin") {
+      // TODO: Add reno_admin routes later
+      router.push("/reno/construction-manager");
+    } else if (selectedRole === "super_admin") {
+      router.push("/vistral-vision");
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--prophero-gray-50)] font-sans dark:bg-[var(--prophero-gray-950)]">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-card dark:bg-[var(--prophero-gray-950)] sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-foreground dark:text-[var(--prophero-gray-50)]">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-[var(--prophero-gray-600)] dark:text-[var(--prophero-gray-400)]">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-[var(--prophero-gray-950)] dark:text-[var(--prophero-gray-50)]"
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
+      {/* Left column: architectural illustration */}
+      <div className="relative">
+        <ArchitecturalWireframeBackground />
+      </div>
+
+      {/* Right column: login CTA */}
+      <div className="relative flex min-h-screen flex-col items-center justify-center p-8 bg-card dark:bg-[var(--prophero-gray-900)]">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-semibold tracking-tight">
+              Inicia sesión o crea una cuenta
+            </CardTitle>
+            <CardDescription>
+              Accede a la plataforma de control de operaciones de PropHero
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Role Selector (Auth0 Simulation) */}
+            <div className="space-y-2">
+              <label htmlFor="role" className="text-sm font-medium text-foreground">
+                Selecciona tu rol (Simulación Auth0)
+              </label>
+              <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
+                <SelectTrigger id="role" className="w-full">
+                  <SelectValue placeholder="Selecciona un rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="partner">Partner</SelectItem>
+                  <SelectItem value="reno_construction_manager">Jefe de Obra</SelectItem>
+                  <SelectItem value="reno_admin">Admin Reno (Próximamente)</SelectItem>
+                  <SelectItem value="super_admin">Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              className="w-full"
+              onClick={handleLogin}
+              disabled={!selectedRole}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-[var(--prophero-gray-950)] dark:text-[var(--prophero-gray-50)]"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Iniciar sesión de forma segura
+            </Button>
+
+            <div className="w-full flex justify-center">
+              <button className="text-sm text-foreground/80 underline-offset-4 hover:underline">
+                Crear una cuenta
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer links */}
+        <div className="pointer-events-none absolute bottom-6 left-0 right-0 flex items-center justify-center gap-6 text-xs text-muted-foreground">
+          <a className="pointer-events-auto hover:underline" href="#">Soporte</a>
+          <a className="pointer-events-auto hover:underline" href="#">Privacidad</a>
+          <a className="pointer-events-auto hover:underline" href="#">Términos</a>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-        <div className="mt-12 w-full">
-          <Card>
-            <CardHeader>
-              <CardTitle>shadcn/ui demo</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <Input placeholder="Type something..." />
-              <div className="flex gap-3">
-                <Button>Default</Button>
-                <Button variant="secondary">Secondary</Button>
-                <Button variant="destructive">Destructive</Button>
-              </div>
-            </CardContent>
-            <CardFooter className="justify-end">
-              <Button variant="outline">Submit</Button>
-            </CardFooter>
-          </Card>
-        </div>
-        <div className="mt-12 w-full">
-          <ContactForm />
-        </div>
-        <div className="mt-12 w-full">
-          <DemoTable />
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

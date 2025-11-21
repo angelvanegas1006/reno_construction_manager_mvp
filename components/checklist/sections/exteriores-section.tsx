@@ -308,7 +308,7 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
                                       )}
                                     >
                                       <option.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
-                                      <span className="text-xs sm:text-sm font-medium break-words text-center text-muted-foreground">
+                                      <span className="text-xs sm:text-sm font-medium whitespace-nowrap text-center text-muted-foreground">
                                         {option.label}
                                       </span>
                                     </button>
@@ -372,7 +372,7 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
                                 )}
                               >
                                 <option.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
-                                <span className="text-xs sm:text-sm font-medium break-words text-center text-muted-foreground">
+                                <span className="text-xs sm:text-sm font-medium whitespace-nowrap text-center text-muted-foreground">
                                   {option.label}
                                 </span>
                               </button>
