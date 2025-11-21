@@ -4,14 +4,10 @@
 -- ============================================
 
 -- ============================================
--- 1. Actualizar enum de condición en inspection_elements
+-- 1. Crear tipos ENUM primero
 -- ============================================
 
--- Eliminar constraint actual si existe
-ALTER TABLE inspection_elements 
-DROP CONSTRAINT IF EXISTS inspection_elements_condition_check;
-
--- Crear nuevo enum con 4 estados
+-- Crear enum de condición
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inspection_condition') THEN
@@ -24,41 +20,7 @@ BEGIN
     END IF;
 END $$;
 
--- Actualizar la columna condition
-ALTER TABLE inspection_elements 
-ALTER COLUMN condition TYPE inspection_condition 
-USING CASE 
-    WHEN condition::text = 'Buen estado' THEN 'buen_estado'::inspection_condition
-    WHEN condition::text = 'Mal estado' THEN 'necesita_reparacion'::inspection_condition
-    WHEN condition::text = 'No aplica' THEN 'no_aplica'::inspection_condition
-    WHEN condition::text = 'buen_estado' THEN 'buen_estado'::inspection_condition
-    WHEN condition::text = 'necesita_reparacion' THEN 'necesita_reparacion'::inspection_condition
-    WHEN condition::text = 'necesita_reemplazo' THEN 'necesita_reemplazo'::inspection_condition
-    WHEN condition::text = 'no_aplica' THEN 'no_aplica'::inspection_condition
-    ELSE 'buen_estado'::inspection_condition
-END;
-
--- ============================================
--- 2. Agregar campo inspection_type a property_inspections
--- ============================================
-
--- Agregar columna para distinguir initial vs final
-ALTER TABLE property_inspections 
-ADD COLUMN IF NOT EXISTS inspection_type TEXT CHECK (inspection_type IN ('initial', 'final'));
-
--- Crear índice para búsquedas rápidas
-CREATE INDEX IF NOT EXISTS idx_property_inspections_type 
-ON property_inspections(property_id, inspection_type);
-
--- ============================================
--- 3. Actualizar enum de zone_type en inspection_zones
--- ============================================
-
--- Eliminar constraint actual si existe
-ALTER TABLE inspection_zones 
-DROP CONSTRAINT IF EXISTS inspection_zones_zone_type_check;
-
--- Crear nuevo enum con todas las zonas
+-- Crear enum de tipo de zona
 DO $$ 
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inspection_zone_type') THEN
@@ -75,25 +37,9 @@ BEGIN
     END IF;
 END $$;
 
--- Actualizar la columna zone_type
-ALTER TABLE inspection_zones 
-ALTER COLUMN zone_type TYPE inspection_zone_type 
-USING zone_type::inspection_zone_type;
-
 -- ============================================
--- 4. Agregar campo para videos en inspection_elements
+-- 2. Crear tablas principales
 -- ============================================
-
--- Agregar columna para URLs de videos
-ALTER TABLE inspection_elements 
-ADD COLUMN IF NOT EXISTS video_urls TEXT[] DEFAULT '{}';
-
--- ============================================
--- 5. Verificar que las tablas existen
--- ============================================
-
--- Si las tablas no existen, crearlas (estructura básica)
--- Nota: Ajusta según tu esquema real
 
 CREATE TABLE IF NOT EXISTS property_inspections (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -133,7 +79,13 @@ CREATE TABLE IF NOT EXISTS inspection_elements (
     UNIQUE(zone_id, element_name)
 );
 
--- Crear índices
+-- ============================================
+-- 3. Crear índices
+-- ============================================
+
+CREATE INDEX IF NOT EXISTS idx_property_inspections_type 
+ON property_inspections(property_id, inspection_type);
+
 CREATE INDEX IF NOT EXISTS idx_inspection_zones_inspection_id 
 ON inspection_zones(inspection_id);
 
@@ -141,16 +93,84 @@ CREATE INDEX IF NOT EXISTS idx_inspection_elements_zone_id
 ON inspection_elements(zone_id);
 
 -- ============================================
--- 6. Crear bucket de Storage para imágenes
+-- 4. Modificar tablas existentes (si ya existían)
 -- ============================================
 
--- Nota: Esto debe hacerse desde Supabase Dashboard → Storage
--- O usando la API de Supabase Storage
--- Bucket name: 'inspection-images'
--- Public: false (privado)
+-- Actualizar constraint de inspection_elements si existe
+DO $$
+BEGIN
+    -- Intentar eliminar constraint si existe
+    ALTER TABLE inspection_elements 
+    DROP CONSTRAINT IF EXISTS inspection_elements_condition_check;
+EXCEPTION
+    WHEN undefined_table THEN
+        -- Tabla no existe aún, ignorar
+        NULL;
+END $$;
+
+-- Actualizar columna condition de inspection_elements si existe y necesita actualización
+DO $$
+BEGIN
+    -- Solo intentar si la columna existe y no es del tipo correcto
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = 'inspection_elements' 
+        AND column_name = 'condition'
+        AND data_type != 'USER-DEFINED'
+    ) THEN
+        ALTER TABLE inspection_elements 
+        ALTER COLUMN condition TYPE inspection_condition 
+        USING CASE 
+            WHEN condition::text = 'Buen estado' THEN 'buen_estado'::inspection_condition
+            WHEN condition::text = 'Mal estado' THEN 'necesita_reparacion'::inspection_condition
+            WHEN condition::text = 'No aplica' THEN 'no_aplica'::inspection_condition
+            WHEN condition::text = 'buen_estado' THEN 'buen_estado'::inspection_condition
+            WHEN condition::text = 'necesita_reparacion' THEN 'necesita_reparacion'::inspection_condition
+            WHEN condition::text = 'necesita_reemplazo' THEN 'necesita_reemplazo'::inspection_condition
+            WHEN condition::text = 'no_aplica' THEN 'no_aplica'::inspection_condition
+            ELSE 'buen_estado'::inspection_condition
+        END;
+    END IF;
+EXCEPTION
+    WHEN undefined_table THEN
+        NULL;
+    WHEN undefined_column THEN
+        NULL;
+END $$;
+
+-- Actualizar constraint de inspection_zones si existe
+DO $$
+BEGIN
+    ALTER TABLE inspection_zones 
+    DROP CONSTRAINT IF EXISTS inspection_zones_zone_type_check;
+EXCEPTION
+    WHEN undefined_table THEN
+        NULL;
+END $$;
+
+-- Actualizar columna zone_type de inspection_zones si existe
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = 'inspection_zones' 
+        AND column_name = 'zone_type'
+    ) THEN
+        ALTER TABLE inspection_zones 
+        ALTER COLUMN zone_type TYPE inspection_zone_type 
+        USING zone_type::inspection_zone_type;
+    END IF;
+EXCEPTION
+    WHEN undefined_table THEN
+        NULL;
+    WHEN undefined_column THEN
+        NULL;
+END $$;
 
 -- ============================================
--- 7. Event Bus Setup (for event-driven architecture)
+-- 5. Event Bus Setup (for event-driven architecture)
 -- ============================================
 
 -- Function to publish events
@@ -235,9 +255,20 @@ $$ LANGUAGE plpgsql;
 
 -- Enable Realtime for event_store
 -- This allows Supabase Realtime to listen to event_store changes
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS event_store;
+DO $$
+BEGIN
+  -- Try to add the table to the publication
+  -- If it's already there, this will fail silently
+  EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE event_store';
+EXCEPTION
+  WHEN duplicate_object THEN
+    -- Table already in publication, ignore
+    NULL;
+  WHEN undefined_object THEN
+    -- Publication doesn't exist (shouldn't happen in Supabase)
+    NULL;
+END $$;
 
 -- ============================================
 -- ✅ Migraciones Completadas
 -- ============================================
-

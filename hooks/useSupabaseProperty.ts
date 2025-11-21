@@ -31,7 +31,15 @@ export function useSupabaseProperty(propertyId: string | null) {
         .eq('id', propertyId)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        // PGRST116 means "not found" - this is expected for non-existent properties
+        if (fetchError.code === 'PGRST116') {
+          setProperty(null);
+          setError(null); // Don't treat "not found" as an error
+          return;
+        }
+        throw fetchError;
+      }
       
       setProperty(data);
     } catch (err) {

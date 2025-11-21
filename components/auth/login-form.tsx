@@ -47,19 +47,39 @@ export function LoginForm() {
       }
 
       // Get user role from user_roles table
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', data.user.id)
-        .single();
+      let role = 'user'; // Default role
+      try {
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
 
-      if (roleError && roleError.code !== 'PGRST116') {
-        // PGRST116 = no rows returned
-        console.error('Error fetching user role:', roleError);
-        toast.error("Error al obtener el rol del usuario");
+        if (roleError) {
+          // PGRST116 = no rows returned (user has no role assigned yet - this is OK)
+          // 42P01 = relation does not exist (table doesn't exist - need to run migration)
+          if (roleError.code === 'PGRST116') {
+            // User has no role assigned, use default 'user'
+            role = 'user';
+          } else if (roleError.code === '42P01') {
+            // Table doesn't exist - show helpful error
+            console.warn('Table user_roles does not exist. Please run migration 002_user_roles.sql');
+            toast.error("Configuración incompleta: ejecuta la migración de user_roles");
+            await supabase.auth.signOut();
+            return;
+          } else {
+            // Other error - log but continue with default role
+            console.warn('Error fetching user role:', roleError);
+            role = 'user';
+          }
+        } else {
+          role = roleData?.role || 'user';
+        }
+      } catch (err) {
+        // Catch any unexpected errors
+        console.warn('Unexpected error fetching user role:', err);
+        role = 'user';
       }
-
-      const role = roleData?.role || 'user';
 
       // Redirect based on role
       if (role === 'foreman') {

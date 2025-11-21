@@ -69,7 +69,8 @@ export default function RenoPropertyDetailPage() {
     if (!isLoading && property && supabaseProperty) {
       const phase = getPropertyRenoPhase();
       if (phase === "initial-check" || phase === "final-check") {
-        router.replace(`/reno/construction-manager/property/${property.id}/checklist`);
+        // Use propertyId from params (Supabase ID) instead of property.id
+        router.replace(`/reno/construction-manager/property/${propertyId}/checklist`);
       }
     }
   }, [isLoading, property, supabaseProperty, getPropertyRenoPhase, router]);

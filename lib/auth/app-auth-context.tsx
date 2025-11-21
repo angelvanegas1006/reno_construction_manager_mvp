@@ -34,7 +34,16 @@ export function AppAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function fetchUserRole() {
+      console.log('[AppAuthProvider] 🔄 fetchUserRole called:', {
+        hasSupabaseUser: !!supabaseUser,
+        supabaseUserId: supabaseUser?.id,
+        supabaseUserEmail: supabaseUser?.email,
+        supabaseLoading,
+        timestamp: new Date().toISOString(),
+      });
+
       if (!supabaseUser) {
+        console.log('[AppAuthProvider] ⚠️ No supabaseUser, setting appUser to null');
         setAppUser(null);
         setLoading(false);
         return;
@@ -42,34 +51,82 @@ export function AppAuthProvider({ children }: { children: ReactNode }) {
 
       try {
         // Get user role from user_roles table
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', supabaseUser.id)
-          .single();
+        let role: AppRole = 'user'; // Default role
+        
+        console.log('[AppAuthProvider] 📡 Fetching user role from user_roles table...', {
+          userId: supabaseUser.id,
+        });
+        
+        try {
+          const { data, error } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', supabaseUser.id)
+            .single();
 
-        if (error && error.code !== 'PGRST116') {
-          // PGRST116 = no rows returned, which is OK for new users
-          console.error('Error fetching user role:', error);
+          console.log('[AppAuthProvider] 📥 User role query response:', {
+            data,
+            error: error ? {
+              message: error.message,
+              code: error.code,
+              details: error.details,
+            } : null,
+            timestamp: new Date().toISOString(),
+          });
+
+          if (error) {
+            // PGRST116 = no rows returned (user has no role assigned yet - this is OK)
+            // 42P01 = relation does not exist (table doesn't exist - need to run migration)
+            if (error.code === 'PGRST116') {
+              // User has no role assigned, use default 'user'
+              console.log('[AppAuthProvider] ⚠️ No role found (PGRST116), using default: user');
+              role = 'user';
+            } else if (error.code === '42P01') {
+              // Table doesn't exist - log warning but continue with default role
+              console.warn('[AppAuthProvider] ⚠️ Table user_roles does not exist. Please run migration 002_user_roles.sql');
+              role = 'user';
+            } else {
+              // Other error - log but continue with default role
+              console.warn('[AppAuthProvider] ⚠️ Error fetching user role:', error);
+              role = 'user';
+            }
+          } else {
+            role = (data?.role as AppRole) || 'user';
+            console.log('[AppAuthProvider] ✅ User role found:', role);
+          }
+        } catch (err) {
+          // Catch any unexpected errors
+          console.warn('[AppAuthProvider] ⚠️ Unexpected error fetching user role:', err);
+          role = 'user';
         }
 
-        const role: AppRole = data?.role || 'user'; // Default to 'user' if no role found
-
-        setAppUser({
+        const newAppUser = {
           id: supabaseUser.id,
           email: supabaseUser.email || '',
           role,
+        };
+
+        console.log('[AppAuthProvider] 💾 Setting appUser:', {
+          id: newAppUser.id,
+          email: newAppUser.email,
+          role: newAppUser.role,
+          timestamp: new Date().toISOString(),
         });
+
+        setAppUser(newAppUser);
       } catch (error) {
-        console.error('Error in fetchUserRole:', error);
+        console.error('[AppAuthProvider] ❌ Error in fetchUserRole:', error);
         setAppUser(null);
       } finally {
         setLoading(false);
+        console.log('[AppAuthProvider] ✅ fetchUserRole completed, loading set to false');
       }
     }
 
     if (!supabaseLoading) {
       fetchUserRole();
+    } else {
+      console.log('[AppAuthProvider] ⏳ Waiting for supabaseLoading to complete...');
     }
   }, [supabaseUser, supabaseLoading, supabase]);
 

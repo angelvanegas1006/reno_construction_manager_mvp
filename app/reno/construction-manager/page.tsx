@@ -9,28 +9,89 @@ import { RenoHomeTasks } from "@/components/reno/reno-home-tasks";
 import { RenoHomeVisits } from "@/components/reno/reno-home-visits";
 import { RenoHomeRecentProperties } from "@/components/reno/reno-home-recent-properties";
 import { RenoHomePortfolio } from "@/components/reno/reno-home-portfolio";
-import { getAllProperties, Property } from "@/lib/property-storage";
+import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { sortPropertiesByExpired, isPropertyExpired } from "@/lib/property-sorting";
 import { toast } from "sonner";
+import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
+import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 
 export default function RenoConstructionManagerHomePage() {
   const { t } = useI18n();
   const router = useRouter();
-  const [properties, setProperties] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Load properties from localStorage
+  // Load properties from Supabase
+  const { propertiesByPhase, loading: supabaseLoading, error: supabaseError } = useSupabaseKanbanProperties();
+  
+  // Log when propertiesByPhase changes
   useEffect(() => {
-    const loadProperties = () => {
-      const props = getAllProperties();
-      setProperties(props);
-    };
+    console.log('[RenoHomePage] 📊 propertiesByPhase changed:', {
+      loading: supabaseLoading,
+      error: supabaseError,
+      hasPropertiesByPhase: !!propertiesByPhase,
+      phaseCounts: propertiesByPhase ? Object.entries(propertiesByPhase).reduce((acc, [phase, props]) => {
+        acc[phase] = props.length;
+        return acc;
+      }, {} as Record<string, number>) : null,
+      timestamp: new Date().toISOString(),
+    });
+  }, [propertiesByPhase, supabaseLoading, supabaseError]);
+  
+  // Convert Supabase properties to Property format for home page
+  const properties = useMemo(() => {
+    console.log('[RenoHomePage] 🔄 Computing properties...', {
+      loading: supabaseLoading,
+      hasPropertiesByPhase: !!propertiesByPhase,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (supabaseLoading) {
+      console.log('[RenoHomePage] ⏳ Still loading, returning empty array');
+      return [];
+    }
     
-    loadProperties();
-    const interval = setInterval(loadProperties, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!propertiesByPhase) {
+      console.log('[RenoHomePage] ⚠️ No propertiesByPhase, returning empty array');
+      return [];
+    }
+    
+    // Flatten all properties from all phases
+    // Properties are already converted to Property format by useSupabaseKanbanProperties
+    const allProps: Property[] = [];
+    Object.values(propertiesByPhase).forEach((phaseProperties, index) => {
+      const phaseName = Object.keys(propertiesByPhase)[index];
+      console.log('[RenoHomePage] 📦 Processing phase:', {
+        phase: phaseName,
+        count: phaseProperties.length,
+      });
+      allProps.push(...phaseProperties);
+    });
+    
+    console.log('[RenoHomePage] ✅ Properties computed:', {
+      total: allProps.length,
+      timestamp: new Date().toISOString(),
+    });
+    
+    return allProps;
+  }, [propertiesByPhase, supabaseLoading]);
+  
+  // Log when properties change
+  useEffect(() => {
+    console.log('[RenoHomePage] 📋 Properties state changed:', {
+      count: properties.length,
+      sampleIds: properties.slice(0, 3).map(p => p.id),
+      timestamp: new Date().toISOString(),
+    });
+  }, [properties]);
+  
+  // Show error if Supabase fetch failed
+  useEffect(() => {
+    if (supabaseError) {
+      console.error('[RenoHomePage] ❌ Error loading properties:', supabaseError);
+      toast.error(`Error al cargar propiedades: ${supabaseError}`);
+    }
+  }, [supabaseError]);
 
   // Helper to check if a date is today
   const isToday = (dateString?: string) => {
@@ -44,18 +105,16 @@ export default function RenoConstructionManagerHomePage() {
   const isExpired = (property: Property) => isPropertyExpired(property);
 
 
-  // Helper to check if property is in reno phase (based on dummy IDs for demo)
-  const isInRenoPhase = (property: Property, phaseIds: string[]) => {
-    return phaseIds.includes(property.id);
+  // Helper to check if property is in a specific reno phase
+  const isInRenoPhase = (property: Property, phase: RenoKanbanPhase) => {
+    if (!propertiesByPhase) return false;
+    return propertiesByPhase[phase]?.some(p => p.id === property.id) || false;
   };
 
   // Calculate indicators
   const indicators = useMemo(() => {
-    // Obras Activas: only reno-in-progress (using dummy IDs for demo)
-    // IDs 4463806, 4463807, 4463808 are in "reno-in-progress"
-    const obrasActivas = properties.filter((p) => {
-      return isInRenoPhase(p, ["4463806", "4463807", "4463808"]);
-    }).length;
+    // Obras Activas: only reno-in-progress
+    const obrasActivas = propertiesByPhase?.['reno-in-progress']?.length || 0;
 
     // Visitas para hoy: properties that need update today (including expired ones from yesterday)
     const visitasParaHoy = properties.filter((p) => {
@@ -81,33 +140,30 @@ export default function RenoConstructionManagerHomePage() {
   }, [properties]);
 
   // Get checks to execute today (initial-check and final-check with proximaActualizacion = today or expired)
-  // IDs 4463801, 4463802, 4463803 are in "initial-check"
-  // ID 4463811 is in "final-check"
   const checksForToday = useMemo(() => {
-    const filtered = properties.filter((p) => {
-      const isInitialCheck = isInRenoPhase(p, ["4463801", "4463802", "4463803"]);
-      const isFinalCheck = isInRenoPhase(p, ["4463811"]);
-      
-      return (isInitialCheck || isFinalCheck) && 
-             (isToday(p.proximaActualizacion) || isExpired(p));
+    const initialCheck = propertiesByPhase?.['initial-check'] || [];
+    const finalCheck = propertiesByPhase?.['final-check'] || [];
+    const allChecks = [...initialCheck, ...finalCheck];
+    
+    const filtered = allChecks.filter((p) => {
+      return isToday(p.proximaActualizacion) || isExpired(p);
     });
     
     // Sort expired first
     return sortPropertiesByExpired(filtered);
-  }, [properties]);
+  }, [propertiesByPhase]);
 
   // Get visits for today (reno-in-progress with proximaActualizacion = today or expired)
-  // IDs 4463806, 4463807, 4463808 are in "reno-in-progress"
   const visitsForToday = useMemo(() => {
-    const filtered = properties.filter((p) => {
-      const isRenoInProgress = isInRenoPhase(p, ["4463806", "4463807", "4463808"]);
-      return isRenoInProgress && 
-             (isToday(p.proximaActualizacion) || isExpired(p));
+    const renoInProgress = propertiesByPhase?.['reno-in-progress'] || [];
+    
+    const filtered = renoInProgress.filter((p) => {
+      return isToday(p.proximaActualizacion) || isExpired(p);
     });
     
     // Sort expired first
     return sortPropertiesByExpired(filtered);
-  }, [properties]);
+  }, [propertiesByPhase]);
 
   // Handle property click - navigate to property detail or task (to be defined)
   const handlePropertyClick = (property: Property) => {

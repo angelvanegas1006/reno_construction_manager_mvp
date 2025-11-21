@@ -50,8 +50,17 @@ export default function RenoChecklistPage() {
   // Get property ID from params
   const propertyId = params.id && typeof params.id === "string" ? params.id : null;
 
+  // Debug: Log propertyId
+  useEffect(() => {
+    if (propertyId) {
+      console.log("🔍 Checklist Page - Property ID:", propertyId);
+    } else {
+      console.warn("⚠️ Checklist Page - No property ID found in params");
+    }
+  }, [propertyId]);
+
   // Load property from Supabase
-  const { property: supabaseProperty, loading: supabaseLoading, refetch: refetchProperty } = useSupabaseProperty(propertyId);
+  const { property: supabaseProperty, loading: supabaseLoading, error: propertyError, refetch: refetchProperty } = useSupabaseProperty(propertyId);
 
   // Convert Supabase property to Property format
   const property: Property | null = useMemo(() => {
@@ -79,14 +88,15 @@ export default function RenoChecklistPage() {
 
   // Determine checklist type based on phase
   const checklistType: ChecklistType = useMemo(() => {
-    if (!property) return "reno_initial";
+    if (!property || !supabaseProperty) return "reno_initial";
     const phase = getPropertyRenoPhase(property);
     return phase === "final-check" ? "reno_final" : "reno_initial";
-  }, [property, getPropertyRenoPhase]);
+  }, [property, supabaseProperty, getPropertyRenoPhase]);
 
   // Use Supabase checklist hook (for production)
+  // Only initialize when we have a valid propertyId
   const { checklist, updateSection, isLoading: checklistLoading } = useSupabaseChecklist({
-    propertyId: property?.id || "",
+    propertyId: propertyId || "",
     checklistType,
   });
 
@@ -525,7 +535,7 @@ export default function RenoChecklistPage() {
     );
   }
 
-  if (!property) {
+  if (!property && !isLoading && !checklistLoading) {
     return (
       <div className="flex h-screen overflow-hidden">
         <RenoSidebar />
@@ -533,6 +543,16 @@ export default function RenoChecklistPage() {
           <p className="text-lg font-semibold text-foreground mb-2">
             Propiedad no encontrada
           </p>
+          {propertyError && (
+            <p className="text-sm text-muted-foreground mb-4">
+              Error: {propertyError}
+            </p>
+          )}
+          {propertyId && (
+            <p className="text-sm text-muted-foreground mb-4">
+              ID buscado: {propertyId}
+            </p>
+          )}
           <Button onClick={() => router.push("/reno/construction-manager/kanban")} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver al kanban

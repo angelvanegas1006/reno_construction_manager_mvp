@@ -30,11 +30,26 @@ export function matchesTechnicalConstruction(
   technicalConstruction: string | null,
   userEmail: string
 ): boolean {
-  if (!technicalConstruction || !userEmail) return false;
+  if (!technicalConstruction || !userEmail) {
+    console.log('[matchesTechnicalConstruction] ❌ Missing values:', {
+      technicalConstruction,
+      userEmail,
+    });
+    return false;
+  }
   
   const normalizedConstruction = technicalConstruction.trim().toLowerCase();
   const normalizedEmail = userEmail.trim().toLowerCase();
   const extractedName = extractNameFromEmail(userEmail).toLowerCase();
+  
+  // Only log in development to avoid spam
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[matchesTechnicalConstruction] 🔍 Comparing:', {
+      technicalConstruction: normalizedConstruction,
+      userEmail: normalizedEmail,
+      extractedName: extractedName,
+    });
+  }
   
   // Check exact matches
   if (normalizedConstruction === normalizedEmail) return true;
