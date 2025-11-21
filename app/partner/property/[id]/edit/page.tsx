@@ -398,6 +398,7 @@ export default function PropertyEditPage() {
             onUpdate={(updates) => {
               updateChecklistSection("entorno-zonas-comunes", updates);
             }}
+            onContinue={() => handleSectionClick("checklist-estado-general")}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-entorno-zonas-comunes"] = el;
             }}
@@ -432,6 +433,7 @@ export default function PropertyEditPage() {
             onUpdate={(updates) => {
               updateChecklistSection("estado-general", updates);
             }}
+            onContinue={() => handleSectionClick("checklist-entrada-pasillos")}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-estado-general"] = el;
             }}
@@ -473,6 +475,7 @@ export default function PropertyEditPage() {
             onUpdate={(updates) => {
               updateChecklistSection("entrada-pasillos", updates);
             }}
+            onContinue={() => handleSectionClick("checklist-habitaciones")}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-entrada-pasillos"] = el;
             }}
@@ -695,6 +698,7 @@ export default function PropertyEditPage() {
             onUpdate={(updates) => {
               updateChecklistSection("exteriores", updates);
             }}
+            onContinue={() => router.push("/partner/kanban")}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-exteriores"] = el;
             }}

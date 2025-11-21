@@ -46,6 +46,25 @@ export interface Translations {
     settings: string;
   };
   
+  // Login
+  login: {
+    title: string;
+    subtitle: string;
+    secureLoginButton: string;
+    createAccount: string;
+    email: string;
+    password: string;
+    emailPlaceholder: string;
+    passwordPlaceholder: string;
+    loginButton: string;
+    loggingIn: string;
+    forgotPassword: string;
+    support: string;
+    privacy: string;
+    terms: string;
+    copyright: string;
+  };
+  
   // Property
   property: {
     title: string;
@@ -259,6 +278,23 @@ export const translations: Record<Language, Translations> = {
       theme: "Tema",
       language: "Idioma",
       settings: "Configuración",
+    },
+    login: {
+      title: "Inicia sesión o crea una cuenta",
+      subtitle: "Accede a la plataforma de control de operaciones de PropHero",
+      secureLoginButton: "Iniciar sesión de forma segura",
+      createAccount: "Crear una cuenta",
+      email: "Email",
+      password: "Contraseña",
+      emailPlaceholder: "tu@email.com",
+      passwordPlaceholder: "••••••••",
+      loginButton: "Iniciar sesión",
+      loggingIn: "Iniciando sesión...",
+      forgotPassword: "¿Olvidaste tu contraseña?",
+      support: "Soporte",
+      privacy: "Privacidad",
+      terms: "Términos",
+      copyright: "© 2025 PropHero - Todos los derechos reservados",
     },
     property: {
       title: "Propiedad",
@@ -896,6 +932,23 @@ export const translations: Record<Language, Translations> = {
       theme: "Theme",
       language: "Language",
       settings: "Settings",
+    },
+    login: {
+      title: "Log in or create an account",
+      subtitle: "Access the PropHero operations control platform",
+      secureLoginButton: "Log in securely",
+      createAccount: "Create an account",
+      email: "Email",
+      password: "Password",
+      emailPlaceholder: "your@email.com",
+      passwordPlaceholder: "••••••••",
+      loginButton: "Log in",
+      loggingIn: "Logging in...",
+      forgotPassword: "Forgot your password?",
+      support: "Support",
+      privacy: "Privacy",
+      terms: "Terms",
+      copyright: "© 2025 PropHero - All rights reserved",
     },
     property: {
       title: "Property",

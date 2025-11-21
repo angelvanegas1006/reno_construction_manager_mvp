@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "apps/partner/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "distDir": ".next"
+      }
+    },
+    {
+      "src": "apps/reno/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "distDir": ".next"
+      }
+    },
+    {
+      "src": "apps/super-admin/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "distDir": ".next"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/partner/(.*)",
+      "dest": "apps/partner/$1"
+    },
+    {
+      "src": "/reno/(.*)",
+      "dest": "apps/reno/$1"
+    },
+    {
+      "src": "/vistral-vision/(.*)",
+      "dest": "apps/super-admin/$1"
+    }
+  ]
+}
+
