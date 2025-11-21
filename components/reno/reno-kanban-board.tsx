@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, startTransition, useRef, useCallback } fr
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { RenoKanbanColumn } from "./reno-kanban-column";
+import { RenoHomeLoader } from "./reno-home-loader";
 import { Property } from "@/lib/property-storage";
 import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
 import { calculateOverallProgress } from "@/lib/property-validation";
@@ -261,7 +262,7 @@ export function RenoKanbanBoard({ searchQuery }: RenoKanbanBoardProps) {
   if (supabaseLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Cargando propiedades desde Supabase...</p>
+        <RenoHomeLoader />
       </div>
     );
   }

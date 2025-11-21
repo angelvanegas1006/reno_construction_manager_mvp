@@ -45,6 +45,11 @@ export function useSupabaseChecklist({
   const lastZonesCountRef = useRef<number>(0); // Para detectar cambios reales en zones
   const zonesCreationTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Para debounce durante creación de zonas
   const inspectionCreationInProgressRef = useRef<boolean>(false); // Flag para evitar crear múltiples inspecciones
+  const functionsRef = useRef<{
+    createInspection: (propertyId: string, type: InspectionType) => Promise<any>;
+    refetchInspection: () => Promise<void>;
+    createInitialZones: (inspectionId: string) => Promise<void>;
+  } | null>(null);
 
   // Determinar inspection_type basado en checklistType
   const inspectionType: InspectionType = checklistType === "reno_final" ? "final" : "initial";
@@ -151,6 +156,15 @@ export function useSupabaseChecklist({
     }
   }, [supabaseProperty, propertyId, checklistType, createZone]);
 
+  // Guardar referencias a funciones para evitar re-ejecuciones por cambios en referencias
+  useEffect(() => {
+    functionsRef.current = {
+      createInspection,
+      refetchInspection,
+      createInitialZones,
+    };
+  }, [createInspection, refetchInspection, createInitialZones]);
+
   // Inicializar inspección y checklist
   useEffect(() => {
     console.log('[useSupabaseChecklist] 🔄 Effect triggered:', {
@@ -158,11 +172,14 @@ export function useSupabaseChecklist({
       inspectionLoading,
       hasSupabaseProperty: !!supabaseProperty,
       hasInspection: !!inspection,
+      inspectionId: inspection?.id,
       zonesCount: zones.length,
       elementsCount: elements.length,
       checklistType,
       initializationInProgress: initializationInProgressRef.current,
+      inspectionCreationInProgress: inspectionCreationInProgressRef.current,
       lastZonesCount: lastZonesCountRef.current,
+      currentKey: initializationRef.current,
       timestamp: new Date().toISOString(),
     });
 
@@ -173,27 +190,47 @@ export function useSupabaseChecklist({
     }
 
     if (!propertyId || inspectionLoading || !supabaseProperty) {
-      console.log('[useSupabaseChecklist] ⏳ Waiting for required data...');
+      console.log('[useSupabaseChecklist] ⏳ Waiting for required data...', {
+        hasPropertyId: !!propertyId,
+        inspectionLoading,
+        hasSupabaseProperty: !!supabaseProperty,
+      });
       setIsLoading(true);
       return;
     }
 
+    // Si estamos esperando que se cree una inspección y ahora tenemos una, resetear el flag y continuar
+    if (inspectionCreationInProgressRef.current && inspection?.id) {
+      console.log('[useSupabaseChecklist] ✅ Inspection is now available, resetting creation flag...');
+      inspectionCreationInProgressRef.current = false;
+      // Continuar con la inicialización ahora que tenemos la inspección
+    } else if (inspectionCreationInProgressRef.current && !inspection?.id) {
+      // Si estamos esperando pero aún no tenemos la inspección
+      if (inspectionLoading) {
+        // Si aún está cargando, esperar
+        console.log('[useSupabaseChecklist] ⏳ Waiting for inspection creation to complete...');
+        setIsLoading(true);
+        return;
+      } else {
+        // Si ya no está cargando pero no hay inspección, algo salió mal - resetear y continuar
+        console.warn('[useSupabaseChecklist] ⚠️ Inspection creation flag is set but no inspection found after loading completed, resetting flag...');
+        inspectionCreationInProgressRef.current = false;
+        // Continuar con la inicialización - puede que la inspección se haya creado pero el estado no se haya actualizado aún
+        // El siguiente ciclo del efecto debería detectarla
+      }
+    }
+
     // Si ya tenemos checklist y no hay cambios significativos, no reinicializar
     const inspectionId = inspection?.id;
-    const key = `${propertyId}-${checklistType}-${inspectionId}`;
-    if (initializationRef.current === key && checklist && zones.length > 0 && !inspectionLoading) {
+    const key = `${propertyId}-${checklistType}-${inspectionId || 'no-inspection'}`;
+    if (initializationRef.current === key && checklist && zones.length > 0 && !inspectionLoading && inspectionId) {
       console.log('[useSupabaseChecklist] ✅ Already initialized with same data, skipping...', { key });
       // Si ya está inicializado completamente, asegurar que el flag esté en false
       if (initializationInProgressRef.current) {
         initializationInProgressRef.current = false;
       }
+      setIsLoading(false);
       return;
-    }
-    
-    // Si estamos esperando que se cree una inspección y ya tenemos una, continuar
-    if (initializationInProgressRef.current && inspection && !inspectionLoading) {
-      console.log('[useSupabaseChecklist] ✅ Inspection is now available, continuing initialization...');
-      // Continuar con la inicialización (no retornar aquí)
     }
     
     // Si zones.length está aumentando durante la creación inicial, esperar a que termine el loading
@@ -216,11 +253,35 @@ export function useSupabaseChecklist({
         console.log('[useSupabaseChecklist] 🚀 Starting initialization...');
         setIsLoading(true);
         
+        // Si el flag de creación está activo pero no hay inspección y ya no está cargando,
+        // intentar un refetch adicional para asegurarnos de que tenemos la inspección más reciente
+        if (inspectionCreationInProgressRef.current && !inspection?.id && !inspectionLoading && functionsRef.current) {
+          console.log('[useSupabaseChecklist] 🔄 Attempting additional refetch to find created inspection...');
+          await functionsRef.current.refetchInspection();
+          // Esperar un momento para que el estado se actualice
+          await new Promise(resolve => setTimeout(resolve, 500));
+          // Si después del refetch adicional aún no hay inspección, crear un checklist vacío
+          // para que el usuario pueda ver algo mientras tanto
+          if (!inspection?.id) {
+            console.warn('[useSupabaseChecklist] ⚠️ Inspection still not found after additional refetch, creating empty checklist...');
+            const emptyChecklist = createChecklist(propertyId, checklistType, {});
+            setChecklist(emptyChecklist);
+            inspectionCreationInProgressRef.current = false;
+            initializationInProgressRef.current = false;
+            setIsLoading(false);
+            return;
+          }
+          // Si ahora tenemos la inspección, resetear el flag y continuar
+          console.log('[useSupabaseChecklist] ✅ Inspection found after additional refetch');
+          inspectionCreationInProgressRef.current = false;
+          // Continuar con la inicialización normal (no retornar aquí)
+        }
+        
         // Si no hay inspección, crear una nueva
-        if (!inspection && !inspectionCreationInProgressRef.current) {
+        if (!inspection && !inspectionCreationInProgressRef.current && functionsRef.current) {
           inspectionCreationInProgressRef.current = true;
           console.log('[useSupabaseChecklist] 📝 Creating new inspection...');
-          const newInspection = await createInspection(propertyId, inspectionType);
+          const newInspection = await functionsRef.current.createInspection(propertyId, inspectionType);
           if (!newInspection) {
             console.error('[useSupabaseChecklist] ❌ Failed to create inspection');
             setIsLoading(false);
@@ -230,29 +291,45 @@ export function useSupabaseChecklist({
           }
           console.log('[useSupabaseChecklist] ✅ Inspection created, refetching...');
           // Refetch para obtener zonas y elementos
-          await refetchInspection();
-          // El createInspection ya actualiza el estado internamente (línea 255 de useSupabaseInspection)
-          // y llama a fetchInspection, así que el estado debería actualizarse pronto
-          // El flag inspectionCreationInProgressRef se reseteará cuando inspection esté disponible
-          // (ver la verificación al inicio del efecto)
-          // El efecto se ejecutará de nuevo cuando inspection esté disponible
-          // NO marcar initializationInProgressRef.current = false aquí todavía
-          return; // El flag se mantiene en true hasta que realmente tengamos la inspección
+          await functionsRef.current.refetchInspection();
+          // Esperar un momento para que el estado se actualice después del refetch
+          // El estado de React puede tardar un momento en actualizarse después del refetch
+          await new Promise(resolve => setTimeout(resolve, 500));
+          // Después del refetch, verificar si tenemos la inspección
+          // Si no la tenemos todavía, crear un checklist vacío para que el usuario pueda ver algo
+          // El siguiente ciclo del efecto continuará cuando la inspección esté disponible
+          if (!inspection?.id) {
+            console.log('[useSupabaseChecklist] ⏳ Inspection not yet available after refetch, creating empty checklist...');
+            const emptyChecklist = createChecklist(propertyId, checklistType, {});
+            setChecklist(emptyChecklist);
+            const stableKey = `${propertyId}-${checklistType}-no-inspection-yet`;
+            initializationRef.current = stableKey;
+          }
+          // Resetear flags para permitir que el siguiente ciclo del efecto continúe
+          initializationInProgressRef.current = false;
+          inspectionCreationInProgressRef.current = false;
+          setIsLoading(false);
+          return;
         }
 
         // Si hay inspección pero no hay zonas, crear zonas iniciales
-        if (zones.length === 0 && supabaseProperty && inspection?.id) {
+        if (zones.length === 0 && supabaseProperty && inspection?.id && functionsRef.current) {
           console.log('[useSupabaseChecklist] 📝 Creating initial zones...');
-          await createInitialZones(inspection.id);
-          await refetchInspection();
+          await functionsRef.current.createInitialZones(inspection.id);
+          await functionsRef.current.refetchInspection();
           // Esperar a que las zonas se carguen antes de continuar
           // El efecto se ejecutará de nuevo cuando zones.length > 0
+          // Establecer loading en false temporalmente mientras esperamos las zonas
+          setIsLoading(false);
+          initializationInProgressRef.current = false;
           return; // El flag se mantiene en true hasta que tengamos las zonas
         }
         
         // Si no hay inspección pero tenemos zonas, algo está mal - esperar
         if (zones.length > 0 && !inspection?.id) {
           console.log('[useSupabaseChecklist] ⚠️ Zones exist but no inspection, waiting...');
+          setIsLoading(false);
+          initializationInProgressRef.current = false;
           return;
         }
 
@@ -288,13 +365,17 @@ export function useSupabaseChecklist({
         } else {
           console.log('[useSupabaseChecklist] 📝 Creating empty checklist...');
           // Si no hay datos, crear checklist vacío
+          // Esto puede pasar si no hay zonas todavía o si la inspección aún no está disponible
           const newChecklist = createChecklist(propertyId, checklistType, {});
           setChecklist(newChecklist);
-          if (inspection?.id) {
-            const stableKey = `${propertyId}-${checklistType}-${inspection.id}`;
-            initializationRef.current = stableKey; // Marcar como inicializado (sin zones.length)
-            lastZonesCountRef.current = zones.length; // Actualizar contador
-          }
+          // Marcar como inicializado incluso si no hay inspección todavía
+          // Esto permite que el usuario vea el checklist vacío mientras se carga
+          const stableKey = inspection?.id 
+            ? `${propertyId}-${checklistType}-${inspection.id}`
+            : `${propertyId}-${checklistType}-no-inspection`;
+          initializationRef.current = stableKey;
+          lastZonesCountRef.current = zones.length; // Actualizar contador
+          console.log('[useSupabaseChecklist] ✅ Empty checklist created and set');
         }
       } catch (error) {
         console.error('[useSupabaseChecklist] ❌ Error initializing checklist:', error);
@@ -314,7 +395,9 @@ export function useSupabaseChecklist({
         clearTimeout(zonesCreationTimeoutRef.current);
       }
     };
-  }, [propertyId, inspection?.id, inspectionLoading, inspectionType, checklistType, supabaseProperty?.bedrooms, supabaseProperty?.bathrooms, createInspection, refetchInspection, createInitialZones]);
+    // Solo dependencias esenciales - las funciones están en functionsRef para evitar re-ejecuciones
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyId, inspection?.id, inspectionLoading, checklistType, supabaseProperty?.bedrooms, supabaseProperty?.bathrooms]);
   
   // Efecto separado para manejar cambios en zones cuando están completamente cargadas
   useEffect(() => {
@@ -515,9 +598,12 @@ export function useSupabaseChecklist({
     await saveCurrentSection();
   }, [saveCurrentSection]);
 
+  // Si no tenemos checklist pero estamos inicializando, mantener isLoading en true
+  const finalIsLoading = isLoading || inspectionLoading || (!checklist && (initializationInProgressRef.current || inspectionCreationInProgressRef.current));
+
   return {
     checklist,
-    isLoading: isLoading || inspectionLoading,
+    isLoading: finalIsLoading,
     updateSection,
     save,
     saveCurrentSection,

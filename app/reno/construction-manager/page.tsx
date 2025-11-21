@@ -9,6 +9,7 @@ import { RenoHomeTasks } from "@/components/reno/reno-home-tasks";
 import { RenoHomeVisits } from "@/components/reno/reno-home-visits";
 import { RenoHomeRecentProperties } from "@/components/reno/reno-home-recent-properties";
 import { RenoHomePortfolio } from "@/components/reno/reno-home-portfolio";
+import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { sortPropertiesByExpired, isPropertyExpired } from "@/lib/property-sorting";
@@ -202,37 +203,41 @@ export default function RenoConstructionManagerHomePage() {
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)]">
-          <div className="max-w-7xl mx-auto space-y-6">
-            {/* KPIs */}
-            <RenoHomeIndicators
-              obrasActivas={indicators.obrasActivas}
-              visitasParaHoy={indicators.visitasParaHoy}
-              totalVisitasMes={indicators.totalVisitasMes}
-              obrasActivasDelta={indicators.obrasActivasDelta}
-              visitasParaHoyDelta={indicators.visitasParaHoyDelta}
-              totalVisitasMesDelta={indicators.totalVisitasMesDelta}
-            />
-
-            {/* Tasks and Visits Row */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <RenoHomeTasks
-                checks={checksForToday}
-                visits={visitsForToday}
-                onPropertyClick={handlePropertyClick}
+          {supabaseLoading ? (
+            <RenoHomeLoader className="min-h-[400px]" />
+          ) : (
+            <div className="max-w-7xl mx-auto space-y-6">
+              {/* KPIs */}
+              <RenoHomeIndicators
+                obrasActivas={indicators.obrasActivas}
+                visitasParaHoy={indicators.visitasParaHoy}
+                totalVisitasMes={indicators.totalVisitasMes}
+                obrasActivasDelta={indicators.obrasActivasDelta}
+                visitasParaHoyDelta={indicators.visitasParaHoyDelta}
+                totalVisitasMesDelta={indicators.totalVisitasMesDelta}
               />
-              <RenoHomeVisits
-                visits={visitsForToday}
-                onPropertyClick={handlePropertyClick}
-                onAddVisit={handleAddVisit}
-              />
-            </div>
 
-            {/* Recent Properties and Portfolio Row */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <RenoHomeRecentProperties properties={filteredProperties} />
-              <RenoHomePortfolio properties={filteredProperties} />
+              {/* Tasks and Visits Row */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <RenoHomeTasks
+                  checks={checksForToday}
+                  visits={visitsForToday}
+                  onPropertyClick={handlePropertyClick}
+                />
+                <RenoHomeVisits
+                  visits={visitsForToday}
+                  onPropertyClick={handlePropertyClick}
+                  onAddVisit={handleAddVisit}
+                />
+              </div>
+
+              {/* Recent Properties and Portfolio Row */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <RenoHomeRecentProperties properties={filteredProperties} />
+                <RenoHomePortfolio properties={filteredProperties} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { mapSetUpStatusToKanbanPhase } from '@/lib/supabase/kanban-mapping';
 import { matchesTechnicalConstruction, extractNameFromEmail } from '@/lib/supabase/user-name-utils';
@@ -75,15 +75,43 @@ export function useSupabaseKanbanProperties() {
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
   const { role, user } = useAppAuth();
+  const fetchInProgressRef = useRef(false);
+  const lastFetchKeyRef = useRef<string | null>(null);
 
   // Fetch properties from Supabase
   useEffect(() => {
     async function fetchProperties() {
+      // Create a unique key for this fetch attempt
+      const fetchKey = `${role}-${user?.id || 'no-user'}-${user?.email || 'no-email'}`;
+      
+      // Skip if already fetching with the same key
+      if (fetchInProgressRef.current && lastFetchKeyRef.current === fetchKey) {
+        console.log('[useSupabaseKanbanProperties] ⏸️ Fetch already in progress with same key, skipping...', {
+          fetchKey,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+      
+      // Skip if we already fetched with this exact key
+      if (lastFetchKeyRef.current === fetchKey && !loading) {
+        console.log('[useSupabaseKanbanProperties] ✅ Already fetched with this key, skipping...', {
+          fetchKey,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+      
+      // Mark as in progress
+      fetchInProgressRef.current = true;
+      lastFetchKeyRef.current = fetchKey;
+      
       try {
         console.log('[useSupabaseKanbanProperties] 🔄 Starting fetch...', {
           role,
           userEmail: user?.email,
           userId: user?.id,
+          fetchKey,
           timestamp: new Date().toISOString(),
         });
         
@@ -223,23 +251,32 @@ export function useSupabaseKanbanProperties() {
         console.error('[useSupabaseKanbanProperties] ❌ Unexpected error:', err);
         setError(err instanceof Error ? err.message : 'Error fetching properties');
         setLoading(false);
+      } finally {
+        // Reset fetch flag
+        fetchInProgressRef.current = false;
       }
     }
 
-    // Only fetch if we have role information (or if loading is complete)
+    // Only fetch if we have role information
     console.log('[useSupabaseKanbanProperties] 🎯 Effect trigger:', {
       role,
       user: user ? { id: user.id, email: user.email } : null,
-      shouldFetch: role !== null || !user,
+      shouldFetch: role !== null && user !== null,
+      fetchInProgress: fetchInProgressRef.current,
+      lastFetchKey: lastFetchKeyRef.current,
       timestamp: new Date().toISOString(),
     });
 
-    if (role !== null || !user) {
+    // Only fetch if we have both role and user, and we're not already fetching
+    if (role !== null && user !== null && !fetchInProgressRef.current) {
       fetchProperties();
-    } else {
-      console.log('[useSupabaseKanbanProperties] ⏳ Waiting for role/user...');
+    } else if (role === null || user === null) {
+      console.log('[useSupabaseKanbanProperties] ⏳ Waiting for role/user...', {
+        hasRole: role !== null,
+        hasUser: user !== null,
+      });
     }
-  }, [supabase, role, user]);
+  }, [role, user?.id, user?.email]); // Removed supabase from deps to avoid re-fetching
 
   // Convert and group properties by kanban phase
   const propertiesByPhase = useMemo(() => {

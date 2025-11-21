@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
+import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
 import { PropertyInfoSection } from "@/components/reno/property-info-section";
 import { MobileSidebarMenu } from "@/components/property/mobile-sidebar-menu";
 import { cn } from "@/lib/utils";
@@ -100,8 +101,20 @@ export default function RenoChecklistPage() {
     checklistType,
   });
 
-  // Combine loading states
-  const isFullyLoading = isLoading || checklistLoading;
+  // Debug: Log checklist state
+  useEffect(() => {
+    console.log('[ChecklistPage] 📊 State:', {
+      hasProperty: !!property,
+      hasChecklist: !!checklist,
+      isLoading,
+      checklistLoading,
+      activeSection,
+      checklistSections: checklist ? Object.keys(checklist.sections || {}) : [],
+    });
+  }, [property, checklist, isLoading, checklistLoading, activeSection]);
+
+  // Combine loading states - also check if checklist is null when we have a property
+  const isFullyLoading = isLoading || checklistLoading || (property && !checklist);
 
   // Get property data (habitaciones, banos) from Supabase property
   const propertyData = useMemo(() => {
@@ -154,10 +167,21 @@ export default function RenoChecklistPage() {
 
   // Render active section
   const renderActiveSection = () => {
+    // Esta función solo se llama cuando isFullyLoading es false,
+    // pero por seguridad verificamos nuevamente
     if (!property || !checklist) {
+      console.log('[ChecklistPage] ⚠️ Cannot render section:', {
+        hasProperty: !!property,
+        hasChecklist: !!checklist,
+        activeSection,
+        isLoading,
+        checklistLoading,
+      });
       return (
         <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-          <p className="text-muted-foreground">Cargando...</p>
+          <p className="text-muted-foreground">
+            {!property ? 'Cargando propiedad...' : !checklist ? 'Cargando checklist...' : 'Cargando...'}
+          </p>
         </div>
       );
     }
@@ -524,12 +548,12 @@ export default function RenoChecklistPage() {
     }
   };
 
-  if (isLoading || checklistLoading) {
+  if (isFullyLoading) {
     return (
       <div className="flex h-screen overflow-hidden">
         <RenoSidebar />
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-muted-foreground">Cargando...</p>
+          <RenoHomeLoader />
         </div>
       </div>
     );
