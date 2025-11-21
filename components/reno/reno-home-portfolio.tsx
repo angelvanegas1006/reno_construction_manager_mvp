@@ -6,14 +6,22 @@ import { Property } from "@/lib/property-storage";
 import { RenoKanbanPhase, renoKanbanColumns } from "@/lib/reno-kanban-config";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
+import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
 
 interface RenoHomePortfolioProps {
   properties: Property[];
+  propertiesByPhase?: Record<RenoKanbanPhase, Property[]>;
 }
 
-export function RenoHomePortfolio({ properties }: RenoHomePortfolioProps) {
+export function RenoHomePortfolio({ properties, propertiesByPhase: propsPropertiesByPhase }: RenoHomePortfolioProps) {
   const { t, language } = useI18n();
   const router = useRouter();
+  
+  // Get properties grouped by phase from Supabase if not provided as prop
+  const { propertiesByPhase: hookPropertiesByPhase } = useSupabaseKanbanProperties();
+  
+  // Use prop if provided, otherwise use hook result
+  const propertiesByPhase = propsPropertiesByPhase || hookPropertiesByPhase;
 
   const stageCounts = useMemo(() => {
     const counts: Record<RenoKanbanPhase, number> = {
@@ -27,29 +35,18 @@ export function RenoHomePortfolio({ properties }: RenoHomePortfolioProps) {
       "done": 0,
     };
 
-    // Map properties to stages based on IDs (for demo)
-    properties.forEach((p) => {
-      if (["4463793", "4463794", "4463795", "4463796", "4463797", "4463798", "4463799", "4463800"].includes(p.id)) {
-        counts["upcoming-settlements"]++;
-      } else if (["4463801", "4463802", "4463803"].includes(p.id)) {
-        counts["initial-check"]++;
-      } else if (["4463804", "4463805"].includes(p.id)) {
-        counts["upcoming"]++;
-      } else if (["4463806", "4463807", "4463808"].includes(p.id)) {
-        counts["reno-in-progress"]++;
-      } else if (["4463809", "4463810"].includes(p.id)) {
-        counts["furnishing-cleaning"]++;
-      } else if (p.id === "4463811") {
-        counts["final-check"]++;
-      } else if (p.id === "4463812") {
-        counts["reno-fixes"]++;
-      } else if (["4463813", "4463814"].includes(p.id)) {
-        counts["done"]++;
-      }
-    });
+    // Use propertiesByPhase directly from Supabase hook
+    // This ensures we're using the real phase data from the database
+    if (propertiesByPhase) {
+      Object.entries(propertiesByPhase).forEach(([phase, phaseProperties]) => {
+        if (phase in counts) {
+          counts[phase as RenoKanbanPhase] = phaseProperties.length;
+        }
+      });
+    }
 
     return counts;
-  }, [properties]);
+  }, [propertiesByPhase]);
 
   const maxCount = Math.max(...Object.values(stageCounts), 1);
   const maxHeight = 200; // Max height in pixels for the bars

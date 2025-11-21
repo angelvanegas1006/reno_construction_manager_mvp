@@ -19,15 +19,20 @@ export function RenoHomeVisits({
   const { t, language } = useI18n();
 
   // Sort visits by date (upcoming first)
+  // Use estimatedVisitDate for initial-check properties, fallback to proximaActualizacion
   const sortedVisits = [...visits]
     .filter((visit) => {
-      if (!visit.proximaActualizacion) return false;
-      const visitDate = new Date(visit.proximaActualizacion);
-      return visitDate >= new Date(); // Only future visits
+      const visitDate = visit.estimatedVisitDate || visit.proximaActualizacion;
+      if (!visitDate) return false;
+      const date = new Date(visitDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      date.setHours(0, 0, 0, 0);
+      return date >= today; // Only future or today visits
     })
     .sort((a, b) => {
-      const dateA = new Date(a.proximaActualizacion || "");
-      const dateB = new Date(b.proximaActualizacion || "");
+      const dateA = new Date(a.estimatedVisitDate || a.proximaActualizacion || "");
+      const dateB = new Date(b.estimatedVisitDate || b.proximaActualizacion || "");
       return dateA.getTime() - dateB.getTime();
     })
     .slice(0, 3); // Show only next 3
@@ -78,7 +83,7 @@ export function RenoHomeVisits({
                     {visit.fullAddress}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formatDate(visit.proximaActualizacion)}
+                    {formatDate(visit.estimatedVisitDate || visit.proximaActualizacion)}
                   </p>
                 </div>
               </div>

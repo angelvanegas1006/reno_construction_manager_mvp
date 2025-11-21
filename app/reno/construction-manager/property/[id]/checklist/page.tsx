@@ -8,6 +8,7 @@ import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
 import { PropertyInfoSection } from "@/components/reno/property-info-section";
 import { MobileSidebarMenu } from "@/components/property/mobile-sidebar-menu";
+import { CompleteInspectionDialog } from "@/components/reno/complete-inspection-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Property } from "@/lib/property-storage";
@@ -17,6 +18,8 @@ import { useSupabaseChecklist } from "@/hooks/useSupabaseChecklist";
 import { ChecklistType } from "@/lib/checklist-storage";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
+import { useSupabaseInspection } from "@/hooks/useSupabaseInspection";
+import { areAllActivitiesReported } from "@/lib/checklist-validation";
 
 // Checklist section components
 import { EntornoZonasComunesSection } from "@/components/checklist/sections/entorno-zonas-comunes-section";
@@ -100,6 +103,23 @@ export default function RenoChecklistPage() {
     checklistType,
   });
 
+  // Use Supabase inspection hook to get completeInspection function
+  const inspectionType = checklistType === "reno_final" ? "final" : "initial";
+  const { inspection, completeInspection, refetch: refetchInspection } = useSupabaseInspection(
+    propertyId,
+    inspectionType
+  );
+
+  // State for completion dialog
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [publicUrl, setPublicUrl] = useState<string>("");
+
+  // Check if all activities are reported
+  const canComplete = useMemo(() => {
+    return areAllActivitiesReported(checklist);
+  }, [checklist]);
+
   // Combine loading states
   const isFullyLoading = isLoading || checklistLoading;
 
@@ -136,8 +156,37 @@ export default function RenoChecklistPage() {
     if (!checklist) return;
     // Save is handled automatically by useChecklist hook
     setHasUnsavedChanges(false);
-    toast.success(t.property.saveSuccess);
-  }, [checklist, t]);
+    toast.success("Cambios guardados correctamente");
+  }, [checklist]);
+
+  // Handle complete inspection
+  const handleCompleteInspection = useCallback(async () => {
+    if (!inspection || !canComplete) {
+      toast.error("No se puede completar la inspección. Asegúrate de que todas las actividades estén reportadas.");
+      return;
+    }
+
+    setIsCompleting(true);
+    try {
+      const success = await completeInspection();
+      if (success && inspection.public_link_id) {
+        // Generate public URL
+        const url = `${window.location.origin}/inspection/${inspection.public_link_id}`;
+        setPublicUrl(url);
+        setShowCompleteDialog(true);
+        toast.success("Inspección completada exitosamente");
+        // Refetch inspection to get updated status
+        await refetchInspection();
+      } else {
+        toast.error("Error al completar la inspección");
+      }
+    } catch (error) {
+      console.error("Error completing inspection:", error);
+      toast.error("Error al completar la inspección");
+    } finally {
+      setIsCompleting(false);
+    }
+  }, [inspection, canComplete, completeInspection, refetchInspection]);
 
   // Format address
   const formatAddress = () => {
@@ -579,6 +628,9 @@ export default function RenoChecklistPage() {
         hasUnsavedChanges={hasUnsavedChanges}
         habitacionesCount={habitacionesCount}
         banosCount={banosCount}
+        onCompleteInspection={handleCompleteInspection}
+        canCompleteInspection={canComplete && !isCompleting}
+        isCompleting={isCompleting}
       />
 
       {/* Main Content */}
@@ -595,10 +647,10 @@ export default function RenoChecklistPage() {
             </Button>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-foreground">
-                {property.fullAddress}
+                {property?.fullAddress || "Cargando..."}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                ID: {property.id} · {phase === "initial-check" ? "Check Inicial" : "Check Final"}
+                {property && `ID: ${property.id} · ${phase === "initial-check" ? "Check Inicial" : "Check Final"}`}
               </p>
             </div>
           </div>
@@ -614,19 +666,107 @@ export default function RenoChecklistPage() {
 
       {/* Mobile Sidebar Menu */}
       <MobileSidebarMenu
+        address={formatAddress()}
+        overallProgress={0}
         sections={[
-          { id: "property-info", name: "Información de la Propiedad" },
-          { id: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title },
-          { id: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title },
-          { id: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title },
-          { id: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title },
-          { id: "checklist-salon", name: t.checklist.sections.salon.title },
-          { id: "checklist-banos", name: t.checklist.sections.banos.title },
-          { id: "checklist-cocina", name: t.checklist.sections.cocina.title },
-          { id: "checklist-exteriores", name: t.checklist.sections.exteriores.title },
+          {
+            sectionId: "property-info",
+            name: "Información de la Propiedad",
+            progress: 0,
+            requiredFieldsCount: 0,
+            completedRequiredFieldsCount: 0,
+            optionalFieldsCount: 0,
+            completedOptionalFieldsCount: 0,
+          },
+          {
+            sectionId: "checklist-entorno-zonas-comunes",
+            name: t.checklist.sections.entornoZonasComunes.title,
+            progress: 0,
+            requiredFieldsCount: 0,
+            completedRequiredFieldsCount: 0,
+            optionalFieldsCount: 0,
+            completedOptionalFieldsCount: 0,
+          },
+          {
+            sectionId: "checklist-estado-general",
+            name: t.checklist.sections.estadoGeneral.title,
+            progress: 0,
+            requiredFieldsCount: 0,
+            completedRequiredFieldsCount: 0,
+            optionalFieldsCount: 0,
+            completedOptionalFieldsCount: 0,
+          },
+          {
+            sectionId: "checklist-entrada-pasillos",
+            name: t.checklist.sections.entradaPasillos.title,
+            progress: 0,
+            requiredFieldsCount: 0,
+            completedRequiredFieldsCount: 0,
+            optionalFieldsCount: 0,
+            completedOptionalFieldsCount: 0,
+          },
+          {
+            sectionId: "checklist-habitaciones",
+            name: t.checklist.sections.habitaciones.title,
+            progress: 0,
+            requiredFieldsCount: 0,
+            completedRequiredFieldsCount: 0,
+            optionalFieldsCount: 0,
+            completedOptionalFieldsCount: 0,
+          },
+          {
+            sectionId: "checklist-salon",
+            name: t.checklist.sections.salon.title,
+            progress: 0,
+            requiredFieldsCount: 0,
+            completedRequiredFieldsCount: 0,
+            optionalFieldsCount: 0,
+            completedOptionalFieldsCount: 0,
+          },
+          {
+            sectionId: "checklist-banos",
+            name: t.checklist.sections.banos.title,
+            progress: 0,
+            requiredFieldsCount: 0,
+            completedRequiredFieldsCount: 0,
+            optionalFieldsCount: 0,
+            completedOptionalFieldsCount: 0,
+          },
+          {
+            sectionId: "checklist-cocina",
+            name: t.checklist.sections.cocina.title,
+            progress: 0,
+            requiredFieldsCount: 0,
+            completedRequiredFieldsCount: 0,
+            optionalFieldsCount: 0,
+            completedOptionalFieldsCount: 0,
+          },
+          {
+            sectionId: "checklist-exteriores",
+            name: t.checklist.sections.exteriores.title,
+            progress: 0,
+            requiredFieldsCount: 0,
+            completedRequiredFieldsCount: 0,
+            optionalFieldsCount: 0,
+            completedOptionalFieldsCount: 0,
+          },
         ]}
         activeSection={activeSection}
         onSectionClick={handleSectionClick}
+        onSave={handleSave}
+        onSubmit={() => {}}
+        onDelete={() => {}}
+        canSubmit={false}
+        hasUnsavedChanges={hasUnsavedChanges}
+        habitacionesCount={habitacionesCount}
+        banosCount={banosCount}
+      />
+
+      {/* Complete Inspection Dialog */}
+      <CompleteInspectionDialog
+        open={showCompleteDialog}
+        onOpenChange={setShowCompleteDialog}
+        publicUrl={publicUrl}
       />
     </div>
   );
