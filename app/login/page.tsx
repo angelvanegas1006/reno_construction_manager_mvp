@@ -6,8 +6,11 @@ import { ArchitecturalWireframeBackground } from "@/components/architectural-wir
 import { LoginForm } from "@/components/auth/login-form";
 import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
+import { LoginLanguageSelector } from "@/components/auth/login-language-selector";
+import { useI18n } from "@/lib/i18n";
 
 export default function LoginPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const { user, loading: supabaseLoading } = useSupabaseAuthContext();
   const { role, isLoading: appLoading } = useAppAuth();
@@ -48,13 +51,23 @@ export default function LoginPage() {
 
       {/* Right column: login form */}
       <div className="relative flex min-h-screen flex-col items-center justify-center p-8 bg-card dark:bg-[var(--prophero-gray-900)]">
+        {/* Language Selector - Top Right */}
+        <div className="absolute top-6 right-6">
+          <LoginLanguageSelector />
+        </div>
+
         <LoginForm />
 
         {/* Footer links */}
-        <div className="pointer-events-none absolute bottom-6 left-0 right-0 flex items-center justify-center gap-6 text-xs text-muted-foreground">
-          <a className="pointer-events-auto hover:underline" href="#">Soporte</a>
-          <a className="pointer-events-auto hover:underline" href="#">Privacidad</a>
-          <a className="pointer-events-auto hover:underline" href="#">Términos</a>
+        <div className="pointer-events-none absolute bottom-6 left-0 right-0 flex flex-col items-center gap-3 text-xs">
+          <div className="flex items-center justify-center gap-6">
+            <a className="pointer-events-auto text-muted-foreground hover:text-foreground hover:underline transition-colors" href="#">{t.login.support}</a>
+            <a className="pointer-events-auto text-muted-foreground hover:text-foreground hover:underline transition-colors" href="#">{t.login.privacy}</a>
+            <a className="pointer-events-auto text-muted-foreground hover:text-foreground hover:underline transition-colors" href="#">{t.login.terms}</a>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {t.login.copyright}
+          </div>
         </div>
       </div>
     </div>

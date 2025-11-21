@@ -1,75 +1,82 @@
-# 🚀 Quick Start: Configuración de Entornos
+# ⚡ Quick Start: Configurar Entornos
 
-## Paso 1: Crear Archivos de Entorno
+Guía rápida para configurar dev, staging y production.
 
-```bash
-# Desde la raíz del proyecto
-cp .env.example .env.local          # Development
-cp .env.example .env.staging        # Staging (opcional por ahora)
-cp .env.example .env.production     # Production (opcional por ahora)
-```
+---
 
-## Paso 2: Crear Proyectos Supabase
+## 🎯 Setup Rápido (5 minutos)
 
-### Development
-1. Ve a [supabase.com](https://supabase.com)
-2. Crea nuevo proyecto: `vistral-dev`
-3. Copia las keys a `.env.local`:
-   - Settings → API → Project URL → `NEXT_PUBLIC_SUPABASE_URL`
-   - Settings → API → anon key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - Settings → API → service_role key → `SUPABASE_SERVICE_ROLE_KEY`
+### **1. Crear Proyectos Supabase**
 
-### Staging (Más adelante)
-- Proyecto: `vistral-staging`
-- Configurar en `.env.staging`
+Crea 3 proyectos en [Supabase Dashboard](https://app.supabase.com):
+- `vistral-dev` (Development)
+- `vistral-staging` (Staging)  
+- `vistral-prod` (Production)
 
-### Production (Más adelante)
-- Proyecto: `vistral-prod`
-- Configurar en `.env.production`
-
-## Paso 3: Configurar `.env.local`
-
-Edita `.env.local` y completa:
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://vistral-dev.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key-aqui
-SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key-aqui
-```
-
-## Paso 4: Ejecutar Migraciones
-
-1. Ve a Supabase Dashboard → SQL Editor
-2. Ejecuta las migraciones:
-   - `packages/event-bus/supabase/migrations/001_event_bus.sql`
-
-## Paso 5: Verificar
+### **2. Crear Archivos de Entorno**
 
 ```bash
+# Development
+npm run env:dev
+# Edita .env.local con credenciales de vistral-dev
+
+# Staging
+npm run env:staging
+# Edita .env.staging con credenciales de vistral-staging
+
+# Production
+npm run env:prod
+# Edita .env.production con credenciales de vistral-prod
+```
+
+### **3. Ejecutar Migraciones**
+
+```bash
+# Ver instrucciones para cada entorno
+./scripts/migrate-db.sh dev
+./scripts/migrate-db.sh staging
+./scripts/migrate-db.sh prod
+```
+
+O manualmente:
+1. Ve a cada proyecto Supabase
+2. SQL Editor → Ejecuta `supabase/migrations/001_checklist_migrations.sql`
+
+### **4. Probar**
+
+```bash
+# Development
 npm run dev
+
+# Staging (build local)
+npm run build:staging
+npm run start:staging
+
+# Production (build local)
+npm run build:prod
+npm run start:prod
 ```
 
-Deberías ver en la consola:
-```
-🔧 Environment Configuration:
-   Environment: development
-   Supabase Project: vistral-dev
-   Supabase URL: ✅ Set
-   Debug Mode: ✅ Enabled
-```
+---
 
-## ✅ Listo!
+## 📋 Checklist Rápido
 
-Ahora tienes:
-- ✅ Desarrollo configurado
-- ✅ Configuración centralizada en `lib/config/environment.ts`
-- ✅ Supabase cliente usando la configuración correcta
-- ✅ Event Bus usando la configuración correcta
+- [ ] 3 proyectos Supabase creados
+- [ ] `.env.local` configurado (dev)
+- [ ] `.env.staging` configurado
+- [ ] `.env.production` configurado
+- [ ] Migraciones ejecutadas en los 3 entornos
+- [ ] `npm run dev` funciona
+- [ ] Login funciona en dev
 
-## 📚 Documentación Completa
+---
 
-Ver `docs/environment-setup.md` para detalles completos sobre:
-- Configuración de staging y production
-- Setup en Vercel
-- Variables de entorno por servicio
-- Scripts útiles
+## 🔗 Enlaces Útiles
 
+- [Guía Completa](./SETUP_ENVIRONMENTS.md)
+- [Event Bus Setup](./event-bus-setup-guide.md)
+- [Supabase Dashboard](https://app.supabase.com)
+
+---
+
+¿Problemas? Revisa [SETUP_ENVIRONMENTS.md](./SETUP_ENVIRONMENTS.md) para más detalles.

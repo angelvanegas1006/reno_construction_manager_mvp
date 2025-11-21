@@ -4,10 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:staging": "next dev --env-file=.env.staging",
     "build": "next build",
+    "build:staging": "next build --env-file=.env.staging",
+    "build:prod": "next build --env-file=.env.production",
     "start": "next start",
+    "start:staging": "next start --env-file=.env.staging",
+    "start:prod": "next start --env-file=.env.production",
     "lint": "eslint",
-    "test": "vitest"
+    "test": "vitest",
+    "env:dev": "cp .env.example .env.local && echo '✅ Created .env.local - Please fill in your development credentials'",
+    "env:staging": "cp .env.example .env.staging && echo '✅ Created .env.staging - Please fill in your staging credentials'",
+    "env:prod": "cp .env.example .env.production && echo '✅ Created .env.production - Please fill in your production credentials'",
+    "migrate:show": "node scripts/migrate-simple.js",
+    "migrate:dev": "node scripts/migrate-simple.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

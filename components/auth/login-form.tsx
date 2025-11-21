@@ -9,14 +9,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { VistralLogo } from "@/components/vistral-logo";
+import { useI18n } from "@/lib/i18n";
 
 export function LoginForm() {
+  const { t } = useI18n();
+  const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
+
+  const handleShowForm = () => {
+    setShowForm(true);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,38 +83,86 @@ export function LoginForm() {
     }
   };
 
+  // Initial state: Show logo, title, description and button
+  if (!showForm) {
+    return (
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo */}
+        <div className="flex justify-center mb-2">
+          <VistralLogo className="h-12" />
+        </div>
+
+        {/* Title */}
+        <div className="text-center space-y-3">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground dark:text-foreground">
+            {t.login.title}
+          </h1>
+          <p className="text-base text-muted-foreground dark:text-muted-foreground">
+            {t.login.subtitle}
+          </p>
+        </div>
+
+        {/* Primary Button */}
+        <div className="pt-2">
+          <Button 
+            onClick={handleShowForm}
+            className="w-full text-base h-12 font-medium"
+            size="lg"
+          >
+            {t.login.secureLoginButton}
+          </Button>
+        </div>
+
+        {/* Secondary Link */}
+        <div className="text-center pt-2">
+          <button
+            type="button"
+            className="text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
+            onClick={() => {
+              toast.info("Funcionalidad de crear cuenta próximamente");
+            }}
+          >
+            {t.login.createAccount}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Form state: Show login form
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-semibold tracking-tight">
-          Inicia sesión
+          {t.login.title.split(" o ")[0]}
         </CardTitle>
         <CardDescription>
-          Accede a la plataforma de control de operaciones de PropHero
+          {t.login.subtitle}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t.login.email}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="tu@email.com"
+              placeholder={t.login.emailPlaceholder}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
               autoComplete="email"
+              autoFocus
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="password">{t.login.password}</Label>
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder={t.login.passwordPlaceholder}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -129,10 +185,10 @@ export function LoginForm() {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Iniciando sesión...
+                {t.login.loggingIn}
               </>
             ) : (
-              "Iniciar sesión"
+              t.login.loginButton
             )}
           </Button>
 
@@ -145,7 +201,7 @@ export function LoginForm() {
                 toast.info("Funcionalidad de recuperación de contraseña próximamente");
               }}
             >
-              ¿Olvidaste tu contraseña?
+              {t.login.forgotPassword}
             </button>
           </div>
         </form>
