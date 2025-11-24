@@ -392,11 +392,31 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
     // Campos adicionales para Initial Check
     next_reno_steps: getFieldValue('Next Reno Steps', ['Next Reno Steps', 'Next reno steps']) || null,
     'Renovator name': getFieldValue('Renovator Name', ['Renovator Name', 'Renovator name']) || null,
-    // Determinar fase basada en la view o Set Up Status
-    reno_phase: getFieldValue('Set Up Status', ['Set Up Status', 'Set up status']) === 'Initial Check' || 
-               getFieldValue('Set Up Status', ['Set Up Status', 'Set up status']) === 'initial check'
-               ? 'initial-check'
-               : 'upcoming-settlements',
+    // Campos para Upcoming Settlements (Pending to validate Budget)
+    estimated_end_date: getFieldValue('Est. Reno End Date', [
+      'Est. Reno End Date', 
+      'Estimated Reno End Date',
+      'Est. Reno End Date:',
+      'Estimated End Date'
+    ]) || null,
+    start_date: getFieldValue('Reno Start Date', [
+      'Reno Start Date', 
+      'Reno start date',
+      'Reno Start Date:',
+      'Start Date'
+    ]) || null,
+    // Determinar fase basada en Set Up Status
+    reno_phase: (() => {
+      const setUpStatus = getFieldValue('Set Up Status', ['Set Up Status', 'Set up status']);
+      if (setUpStatus === 'Initial Check' || setUpStatus === 'initial check') {
+        return 'initial-check';
+      }
+      if (setUpStatus === 'Pending to validate Budget (Client & renovator) & Reno to start' ||
+          setUpStatus === 'Pending to validate Budget') {
+        return 'upcoming-settlements';
+      }
+      return 'upcoming-settlements'; // Default
+    })(),
     airtable_property_id: airtableProperty.id,
     updated_at: new Date().toISOString(),
   };

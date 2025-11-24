@@ -24,6 +24,7 @@
     "setup:airtable-webhook": "tsx scripts/setup-airtable-webhook.ts",
     "test:sync-airtable": "tsx scripts/test-airtable-sync.ts",
     "sync:initial-check": "tsx scripts/sync-initial-check.ts",
+    "sync:upcoming-settlements": "tsx scripts/sync-upcoming-settlements.ts",
     "verify:initial-check": "tsx scripts/verify-initial-check-properties.ts",
     "check:properties-status": "tsx scripts/check-properties-status.ts",
     "verify:synced-properties": "tsx scripts/verify-synced-properties.ts",
