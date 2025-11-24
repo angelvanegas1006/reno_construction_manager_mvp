@@ -35,8 +35,10 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
 
       const supabase = createClient();
       
+      let rawData: any[] | null = null;
+      
       // Try to fetch with inspection_type first
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('property_inspections')
         .select('id, inspection_type, inspection_status, created_at, completed_at, created_by')
         .eq('property_id', propertyId)
@@ -57,19 +59,20 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
           setLoading(false);
           return;
         }
-        data = allData;
+        rawData = allData;
       } else if (error) {
         console.error('Error fetching checklists:', error);
         setChecklists([]);
         setLoading(false);
         return;
+      } else {
+        rawData = data;
       }
 
       // Type guard to ensure data is an array and handle potential type issues
-      if (Array.isArray(data)) {
+      if (Array.isArray(rawData)) {
         // Convert to ChecklistHistory format, defaulting inspection_type if missing
-        // Use unknown first as TypeScript suggests when types don't overlap
-        const checklists: ChecklistHistory[] = (data as unknown as any[]).map((item: any) => ({
+        const checklists: ChecklistHistory[] = rawData.map((item: any) => ({
           id: item.id,
           inspection_type: item.inspection_type || 'initial', // Default to 'initial' if missing
           inspection_status: item.inspection_status || 'in_progress',
