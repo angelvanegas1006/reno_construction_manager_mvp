@@ -11,19 +11,39 @@ interface VistralLogoProps {
 }
 
 export function VistralLogo({ className, variant }: VistralLogoProps) {
-  const { theme, systemTheme } = useTheme();
+  const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Update dark mode state when theme changes
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const checkDarkMode = () => {
+      const hasDarkClass = document.documentElement.classList.contains("dark");
+      const isDark = resolvedTheme === "dark" || hasDarkClass;
+      setIsDarkMode(isDark);
+    };
+
+    checkDarkMode();
+
+    // Listen for class changes on HTML element
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    return () => observer.disconnect();
+  }, [mounted, resolvedTheme]);
+
   // If variant is null, use theme-aware colors
   const useThemeAware = variant === null || variant === undefined;
   
-  // Determine which logo to use
-  const currentTheme = mounted ? (theme === "system" ? systemTheme : theme) : "light";
-  const isDarkMode = currentTheme === "dark";
   const logoSrc = useThemeAware && isDarkMode ? "/vistral-logo-dark.svg" : "/vistral-logo.svg";
   
   const textColor = useThemeAware 

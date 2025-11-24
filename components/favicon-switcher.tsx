@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTheme } from "next-themes";
 
 export function FaviconSwitcher() {
@@ -11,77 +11,75 @@ export function FaviconSwitcher() {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!mounted || !resolvedTheme) return;
+  const updateFavicon = useCallback(() => {
+    if (!mounted) return;
 
-    // Determinar si estamos en dark mode
-    // Verificar tanto el resolvedTheme como la clase dark en el HTML
+    // Determinar si estamos en dark mode - verificar la clase dark en el HTML directamente
     const htmlElement = document.documentElement;
     const hasDarkClass = htmlElement.classList.contains("dark");
-    const isDark = resolvedTheme === "dark" || hasDarkClass;
+    
+    // Usar resolvedTheme si está disponible, sino verificar la clase dark
+    const isDark = resolvedTheme === "dark" || (resolvedTheme === undefined && hasDarkClass) || hasDarkClass;
 
     const iconPath = isDark ? "/icon-dark.svg" : "/icon.svg";
 
-    // Función para actualizar o crear un link
-    const updateOrCreateLink = (rel: string, href: string) => {
-      // Buscar por rel exacto o por rel que contenga el valor
-      let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
+    // Función para actualizar o crear un link de forma más agresiva
+    const updateOrCreateLink = (rel: string) => {
+      // Buscar todos los links con ese rel
+      const existingLinks = Array.from(document.querySelectorAll(`link[rel]`)).filter(
+        (link) => {
+          const relAttr = link.getAttribute("rel");
+          return relAttr === rel || (relAttr && relAttr.includes(rel.split(" ")[0]));
+        }
+      ) as HTMLLinkElement[];
+
+      // Eliminar los existentes que no coincidan
+      existingLinks.forEach((link) => {
+        if (!link.href.includes(iconPath)) {
+          link.remove();
+        }
+      });
+
+      // Crear nuevo link si no existe uno con el path correcto
+      const hasCorrectLink = existingLinks.some((link) => link.href.includes(iconPath));
       
-      // Si no se encuentra, buscar por rel que contenga el valor
-      if (!link) {
-        const allLinks = document.querySelectorAll("link[rel]");
-        allLinks.forEach((l) => {
-          const relValue = l.getAttribute("rel");
-          if (relValue && relValue.includes(rel)) {
-            link = l as HTMLLinkElement;
+      if (!hasCorrectLink) {
+        const link = document.createElement("link");
+        link.rel = rel;
+        link.href = `${iconPath}?v=${Date.now()}`; // Agregar timestamp para forzar actualización
+        document.head.appendChild(link);
+      } else {
+        // Actualizar el existente con timestamp
+        existingLinks.forEach((link) => {
+          if (link.href.includes(iconPath)) {
+            link.href = `${iconPath}?v=${Date.now()}`;
           }
         });
       }
-      
-      if (!link) {
-        link = document.createElement("link");
-        link.rel = rel;
-        document.head.appendChild(link);
-      }
-      
-      // Solo actualizar si el href es diferente para evitar recargas innecesarias
-      if (link.href !== `${window.location.origin}${iconPath}`) {
-        link.href = iconPath;
-      }
     };
 
-    // Actualizar todos los iconos
-    updateOrCreateLink("icon", iconPath);
-    updateOrCreateLink("shortcut icon", iconPath);
-    updateOrCreateLink("apple-touch-icon", iconPath);
+    // Actualizar todos los tipos de iconos
+    updateOrCreateLink("icon");
+    updateOrCreateLink("shortcut icon");
+    updateOrCreateLink("apple-touch-icon");
 
-    // También actualizar el favicon.ico si existe
+    // También eliminar y recrear el favicon.ico si existe
     const faviconIco = document.querySelector("link[rel='icon'][type='image/x-icon']") as HTMLLinkElement;
     if (faviconIco) {
-      faviconIco.href = iconPath;
+      faviconIco.remove();
     }
-  }, [theme, resolvedTheme, mounted]);
+  }, [mounted, resolvedTheme]);
 
-  // También escuchar cambios en la clase dark del HTML
+  useEffect(() => {
+    updateFavicon();
+  }, [updateFavicon]);
+
+  // Escuchar cambios en la clase dark del HTML
   useEffect(() => {
     if (!mounted) return;
 
     const observer = new MutationObserver(() => {
-      const htmlElement = document.documentElement;
-      const hasDarkClass = htmlElement.classList.contains("dark");
-      const isDark = resolvedTheme === "dark" || hasDarkClass;
-      const iconPath = isDark ? "/icon-dark.svg" : "/icon.svg";
-
-      const updateLink = (rel: string) => {
-        const link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
-        if (link && link.href !== `${window.location.origin}${iconPath}`) {
-          link.href = iconPath;
-        }
-      };
-
-      updateLink("icon");
-      updateLink("shortcut icon");
-      updateLink("apple-touch-icon");
+      updateFavicon();
     });
 
     observer.observe(document.documentElement, {
@@ -90,7 +88,7 @@ export function FaviconSwitcher() {
     });
 
     return () => observer.disconnect();
-  }, [mounted, resolvedTheme]);
+  }, [mounted, updateFavicon]);
 
   return null;
 }
