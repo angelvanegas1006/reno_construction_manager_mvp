@@ -16,6 +16,7 @@ import { createClient } from "@/lib/supabase/client";
 interface PropertyCommentsSectionProps {
   propertyId: string;
   property: Property;
+  supabaseProperty?: any;
 }
 
 /**
