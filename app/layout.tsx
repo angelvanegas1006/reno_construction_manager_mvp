@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { FaviconSwitcher } from "@/components/favicon-switcher";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import { SupabaseAuthProvider } from "@/lib/auth/supabase-auth-context";
@@ -22,9 +23,9 @@ export const metadata: Metadata = {
   title: "Vistral By Prophero",
   description: "Vistral - Construction Management Platform",
   icons: {
-    icon: '/vistral-logo.svg',
-    shortcut: '/vistral-logo.svg',
-    apple: '/vistral-logo.svg',
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
   },
 };
 
@@ -40,6 +41,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
+          <FaviconSwitcher />
           <I18nProvider>
             {/* AuthProvider original para compatibilidad con código existente */}
             <AuthProvider>
