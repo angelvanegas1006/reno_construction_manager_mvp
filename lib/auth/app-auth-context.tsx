@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { useSupabaseAuthContext } from './supabase-auth-context';
 import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/lib/supabase/types';
+import type { User } from '@supabase/supabase-js';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -27,7 +28,9 @@ interface AppAuthContextType {
 const AppAuthContext = createContext<AppAuthContextType | undefined>(undefined);
 
 export function AppAuthProvider({ children }: { children: ReactNode }) {
-  const { user: supabaseUser, loading: supabaseLoading } = useSupabaseAuthContext();
+  const authContext = useSupabaseAuthContext();
+  const supabaseUser: User | null = authContext.user;
+  const supabaseLoading = authContext.loading;
   const [appUser, setAppUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();

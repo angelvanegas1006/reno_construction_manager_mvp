@@ -187,6 +187,11 @@ export type Database = {
           "Unique ID From Engagements": string | null
           updated_at: string | null
           updated_by: string | null
+          reno_phase: string | null
+          property_unique_id: string | null
+          responsible_owner: string | null
+          keys_location: string | null
+          stage: string | null
         }
         Insert: {
           address?: string | null
@@ -222,6 +227,11 @@ export type Database = {
           "Unique ID From Engagements"?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          reno_phase?: string | null
+          property_unique_id?: string | null
+          responsible_owner?: string | null
+          keys_location?: string | null
+          stage?: string | null
         }
         Update: {
           address?: string | null
@@ -257,6 +267,11 @@ export type Database = {
           "Unique ID From Engagements"?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          reno_phase?: string | null
+          property_unique_id?: string | null
+          responsible_owner?: string | null
+          keys_location?: string | null
+          stage?: string | null
         }
         Relationships: []
       }

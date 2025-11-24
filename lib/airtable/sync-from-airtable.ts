@@ -31,6 +31,11 @@ interface AirtableProperty {
     'Test Flag'?: string;
     'Country'?: string;
     'Already Tenanted'?: string;
+    // Campos relacionados (links a otras tablas)
+    'Properties'?: string[]; // Array de IDs de registros relacionados
+    'Engagements'?: string[]; // Array de IDs de registros relacionados
+    'Responsible owner'?: string | string[]; // Puede ser ID o array de IDs
+    [key: string]: any; // Permitir cualquier otro campo
   };
 }
 

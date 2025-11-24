@@ -214,6 +214,24 @@ export interface Translations {
     portfolio: string;
     portfolioDescription: string;
     totalPortfolioValue: string;
+    // Reno Construction Manager Dashboard
+    activeWorks: string;
+    activeWorksDescription: string;
+    visitsToday: string;
+    visitsTodayDescription: string;
+    totalVisitsMonth: string;
+    totalVisitsMonthDescription: string;
+    checksForToday: string;
+    checksForTodayDescription: string;
+    workStatusVisitsToday: string;
+    workStatusVisitsTodayDescription: string;
+    upcomingVisits: string;
+    upcomingVisitsDescription: string;
+    addNewVisit: string;
+    noChecksScheduled: string;
+    noVisitsScheduled: string;
+    checks: string;
+    visits: string;
   };
   
   // Checklist
