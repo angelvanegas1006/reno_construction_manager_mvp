@@ -27,24 +27,10 @@ export function RenoHomePortfolio({ properties }: RenoHomePortfolioProps) {
       "done": 0,
     };
 
-    // Map properties to stages based on IDs (for demo)
+    // Map properties to stages based on their renoPhase property
     properties.forEach((p) => {
-      if (["4463793", "4463794", "4463795", "4463796", "4463797", "4463798", "4463799", "4463800"].includes(p.id)) {
-        counts["upcoming-settlements"]++;
-      } else if (["4463801", "4463802", "4463803"].includes(p.id)) {
-        counts["initial-check"]++;
-      } else if (["4463804", "4463805"].includes(p.id)) {
-        counts["upcoming"]++;
-      } else if (["4463806", "4463807", "4463808"].includes(p.id)) {
-        counts["reno-in-progress"]++;
-      } else if (["4463809", "4463810"].includes(p.id)) {
-        counts["furnishing-cleaning"]++;
-      } else if (p.id === "4463811") {
-        counts["final-check"]++;
-      } else if (p.id === "4463812") {
-        counts["reno-fixes"]++;
-      } else if (["4463813", "4463814"].includes(p.id)) {
-        counts["done"]++;
+      if (p.renoPhase && p.renoPhase in counts) {
+        counts[p.renoPhase as RenoKanbanPhase]++;
       }
     });
 
@@ -79,9 +65,9 @@ export function RenoHomePortfolio({ properties }: RenoHomePortfolioProps) {
   return (
     <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">Portfolio</CardTitle>
+        <CardTitle className="text-lg font-semibold">{t.dashboard.portfolio}</CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
-          Distribución de propiedades por fase
+          {t.dashboard.portfolioDescription}
         </p>
       </CardHeader>
       <CardContent>

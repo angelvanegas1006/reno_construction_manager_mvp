@@ -52,16 +52,16 @@ export function RenoHomeRecentProperties({ properties }: RenoHomeRecentPropertie
   return (
     <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">Propiedades recientes</CardTitle>
+        <CardTitle className="text-lg font-semibold">{t.dashboard.recentProperties}</CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
-          Últimas actualizaciones de tus propiedades
+          {t.dashboard.recentPropertiesDescription}
         </p>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {recentProperties.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No hay propiedades recientes
+              {t.messages.notFound}
             </p>
           ) : (
             recentProperties.map((property) => (

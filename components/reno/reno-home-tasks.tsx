@@ -78,12 +78,12 @@ export function RenoHomeTasks({ checks, visits, onPropertyClick }: RenoHomeTasks
     <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">
-          {activeTab === "checks" ? "Checks para ejecutar hoy" : "Visitas de estado de obra hoy"}
+          {activeTab === "checks" ? t.dashboard.checksForToday : t.dashboard.workStatusVisitsToday}
         </CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
           {activeTab === "checks" 
-            ? "Checks iniciales y finales programados para hoy"
-            : "Visitas de estado de obra programadas para hoy"}
+            ? t.dashboard.checksForTodayDescription
+            : t.dashboard.workStatusVisitsTodayDescription}
         </p>
       </CardHeader>
       <CardContent>
@@ -98,7 +98,7 @@ export function RenoHomeTasks({ checks, visits, onPropertyClick }: RenoHomeTasks
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
-            Checks ({checks.length})
+            {t.dashboard.checks} ({checks.length})
           </button>
           <button
             onClick={() => setActiveTab("visits")}
@@ -109,7 +109,7 @@ export function RenoHomeTasks({ checks, visits, onPropertyClick }: RenoHomeTasks
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
-            Visitas ({visits.length})
+            {t.dashboard.visits} ({visits.length})
           </button>
         </div>
 
@@ -120,7 +120,7 @@ export function RenoHomeTasks({ checks, visits, onPropertyClick }: RenoHomeTasks
         >
           {displayedProperties.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No hay {activeTab === "checks" ? "checks" : "visitas"} programados para hoy
+              {activeTab === "checks" ? t.dashboard.noChecksScheduled : t.dashboard.noVisitsScheduled}
             </p>
           ) : (
             displayedProperties.map((property) => (

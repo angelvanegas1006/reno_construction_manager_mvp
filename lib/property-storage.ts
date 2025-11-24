@@ -164,6 +164,7 @@ export interface Property {
   estimatedFinalVisitDate?: string; // ISO date string - estimated date for final check visit
   // Supabase fields
   uniqueIdFromEngagements?: string; // Unique ID From Engagements from Supabase (for display)
+  renoPhase?: string; // Reno phase from Supabase (e.g., "upcoming-settlements", "initial-check", etc.)
 }
 
 const STORAGE_KEY = "vistral_properties";

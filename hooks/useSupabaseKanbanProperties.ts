@@ -24,7 +24,30 @@ interface UseSupabaseKanbanPropertiesReturn {
 function convertSupabasePropertyToKanbanProperty(
   supabaseProperty: SupabaseProperty
 ): Property | null {
-  const kanbanPhase = mapSetUpStatusToKanbanPhase(supabaseProperty['Set Up Status']);
+  // Preferir reno_phase si está disponible, sino usar el mapeo de Set Up Status
+  let kanbanPhase: RenoKanbanPhase | null = null;
+  
+  if (supabaseProperty.reno_phase) {
+    // Validar que reno_phase es un RenoKanbanPhase válido
+    const validPhases: RenoKanbanPhase[] = [
+      'upcoming-settlements',
+      'initial-check',
+      'upcoming',
+      'reno-in-progress',
+      'furnishing-cleaning',
+      'final-check',
+      'reno-fixes',
+      'done',
+    ];
+    if (validPhases.includes(supabaseProperty.reno_phase as RenoKanbanPhase)) {
+      kanbanPhase = supabaseProperty.reno_phase as RenoKanbanPhase;
+    }
+  }
+  
+  // Si no hay reno_phase, usar el mapeo de Set Up Status
+  if (!kanbanPhase) {
+    kanbanPhase = mapSetUpStatusToKanbanPhase(supabaseProperty['Set Up Status']);
+  }
   
   // Si no tiene un mapeo válido, retornar null para ignorarlo
   if (!kanbanPhase) return null;
@@ -61,6 +84,8 @@ function convertSupabasePropertyToKanbanProperty(
     setupStatusNotes: supabaseProperty.notes || undefined,
     // Campo para mostrar el ID único de Engagements
     uniqueIdFromEngagements: supabaseProperty['Unique ID From Engagements'] || undefined,
+    // Campo para la fase de renovación
+    renoPhase: kanbanPhase,
   };
 }
 

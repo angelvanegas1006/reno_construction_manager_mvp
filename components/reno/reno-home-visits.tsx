@@ -47,23 +47,23 @@ export function RenoHomeVisits({
     <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle className="text-lg font-semibold">Próximas visitas</CardTitle>
+          <CardTitle className="text-lg font-semibold">{t.dashboard.upcomingVisits}</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Visitas de estado de obra programadas
+            {t.dashboard.upcomingVisitsDescription}
           </p>
         </div>
         <button
           onClick={onAddVisit}
           className="text-sm font-medium text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] hover:underline"
         >
-          Añadir nueva visita
+          {t.dashboard.addNewVisit}
         </button>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
           {sortedVisits.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              No hay visitas programadas
+              {t.dashboard.noVisitsScheduled}
             </p>
           ) : (
             sortedVisits.map((visit) => (

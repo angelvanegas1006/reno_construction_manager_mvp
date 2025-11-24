@@ -63,24 +63,24 @@ export function RenoHomeIndicators({
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <IndicatorCard
-        title="Obras Activas"
+        title={t.dashboard.activeWorks}
         value={obrasActivas}
         delta={obrasActivasDelta}
-        description="Propiedades en fase de renovación"
+        description={t.dashboard.activeWorksDescription}
         icon={Building2}
       />
       <IndicatorCard
-        title="Visitas para Hoy"
+        title={t.dashboard.visitsToday}
         value={visitasParaHoy}
         delta={visitasParaHoyDelta}
-        description="Actualizaciones o checks programados"
+        description={t.dashboard.visitsTodayDescription}
         icon={Calendar}
       />
       <IndicatorCard
-        title="Total de visitas hechas en el mes"
+        title={t.dashboard.totalVisitsMonth}
         value={totalVisitasMes}
         delta={totalVisitasMesDelta}
-        description="Visitas completadas este mes"
+        description={t.dashboard.totalVisitsMonthDescription}
         icon={CheckCircle}
       />
     </div>
