@@ -119,26 +119,28 @@ export async function syncAllPendingCommentsToAirtable(): Promise<{
     const supabase = createAdminClient();
 
     // Obtener todas las propiedades con comentarios no sincronizados
-    const { data: properties, error } = await supabase
+    const { data: comments, error } = await supabase
       .from("property_comments")
       .select("property_id")
-      .eq("synced_to_airtable", false)
-      .group("property_id");
+      .eq("synced_to_airtable", false);
 
     if (error) {
       console.error("Error fetching properties with pending comments:", error);
       return { synced: 0, errors: 0 };
     }
 
-    if (!properties || properties.length === 0) {
+    if (!comments || comments.length === 0) {
       return { synced: 0, errors: 0 };
     }
+
+    // Obtener property_id únicos usando Set
+    const uniquePropertyIds = Array.from(new Set(comments.map(c => c.property_id)));
 
     let synced = 0;
     let errors = 0;
 
-    for (const prop of properties) {
-      const success = await syncPropertyCommentsToAirtable(prop.property_id);
+    for (const propertyId of uniquePropertyIds) {
+      const success = await syncPropertyCommentsToAirtable(propertyId);
       if (success) {
         synced++;
       } else {
