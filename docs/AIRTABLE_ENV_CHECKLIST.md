@@ -3,7 +3,7 @@
 ## ✅ Variables que ya tienes configuradas
 
 1. ✅ **NEXT_PUBLIC_AIRTABLE_API_KEY** 
-   - Valor: `patgm06CFi5OvzcwG.609e8bc3ffd4e8c4e007cc24ab09be229595d344d189c901609dca99d4341d54`
+   - Valor: `patXXXXXXXXXXXXXX` (configura tu API key en Vercel)
    - Uso: Para hacer llamadas a la API de Airtable (App → Airtable)
 
 2. ✅ **NEXT_PUBLIC_AIRTABLE_BASE_ID**
@@ -73,8 +73,8 @@ AIRTABLE_WEBHOOK_SECRET=mi_secret_super_seguro_12345
 ### Configuración completa recomendada:
 
 ```env
-# Airtable API (ya configurado)
-NEXT_PUBLIC_AIRTABLE_API_KEY=patgm06CFi5OvzcwG.609e8bc3ffd4e8c4e007cc24ab09be229595d344d189c901609dca99d4341d54
+# Airtable API (configura tu API key)
+NEXT_PUBLIC_AIRTABLE_API_KEY=patXXXXXXXXXXXXXX
 NEXT_PUBLIC_AIRTABLE_BASE_ID=appT59F8wolMDKZeG
 NEXT_PUBLIC_AIRTABLE_TABLE_NAME=Properties
 

@@ -39,7 +39,7 @@ Sensitive: ✅ Marca como sensitive
 #### 4. Airtable API Key
 ```
 Key: NEXT_PUBLIC_AIRTABLE_API_KEY
-Value: patgm06CFi5OvzcwG.609e8bc3ffd4e8c4e007cc24ab09be229595d344d189c901609dca99d4341d54
+Value: patXXXXXXXXXXXXXX (tu API key de Airtable)
 Environment: Production, Preview, Development
 ```
 
