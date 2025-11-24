@@ -21,7 +21,17 @@
     "env:prod": "cp .env.example .env.production && echo '✅ Created .env.production - Please fill in your production credentials'",
     "migrate:show": "node scripts/migrate-simple.js",
     "migrate:dev": "node scripts/migrate-simple.js",
-    "setup:airtable-webhook": "tsx scripts/setup-airtable-webhook.ts"
+    "setup:airtable-webhook": "tsx scripts/setup-airtable-webhook.ts",
+    "test:sync-airtable": "tsx scripts/test-airtable-sync.ts",
+    "verify:synced-properties": "tsx scripts/verify-synced-properties.ts",
+    "debug:airtable-fields": "tsx scripts/debug-airtable-fields.ts",
+    "verify:fields-in-db": "tsx scripts/verify-fields-in-db.ts",
+    "list:airtable-tables": "tsx scripts/list-airtable-tables.ts",
+    "debug:related-tables": "tsx scripts/debug-related-tables.ts",
+    "check:supabase-columns": "tsx scripts/check-supabase-columns.ts",
+    "find:missing-fields": "tsx scripts/find-missing-fields.ts",
+    "clear:properties": "tsx scripts/clear-properties-table.ts",
+    "verify:table-empty": "tsx scripts/verify-table-empty.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
