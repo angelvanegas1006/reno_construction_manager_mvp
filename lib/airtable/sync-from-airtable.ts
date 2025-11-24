@@ -389,7 +389,14 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
     responsible_owner: getFieldValue('Responsible Owner', ['Responsible Owner', 'Responsible owner']) || null,
     // Campos de tabla relacionada Engagements (ya agregados en fetchPropertiesFromAirtable)
     'Hubspot ID': getFieldValue('Hubspot ID', ['Hubspot ID', 'HubSpot - Engagement ID']) || null,
-    reno_phase: 'upcoming-settlements',
+    // Campos adicionales para Initial Check
+    next_reno_steps: getFieldValue('Next Reno Steps', ['Next Reno Steps', 'Next reno steps']) || null,
+    'Renovator name': getFieldValue('Renovator Name', ['Renovator Name', 'Renovator name']) || null,
+    // Determinar fase basada en la view o Set Up Status
+    reno_phase: getFieldValue('Set Up Status', ['Set Up Status', 'Set up status']) === 'Initial Check' || 
+               getFieldValue('Set Up Status', ['Set Up Status', 'Set up status']) === 'initial check'
+               ? 'initial-check'
+               : 'upcoming-settlements',
     airtable_property_id: airtableProperty.id,
     updated_at: new Date().toISOString(),
   };
@@ -535,6 +542,8 @@ export async function syncPropertiesFromAirtable(
             currentData?.renovation_type !== supabaseData.renovation_type ||
             currentData?.responsible_owner !== supabaseData.responsible_owner ||
             currentData?.['Technical construction'] !== supabaseData['Technical construction'] ||
+            currentData?.next_reno_steps !== supabaseData.next_reno_steps ||
+            currentData?.['Renovator name'] !== supabaseData['Renovator name'] ||
             (hasRelatedFields && (!currentData?.area_cluster && !currentData?.['Hubspot ID'] && !currentData?.property_unique_id));
 
             if (hasChanges) {

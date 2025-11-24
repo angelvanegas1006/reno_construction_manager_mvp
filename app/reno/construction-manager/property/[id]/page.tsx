@@ -18,6 +18,8 @@ import type { Database } from '@/lib/supabase/types';
 import { ReportProblemModal } from "@/components/reno/report-problem-modal";
 import { DynamicCategoriesProgress } from "@/components/reno/dynamic-categories-progress";
 import { toast } from "sonner";
+import { appendSetUpNotesToAirtable } from "@/lib/airtable/initial-check-sync";
+import { updateAirtableWithRetry, findRecordByPropertyId } from "@/lib/airtable/client";
 
 type PropertyUpdate = Database['public']['Tables']['properties']['Update'];
 
@@ -59,7 +61,7 @@ export default function RenoPropertyDetailPage() {
   }, [supabaseProperty]);
 
   // Save function - saves to Supabase with correct field names
-  const saveToSupabase = useCallback(async (showToast = true) => {
+  const saveToSupabase = useCallback(async (showToast = true, transitionToInitialCheck = false) => {
     if (!propertyId || !supabaseProperty) return false;
     
     setIsSaving(true);
@@ -74,9 +76,8 @@ export default function RenoPropertyDetailPage() {
         updated_at: new Date().toISOString(),
       };
       
-      // If we're in "upcoming-settlements" phase and Estimated Visit Date is filled,
-      // automatically move to "initial-check" phase
-      const phaseChanged = currentPhase === 'upcoming-settlements' && localEstimatedVisitDate;
+      // If transitioning to initial-check (via "Enviar" button)
+      const phaseChanged = transitionToInitialCheck && currentPhase === 'upcoming-settlements' && localEstimatedVisitDate;
       if (phaseChanged) {
         // Update "Set Up Status" to move to initial-check phase
         supabaseUpdates['Set Up Status'] = 'initial check';
@@ -85,6 +86,32 @@ export default function RenoPropertyDetailPage() {
       const success = await updateSupabaseProperty(supabaseUpdates);
       
       if (success) {
+        // If transitioning to initial-check, update Airtable
+        if (phaseChanged) {
+          try {
+            // 1. Append notes to SetUpnotes in Airtable with timestamp
+            if (localSetupStatusNotes) {
+              await appendSetUpNotesToAirtable(propertyId, localSetupStatusNotes);
+            }
+            
+            // 2. Update Estimated Visit Date in Airtable (field ID: fldIhqPOAFL52MMBn)
+            const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
+            const airtablePropertyId = supabaseProperty.airtable_property_id || supabaseProperty['Unique ID From Engagements'];
+            
+            if (airtablePropertyId && localEstimatedVisitDate) {
+              const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
+              if (recordId) {
+                await updateAirtableWithRetry(tableName, recordId, {
+                  'fldIhqPOAFL52MMBn': localEstimatedVisitDate, // Estimated visit date field ID
+                });
+              }
+            }
+          } catch (airtableError) {
+            console.error('Error updating Airtable during phase transition:', airtableError);
+            // Don't fail the whole operation if Airtable update fails
+          }
+        }
+        
         setHasUnsavedChanges(false);
         
         if (showToast) {
@@ -129,32 +156,40 @@ export default function RenoPropertyDetailPage() {
     setLocalSetupStatusNotes(value);
     setHasUnsavedChanges(true);
     
-    // Clear existing debounce timer
-    if (notesDebounceRef.current) {
-      clearTimeout(notesDebounceRef.current);
+    // Only auto-save if NOT in upcoming-settlements phase
+    const currentPhase = getPropertyRenoPhase();
+    if (currentPhase !== 'upcoming-settlements') {
+      // Clear existing debounce timer
+      if (notesDebounceRef.current) {
+        clearTimeout(notesDebounceRef.current);
+      }
+      
+      // Auto-save after 2 seconds of inactivity (silent, no toast)
+      notesDebounceRef.current = setTimeout(async () => {
+        await saveToSupabase(false);
+      }, 2000);
     }
-    
-    // Auto-save after 2 seconds of inactivity (silent, no toast)
-    notesDebounceRef.current = setTimeout(async () => {
-      await saveToSupabase(false);
-    }, 2000);
-  }, [saveToSupabase]);
+  }, [saveToSupabase, getPropertyRenoPhase]);
 
   // Handle date change
   const handleDateChange = useCallback((date: string | undefined) => {
     setLocalEstimatedVisitDate(date);
     setHasUnsavedChanges(true);
     
-    // Clear existing debounce timer
-    if (dateDebounceRef.current) {
-      clearTimeout(dateDebounceRef.current);
+    // Only auto-save if NOT in upcoming-settlements phase
+    const currentPhase = getPropertyRenoPhase();
+    if (currentPhase !== 'upcoming-settlements') {
+      // Clear existing debounce timer
+      if (dateDebounceRef.current) {
+        clearTimeout(dateDebounceRef.current);
+      }
+      
+      // Auto-save after 2 seconds of inactivity (silent, no toast)
+      dateDebounceRef.current = setTimeout(async () => {
+        await saveToSupabase(false);
+      }, 2000);
     }
-    
-    // Auto-save after 2 seconds of inactivity (silent, no toast)
-    dateDebounceRef.current = setTimeout(async () => {
-      await saveToSupabase(false);
-    }, 2000);
-  }, [saveToSupabase]);
+  }, [saveToSupabase, getPropertyRenoPhase]);
 
   // Manual save handler
   const handleManualSave = useCallback(async () => {
@@ -359,7 +394,7 @@ export default function RenoPropertyDetailPage() {
                     />
                   </div>
 
-                  {/* Save Button */}
+                  {/* Action Buttons */}
                   <div className="flex items-center justify-between pt-4 border-t">
                     <div className="text-sm text-muted-foreground">
                       {hasUnsavedChanges && (
@@ -373,20 +408,43 @@ export default function RenoPropertyDetailPage() {
                         </span>
                       )}
                     </div>
-                    <Button
-                      onClick={handleManualSave}
-                      disabled={isSaving || !hasUnsavedChanges}
-                      className="min-w-[120px]"
-                    >
-                      {isSaving ? (
-                        <>
-                          <span className="mr-2">Guardando...</span>
-                          <span className="animate-spin">⏳</span>
-                        </>
-                      ) : (
-                        "Guardar cambios"
-                      )}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleManualSave}
+                        disabled={isSaving || !hasUnsavedChanges}
+                        variant="outline"
+                        className="min-w-[120px]"
+                      >
+                        {isSaving ? (
+                          <>
+                            <span className="mr-2">Guardando...</span>
+                            <span className="animate-spin">⏳</span>
+                          </>
+                        ) : (
+                          "Guardar cambios"
+                        )}
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          if (!localEstimatedVisitDate) {
+                            toast.error("Debes ingresar una fecha estimada de visita antes de continuar");
+                            return;
+                          }
+                          await saveToSupabase(true, true);
+                        }}
+                        disabled={isSaving || !localEstimatedVisitDate}
+                        className="min-w-[200px]"
+                      >
+                        {isSaving ? (
+                          <>
+                            <span className="mr-2">Enviando...</span>
+                            <span className="animate-spin">⏳</span>
+                          </>
+                        ) : (
+                          "Enviar y pasar a Check Inicial"
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

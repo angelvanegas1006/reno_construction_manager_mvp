@@ -192,6 +192,7 @@ export type Database = {
           responsible_owner: string | null
           keys_location: string | null
           stage: string | null
+          next_reno_steps: string | null
         }
         Insert: {
           address?: string | null
@@ -232,6 +233,7 @@ export type Database = {
           responsible_owner?: string | null
           keys_location?: string | null
           stage?: string | null
+          next_reno_steps?: string | null
         }
         Update: {
           address?: string | null
@@ -272,6 +274,7 @@ export type Database = {
           responsible_owner?: string | null
           keys_location?: string | null
           stage?: string | null
+          next_reno_steps?: string | null
         }
         Relationships: []
       }

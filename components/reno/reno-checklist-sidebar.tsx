@@ -11,6 +11,8 @@ interface RenoChecklistSidebarProps {
   activeSection: string;
   onSectionClick: (sectionId: string) => void;
   onSave: () => void;
+  onSubmit?: () => void;
+  canSubmit?: boolean;
   hasUnsavedChanges: boolean;
   habitacionesCount?: number;
   banosCount?: number;
@@ -21,6 +23,8 @@ export function RenoChecklistSidebar({
   activeSection,
   onSectionClick,
   onSave,
+  onSubmit,
+  canSubmit = false,
   hasUnsavedChanges,
   habitacionesCount = 0,
   banosCount = 0,
@@ -42,11 +46,11 @@ export function RenoChecklistSidebar({
   const grupos = [
     {
       id: "informacion-propiedad",
-      name: "Información de la Propiedad",
+      name: t.sidebar.propertyInformation,
       sections: [
         {
           sectionId: "property-info",
-          name: "Información de la Propiedad",
+          name: t.sidebar.propertyInformation,
         },
       ],
     },
@@ -182,6 +186,16 @@ export function RenoChecklistSidebar({
 
       {/* Action Buttons */}
       <div className="p-4 border-t space-y-2">
+        {onSubmit && (
+          <Button
+            onClick={onSubmit}
+            disabled={!canSubmit}
+            className="w-full"
+            size="lg"
+          >
+            {t.checklist.submitChecklist}
+          </Button>
+        )}
         <Button
           onClick={onSave}
           variant="outline"

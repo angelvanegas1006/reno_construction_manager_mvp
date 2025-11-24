@@ -9,6 +9,7 @@ import {
 } from "@/lib/checklist-storage";
 import { useSupabaseInspection, type InspectionType } from "@/hooks/useSupabaseInspection";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
+import { createClient } from "@/lib/supabase/client";
 import {
   convertSectionToZones,
   convertSectionToElements,
@@ -18,6 +19,7 @@ import {
 import { uploadFilesToStorage } from "@/lib/supabase/storage-upload";
 import type { FileUpload } from "@/lib/checklist-storage";
 import { toast } from "sonner";
+import { syncChecklistToAirtable, finalizeInitialCheckInAirtable } from "@/lib/airtable/initial-check-sync";
 
 interface UseSupabaseChecklistProps {
   propertyId: string;
@@ -30,6 +32,7 @@ interface UseSupabaseChecklistReturn {
   updateSection: (sectionId: string, sectionData: Partial<ChecklistSection>) => Promise<void>;
   save: () => Promise<void>;
   saveCurrentSection: () => Promise<void>; // Guardar sección actual
+  finalizeChecklist: (data?: { estimatedVisitDate?: string; autoVisitDate?: string; nextRenoSteps?: string }) => Promise<boolean>; // Finalizar checklist
 }
 
 export function useSupabaseChecklist({
@@ -548,12 +551,42 @@ export function useSupabaseChecklist({
         await upsertElement(elementData);
       }
 
+      // Sync to Airtable if in initial-check phase
+      try {
+        // Calculate progress (simplified - count sections with data)
+        const totalSections = Object.keys(checklist.sections || {}).length;
+        // Consider a section "completed" if it has been visited (has data)
+        let completedSections = 0;
+        for (const sid in checklist.sections) {
+          const section = checklist.sections[sid];
+          if (!section) continue;
+          // Consider completed if it has questions with notes, uploadZones with files, or dynamicItems
+          const hasQuestions = section.questions && section.questions.some((q: any) => q.notes);
+          const hasUploads = section.uploadZones && section.uploadZones.some((u: any) => 
+            (u.photos && u.photos.length > 0) || (u.videos && u.videos.length > 0)
+          );
+          const hasDynamicItems = section.dynamicItems && section.dynamicItems.length > 0;
+          if (hasQuestions || hasUploads || hasDynamicItems) {
+            completedSections++;
+          }
+        }
+        const progress = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0;
+
+        await syncChecklistToAirtable(propertyId, {
+          progress,
+          completed: false, // Only complete when finalizing
+        });
+      } catch (airtableError) {
+        console.error('[useSupabaseChecklist] Error syncing to Airtable:', airtableError);
+        // Don't fail the save if Airtable sync fails
+      }
+
       toast.success("Sección guardada correctamente");
     } catch (error) {
       console.error("Error saving section:", error);
       toast.error("Error al guardar sección");
     }
-  }, [inspection, checklist, zones, upsertElement]);
+  }, [inspection, checklist, zones, upsertElement, propertyId]);
 
   // Actualizar sección (guardar automáticamente al cambiar)
   const updateSection = useCallback(
@@ -597,6 +630,53 @@ export function useSupabaseChecklist({
     await saveCurrentSection();
   }, [saveCurrentSection]);
 
+  // Finalizar checklist
+  const finalizeChecklist = useCallback(async (data?: { estimatedVisitDate?: string; autoVisitDate?: string; nextRenoSteps?: string }) => {
+    if (!propertyId) return false;
+
+    try {
+      // Guardar sección actual antes de finalizar
+      await saveCurrentSection();
+
+      // Obtener datos de la propiedad para completar los campos
+      const supabase = createClient();
+      const { data: prop } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', propertyId)
+        .single();
+      
+      const propData = prop as any;
+      const estimatedVisitDate = data?.estimatedVisitDate || propData?.['Estimated Visit Date'];
+      const autoVisitDate = data?.autoVisitDate || new Date().toISOString().split('T')[0];
+      const nextRenoSteps = data?.nextRenoSteps || propData?.next_reno_steps;
+
+      // Finalizar en Airtable (solo para reno checklists)
+      if (checklistType !== 'reno_initial' && checklistType !== 'reno_final') {
+        console.warn('[useSupabaseChecklist] Cannot finalize non-reno checklist');
+        return false;
+      }
+      
+      const success = await finalizeInitialCheckInAirtable(propertyId, checklistType as 'reno_initial' | 'reno_final', {
+        estimatedVisitDate,
+        autoVisitDate,
+        nextRenoSteps,
+      });
+
+      if (success) {
+        toast.success("Checklist finalizado correctamente");
+      } else {
+        toast.error("Error al finalizar checklist en Airtable");
+      }
+
+      return success;
+    } catch (error) {
+      console.error('[useSupabaseChecklist] Error finalizing checklist:', error);
+      toast.error("Error al finalizar checklist");
+      return false;
+    }
+  }, [propertyId, checklistType, saveCurrentSection]);
+
   // Si no tenemos checklist pero estamos inicializando, mantener isLoading en true
   const finalIsLoading = isLoading || inspectionLoading || (!checklist && (initializationInProgressRef.current || inspectionCreationInProgressRef.current));
 
@@ -606,6 +686,7 @@ export function useSupabaseChecklist({
     updateSection,
     save,
     saveCurrentSection,
+    finalizeChecklist,
   };
 }
 

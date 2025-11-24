@@ -142,6 +142,7 @@ export interface Translations {
     basicData: string;
     ownerOccupation: string;
     statusCharacteristics: string;
+    propertyInformation: string;
     platform: string;
     settings: string;
     configuration: string;
@@ -242,6 +243,8 @@ export interface Translations {
     necesitaReemplazo: string;
     noAplica: string;
     notes: string;
+    submitChecklist: string;
+    submitChecklistDescription: string;
     photos: string;
     videos: string;
     whatElementsBadCondition: string;
@@ -383,6 +386,7 @@ export const translations: Record<Language, Translations> = {
       basicData: "Datos básicos del inmueble",
       ownerOccupation: "Datos del propietario y ocupación",
       statusCharacteristics: "Estado y características del inmueble",
+      propertyInformation: "Información de la Propiedad",
       platform: "Plataforma",
       settings: "Ajustes",
       configuration: "Configuración",
@@ -427,6 +431,8 @@ export const translations: Record<Language, Translations> = {
       necesitaReemplazo: "Necesita reemplazo",
       noAplica: "No aplica",
       notes: "Observaciones",
+      submitChecklist: "Enviar checklist",
+      submitChecklistDescription: "Finalizar y enviar el checklist completado",
       photos: "Fotos",
       videos: "Videos",
       whatElementsBadCondition: "¿Qué elementos están en mal estado?",
@@ -1055,6 +1061,7 @@ export const translations: Record<Language, Translations> = {
       basicData: "Basic Property Data",
       ownerOccupation: "Owner and Occupation Data",
       statusCharacteristics: "Property Status and Characteristics",
+      propertyInformation: "Property Information",
       platform: "Platform",
       settings: "Settings",
       configuration: "Configuration",
@@ -1099,6 +1106,8 @@ export const translations: Record<Language, Translations> = {
       necesitaReemplazo: "Needs replacement",
       noAplica: "Not applicable",
       notes: "Observations",
+      submitChecklist: "Submit Checklist",
+      submitChecklistDescription: "Finalize and submit the completed checklist",
       photos: "Photos",
       videos: "Videos",
       whatElementsBadCondition: "What elements are in bad condition?",

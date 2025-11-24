@@ -18,6 +18,7 @@ import { useSupabaseChecklist } from "@/hooks/useSupabaseChecklist";
 import { ChecklistType } from "@/lib/checklist-storage";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
+import { fetchInitialCheckFieldsFromAirtable } from "@/lib/airtable/initial-check-sync";
 
 // Checklist section components
 import { EntornoZonasComunesSection } from "@/components/checklist/sections/entorno-zonas-comunes-section";
@@ -61,7 +62,7 @@ export default function RenoChecklistPage() {
   }, [propertyId]);
 
   // Load property from Supabase
-  const { property: supabaseProperty, loading: supabaseLoading, error: propertyError, refetch: refetchProperty } = useSupabaseProperty(propertyId);
+  const { property: supabaseProperty, loading: supabaseLoading, error: propertyError, refetch: refetchProperty, updateProperty: updateSupabaseProperty } = useSupabaseProperty(propertyId);
 
   // Convert Supabase property to Property format
   const property: Property | null = useMemo(() => {
@@ -94,9 +95,50 @@ export default function RenoChecklistPage() {
     return phase === "final-check" ? "reno_final" : "reno_initial";
   }, [property, supabaseProperty, getPropertyRenoPhase]);
 
+  // Load Airtable fields when entering initial-check phase
+  useEffect(() => {
+    const loadAirtableFields = async () => {
+      if (!propertyId || !property || !supabaseProperty || !updateSupabaseProperty) return;
+      
+      const phase = getPropertyRenoPhase(property);
+      if (phase !== "initial-check") return;
+
+      try {
+        console.log('[ChecklistPage] 🔄 Loading Airtable fields for initial-check...');
+        const airtableFields = await fetchInitialCheckFieldsFromAirtable(propertyId);
+        
+        if (airtableFields) {
+          const updates: any = {};
+          if (airtableFields.nextRenoSteps) {
+            updates.next_reno_steps = airtableFields.nextRenoSteps;
+          }
+          if (airtableFields.renovatorName) {
+            updates['Renovator name'] = airtableFields.renovatorName;
+          }
+          if (airtableFields.keysLocation) {
+            updates.keys_location = airtableFields.keysLocation;
+          }
+          if (airtableFields.setUpStatus) {
+            updates['Set Up Status'] = airtableFields.setUpStatus;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await updateSupabaseProperty(updates);
+            await refetchProperty();
+            console.log('[ChecklistPage] ✅ Airtable fields loaded and synced to Supabase');
+          }
+        }
+      } catch (error) {
+        console.error('[ChecklistPage] ❌ Error loading Airtable fields:', error);
+      }
+    };
+
+    loadAirtableFields();
+  }, [propertyId, property, supabaseProperty, updateSupabaseProperty, refetchProperty, getPropertyRenoPhase]);
+
   // Use Supabase checklist hook (for production)
   // Only initialize when we have a valid propertyId
-  const { checklist, updateSection, isLoading: checklistLoading } = useSupabaseChecklist({
+  const { checklist, updateSection, isLoading: checklistLoading, finalizeChecklist } = useSupabaseChecklist({
     propertyId: propertyId || "",
     checklistType,
   });
@@ -612,6 +654,22 @@ export default function RenoChecklistPage() {
         activeSection={activeSection}
         onSectionClick={handleSectionClick}
         onSave={handleSave}
+        onSubmit={async () => {
+          if (!property) return;
+          const phase = getPropertyRenoPhase(property);
+          if (phase === "initial-check") {
+            await finalizeChecklist({
+              estimatedVisitDate: property.estimatedVisitDate,
+              autoVisitDate: new Date().toISOString().split('T')[0],
+              nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
+            });
+            // Redirect to kanban after finalizing
+            setTimeout(() => {
+              router.push("/reno/construction-manager/kanban");
+            }, 2000);
+          }
+        }}
+        canSubmit={getPropertyRenoPhase(property) === "initial-check"}
         hasUnsavedChanges={hasUnsavedChanges}
         habitacionesCount={habitacionesCount}
         banosCount={banosCount}
@@ -634,7 +692,7 @@ export default function RenoChecklistPage() {
                 {property.fullAddress}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                ID: {property.id} · {phase === "initial-check" ? "Check Inicial" : "Check Final"}
+                ID: {property.id} · {phase === "initial-check" ? t.kanban.initialCheck : t.kanban.finalCheck}
               </p>
             </div>
           </div>
@@ -653,7 +711,7 @@ export default function RenoChecklistPage() {
         address={formatAddress()}
         overallProgress={0}
         sections={[
-          { sectionId: "property-info", name: "Información de la Propiedad", progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+          { sectionId: "property-info", name: t.sidebar.propertyInformation, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
           { sectionId: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
           { sectionId: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
           { sectionId: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
@@ -666,9 +724,23 @@ export default function RenoChecklistPage() {
         activeSection={activeSection}
         onSectionClick={handleSectionClick}
         onSave={handleSave}
-        onSubmit={() => {}}
+        onSubmit={async () => {
+          if (!property) return;
+          const phase = getPropertyRenoPhase(property);
+          if (phase === "initial-check") {
+            await finalizeChecklist({
+              estimatedVisitDate: property.estimatedVisitDate,
+              autoVisitDate: new Date().toISOString().split('T')[0],
+              nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
+            });
+            // Redirect to kanban after finalizing
+            setTimeout(() => {
+              router.push("/reno/construction-manager/kanban");
+            }, 2000);
+          }
+        }}
         onDelete={() => {}}
-        canSubmit={false}
+        canSubmit={getPropertyRenoPhase(property) === "initial-check"}
         hasUnsavedChanges={hasUnsavedChanges}
         habitacionesCount={habitacionesCount}
         banosCount={banosCount}
