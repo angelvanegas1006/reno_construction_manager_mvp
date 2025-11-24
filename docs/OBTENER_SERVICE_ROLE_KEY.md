@@ -40,3 +40,4 @@ Cópiala y compártela conmigo para configurar `.env.local`
 
 **Nota**: Si no ves el service_role key, puede que necesites hacer scroll hacia abajo en la página de API settings.
 
+

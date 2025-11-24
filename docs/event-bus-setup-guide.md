@@ -186,3 +186,4 @@ LIMIT 10;
 - [PostgreSQL NOTIFY/LISTEN](https://www.postgresql.org/docs/current/sql-notify.html)
 - Ver `docs/event-driven-architecture.md` para arquitectura completa
 
+

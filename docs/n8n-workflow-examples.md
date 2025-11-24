@@ -246,3 +246,4 @@ curl -X POST http://localhost:5678/webhook/property-phase-update \
 5. **Idempotencia**: Asegurar que requests duplicados no causen problemas
 6. **Testing**: Probar todos los casos edge antes de producción
 
+

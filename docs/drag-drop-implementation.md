@@ -310,3 +310,4 @@ const revertUpdate = (propertyId: string, oldPhase: RenoKanbanPhase) => {
    - Mostrar diálogo de conflicto
    - Permitir elegir versión
 
+

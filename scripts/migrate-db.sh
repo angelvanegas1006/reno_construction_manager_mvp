@@ -60,3 +60,4 @@ echo ""
 echo "✅ Migration instructions displayed above"
 echo "📄 Migration file location: $MIGRATION_FILE"
 
+

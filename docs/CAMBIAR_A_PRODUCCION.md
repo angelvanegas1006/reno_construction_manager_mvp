@@ -73,3 +73,4 @@ npm run dev
 
 ¿Tienes el service_role key de producción o necesitas pedírselo a Manu?
 
+

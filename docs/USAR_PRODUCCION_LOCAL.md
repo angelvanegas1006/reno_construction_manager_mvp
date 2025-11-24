@@ -80,3 +80,4 @@ Si prefieres mantener desarrollo separado:
 - **No uses** producción para desarrollo activo
 - **Restaura** la configuración de desarrollo después de probar
 
+

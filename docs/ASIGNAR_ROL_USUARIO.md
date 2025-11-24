@@ -100,3 +100,4 @@ WHERE user_id = 'TU_USER_ID_AQUI';
 
 Después de asignar el rol, recarga la página de login y deberías poder iniciar sesión sin errores.
 
+

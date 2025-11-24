@@ -75,3 +75,4 @@ Abre en el navegador:
 
 ¿Tienes proyecto Supabase ya creado o necesitas crearlo?
 
+

@@ -96,3 +96,4 @@ cat .env.local | grep SUPABASE
 
 ¡Listo para probar! 🚀
 
+

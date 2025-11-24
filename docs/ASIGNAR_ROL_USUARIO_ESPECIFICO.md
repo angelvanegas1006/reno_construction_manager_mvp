@@ -84,3 +84,4 @@ WHERE user_id = '3fd7307f-5c42-4a73-85b8-f9d5a0ebf7f9';
 
 ¡Listo! El SQL ya está copiado en tu portapapeles. Solo pégalo en Supabase SQL Editor y ejecuta.
 
+

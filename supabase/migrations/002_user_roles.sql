@@ -54,3 +54,4 @@ CREATE POLICY "Service role can manage roles"
 -- Luego asigna roles ejecutando:
 -- INSERT INTO user_roles (user_id, role) VALUES ('USER_ID', 'foreman');
 
+

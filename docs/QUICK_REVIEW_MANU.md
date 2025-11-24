@@ -107,3 +107,4 @@ cat IMPLEMENTACION_COMPLETA.md
 
 ¿Quieres que te ayude a ejecutar las migraciones SQL o probar alguna funcionalidad específica?
 
+

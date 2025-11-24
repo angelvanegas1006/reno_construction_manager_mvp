@@ -64,6 +64,7 @@ export class SupabasePropertiesService {
 
   /**
    * Update property phase (for drag & drop)
+   * Also syncs to Airtable if configured
    */
   async updatePropertyPhase(
     propertyId: string,
@@ -90,7 +91,24 @@ export class SupabasePropertiesService {
         throw new Error('Property not found');
       }
 
-      return this.mapToProperty(data);
+      const updatedProperty = this.mapToProperty(data);
+
+      // Sync to Airtable (fire and forget - don't block the update)
+      if (typeof window !== 'undefined') {
+        // Only sync from client-side (browser)
+        import('@/lib/airtable/phase-sync')
+          .then(({ syncPhaseToAirtable }) => {
+            syncPhaseToAirtable(propertyId, phase).catch((err) => {
+              // Log but don't throw - Airtable sync is non-blocking
+              console.warn(`[Airtable Sync] Failed to sync phase change for ${propertyId}:`, err);
+            });
+          })
+          .catch((err) => {
+            console.warn('[Airtable Sync] Failed to load sync module:', err);
+          });
+      }
+
+      return updatedProperty;
     } catch (error) {
       console.error(`Error in updatePropertyPhase(${propertyId}):`, error);
       throw error;
@@ -357,4 +375,5 @@ export class SupabasePropertiesService {
 
 // Export singleton instance
 export const supabaseProperties = new SupabasePropertiesService();
+
 

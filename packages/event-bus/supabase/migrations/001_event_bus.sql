@@ -210,3 +210,4 @@ $$ LANGUAGE plpgsql;
 -- 3. Enable Realtime for tables you want to listen to:
 --    ALTER PUBLICATION supabase_realtime ADD TABLE your_table;
 
+

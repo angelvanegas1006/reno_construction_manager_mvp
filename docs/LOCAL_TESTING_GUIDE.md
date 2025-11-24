@@ -221,3 +221,4 @@ npm install @supabase/ssr @supabase/supabase-js
 
 ¿Listo para empezar? Te guío paso a paso.
 
+

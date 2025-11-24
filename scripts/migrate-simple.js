@@ -24,3 +24,4 @@ console.log(sql);
 console.log('='.repeat(80));
 console.log('\n✅ Copia el contenido arriba y pégalo en Supabase Dashboard → SQL Editor');
 
+

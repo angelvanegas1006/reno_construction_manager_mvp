@@ -692,3 +692,4 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 - [Supabase RLS](https://supabase.com/docs/guides/auth/row-level-security)
 - [Supabase TypeScript](https://supabase.com/docs/reference/javascript/typescript-support)
 
+

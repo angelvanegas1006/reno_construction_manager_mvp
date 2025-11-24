@@ -45,3 +45,4 @@ eventBus.subscribe('property.created', async (payload) => {
 
 The SQL migration includes triggers that automatically publish events when database changes occur. This means you don't always need to explicitly publish events in your code.
 
+

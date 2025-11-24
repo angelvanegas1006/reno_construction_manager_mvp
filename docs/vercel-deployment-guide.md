@@ -153,3 +153,4 @@ NEXT_PUBLIC_API_URL=https://api.vistral.com
 - Verificar que Supabase está configurado correctamente
 - Revisar logs en Vercel dashboard
 
+

@@ -572,3 +572,4 @@ export async function validateServiceToken(request: Request) {
 
 ¿Te parece bien esta arquitectura orientada a servicios? ¿Quieres que empecemos con algún servicio específico?
 
+

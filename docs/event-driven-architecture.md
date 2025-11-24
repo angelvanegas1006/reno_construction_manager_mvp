@@ -802,3 +802,4 @@ CREATE TABLE event_store (
 
 ¿Te parece bien esta arquitectura basada en eventos? ¿Quieres que empecemos implementando el Event Bus?
 
+

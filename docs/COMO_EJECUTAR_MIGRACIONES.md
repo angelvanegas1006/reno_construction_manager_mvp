@@ -132,3 +132,4 @@ El archivo `001_checklist_migrations.sql` contiene:
 
 ¿Necesitas ayuda con algún paso específico?
 
+

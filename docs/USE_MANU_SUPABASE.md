@@ -99,3 +99,4 @@ npm run dev
 
 ¿Tienes acceso al proyecto de Supabase de Manu o necesitas pedirle las credenciales?
 
+

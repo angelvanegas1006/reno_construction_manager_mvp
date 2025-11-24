@@ -86,3 +86,4 @@ See `supabase/migrations/001_event_bus.sql` for database setup.
 
 See `examples/` directory for usage examples.
 
+

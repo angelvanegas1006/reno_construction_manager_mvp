@@ -45,7 +45,50 @@ Ejecutar acciones (mover fase, notificaciones, etc.)
 
 ## 🔧 Configuración del Webhook en Airtable
 
-### Paso 1: Crear Webhook en Airtable
+### ⚡ Opción 1: Configuración Automática desde el Backend (Recomendado)
+
+Puedes configurar el webhook automáticamente usando nuestro endpoint API:
+
+**Desde la terminal:**
+```bash
+# Configurar el webhook automáticamente
+curl -X POST https://tu-dominio.com/api/airtable/setup-webhook \
+  -H "Content-Type: application/json" \
+  -d '{"webhookUrl": "https://tu-dominio.com/api/webhooks/airtable"}'
+
+# O si tienes NEXT_PUBLIC_APP_URL configurado, simplemente:
+curl -X POST https://tu-dominio.com/api/airtable/setup-webhook
+
+# Listar webhooks existentes
+curl https://tu-dominio.com/api/airtable/setup-webhook
+
+# Eliminar un webhook
+curl -X DELETE "https://tu-dominio.com/api/airtable/setup-webhook?webhookId=webhook_xxx"
+```
+
+**Desde el código:**
+```typescript
+import { setupAirtableWebhook } from '@/lib/airtable/webhook-manager';
+
+const baseId = process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID!;
+const webhookUrl = 'https://tu-dominio.com/api/webhooks/airtable';
+
+const result = await setupAirtableWebhook(baseId, webhookUrl);
+if (result) {
+  console.log('✅ Webhook configurado:', result.webhookId);
+  console.log('Creado:', result.created ? 'Sí' : 'Ya existía');
+}
+```
+
+**Ventajas:**
+- ✅ No necesitas usar la interfaz de Airtable
+- ✅ Puedes automatizar la configuración en deployment
+- ✅ Reutiliza webhooks existentes si ya están configurados
+- ✅ Fácil de integrar en scripts de setup
+
+### 📱 Opción 2: Configuración Manual desde la Interfaz de Airtable
+
+Si prefieres configurarlo manualmente:
 
 1. Ve a tu base en Airtable
 2. Click en **Extensions** → **Webhooks**
@@ -64,7 +107,7 @@ Ejecutar acciones (mover fase, notificaciones, etc.)
      - `Final Check Complete`
      - `Checklist Progress`
 
-### Paso 2: Configurar Seguridad (Recomendado)
+### 🔒 Configurar Seguridad (Recomendado)
 
 1. En el webhook, configura un **Webhook Secret**
 2. Agrega el secret a tu `.env.local`:
@@ -72,7 +115,7 @@ Ejecutar acciones (mover fase, notificaciones, etc.)
    AIRTABLE_WEBHOOK_SECRET=tu_secret_aqui
    ```
 
-### Paso 3: Probar el Webhook
+### 🧪 Probar el Webhook
 
 1. Actualiza un campo en Airtable (ej: cambia "Set Up Status")
 2. Verifica los logs en tu aplicación
@@ -274,4 +317,5 @@ AIRTABLE_WEBHOOK_SECRET=tu_secret_aqui
 - [Airtable Webhooks Documentation](https://airtable.com/developers/web/api/webhooks)
 - [Airtable API Documentation](https://airtable.com/api)
 - [Supabase Realtime](https://supabase.com/docs/guides/realtime)
+
 

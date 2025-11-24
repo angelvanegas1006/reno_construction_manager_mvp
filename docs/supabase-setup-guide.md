@@ -229,3 +229,4 @@ Ver `docs/migrate-to-supabase.md` para script de migración.
 - Regenera los tipos desde Supabase
 - Verifica que el esquema de la DB coincide con los tipos
 
+

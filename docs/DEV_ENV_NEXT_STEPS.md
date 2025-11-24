@@ -150,3 +150,4 @@ cp .env.local.dev.backup .env.local.prod.backup
 - [Paso a Paso Supabase](./PASO_A_PASO_SUPABASE.md)
 - [Quick Start Testing](./QUICK_START_TESTING.md)
 
+

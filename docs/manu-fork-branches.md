@@ -56,3 +56,4 @@ git checkout -b review-manu-checklist manu-fork/feature/checklist-supabase-integ
 
 ¿Quieres que revise la branch `feature/checklist-supabase-integration` para ver qué cambios tiene Manu?
 
+
