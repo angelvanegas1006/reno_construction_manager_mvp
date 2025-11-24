@@ -41,7 +41,7 @@ export async function syncPropertyCommentsToAirtable(
     // 2. Obtener la propiedad para encontrar el Airtable ID
     const { data: property, error: propertyError } = await supabase
       .from("properties")
-      .select("airtable_property_id, 'Unique ID From Engagements'")
+      .select("property_unique_id")
       .eq("id", propertyId)
       .single();
 
@@ -50,8 +50,7 @@ export async function syncPropertyCommentsToAirtable(
       return false;
     }
 
-    const airtablePropertyId =
-      property.airtable_property_id || property["Unique ID From Engagements"];
+    const airtablePropertyId = property.property_unique_id;
 
     if (!airtablePropertyId) {
       console.error("Property does not have Airtable ID");
