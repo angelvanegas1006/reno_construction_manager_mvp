@@ -30,22 +30,22 @@ export function PropertySummaryTab({
 
   // Extract data from Supabase property or fallback to Property
   // Note: Some fields may not exist in Supabase yet, using available ones
-  const squareMeters = supabaseProperty?.square_meters || property.usableArea;
+  const squareMeters = supabaseProperty?.square_meters || property.data?.superficieUtil;
   const usableArea = squareMeters; // Using square_meters as usable area for now
-  const builtArea = squareMeters; // Same for now, can be updated when field is added
-  const bedrooms = supabaseProperty?.bedrooms || property.bedrooms;
-  const bathrooms = supabaseProperty?.bathrooms || property.bathrooms;
-  const parkingSpaces = supabaseProperty?.garage ? parseInt(supabaseProperty.garage) || 0 : property.parkingSpaces;
-  const hasElevator = supabaseProperty?.has_elevator || property.hasElevator;
-  const hasBalcony = property.hasBalcony; // May not exist in Supabase yet
-  const hasStorage = property.hasStorage; // May not exist in Supabase yet
+  const builtArea = supabaseProperty?.square_meters || property.data?.superficieConstruida || squareMeters; // Same for now, can be updated when field is added
+  const bedrooms = supabaseProperty?.bedrooms || property.data?.habitaciones;
+  const bathrooms = supabaseProperty?.bathrooms || property.data?.banos;
+  const parkingSpaces = supabaseProperty?.garage ? parseInt(supabaseProperty.garage) || 0 : property.data?.plazasAparcamiento;
+  const hasElevator = supabaseProperty?.has_elevator || property.data?.ascensor || false;
+  const hasBalcony = property.data?.balconTerraza || false; // May not exist in Supabase yet
+  const hasStorage = property.data?.trastero || false; // May not exist in Supabase yet
   const propertyType = supabaseProperty?.type || property.propertyType;
-  const orientation = property.orientation; // May not exist in Supabase yet
-  const yearBuilt = property.yearBuilt; // May not exist in Supabase yet
-  const cadastralRef = property.cadastralReference; // May not exist in Supabase yet
-  const salePrice = property.salePrice; // May not exist in Supabase yet
-  const annualIBI = property.annualIBI; // May not exist in Supabase yet
-  const communityFees = property.communityFees; // May not exist in Supabase yet
+  const orientation = property.data?.orientacion?.[0]; // May not exist in Supabase yet
+  const yearBuilt = property.data?.anoConstruccion; // May not exist in Supabase yet
+  const cadastralRef = property.data?.referenciaCatastral; // May not exist in Supabase yet
+  const salePrice = property.data?.precioVenta; // May not exist in Supabase yet
+  const annualIBI = property.data?.ibiAnual; // May not exist in Supabase yet
+  const communityFees = property.data?.gastosComunidad; // May not exist in Supabase yet
 
   return (
     <div className="space-y-6">
