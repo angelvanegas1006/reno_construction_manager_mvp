@@ -58,6 +58,19 @@ export default function RenoPropertyDetailPage() {
     }
   }, [property?.estimatedVisitDate]);
 
+  // Auto-switch to summary tab for reno-budget and furnishing-cleaning phases without tasks
+  useEffect(() => {
+    if (isLoading || categoriesLoading) return; // Wait for data to load
+    
+    const phase = getPropertyRenoPhase();
+    const hasNoTasks = dynamicCategories.length === 0;
+    
+    // If property is in reno-budget or furnishing-cleaning and has no tasks, switch to summary
+    if ((phase === "reno-budget" || phase === "furnishing-cleaning") && hasNoTasks && activeTab === "tareas") {
+      setActiveTab("resumen");
+    }
+  }, [isLoading, categoriesLoading, dynamicCategories.length, activeTab, getPropertyRenoPhase]);
+
   // Debounce timer refs
   const dateDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
