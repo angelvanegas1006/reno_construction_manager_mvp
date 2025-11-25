@@ -183,8 +183,11 @@ export function useSupabaseKanbanProperties() {
             name: data[0].name,
             address: data[0].address,
             'Set Up Status': data[0]['Set Up Status'],
+            reno_phase: data[0].reno_phase,
           } : null,
           allStatuses: data?.map(p => p['Set Up Status']).filter(Boolean) || [],
+          initialCheckCount: data?.filter(p => p.reno_phase === 'initial-check').length || 0,
+          initialCheckIds: data?.filter(p => p.reno_phase === 'initial-check').map(p => p.id).slice(0, 5) || [],
         });
 
         // Apply client-side filtering for foreman
@@ -256,6 +259,10 @@ export function useSupabaseKanbanProperties() {
 
         console.log('[useSupabaseKanbanProperties] 💾 Setting properties state:', {
           count: filteredData.length,
+          role,
+          userEmail: user?.email,
+          initialCheckAfterFilter: filteredData.filter(p => p.reno_phase === 'initial-check').length,
+          initialCheckIdsAfterFilter: filteredData.filter(p => p.reno_phase === 'initial-check').map(p => p.id).slice(0, 5),
           timestamp: new Date().toISOString(),
         });
 
