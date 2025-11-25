@@ -19,7 +19,6 @@ import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } f
 import { fetchInitialCheckFieldsFromAirtable } from "@/lib/airtable/initial-check-sync";
 
 // Checklist section components
-import { PropertyInfoSection } from "@/components/reno/property-info-section";
 import { EntornoZonasComunesSection } from "@/components/checklist/sections/entorno-zonas-comunes-section";
 import { EstadoGeneralSection } from "@/components/checklist/sections/estado-general-section";
 import { EntradaPasillosSection } from "@/components/checklist/sections/entrada-pasillos-section";
@@ -45,7 +44,7 @@ export default function RenoChecklistPage() {
   const router = useRouter();
   const sectionRefs = useRef<Record<string, HTMLDivElement>>({});
   const { t } = useI18n();
-  const [activeSection, setActiveSection] = useState("property-info");
+  const [activeSection, setActiveSection] = useState("checklist-entorno-zonas-comunes");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Get property ID from params
@@ -77,16 +76,7 @@ export default function RenoChecklistPage() {
     return getPropertyRenoPhaseFromSupabase(supabaseProperty);
   }, [supabaseProperty]);
 
-  // Redirect back if not in final-check phase (initial-check is accessible from all phases)
-  useEffect(() => {
-    if (!isLoading && property && supabaseProperty) {
-      const phase = getPropertyRenoPhase(property);
-      // Only redirect if trying to access final-check but not in final-check phase
-      if (checklistType === "reno_final" && phase && phase !== "final-check") {
-        router.replace(`/reno/construction-manager/property/${property.id}`);
-      }
-    }
-  }, [property, supabaseProperty, isLoading, checklistType, getPropertyRenoPhase, router]);
+  // Ya no redirigimos - el checklist está disponible en todas las fases
 
   // Determine checklist type based on phase
   const checklistType: ChecklistType = useMemo(() => {
@@ -209,26 +199,8 @@ export default function RenoChecklistPage() {
 
   // Render active section
   const renderActiveSection = () => {
-    // Property info section can be shown even without checklist
-    if (activeSection === "property-info") {
-      if (!property) {
-        return (
-          <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-            <p className="text-muted-foreground">Cargando propiedad...</p>
-          </div>
-        );
-      }
-      const phase = getPropertyRenoPhase(property) || "initial-check";
-      return (
-        <PropertyInfoSection
-          property={property}
-          phase={phase}
-          onStartChecklist={() => handleSectionClick("checklist-entorno-zonas-comunes")}
-        />
-      );
-    }
-
-    // Other sections require both property and checklist
+    // Esta función solo se llama cuando isFullyLoading es false,
+    // pero por seguridad verificamos nuevamente
     if (!property || !checklist) {
       console.log('[ChecklistPage] ⚠️ Cannot render section:', {
         hasProperty: !!property,
