@@ -165,6 +165,11 @@ export interface Property {
   // Supabase fields
   uniqueIdFromEngagements?: string; // Unique ID From Engagements from Supabase (for display)
   renoPhase?: string; // Reno phase from Supabase (e.g., "upcoming-settlements", "initial-check", etc.)
+  // Additional Supabase fields
+  status?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  square_meters?: number;
 }
 
 const STORAGE_KEY = "vistral_properties";
