@@ -28,6 +28,7 @@
     "sync:upcoming-reno-budget": "tsx scripts/sync-upcoming-reno-budget.ts",
     "sync:furnishing-cleaning": "tsx scripts/sync-furnishing-cleaning.ts",
     "sync:final-check": "tsx scripts/sync-final-check.ts",
+    "sync:roles-to-auth0": "tsx scripts/sync-roles-to-auth0.ts",
     "check:migrations": "tsx scripts/check-migrations-status.ts",
     "verify:initial-check": "tsx scripts/verify-initial-check-properties.ts",
     "check:properties-status": "tsx scripts/check-properties-status.ts",

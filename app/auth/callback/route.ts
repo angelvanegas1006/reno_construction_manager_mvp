@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { syncAuth0RoleToSupabase } from '@/lib/auth/auth0-role-sync';
 
 /**
  * Auth0 Callback Handler
  * 
  * Este endpoint maneja el redirect de Auth0 después de la autenticación.
  * Supabase intercambia el código de Auth0 por una sesión.
+ * 
+ * También sincroniza roles de Auth0 a Supabase automáticamente.
  */
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -54,14 +57,41 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // Obtener rol del usuario desde user_roles
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', data.user.id)
-      .single();
+    // Extraer información de Auth0 del usuario de Supabase
+    // Supabase almacena los metadatos de Auth0 en app_metadata y user_metadata
+    const appMetadata = data.user.app_metadata || {};
+    const userMetadata = data.user.user_metadata || {};
+    
+    // Intentar obtener roles de Auth0 desde los metadatos
+    const auth0Roles = appMetadata.roles || userMetadata.roles || null;
+    const auth0RoleFromMetadata = appMetadata.role || userMetadata.role || null;
+    
+    console.log('[Auth0 Callback] Auth0 metadata:', {
+      appMetadata,
+      userMetadata,
+      auth0Roles,
+      auth0RoleFromMetadata,
+    });
 
-    const role = roleData?.role || 'user';
+    // Sincronizar rol de Auth0 a Supabase
+    let role: string;
+    try {
+      role = await syncAuth0RoleToSupabase(
+        data.user.id,
+        auth0Roles,
+        { role: auth0RoleFromMetadata }
+      );
+      console.log('[Auth0 Callback] ✅ Role synced:', role);
+    } catch (syncError) {
+      console.error('[Auth0 Callback] ⚠️ Error syncing role, using Supabase role:', syncError);
+      // Si falla la sincronización, obtener rol de Supabase
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .single();
+      role = roleData?.role || 'user';
+    }
 
     // Redirigir según el rol
     let redirectUrl = '/login';
