@@ -13,6 +13,9 @@ interface RenoChecklistSidebarProps {
   // onSave, onSubmit, canSubmit, hasUnsavedChanges removidos - ahora están en NavbarL3
   habitacionesCount?: number;
   banosCount?: number;
+  onCompleteInspection?: () => void;
+  canCompleteInspection?: boolean;
+  isCompleting?: boolean;
 }
 
 export function RenoChecklistSidebar({
@@ -21,6 +24,9 @@ export function RenoChecklistSidebar({
   onSectionClick,
   habitacionesCount = 0,
   banosCount = 0,
+  onCompleteInspection,
+  canCompleteInspection = false,
+  isCompleting = false,
 }: RenoChecklistSidebarProps) {
   const { t } = useI18n();
   const [expandedGroups, setExpandedGroups] = useState<string[]>([
@@ -181,7 +187,8 @@ export function RenoChecklistSidebar({
         })}
       </div>
 
-      {/* Action Buttons - Removed: ahora están en NavbarL3 según diseño L3 */}
+      {/* Action Buttons - Removed: ahora están en NavbarL3 según diseño L3 para initial-check */}
+      {/* Para final-check, los botones están en el header */}
     </div>
   );
 }

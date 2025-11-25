@@ -6,14 +6,22 @@ import { Property } from "@/lib/property-storage";
 import { RenoKanbanPhase, visibleRenoKanbanColumns } from "@/lib/reno-kanban-config";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
+import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
 
 interface RenoHomePortfolioProps {
   properties: Property[];
+  propertiesByPhase?: Record<RenoKanbanPhase, Property[]>;
 }
 
-export function RenoHomePortfolio({ properties }: RenoHomePortfolioProps) {
+export function RenoHomePortfolio({ properties, propertiesByPhase: propsPropertiesByPhase }: RenoHomePortfolioProps) {
   const { t, language } = useI18n();
   const router = useRouter();
+  
+  // Get properties grouped by phase from Supabase if not provided as prop
+  const { propertiesByPhase: hookPropertiesByPhase } = useSupabaseKanbanProperties();
+  
+  // Use prop if provided, otherwise use hook result
+  const propertiesByPhase = propsPropertiesByPhase || hookPropertiesByPhase;
 
   const stageCounts = useMemo(() => {
     const counts: Record<RenoKanbanPhase, number> = {
@@ -27,15 +35,18 @@ export function RenoHomePortfolio({ properties }: RenoHomePortfolioProps) {
       "done": 0,
     };
 
-    // Map properties to stages based on their renoPhase property
-    properties.forEach((p) => {
-      if (p.renoPhase && p.renoPhase in counts) {
-        counts[p.renoPhase as RenoKanbanPhase]++;
-      }
-    });
+    // Use propertiesByPhase directly from Supabase hook
+    // This ensures we're using the real phase data from the database
+    if (propertiesByPhase) {
+      Object.entries(propertiesByPhase).forEach(([phase, phaseProperties]) => {
+        if (phase in counts) {
+          counts[phase as RenoKanbanPhase] = phaseProperties.length;
+        }
+      });
+    }
 
     return counts;
-  }, [properties]);
+  }, [propertiesByPhase]);
 
   const maxCount = Math.max(...Object.values(stageCounts), 1);
   const maxHeight = 200; // Max height in pixels for the bars

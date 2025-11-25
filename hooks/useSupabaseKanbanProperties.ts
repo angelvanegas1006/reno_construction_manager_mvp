@@ -79,9 +79,20 @@ function convertSupabasePropertyToKanbanProperty(
     region: supabaseProperty.area_cluster || undefined,
     renoType: supabaseProperty.renovation_type || undefined,
     renovador: supabaseProperty['Renovator name'] || undefined,
-    realSettlementDate: undefined, // No hay en Supabase
-    estimatedVisitDate: undefined, // No hay en Supabase
-    setupStatusNotes: supabaseProperty.notes || undefined,
+    realSettlementDate: (supabaseProperty as any)['real_settlement_date'] || 
+                       (supabaseProperty as any)['Real Settlement Date'] || 
+                       undefined,
+    estimatedVisitDate: (supabaseProperty as any)['Estimated Visit Date'] || 
+                        (supabaseProperty as any)['estimated_visit_date'] || 
+                        undefined,
+    setupStatusNotes: supabaseProperty.notes || 
+                      (supabaseProperty as any)['Setup Status Notes'] || 
+                      undefined,
+    // Campos adicionales de Supabase
+    status: supabaseProperty.status || undefined,
+    bedrooms: supabaseProperty.bedrooms || undefined,
+    bathrooms: supabaseProperty.bathrooms || undefined,
+    square_meters: supabaseProperty.square_meters || undefined,
     // Campo para mostrar el ID único de Engagements
     uniqueIdFromEngagements: supabaseProperty['Unique ID From Engagements'] || undefined,
     // Campo para la fase de renovación

@@ -6,6 +6,8 @@ import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoHomeHeader } from "@/components/reno/reno-home-header";
 import { RenoHomeIndicators } from "@/components/reno/reno-home-indicators";
 import { VisitsCalendar } from "@/components/reno/visits-calendar";
+import { RenoHomeTasks } from "@/components/reno/reno-home-tasks";
+import { RenoHomeVisits } from "@/components/reno/reno-home-visits";
 import { RenoHomeRecentProperties } from "@/components/reno/reno-home-recent-properties";
 import { RenoHomePortfolio } from "@/components/reno/reno-home-portfolio";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
@@ -170,9 +172,31 @@ export default function RenoConstructionManagerHomePage() {
     return sortPropertiesByExpired(filtered);
   }, [propertiesByPhase]);
 
+  // Get upcoming visits (initial-check properties with estimatedVisitDate)
+  const upcomingVisits = useMemo(() => {
+    const initialCheck = propertiesByPhase?.['initial-check'] || [];
+    
+    // Filter properties that have estimatedVisitDate and it's in the future
+    const filtered = initialCheck.filter((p) => {
+      if (!p.estimatedVisitDate) return false;
+      const visitDate = new Date(p.estimatedVisitDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day
+      visitDate.setHours(0, 0, 0, 0);
+      return visitDate >= today; // Only future or today visits
+    });
+    
+    // Sort by date (earliest first)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.estimatedVisitDate || "");
+      const dateB = new Date(b.estimatedVisitDate || "");
+      return dateA.getTime() - dateB.getTime();
+    });
+  }, [propertiesByPhase]);
+
   // Handle property click - navigate to property detail or task
-  const handlePropertyClick = (propertyId: string) => {
-    router.push(`/reno/construction-manager/property/${propertyId}`);
+  const handlePropertyClick = (property: Property) => {
+    router.push(`/reno/construction-manager/property/${property.id}`);
   };
 
   // Handle add visit
@@ -219,6 +243,20 @@ export default function RenoConstructionManagerHomePage() {
                 totalVisitasMesDelta={indicators.totalVisitasMesDelta}
               />
 
+              {/* Tasks and Visits Row */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <RenoHomeTasks
+                  checks={checksForToday}
+                  visits={visitsForToday}
+                  onPropertyClick={handlePropertyClick}
+                />
+                <RenoHomeVisits
+                  visits={upcomingVisits}
+                  onPropertyClick={handlePropertyClick}
+                  onAddVisit={handleAddVisit}
+                />
+              </div>
+
               {/* Calendar Row */}
               <VisitsCalendar
                 propertiesByPhase={propertiesByPhase}
@@ -228,7 +266,7 @@ export default function RenoConstructionManagerHomePage() {
               {/* Recent Properties and Portfolio Row */}
               <div className="grid gap-6 md:grid-cols-2">
                 <RenoHomeRecentProperties properties={filteredProperties} />
-                <RenoHomePortfolio properties={filteredProperties} />
+                <RenoHomePortfolio properties={filteredProperties} propertiesByPhase={propertiesByPhase} />
               </div>
             </div>
           )}
