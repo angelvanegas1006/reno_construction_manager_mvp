@@ -11,14 +11,16 @@ import { calculateOverallProgress } from "@/lib/property-validation";
 import { useI18n } from "@/lib/i18n";
 import { visibleRenoKanbanColumns, RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { sortPropertiesByExpired } from "@/lib/property-sorting";
+import { KanbanFilters } from "./reno-kanban-filters";
 
 interface RenoKanbanBoardProps {
   searchQuery: string;
+  filters?: KanbanFilters;
 }
 
 // Dummy data and helper functions removed - now using Supabase
 
-export function RenoKanbanBoard({ searchQuery }: RenoKanbanBoardProps) {
+export function RenoKanbanBoard({ searchQuery, filters }: RenoKanbanBoardProps) {
   const { t } = useI18n();
   const [isHovered, setIsHovered] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -93,11 +95,18 @@ export function RenoKanbanBoard({ searchQuery }: RenoKanbanBoardProps) {
     return sorted;
   }, [isMounted, supabaseLoading, transformProperties]);
 
-  // Filter properties based on search query
+  // Filter properties based on search query and filters
   const filteredProperties = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return allProperties;
-    }
+    const activeFilters = filters || {
+      renovatorNames: [],
+      technicalConstructors: [],
+      areaClusters: [],
+    };
+
+    const hasActiveFilters = 
+      activeFilters.renovatorNames.length > 0 ||
+      activeFilters.technicalConstructors.length > 0 ||
+      activeFilters.areaClusters.length > 0;
 
     const query = searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -106,6 +115,8 @@ export function RenoKanbanBoard({ searchQuery }: RenoKanbanBoardProps) {
     };
 
     const matchesQuery = (property: Property) => {
+      if (!query) return true;
+      
       if (normalizeString(property.id).includes(query)) {
         return true;
       }
@@ -123,15 +134,85 @@ export function RenoKanbanBoard({ searchQuery }: RenoKanbanBoardProps) {
       return false;
     };
 
+    const matchesFilters = (property: Property) => {
+      // Si no hay filtros activos, mostrar todas las propiedades
+      if (!hasActiveFilters) return true;
+
+      // Obtener valores de la propiedad
+      const renovatorName = (property as any).renovador || 
+                           (property as any).supabaseProperty?.["Renovator name"];
+      const technicalConstructor = (property as any).supabaseProperty?.["Technical construction"];
+      const areaCluster = (property as any).region || 
+                         (property as any).supabaseProperty?.area_cluster;
+
+      // Lógica OR: la propiedad debe cumplir al menos uno de los filtros seleccionados
+      // Dentro de cada tipo de filtro también es OR (cualquiera de los seleccionados)
+      let matchesRenovator = false;
+      let matchesTechnical = false;
+      let matchesArea = false;
+
+      // Si hay filtros de renovator, verificar si coincide con alguno
+      if (activeFilters.renovatorNames.length > 0) {
+        if (renovatorName) {
+          const normalizedRenovator = normalizeString(renovatorName);
+          matchesRenovator = activeFilters.renovatorNames.some(name => 
+            normalizedRenovator === normalizeString(name) ||
+            normalizedRenovator.includes(normalizeString(name)) ||
+            normalizeString(name).includes(normalizedRenovator)
+          );
+        }
+      }
+
+      // Si hay filtros de technical constructor, verificar si coincide con alguno
+      if (activeFilters.technicalConstructors.length > 0) {
+        if (technicalConstructor) {
+          const normalizedTechnical = normalizeString(technicalConstructor);
+          matchesTechnical = activeFilters.technicalConstructors.some(constructor => 
+            normalizedTechnical === normalizeString(constructor) ||
+            normalizedTechnical.includes(normalizeString(constructor)) ||
+            normalizeString(constructor).includes(normalizedTechnical)
+          );
+        }
+      }
+
+      // Si hay filtros de area cluster, verificar si coincide con alguno
+      if (activeFilters.areaClusters.length > 0) {
+        if (areaCluster) {
+          const normalizedArea = normalizeString(areaCluster);
+          matchesArea = activeFilters.areaClusters.some(cluster => 
+            normalizedArea === normalizeString(cluster) ||
+            normalizedArea.includes(normalizeString(cluster)) ||
+            normalizeString(cluster).includes(normalizedArea)
+          );
+        }
+      }
+
+      // OR lógico entre tipos de filtros: debe cumplir al menos uno de los tipos de filtros activos
+      // Si un tipo de filtro no está activo, no se considera en el OR
+      const activeFilterTypes: boolean[] = [];
+      if (activeFilters.renovatorNames.length > 0) activeFilterTypes.push(matchesRenovator);
+      if (activeFilters.technicalConstructors.length > 0) activeFilterTypes.push(matchesTechnical);
+      if (activeFilters.areaClusters.length > 0) activeFilterTypes.push(matchesArea);
+
+      // Si hay tipos de filtros activos, al menos uno debe cumplirse
+      return activeFilterTypes.length === 0 || activeFilterTypes.some(match => match);
+    };
+
+    const matchesAll = (property: Property) => {
+      const matchesSearch = !query || matchesQuery(property);
+      const matchesFilter = matchesFilters(property);
+      return matchesSearch && matchesFilter;
+    };
+
     const filtered: typeof allProperties = {
-      "upcoming-settlements": allProperties["upcoming-settlements"].filter(matchesQuery),
-      "initial-check": allProperties["initial-check"].filter(matchesQuery),
-      "reno-budget": allProperties["reno-budget"].filter(matchesQuery),
-      "reno-in-progress": allProperties["reno-in-progress"].filter(matchesQuery),
-      "furnishing-cleaning": allProperties["furnishing-cleaning"].filter(matchesQuery),
-      "final-check": allProperties["final-check"].filter(matchesQuery),
-      "reno-fixes": allProperties["reno-fixes"].filter(matchesQuery),
-      "done": allProperties["done"].filter(matchesQuery),
+      "upcoming-settlements": allProperties["upcoming-settlements"].filter(matchesAll),
+      "initial-check": allProperties["initial-check"].filter(matchesAll),
+      "reno-budget": allProperties["reno-budget"].filter(matchesAll),
+      "reno-in-progress": allProperties["reno-in-progress"].filter(matchesAll),
+      "furnishing-cleaning": allProperties["furnishing-cleaning"].filter(matchesAll),
+      "final-check": allProperties["final-check"].filter(matchesAll),
+      "reno-fixes": allProperties["reno-fixes"].filter(matchesAll),
+      "done": allProperties["done"].filter(matchesAll),
     };
 
     // Sort each column: expired first (even after filtering)
@@ -147,7 +228,7 @@ export function RenoKanbanBoard({ searchQuery }: RenoKanbanBoardProps) {
     };
 
     return sorted;
-  }, [searchQuery, allProperties]);
+  }, [searchQuery, filters, allProperties]);
 
   // Find first matching property when search query changes
   const highlightedPropertyId = useMemo(() => {

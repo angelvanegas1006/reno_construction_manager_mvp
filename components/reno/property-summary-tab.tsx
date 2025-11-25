@@ -1,9 +1,12 @@
 "use client";
 
-import { MapPin, Home, Calendar, Building2, Euro, FileText, Map } from "lucide-react";
+import { useState } from "react";
+import { MapPin, Home, Calendar, Building2, Euro, FileText, Map, ChevronLeft, ChevronRight, X, Grid3x3 } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface PropertySummaryTabProps {
   property: Property;
@@ -47,19 +50,212 @@ export function PropertySummaryTab({
   const annualIBI = property.data?.ibiAnual; // May not exist in Supabase yet
   const communityFees = property.data?.gastosComunidad; // May not exist in Supabase yet
 
+  // Obtener pics_urls de supabaseProperty
+  const picsUrls = supabaseProperty?.pics_urls || [];
+  const hasPics = Array.isArray(picsUrls) && picsUrls.length > 0;
+
+  // Estado para la galería
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalImageIndex, setModalImageIndex] = useState(0);
+
+  // Abrir modal con imagen específica
+  const openModal = (index: number) => {
+    setModalImageIndex(index);
+    setIsModalOpen(true);
+  };
+
+  // Navegación en el modal
+  const goToPreviousModal = () => {
+    setModalImageIndex((prev) => (prev === 0 ? picsUrls.length - 1 : prev - 1));
+  };
+
+  const goToNextModal = () => {
+    setModalImageIndex((prev) => (prev === picsUrls.length - 1 ? 0 : prev + 1));
+  };
+
   return (
     <div className="space-y-6">
-      {/* Image Gallery - Coming Soon */}
+      {/* Image Gallery - Grid con imagen principal */}
       <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-        <div className="aspect-video bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] rounded-lg flex items-center justify-center">
-          <div className="text-center">
-            <Home className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm font-medium text-muted-foreground">Galería de imágenes</p>
-            <p className="text-xs text-muted-foreground mt-1">Coming soon</p>
-            <p className="text-xs text-muted-foreground">Las imágenes se cargarán desde la checklist</p>
+        <h3 className="text-lg font-semibold mb-4">{t.property.gallery || "Galería de imágenes"}</h3>
+        {hasPics ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            {/* Imagen principal (izquierda) - ocupa 2 columnas */}
+            <div 
+              className="md:col-span-2 aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] cursor-pointer group"
+              onClick={() => openModal(currentImageIndex)}
+            >
+              <img
+                src={picsUrls[currentImageIndex]}
+                alt={`Imagen ${currentImageIndex + 1} de ${picsUrls.length}`}
+                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent && !parent.querySelector('.image-error-placeholder')) {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'image-error-placeholder w-full h-full flex items-center justify-center';
+                    placeholder.innerHTML = `
+                      <div class="text-center">
+                        <svg class="h-12 w-12 text-muted-foreground mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <p class="text-sm text-muted-foreground">Error al cargar imagen</p>
+                      </div>
+                    `;
+                    parent.appendChild(placeholder);
+                  }
+                }}
+              />
+              {/* Overlay con contador */}
+              <div className="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-xs">
+                {currentImageIndex + 1} / {picsUrls.length}
+              </div>
+            </div>
+
+            {/* Columna derecha: 1 miniatura (imagen 2) + botón "Ver todas" */}
+            <div className="grid grid-cols-1 gap-2">
+              {/* Segunda miniatura (solo si hay más de 1 imagen) */}
+              {picsUrls.length > 1 && (
+                <div
+                  className={cn(
+                    "aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] cursor-pointer group border-2 transition-all",
+                    currentImageIndex === 1
+                      ? "border-[var(--prophero-blue-500)] ring-2 ring-[var(--prophero-blue-500)]"
+                      : "border-transparent hover:border-[var(--prophero-gray-300)] dark:hover:border-[var(--prophero-gray-600)]"
+                  )}
+                  onClick={() => {
+                    setCurrentImageIndex(1);
+                    openModal(1);
+                  }}
+                >
+                  <img
+                    src={picsUrls[1]}
+                    alt="Miniatura 2"
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                  {/* Overlay oscuro en hover */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                </div>
+              )}
+              
+              {/* Botón "Ver todas" (mismo tamaño que la miniatura) */}
+              <button
+                className="aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] border-2 border-dashed border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-blue-500)] transition-all flex flex-col items-center justify-center group"
+                onClick={() => {
+                  // Abrir modal desde la imagen actual
+                  openModal(currentImageIndex);
+                }}
+              >
+                <div className="text-center">
+                  <Grid3x3 className="h-8 w-8 text-muted-foreground group-hover:text-[var(--prophero-blue-600)] dark:group-hover:text-[var(--prophero-blue-400)] transition-colors mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-muted-foreground group-hover:text-[var(--prophero-blue-600)] dark:group-hover:text-[var(--prophero-blue-400)] transition-colors">
+                    {t.property.viewAll || "Ver todas"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {picsUrls.length} {picsUrls.length === 1 ? (t.property.photo || 'foto') : (t.property.photos || 'fotos')}
+                  </p>
+                </div>
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="aspect-video bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] rounded-lg flex items-center justify-center">
+            <div className="text-center">
+              <Home className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm font-medium text-muted-foreground">{t.property.gallery || "Galería de imágenes"}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t.property.noImagesAvailable || "No hay imágenes disponibles"}</p>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Modal para ver imagen en pantalla completa */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-7xl w-full h-[90vh] p-0 bg-black/95">
+          <div className="relative w-full h-full flex items-center justify-center">
+            {/* Botón cerrar */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full"
+              onClick={() => setIsModalOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+
+            {/* Imagen en pantalla completa */}
+            {picsUrls[modalImageIndex] ? (
+              <img
+                key={modalImageIndex} // Forzar re-render cuando cambia el índice
+                src={picsUrls[modalImageIndex]}
+                alt={`Imagen ${modalImageIndex + 1} de ${picsUrls.length}`}
+                className="max-w-full max-h-full object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  // Mostrar mensaje de error
+                  const parent = target.parentElement;
+                  if (parent && !parent.querySelector('.modal-image-error')) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'modal-image-error text-white text-center';
+                    errorDiv.innerHTML = `
+                      <div class="flex flex-col items-center">
+                        <svg class="h-16 w-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <p class="text-lg">Error al cargar la imagen</p>
+                        <p class="text-sm opacity-75 mt-2">Imagen ${modalImageIndex + 1} de ${picsUrls.length}</p>
+                      </div>
+                    `;
+                    parent.appendChild(errorDiv);
+                  }
+                }}
+              />
+            ) : (
+              <div className="text-white text-center">
+                <Home className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg">{t.property.couldNotLoadImage || "No se pudo cargar la imagen"}</p>
+              </div>
+            )}
+
+            {/* Botones de navegación en el modal (solo si hay más de una imagen) */}
+            {picsUrls.length > 1 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                  onClick={goToPreviousModal}
+                >
+                  <ChevronLeft className="h-8 w-8" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                  onClick={goToNextModal}
+                >
+                  <ChevronRight className="h-8 w-8" />
+                </Button>
+
+                {/* Contador en el modal */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
+                  {modalImageIndex + 1} / {picsUrls.length}
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Amenities Grid */}
       <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">

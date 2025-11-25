@@ -77,6 +77,13 @@ export interface Translations {
     fullAddress: string;
     propertyType: string;
     renovationType: string;
+    gallery: string;
+    viewAll: string;
+    noImagesAvailable: string;
+    couldNotLoadImage: string;
+    photo: string;
+    photos: string;
+    saveSuccess: string;
     sections: {
       basicInfo: string;
       economicInfo: string;
@@ -103,6 +110,14 @@ export interface Translations {
     searchPlaceholder: string;
     addProperty: string;
     filterProperties: string;
+    filters: string;
+    filtersDescription: string;
+    renovatorName: string;
+    technicalConstructor: string;
+    areaCluster: string;
+    noValuesAvailable: string;
+    clearAll: string;
+    applyFilters: string;
       // Reno Construction Manager phases
       upcomingSettlements: string;
       initialCheck: string;
@@ -485,6 +500,13 @@ export const translations: Record<Language, Translations> = {
       fullAddress: "Dirección completa",
       propertyType: "Tipo de propiedad",
       renovationType: "Tipo de renovación",
+      gallery: "Galería de imágenes",
+      viewAll: "Ver todas",
+      noImagesAvailable: "No hay imágenes disponibles",
+      couldNotLoadImage: "No se pudo cargar la imagen",
+      photo: "foto",
+      photos: "fotos",
+      saveSuccess: "Los datos se han guardado correctamente",
       sections: {
         basicInfo: "Información de la propiedad",
         economicInfo: "Información económica",
@@ -509,6 +531,14 @@ export const translations: Record<Language, Translations> = {
       searchPlaceholder: "Buscar por ID, Calle o Precio",
       addProperty: "Añadir propiedad",
       filterProperties: "Filtrar propiedades",
+      filters: "Filtros",
+      filtersDescription: "Selecciona uno o más valores para filtrar las propiedades. Los filtros se combinan con OR (cualquiera de los seleccionados).",
+      renovatorName: "Renovator Name",
+      technicalConstructor: "Constructor Técnico",
+      areaCluster: "Area Cluster",
+      noValuesAvailable: "No hay valores disponibles",
+      clearAll: "Limpiar todos",
+      applyFilters: "Aplicar filtros",
       // Reno Construction Manager phases
       upcomingSettlements: "Nuevas escrituras",
       initialCheck: "Check inicial",
@@ -1298,6 +1328,13 @@ export const translations: Record<Language, Translations> = {
       fullAddress: "Full Address",
       propertyType: "Property Type",
       renovationType: "Renovation Type",
+      gallery: "Image Gallery",
+      viewAll: "View All",
+      noImagesAvailable: "No images available",
+      couldNotLoadImage: "Could not load image",
+      photo: "photo",
+      photos: "photos",
+      saveSuccess: "Data saved successfully",
       sections: {
         basicInfo: "Property Information",
         economicInfo: "Economic Information",
@@ -1322,6 +1359,14 @@ export const translations: Record<Language, Translations> = {
       searchPlaceholder: "Search by ID, Street or Price",
       addProperty: "Add Property",
       filterProperties: "Filter Properties",
+      filters: "Filters",
+      filtersDescription: "Select one or more values to filter properties. Filters are combined with OR (any of the selected).",
+      renovatorName: "Renovator Name",
+      technicalConstructor: "Technical Constructor",
+      areaCluster: "Area Cluster",
+      noValuesAvailable: "No values available",
+      clearAll: "Clear All",
+      applyFilters: "Apply Filters",
       // Reno Construction Manager phases
       upcomingSettlements: "Upcoming Settlements",
       initialCheck: "Initial Check",

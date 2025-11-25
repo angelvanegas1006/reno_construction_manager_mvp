@@ -15,6 +15,8 @@ interface NavbarL1Props {
   setSearchQuery: (query: string) => void;
   /** Zona C: Filtros */
   onFilterClick?: () => void;
+  /** Zona C: Número de filtros activos para mostrar badge */
+  filterBadgeCount?: number;
   /** Zona C: CTA Principal */
   primaryAction?: {
     label: string;
@@ -44,6 +46,7 @@ export function NavbarL1({
   searchQuery,
   setSearchQuery,
   onFilterClick,
+  filterBadgeCount = 0,
   primaryAction,
   secondaryActions,
 }: NavbarL1Props) {
@@ -77,10 +80,15 @@ export function NavbarL1({
           {onFilterClick && (
             <button
               onClick={onFilterClick}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors flex-shrink-0"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors flex-shrink-0"
               aria-label={t.kanban.filterProperties}
             >
               <FilterIcon className="h-4 w-4 text-foreground" />
+              {filterBadgeCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-xs font-semibold text-white">
+                  {filterBadgeCount}
+                </span>
+              )}
             </button>
           )}
 

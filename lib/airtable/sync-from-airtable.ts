@@ -103,6 +103,9 @@ async function fetchRelatedFields(
     const batchSize = 50;
     const result = new Map();
 
+    // Si estamos buscando el campo de pics URLs, obtener todos los campos para encontrar el nombre real
+    const shouldFetchAllFields = fieldsToFetch.includes('fldq1FLXBToYEY9W3');
+
     for (let i = 0; i < recordIds.length; i += batchSize) {
       const batch = recordIds.slice(i, i + batchSize);
       const formula = `OR(${batch.map(id => `RECORD_ID() = "${id}"`).join(', ')})`;
@@ -110,11 +113,55 @@ async function fetchRelatedFields(
       const relatedRecords = await base(relatedTableName)
         .select({
           filterByFormula: formula,
-          fields: fieldsToFetch,
+          fields: shouldFetchAllFields ? [] : fieldsToFetch, // Si es array vacío, Airtable devuelve todos los campos
         })
         .all();
 
       relatedRecords.forEach((record: any) => {
+        // Si estamos buscando el campo de pics URLs, buscar el campo por field ID en todos los campos
+        if (shouldFetchAllFields) {
+          // Buscar el campo que tenga el field ID o nombres relacionados
+          const allFields = record.fields;
+          let picsField = null;
+          
+          // El campo se llama 'pics_url' en Properties (field ID: fldq1FLXBToYEY9W3)
+          const possibleNames = [
+            'pics_url',  // Nombre real encontrado en Properties
+            'Pics URLs', 
+            'Pics', 
+            'Photos URLs', 
+            'Photos', 
+            'Images URLs', 
+            'Images', 
+            'Property pictures & videos',
+            'pics_urls',
+            'Property Pics',
+            'Property Photos',
+            'Property Images',
+            'Pics URL',
+            'Photo URLs',
+            'Photo URL',
+            'Picture URLs',
+            'Picture URL',
+            'Media URLs',
+            'Media URL'
+          ];
+          
+          // Buscar por nombres exactos
+          for (const name of possibleNames) {
+            if (allFields[name] !== undefined && allFields[name] !== null && allFields[name] !== '') {
+              picsField = allFields[name];
+              break;
+            }
+          }
+          
+          // Si encontramos el campo, agregarlo con el field ID como clave para facilitar el mapeo
+          if (picsField !== null) {
+            allFields['fldq1FLXBToYEY9W3'] = picsField;
+            allFields['pics_urls_from_properties'] = picsField; // También con nombre más descriptivo
+          }
+        }
+        
         result.set(record.id, record.fields);
       });
     }
@@ -207,7 +254,7 @@ export async function fetchPropertiesFromAirtable(
       base,
       'Properties', // Nombre de la tabla relacionada
       Array.from(propertiesIds),
-      ['Area cluster', 'Property UniqueID', 'Technical Constructor'] // Buscar Technical Constructor también
+      ['Area cluster', 'Property UniqueID', 'Technical Constructor', 'fldq1FLXBToYEY9W3'] // Buscar pics URLs también (field ID)
     );
 
     const engagementsData = await fetchRelatedFields(
@@ -245,6 +292,20 @@ export async function fetchPropertiesFromAirtable(
           record.fields['Property UniqueID'] = propertyData['Property UniqueID'] || propertyData['Property Unique ID']; // También con el nombre exacto
           // Technical Constructor puede estar en Properties
           record.fields['Technical Constructor'] = propertyData['Technical Constructor'] || propertyData['Technical construction'] || null;
+          // Pics URLs - El campo ya viene mapeado como 'fldq1FLXBToYEY9W3' o 'pics_urls_from_properties' desde fetchRelatedFields
+          const picsUrlsFromProperties = propertyData['fldq1FLXBToYEY9W3'] || 
+                                        propertyData['pics_urls_from_properties'] ||
+                                        propertyData['pics_url'] ||  // Nombre real encontrado
+                                        propertyData['Pics URLs'] || 
+                                        propertyData['Pics'] || 
+                                        propertyData['Photos URLs'] || 
+                                        propertyData['Photos'] || 
+                                        null;
+          
+          if (picsUrlsFromProperties) {
+            record.fields['fldq1FLXBToYEY9W3'] = picsUrlsFromProperties;
+            record.fields['pics_urls_from_properties'] = picsUrlsFromProperties; // También con nombre descriptivo
+          }
           fieldsAddedCount++;
           
           // Log para el primer registro
@@ -413,6 +474,60 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
       const mappedPhase = mapSetUpStatusToKanbanPhase(setUpStatus);
       return mappedPhase || null; // No usar default, dejar que el mapeo decida
     })(),
+    // Pics URLs - URLs de las fotos de la propiedad (fldq1FLXBToYEY9W3)
+    // PRIORIDAD: Usar el campo directo de Properties (no el relacionado de Transactions)
+    pics_urls: (() => {
+      // PRIORIDAD 1: Campo directo de Properties (obtenido desde fetchRelatedFields)
+      // El campo se llama 'pics_url' en Properties (field ID: fldq1FLXBToYEY9W3)
+      let picsField = fields['pics_urls_from_properties'] ||
+                     fields['fldq1FLXBToYEY9W3'] || 
+                     fields['pics_url'] ||  // Nombre real encontrado en Properties
+                     fields['Pics URLs'] ||
+                     fields['Pics URLs:'] ||
+                     fields['Pics'] ||
+                     fields['Photos URLs'] ||
+                     fields['Photos'] ||
+                     // PRIORIDAD 2: Campo relacionado de Transactions (fallback si no hay en Properties)
+                     fields['Property pictures & videos (from properties)'] ||
+                     fields['Property pictures & videos'];
+      
+      if (!picsField) {
+        return [];
+      }
+      
+      // Si es un array de URLs (strings)
+      if (Array.isArray(picsField)) {
+        const urls = picsField
+          .map(item => {
+            // Si es un objeto con url (attachment de Airtable)
+            if (typeof item === 'object' && item.url) {
+              return item.url;
+            }
+            // Si es un string que empieza con http o https
+            if (typeof item === 'string' && (item.startsWith('http://') || item.startsWith('https://'))) {
+              return item;
+            }
+            return null;
+          })
+          .filter((url): url is string => url !== null && url.length > 0);
+        
+        return urls;
+      }
+      
+      // Si es un string, puede ser una URL única o múltiples URLs separadas por comas/saltos de línea
+      if (typeof picsField === 'string') {
+        // El campo pics_url en Properties viene como string con URLs separadas por comas
+        // Ejemplo: "https://url1.jpg,https://url2.jpg"
+        const urls = picsField
+          .split(',')  // Separar por comas
+          .map(url => url.trim())
+          .filter(url => url.startsWith('http://') || url.startsWith('https://'));
+        
+        return urls.length > 0 ? urls : (picsField.startsWith('http') ? [picsField] : []);
+      }
+      
+      return [];
+    })(),
     airtable_property_id: airtableProperty.id,
     updated_at: new Date().toISOString(),
   };
@@ -548,6 +663,34 @@ export async function syncPropertiesFromAirtable(
             supabaseData.responsible_owner ||
             supabaseData['Technical construction'];
           
+          // Lógica para pics_urls:
+          // - Si es la primera fase (upcoming-settlements): actualizar pics_urls si cambió
+          // - Si NO es la primera fase: solo insertar pics_urls si no existe (no actualizar si ya existe)
+          const currentPicsUrls = currentData?.pics_urls || [];
+          const newPicsUrls = supabaseData.pics_urls || [];
+          const hasPicsUrls = Array.isArray(currentPicsUrls) && currentPicsUrls.length > 0;
+          const picsUrlsChanged = JSON.stringify(currentPicsUrls) !== JSON.stringify(newPicsUrls);
+          const isFirstPhase = currentData?.reno_phase === 'upcoming-settlements' || supabaseData.reno_phase === 'upcoming-settlements';
+          
+          // Si NO es la primera fase y ya tiene pics_urls, no actualizar pics_urls
+          // Si NO es la primera fase y NO tiene pics_urls, insertar los nuevos
+          // Si es la primera fase, actualizar normalmente
+          let shouldUpdatePicsUrls = false;
+          if (isFirstPhase) {
+            // Primera fase: actualizar si cambió
+            shouldUpdatePicsUrls = picsUrlsChanged;
+          } else {
+            // Otras fases: solo insertar si no existe
+            shouldUpdatePicsUrls = !hasPicsUrls && newPicsUrls.length > 0;
+          }
+          
+          // Preparar datos para actualizar (excluir pics_urls si no se debe actualizar)
+          const updateData = { ...supabaseData };
+          if (!shouldUpdatePicsUrls) {
+            // No actualizar pics_urls, mantener el valor actual
+            delete updateData.pics_urls;
+          }
+          
           const hasChanges =
             currentData?.address !== supabaseData.address ||
             currentData?.['Set Up Status'] !== supabaseData['Set Up Status'] ||
@@ -560,6 +703,8 @@ export async function syncPropertiesFromAirtable(
             currentData?.['Technical construction'] !== supabaseData['Technical construction'] ||
             currentData?.next_reno_steps !== supabaseData.next_reno_steps ||
             currentData?.['Renovator name'] !== supabaseData['Renovator name'] ||
+            currentData?.budget_pdf_url !== supabaseData.budget_pdf_url ||
+            shouldUpdatePicsUrls ||
             (hasRelatedFields && (!currentData?.area_cluster && !currentData?.['Hubspot ID'] && !currentData?.property_unique_id));
 
             if (hasChanges) {
@@ -570,12 +715,13 @@ export async function syncPropertiesFromAirtable(
                   'Hubspot ID': supabaseData['Hubspot ID'],
                   renovation_type: supabaseData.renovation_type,
                   property_unique_id: supabaseData.property_unique_id,
+                  pics_urls: shouldUpdatePicsUrls ? `Will ${isFirstPhase ? 'update' : 'insert'}` : 'Will NOT update',
                 });
               }
 
               const { error: updateError } = await supabase
                 .from('properties')
-                .update(supabaseData)
+                .update(updateData)
                 .eq('id', uniqueId);
 
               if (updateError) {

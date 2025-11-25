@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { useDynamicCategories } from '@/hooks/useDynamicCategories';
 import { SendUpdateDialog } from './send-update-dialog';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/lib/supabase/types';
+import { callN8nCategoriesWebhook, prepareWebhookPayload } from '@/lib/n8n/webhook-caller';
 
 type SupabaseProperty = Database['public']['Tables']['properties']['Row'];
 
@@ -20,24 +20,53 @@ interface DynamicCategoriesProgressProps {
 }
 
 // Format activities text to add line breaks for lists
+/**
+ * Formatea el texto de actividades dividiendo solo por números de actividad (ej: "8.1", "8.2")
+ * El resto del texto se mantiene junto sin saltos de línea innecesarios
+ */
 function formatActivitiesText(text: string): string {
   if (!text) return '';
   
-  // Pattern to detect list items: numbers followed by dot, dash, or parentheses
-  // Examples: "2.1", "2.2", "-", "•", etc.
-  let formatted = text;
+  // Primero, eliminar todos los saltos de línea existentes y normalizar espacios
+  let formatted = text
+    .replace(/\n/g, ' ')
+    .replace(/\r/g, ' ')
+    .replace(/\t/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   
-  // Add line break before list items (numbered like "2.1", "2.2", etc.)
-  // Match patterns like "2.1", "2.2", etc. that appear after text
-  formatted = formatted.replace(/([^\n])(\n?)(\d+\.\d+\s)/g, (match, before, existingBreak, listItem) => {
-    // If there's already a break, keep it; otherwise add one
-    return existingBreak ? match : `${before}\n${listItem}`;
-  });
+  // Dividir solo por patrones de números de actividad seguidos de guión
+  // Patrón: número.número seguido de espacios opcionales y guión (— o -)
+  // Ejemplos: "8.1 —", "8.2 —", "1.1 — UD"
+  // Buscar el patrón que aparece después de un espacio o al inicio del texto
+  formatted = formatted.replace(/(^|\s)(\d+\.\d+\s*[—\-])/g, '\n$2');
   
-  // Ensure double line breaks between major sections (e.g., "2.1" followed by "2.2")
-  formatted = formatted.replace(/(\d+\.\d+[^\n]*)\n(\d+\.\d+)/g, '$1\n\n$2');
+  // Limpiar y formatear cada línea
+  const lines = formatted
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
   
-  return formatted;
+  return lines.join('\n');
+}
+
+/**
+ * Extrae el número de orden de una categoría desde su nombre
+ * Ejemplos: "8.1 — UD — SUSTITUCIÓN..." -> 8.1, "1. Fontanería" -> 1
+ * Retorna un número para ordenar (ej: 8.1 -> 8.1, 1 -> 1)
+ */
+function extractCategoryOrderNumber(categoryName: string): number {
+  if (!categoryName) return 9999; // Sin número, va al final
+  
+  // Buscar patrón: número al inicio, opcionalmente seguido de punto y otro número
+  const match = categoryName.match(/^(\d+)(?:\.(\d+))?/);
+  if (match) {
+    const major = parseInt(match[1], 10);
+    const minor = match[2] ? parseInt(match[2], 10) : 0;
+    return major + (minor / 100); // Ej: 8.1 -> 8.01, 8.2 -> 8.02
+  }
+  
+  return 9999; // Sin número, va al final
 }
 
 export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgressProps) {
@@ -48,7 +77,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
   const [sendUpdateOpen, setSendUpdateOpen] = useState(false);
   const [editingInput, setEditingInput] = useState<Record<string, boolean>>({}); // Control de inputs manuales
   const [isExtracting, setIsExtracting] = useState(false);
-  const supabase = createClient();
+  const [error, setError] = useState<string | null>(null);
   const justSavedRef = useRef<Record<string, number> | null>(null); // Track values we just saved
 
   // Show extract button only if: budget_pdf_url exists AND no categories created
@@ -108,15 +137,24 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
     });
   }, [categories]);
 
+  // Sort categories by their order number (extracted from category_name)
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => {
+      const orderA = extractCategoryOrderNumber(a.category_name);
+      const orderB = extractCategoryOrderNumber(b.category_name);
+      return orderA - orderB;
+    });
+  }, [categories]);
+
   // Calculate global progress (average of all categories)
   const globalProgress = useMemo(() => {
-    if (categories.length === 0) return 0;
-    const total = categories.reduce((sum, cat) => {
+    if (sortedCategories.length === 0) return 0;
+    const total = sortedCategories.reduce((sum, cat) => {
       const percentage = localPercentages[cat.id] ?? cat.percentage ?? 0;
       return sum + percentage;
     }, 0);
-    return Math.round(total / categories.length);
-  }, [categories, localPercentages]);
+    return Math.round(total / sortedCategories.length);
+  }, [sortedCategories, localPercentages]);
 
   // Get minimum allowed value for a category (last saved value or 0)
   const getMinAllowedValue = useCallback((categoryId: string): number => {
@@ -224,7 +262,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
     }
   }, [deleteCategory]);
 
-  // Handle PDF extraction
+  // Handle PDF extraction - Llama al webhook de n8n
   const handleExtractPdfInfo = useCallback(async () => {
     // Validación: verificar que existe budget_pdf_url
     if (!property?.budget_pdf_url) {
@@ -232,26 +270,27 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
       return;
     }
 
+    // Verificar si ya tiene categorías (evitar llamadas duplicadas)
+    if (categories.length > 0) {
+      toast.info("Esta propiedad ya tiene categorías definidas");
+      return;
+    }
+
     setIsExtracting(true);
+    setError(null);
 
     try {
-      // Invocar el Edge Function extract-pdf-info
-      const { data, error } = await supabase.functions.invoke('extract-pdf-info', {
-        body: {
-          budget_pdf_url: property.budget_pdf_url,
-          property_id: property.id,
-          unique_id: property["Unique ID From Engagements"],
-          property_name: property.name,
-          address: property.address,
-          client_name: property["Client Name"],
-          client_email: property["Client email"],
-          renovation_type: property.renovation_type,
-          area_cluster: property.area_cluster,
-        },
-      });
+      // Preparar payload del webhook
+      const payload = prepareWebhookPayload(property);
+      if (!payload) {
+        throw new Error("No se pudo preparar el payload del webhook");
+      }
 
-      if (error) {
-        throw error;
+      // Llamar al webhook de n8n
+      const success = await callN8nCategoriesWebhook(payload);
+
+      if (!success) {
+        throw new Error("Error al llamar al webhook de n8n");
       }
 
       toast.success("Extracción de información PDF iniciada correctamente", {
@@ -259,13 +298,15 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
       });
     } catch (err) {
       console.error('Error al extraer información del PDF:', err);
+      const errorMessage = err instanceof Error ? err.message : "Ha ocurrido un error inesperado.";
+      setError(errorMessage);
       toast.error("Error al iniciar la extracción", {
-        description: err instanceof Error ? err.message : "Ha ocurrido un error inesperado.",
+        description: errorMessage,
       });
     } finally {
       setIsExtracting(false);
     }
-  }, [property, supabase.functions]);
+  }, [property, categories.length]);
 
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return 'No definida';
@@ -284,6 +325,22 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
     return (
       <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
         <p className="text-muted-foreground">Cargando categorías...</p>
+      </div>
+    );
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border border-destructive/50 p-6 shadow-sm">
+        <p className="text-destructive">Error al cargar categorías: {error}</p>
+        <Button
+          onClick={() => refetch()}
+          variant="outline"
+          className="mt-4"
+        >
+          Reintentar
+        </Button>
       </div>
     );
   }
@@ -363,11 +420,24 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                   </Button>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No hay categorías definidas</p>
+                <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    No hay categorías definidas para esta propiedad.
+                  </p>
+                  {property.budget_pdf_url ? (
+                    <p className="text-xs text-muted-foreground">
+                      Tienes un presupuesto PDF disponible. Haz clic en "Extraer Información PDF" para crear las categorías automáticamente.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Para crear categorías, necesitas tener un presupuesto PDF configurado en la propiedad (campo budget_pdf_url).
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           ) : (
-            categories.map((category) => {
+            sortedCategories.map((category) => {
               const percentage = localPercentages[category.id] ?? category.percentage ?? 0;
               const savedValue = savedPercentages[category.id] ?? category.percentage ?? 0;
               const minAllowedValue = getMinAllowedValue(category.id);
