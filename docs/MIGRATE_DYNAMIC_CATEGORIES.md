@@ -179,3 +179,4 @@ Si necesitas re-ejecutar la migración:
 - Documentación de migración: `docs/EXECUTE_MIGRATION_009.md`
 
 
+

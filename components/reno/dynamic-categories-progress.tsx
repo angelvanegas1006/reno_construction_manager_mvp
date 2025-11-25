@@ -10,8 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { useDynamicCategories } from '@/hooks/useDynamicCategories';
 import { SendUpdateDialog } from './send-update-dialog';
 import { toast } from 'sonner';
-import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/lib/supabase/types';
+import { callN8nCategoriesWebhook, prepareWebhookPayload } from '@/lib/n8n/webhook-caller';
 
 type SupabaseProperty = Database['public']['Tables']['properties']['Row'];
 
@@ -77,7 +77,6 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
   const [sendUpdateOpen, setSendUpdateOpen] = useState(false);
   const [editingInput, setEditingInput] = useState<Record<string, boolean>>({}); // Control de inputs manuales
   const [isExtracting, setIsExtracting] = useState(false);
-  const supabase = createClient();
   const justSavedRef = useRef<Record<string, number> | null>(null); // Track values we just saved
 
   // Show extract button only if: budget_pdf_url exists AND no categories created
@@ -262,7 +261,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
     }
   }, [deleteCategory]);
 
-  // Handle PDF extraction
+  // Handle PDF extraction - Llama al webhook de n8n
   const handleExtractPdfInfo = useCallback(async () => {
     // Validación: verificar que existe budget_pdf_url
     if (!property?.budget_pdf_url) {
@@ -270,26 +269,26 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
       return;
     }
 
+    // Verificar si ya tiene categorías (evitar llamadas duplicadas)
+    if (categories.length > 0) {
+      toast.info("Esta propiedad ya tiene categorías definidas");
+      return;
+    }
+
     setIsExtracting(true);
 
     try {
-      // Invocar el Edge Function extract-pdf-info
-      const { data, error } = await supabase.functions.invoke('extract-pdf-info', {
-        body: {
-          budget_pdf_url: property.budget_pdf_url,
-          property_id: property.id,
-          unique_id: property["Unique ID From Engagements"],
-          property_name: property.name,
-          address: property.address,
-          client_name: property["Client Name"],
-          client_email: property["Client email"],
-          renovation_type: property.renovation_type,
-          area_cluster: property.area_cluster,
-        },
-      });
+      // Preparar payload del webhook
+      const payload = prepareWebhookPayload(property);
+      if (!payload) {
+        throw new Error("No se pudo preparar el payload del webhook");
+      }
 
-      if (error) {
-        throw error;
+      // Llamar al webhook de n8n
+      const success = await callN8nCategoriesWebhook(payload);
+
+      if (!success) {
+        throw new Error("Error al llamar al webhook de n8n");
       }
 
       toast.success("Extracción de información PDF iniciada correctamente", {
@@ -303,7 +302,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
     } finally {
       setIsExtracting(false);
     }
-  }, [property, supabase.functions]);
+  }, [property, categories.length]);
 
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return 'No definida';

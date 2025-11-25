@@ -94,3 +94,4 @@ ON properties USING gin(to_tsvector('spanish', next_reno_steps));
 Pero por ahora, no es necesario ya que este campo no se usa para búsquedas.
 
 
+

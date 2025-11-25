@@ -112,3 +112,4 @@ La tabla `property_dynamic_categories` almacena:
 - El campo `percentage` tiene una restricción CHECK que solo permite valores entre 0 y 100, o NULL.
 
 
+

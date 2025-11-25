@@ -158,3 +158,4 @@ NEXT_PUBLIC_ENABLE_ANALYTICS=false
 3. **Opcional**: Auth0 y Airtable según tus necesidades
 
 
+

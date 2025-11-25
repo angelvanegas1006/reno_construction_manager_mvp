@@ -42,6 +42,51 @@ export function RenoPropertyCard({
     });
   };
 
+  // Función para obtener los estilos del badge según el tipo de renovación
+  // Todos usan la paleta de azules de Vistral con diferentes tonos:
+  // - Light Reno: azul más clarito (blue-100)
+  // - Medium Reno: azul medio (blue-300/400)
+  // - Major Reno: azul más oscuro (blue-600/700)
+  const getRenoTypeBadgeStyles = (renoType?: string) => {
+    if (!renoType) return null;
+    
+    const typeLower = renoType.toLowerCase();
+    
+    // Light Reno: azul más clarito
+    if (typeLower.includes('light')) {
+      return {
+        bg: 'bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20',
+        text: 'text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-300)]',
+        border: 'border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]/30'
+      };
+    }
+    
+    // Medium Reno: azul medio
+    if (typeLower.includes('medium')) {
+      return {
+        bg: 'bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/20',
+        text: 'text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]',
+        border: 'border-[var(--prophero-blue-300)] dark:border-[var(--prophero-blue-700)]/30'
+      };
+    }
+    
+    // Major Reno: azul más oscuro
+    if (typeLower.includes('major')) {
+      return {
+        bg: 'bg-[var(--prophero-blue-200)] dark:bg-[var(--prophero-blue-800)]/20',
+        text: 'text-[var(--prophero-blue-800)] dark:text-[var(--prophero-blue-200)]',
+        border: 'border-[var(--prophero-blue-400)] dark:border-[var(--prophero-blue-600)]/30'
+      };
+    }
+    
+    // Default: azul medio (por si acaso)
+    return {
+      bg: 'bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/20',
+      text: 'text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]',
+      border: 'border-[var(--prophero-blue-300)] dark:border-[var(--prophero-blue-700)]/30'
+    };
+  };
+
   return (
     <div 
       data-property-id={property.id}
@@ -81,16 +126,21 @@ export function RenoPropertyCard({
       </div>
 
       {/* Tags */}
-      {showRenoDetails && property.renoType && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          <Badge 
-            variant="secondary" 
-            className="bg-[var(--prophero-success)]/20 text-[var(--prophero-success)] border border-[var(--prophero-success)]/30 dark:bg-[var(--prophero-success)]/10 dark:text-[var(--prophero-success)] dark:border-[var(--prophero-success)]/20 font-medium"
-          >
-            {property.renoType}
-          </Badge>
-        </div>
-      )}
+      {showRenoDetails && property.renoType && (() => {
+        const badgeStyles = getRenoTypeBadgeStyles(property.renoType);
+        if (!badgeStyles) return null;
+        
+        return (
+          <div className="flex flex-wrap gap-2 mb-3">
+            <Badge 
+              variant="secondary" 
+              className={`${badgeStyles.bg} ${badgeStyles.text} border ${badgeStyles.border} font-medium`}
+            >
+              {property.renoType}
+            </Badge>
+          </div>
+        );
+      })()}
 
       {/* Stage-specific content */}
       {stage === "initial-check" ? (
