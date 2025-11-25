@@ -4,8 +4,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useRef, startTransition, useEffect, useCallback, useMemo, useState } from "react";
 import { NavbarL3 } from "@/components/layout/navbar-l3";
 import { HeaderL3 } from "@/components/layout/header-l3";
+import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
+import { PropertyInfoSection } from "@/components/reno/property-info-section";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { MobileSidebarMenu } from "@/components/property/mobile-sidebar-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -76,7 +80,17 @@ export default function RenoChecklistPage() {
     return getPropertyRenoPhaseFromSupabase(supabaseProperty);
   }, [supabaseProperty]);
 
-  // Ya no redirigimos - el checklist está disponible en todas las fases
+  // Redirect back if trying to access final-check but not in final-check phase
+  // Initial-check remains accessible from all phases
+  useEffect(() => {
+    if (!isLoading && property && supabaseProperty) {
+      const phase = getPropertyRenoPhase(property);
+      // Only redirect if trying to access final-check but not in final-check phase
+      if (checklistType === "reno_final" && phase && phase !== "final-check") {
+        router.replace(`/reno/construction-manager/property/${property.id}`);
+      }
+    }
+  }, [property, supabaseProperty, isLoading, checklistType, getPropertyRenoPhase, router]);
 
   // Determine checklist type based on phase
   const checklistType: ChecklistType = useMemo(() => {
@@ -219,8 +233,21 @@ export default function RenoChecklistPage() {
     }
 
     const phase = getPropertyRenoPhase(property) || "initial-check";
+    const isFinalCheck = phase === "final-check";
 
     switch (activeSection) {
+      case "property-info":
+        // Only show property-info section for final-check
+        if (isFinalCheck) {
+          return (
+            <PropertyInfoSection
+              property={property}
+              phase={phase}
+              onStartChecklist={() => handleSectionClick("checklist-entorno-zonas-comunes")}
+            />
+          );
+        }
+        // Fall through to checklist if not final-check
       case "checklist-entorno-zonas-comunes":
         return (
           <EntornoZonasComunesSection
@@ -622,12 +649,27 @@ export default function RenoChecklistPage() {
   }
 
   const phase = getPropertyRenoPhase(property) || "initial-check";
+  const isFinalCheck = phase === "final-check";
   const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
+  
+  // Set initial section: property-info for final-check, checklist for initial-check
+  useEffect(() => {
+    if (property && !isLoading && !checklistLoading && activeSection === "checklist-entorno-zonas-comunes") {
+      if (isFinalCheck) {
+        setActiveSection("property-info");
+      }
+    }
+  }, [property, isFinalCheck, isLoading, checklistLoading, activeSection]);
 
   // Get section title and subtitle for HeaderL3
   const getSectionInfo = () => {
     switch (activeSection) {
+      case "property-info":
+        return {
+          title: t.sidebar.propertyInformation,
+          subtitle: "",
+        };
       case "checklist-entorno-zonas-comunes":
         return {
           title: t.checklist.sections.entornoZonasComunes.title,
@@ -703,6 +745,77 @@ export default function RenoChecklistPage() {
   };
   const formTitle = property ? getFormTitle() : t.checklist.title;
 
+  // Use RenoSidebar layout for final-check, NavbarL3/HeaderL3 for initial-check
+  if (isFinalCheck && property) {
+    return (
+      <div className="flex h-screen overflow-hidden">
+        <RenoSidebar />
+
+        {/* Desktop Sidebar */}
+        <RenoChecklistSidebar
+          address={formatAddress()}
+          activeSection={activeSection}
+          onSectionClick={handleSectionClick}
+          habitacionesCount={habitacionesCount}
+          banosCount={banosCount}
+        />
+
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <header className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-6 py-4">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => router.push(`/reno/construction-manager/property/${property.id}`)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div className="flex-1">
+                <h1 className="text-lg font-semibold">{formTitle}</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleSave}
+                  disabled={!hasUnsavedChanges}
+                >
+                  {t.property.save}
+                </Button>
+              </div>
+            </div>
+          </header>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)]">
+            <div className="max-w-4xl mx-auto">
+              {renderActiveSection()}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Sidebar Menu */}
+        <MobileSidebarMenu
+          sections={[
+            { id: "property-info", name: t.sidebar.propertyInformation },
+            { id: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title },
+            { id: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title },
+            { id: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title },
+            { id: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title },
+            { id: "checklist-salon", name: t.checklist.sections.salon.title },
+            { id: "checklist-banos", name: t.checklist.sections.banos.title },
+            { id: "checklist-cocina", name: t.checklist.sections.cocina.title },
+            { id: "checklist-exteriores", name: t.checklist.sections.exteriores.title },
+          ]}
+          activeSection={activeSection}
+          onSectionClick={handleSectionClick}
+        />
+      </div>
+    );
+  }
+
+  // Original layout for initial-check
   return (
     <div className="flex h-screen overflow-hidden">
       {/* L3: Sidebar de contenido (navegación de pasos del formulario) */}
