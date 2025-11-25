@@ -19,3 +19,4 @@ COMMENT ON COLUMN properties.responsible_owner IS 'Responsible Owner from Airtab
 COMMENT ON COLUMN properties.stage IS 'Stage from Airtable (e.g., Presettlement & Settled)';
 COMMENT ON COLUMN properties.property_unique_id IS 'Property Unique ID from Airtable';
 
+

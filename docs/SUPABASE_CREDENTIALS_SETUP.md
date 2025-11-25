@@ -65,3 +65,4 @@ Para configurar en Vercel, necesitas:
 - ✅ `NEXT_PUBLIC_SUPABASE_ANON_KEY` = (la key anon que obtengas)
 - ⚠️ `SUPABASE_SERVICE_ROLE_KEY` = (opcional, pero recomendado)
 
+

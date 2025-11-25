@@ -68,3 +68,4 @@ Modificar el código para hacer queries adicionales cuando encuentre links a tab
 
 **La forma más fácil es agregar estos campos a la view de Airtable** para que estén disponibles directamente sin necesidad de queries adicionales.
 
+

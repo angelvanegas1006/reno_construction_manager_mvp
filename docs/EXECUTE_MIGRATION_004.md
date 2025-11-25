@@ -109,3 +109,4 @@ AND indexname = 'idx_properties_next_reno_steps';
 - Verifica que la tabla `properties` existe en tu base de datos
 - Revisa que estás en el esquema correcto (`public`)
 
+

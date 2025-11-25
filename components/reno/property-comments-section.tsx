@@ -32,7 +32,7 @@ export function PropertyCommentsSection({
   property,
   supabaseProperty,
 }: PropertyCommentsSectionProps) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { comments, loading, addComment, refetch } = usePropertyComments(propertyId);
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,12 +111,18 @@ export function PropertyCommentsSection({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return "Ahora";
-    if (diffMins < 60) return `Hace ${diffMins} min`;
-    if (diffHours < 24) return `Hace ${diffHours} h`;
-    if (diffDays < 7) return `Hace ${diffDays} días`;
+    // Use locale-aware formatting
+    const locale = language === "es" ? "es-ES" : "en-US";
+    const timeLabels = language === "es" 
+      ? { now: "Ahora", min: "min", h: "h", days: "días", ago: "Hace" }
+      : { now: "Now", min: "min", h: "h", days: "days", ago: "Ago" };
+
+    if (diffMins < 1) return timeLabels.now;
+    if (diffMins < 60) return `${timeLabels.ago} ${diffMins} ${timeLabels.min}`;
+    if (diffHours < 24) return `${timeLabels.ago} ${diffHours} ${timeLabels.h}`;
+    if (diffDays < 7) return `${timeLabels.ago} ${diffDays} ${timeLabels.days}`;
     
-    return date.toLocaleDateString("es-ES", {
+    return date.toLocaleDateString(locale, {
       month: "short",
       day: "numeric",
       year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
@@ -132,7 +138,7 @@ export function PropertyCommentsSection({
         <MentionsTextarea
           value={newComment}
           onChange={setNewComment}
-          placeholder="Escribe un comentario... Usa @ para mencionar usuarios"
+          placeholder={t.comments.placeholder}
           rows={3}
           className="resize-none text-sm"
           disabled={isSubmitting}
@@ -153,12 +159,12 @@ export function PropertyCommentsSection({
             {isReminder ? (
               <>
                 <Bell className="h-3.5 w-3.5" />
-                Recordatorio
+                {t.comments.reminder}
               </>
             ) : (
               <>
                 <BellOff className="h-3.5 w-3.5" />
-                Agregar recordatorio
+                {t.comments.addReminder}
               </>
             )}
           </button>
@@ -168,13 +174,13 @@ export function PropertyCommentsSection({
         {isReminder && (
           <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">
-              Fecha y hora del recordatorio
+              {t.comments.reminderDateTime}
             </Label>
             <DateTimePicker
               value={reminderDate}
               onChange={setReminderDate}
-              placeholder="DD/MM/YYYY HH:mm"
-              errorMessage="La fecha y hora deben ser futuras"
+              placeholder={t.comments.reminderDateTimePlaceholder}
+              errorMessage={t.comments.reminderDateTimeError}
             />
           </div>
         )}
@@ -188,7 +194,7 @@ export function PropertyCommentsSection({
           >
             {isSubmitting ? (
               <>
-                <span className="mr-2">Guardando...</span>
+                <span className="mr-2">{t.comments.saving}</span>
                 <span className="animate-spin">⏳</span>
               </>
             ) : (
@@ -196,12 +202,12 @@ export function PropertyCommentsSection({
                 {isReminder ? (
                   <>
                     <Bell className="h-4 w-4 mr-2" />
-                    Crear Recordatorio
+                    {t.comments.createReminder}
                   </>
                 ) : (
                   <>
                     <Plus className="h-4 w-4 mr-2" />
-                    Agregar
+                    {t.comments.add}
                   </>
                 )}
               </>
@@ -214,7 +220,7 @@ export function PropertyCommentsSection({
       {!loading && comments.length > 0 && (
         <div className="space-y-3 pt-4 border-t">
           <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Historial de Comentarios
+            {t.comments.history}
           </h5>
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {comments.map((comment) => (
@@ -227,7 +233,7 @@ export function PropertyCommentsSection({
       {/* Loading state */}
       {loading && (
         <div className="py-2">
-          <p className="text-xs text-muted-foreground text-center">Cargando...</p>
+          <p className="text-xs text-muted-foreground text-center">{t.comments.loading}</p>
         </div>
       )}
 
@@ -235,7 +241,7 @@ export function PropertyCommentsSection({
       {!loading && comments.length === 0 && (
         <div className="py-2">
           <p className="text-xs text-muted-foreground text-center">
-            No hay comentarios aún
+            {t.comments.noComments}
           </p>
         </div>
       )}
@@ -249,6 +255,7 @@ interface CommentItemProps {
 }
 
 function CommentItem({ comment, formatDate }: CommentItemProps) {
+  const { t, language } = useI18n();
   // Parse mentions from comment text (@username)
   const parseMentions = (text: string) => {
     const mentionRegex = /@(\w+)/g;
@@ -306,7 +313,7 @@ function CommentItem({ comment, formatDate }: CommentItemProps) {
             <div className="flex items-center gap-2 flex-wrap">
               {isReminder && (
                 <span className="text-xs font-medium text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)] bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/30 px-1.5 py-0.5 rounded">
-                  Recordatorio
+                  {t.comments.reminder}
                 </span>
               )}
               {comment.created_by && (
@@ -319,10 +326,10 @@ function CommentItem({ comment, formatDate }: CommentItemProps) {
               </span>
               {isReminder && reminderDate && (
                 <span className="text-xs text-muted-foreground">
-                  · Recordar: {new Date(reminderDate).toLocaleDateString("es-ES", {
+                  · {t.comments.remindAt}: {new Date(reminderDate).toLocaleDateString(language === "es" ? "es-ES" : "en-US", {
                     month: "short",
                     day: "numeric",
-                  })} a las {new Date(reminderDate).toLocaleTimeString("es-ES", {
+                  })} {language === "es" ? "a las" : "at"} {new Date(reminderDate).toLocaleTimeString(language === "es" ? "es-ES" : "en-US", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}

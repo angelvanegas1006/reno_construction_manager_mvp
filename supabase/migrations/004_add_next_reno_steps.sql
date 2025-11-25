@@ -11,3 +11,4 @@ CREATE INDEX IF NOT EXISTS idx_properties_next_reno_steps ON properties(next_ren
 -- Comentario para documentación
 COMMENT ON COLUMN properties.next_reno_steps IS 'Next Reno Steps from Airtable (Initial Check phase)';
 
+

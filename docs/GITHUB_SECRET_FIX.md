@@ -44,3 +44,4 @@ Para evitar esto en el futuro:
    - Variables de entorno en Vercel
    - Nunca en archivos commitados
 
+

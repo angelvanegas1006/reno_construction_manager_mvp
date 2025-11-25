@@ -186,3 +186,4 @@ NEXT_PUBLIC_AUTH0_CLIENT_ID=tu-client-id
 
 El SDK de Auth0 React está integrado y listo para usar. Los usuarios pueden iniciar sesión usando el SDK de Auth0 directamente.
 
+

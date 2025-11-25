@@ -115,3 +115,4 @@ Después del deploy:
 
 Las keys que compartiste son las "legacy" API keys, que son las correctas para usar con la aplicación. Las nuevas keys de Storage (`sb_publishable_` y `sb_secret_`) son para Supabase Storage, no para la API de la aplicación.
 
+

@@ -64,3 +64,4 @@ Deberías ver estas columnas:
 - Los comentarios se sincronizan con Airtable combinando todos los comentarios con timestamps
 - El campo `synced_to_airtable` indica si el comentario ya fue sincronizado
 
+

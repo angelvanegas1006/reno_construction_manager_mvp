@@ -48,3 +48,4 @@ COMMENT ON COLUMN property_comments.reminder_date IS 'Fecha y hora del recordato
 COMMENT ON COLUMN property_comments.reminder_notified IS 'Indica si ya se envió la notificación del recordatorio';
 COMMENT ON TABLE property_reminders IS 'Recordatorios creados desde comentarios. Generan notificaciones en la fecha especificada.';
 
+

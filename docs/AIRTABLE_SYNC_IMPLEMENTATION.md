@@ -168,3 +168,4 @@ curl https://dev.vistral.io/api/cron/sync-airtable
 | Client email | `Client email` | TEXT |
 | Technical Constructor | `Technical construction` | TEXT |
 
+

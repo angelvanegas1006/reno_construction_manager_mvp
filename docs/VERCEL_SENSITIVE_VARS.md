@@ -93,3 +93,4 @@ Este archivo está protegido por `.gitignore` y es seguro para desarrollo local.
 
 **No te preocupes** si no puedes marcar como sensitive en Development. Es una limitación de Vercel y está bien. Lo importante es que estén marcadas como sensitive en **Production** y **Preview**, que es donde realmente importa la seguridad.
 
+

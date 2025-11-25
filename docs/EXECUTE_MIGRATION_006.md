@@ -79,3 +79,4 @@ Después de ejecutar esta migración, necesitarás:
 2. Implementar el sistema de notificaciones (email, push, etc.)
 3. Actualizar la UI para mostrar recordatorios pendientes
 
+

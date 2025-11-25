@@ -47,3 +47,4 @@ Para agregar sincronización de otras fases, necesitarás:
 - Si una propiedad ya existe en Supabase pero está en una fase diferente, se actualizará con los datos de Airtable
 - Las propiedades que ya no cumplen los filtros de la view permanecen en Supabase en su fase actual (no se eliminan automáticamente)
 
+

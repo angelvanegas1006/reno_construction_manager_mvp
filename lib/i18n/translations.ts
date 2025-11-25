@@ -235,6 +235,66 @@ export interface Translations {
     visits: string;
   };
   
+  // Calendar, Visits & Reminders
+  calendar: {
+    title: string;
+    subtitle: string;
+    day: string;
+    week: string;
+    today: string;
+    create: string;
+    createVisit: string;
+    createReminder: string;
+    visitType: string;
+    property: string;
+    selectProperty: string;
+    dateTime: string;
+    notes: string;
+    notesPlaceholder: string;
+    dateTimePlaceholder: string;
+    dateTimeError: string;
+    cancel: string;
+    creating: string;
+    visitCreated: string;
+    reminderCreated: string;
+    visitCreateError: string;
+    selectPropertyAndDate: string;
+    noPropertiesAssigned: string;
+    noPropertiesAvailable: string;
+    address: string;
+    lastComment: string;
+    close: string;
+    goToTask: string;
+    noVisits: string;
+    loading: string;
+    visitTypes: {
+      initialCheck: string;
+      finalCheck: string;
+      obraSeguimiento: string;
+      reminder: string;
+      visit: string;
+    };
+  };
+  
+  // Comments
+  comments: {
+    placeholder: string;
+    addReminder: string;
+    reminder: string;
+    reminderDateTime: string;
+    reminderDateTimePlaceholder: string;
+    reminderDateTimeError: string;
+    saving: string;
+    createReminder: string;
+    add: string;
+    history: string;
+    loading: string;
+    noComments: string;
+    remindAt: string;
+    syncedToAirtable: string;
+    deleteConfirm: string;
+  };
+  
   // Checklist
   checklist: {
     title: string;
@@ -941,6 +1001,62 @@ export const translations: Record<Language, Translations> = {
       checks: "Checks",
       visits: "Visitas",
     },
+    calendar: {
+      title: "Calendario de Visitas",
+      subtitle: "Checklist inicial, final y seguimiento de obra",
+      day: "Día",
+      week: "Semana",
+      today: "Hoy",
+      create: "Crear",
+      createVisit: "Crear Visita",
+      createReminder: "Crear Recordatorio",
+      visitType: "Tipo de Visita",
+      property: "Propiedad",
+      selectProperty: "Selecciona una propiedad",
+      dateTime: "Fecha y hora",
+      notes: "Notas (opcional)",
+      notesPlaceholder: "Agregar notas sobre la visita...",
+      dateTimePlaceholder: "DD/MM/YYYY HH:mm",
+      dateTimeError: "La fecha y hora deben ser futuras",
+      cancel: "Cancelar",
+      creating: "Creando...",
+      visitCreated: "Visita creada correctamente",
+      reminderCreated: "Recordatorio creado correctamente",
+      visitCreateError: "Error al crear la visita",
+      selectPropertyAndDate: "Debes seleccionar una propiedad y una fecha",
+      noPropertiesAssigned: "No hay propiedades asignadas a tu rol",
+      noPropertiesAvailable: "No hay propiedades disponibles para este tipo de visita",
+      address: "Dirección",
+      lastComment: "Último comentario",
+      close: "Cerrar",
+      goToTask: "Ir a la tarea",
+      noVisits: "Sin visitas",
+      loading: "Cargando...",
+      visitTypes: {
+        initialCheck: "Check Inicial",
+        finalCheck: "Check Final",
+        obraSeguimiento: "Seguimiento de Obra",
+        reminder: "Recordatorio",
+        visit: "Visita",
+      },
+    },
+    comments: {
+      placeholder: "Escribe un comentario... Usa @ para mencionar usuarios",
+      addReminder: "Agregar recordatorio",
+      reminder: "Recordatorio",
+      reminderDateTime: "Fecha y hora del recordatorio",
+      reminderDateTimePlaceholder: "DD/MM/YYYY HH:mm",
+      reminderDateTimeError: "La fecha y hora deben ser futuras",
+      saving: "Guardando...",
+      createReminder: "Crear Recordatorio",
+      add: "Agregar",
+      history: "Historial de Comentarios",
+      loading: "Cargando...",
+      noComments: "No hay comentarios aún",
+      remindAt: "Recordar",
+      syncedToAirtable: "Sincronizado con Airtable",
+      deleteConfirm: "¿Estás seguro de que quieres eliminar este comentario?",
+    },
   },
   en: {
     common: {
@@ -1614,6 +1730,62 @@ export const translations: Record<Language, Translations> = {
       noVisitsScheduled: "No visits scheduled",
       checks: "Checks",
       visits: "Visits",
+    },
+    calendar: {
+      title: "Visits Calendar",
+      subtitle: "Initial checklist, final checklist and work follow-up",
+      day: "Day",
+      week: "Week",
+      today: "Today",
+      create: "Create",
+      createVisit: "Create Visit",
+      createReminder: "Create Reminder",
+      visitType: "Visit Type",
+      property: "Property",
+      selectProperty: "Select a property",
+      dateTime: "Date and time",
+      notes: "Notes (optional)",
+      notesPlaceholder: "Add notes about the visit...",
+      dateTimePlaceholder: "DD/MM/YYYY HH:mm",
+      dateTimeError: "Date and time must be in the future",
+      cancel: "Cancel",
+      creating: "Creating...",
+      visitCreated: "Visit created successfully",
+      reminderCreated: "Reminder created successfully",
+      visitCreateError: "Error creating visit",
+      selectPropertyAndDate: "You must select a property and a date",
+      noPropertiesAssigned: "No properties assigned to your role",
+      noPropertiesAvailable: "No properties available for this type of visit",
+      address: "Address",
+      lastComment: "Last comment",
+      close: "Close",
+      goToTask: "Go to task",
+      noVisits: "No visits",
+      loading: "Loading...",
+      visitTypes: {
+        initialCheck: "Initial Check",
+        finalCheck: "Final Check",
+        obraSeguimiento: "Work Follow-up",
+        reminder: "Reminder",
+        visit: "Visit",
+      },
+    },
+    comments: {
+      placeholder: "Write a comment... Use @ to mention users",
+      addReminder: "Add reminder",
+      reminder: "Reminder",
+      reminderDateTime: "Reminder date and time",
+      reminderDateTimePlaceholder: "DD/MM/YYYY HH:mm",
+      reminderDateTimeError: "Date and time must be in the future",
+      saving: "Saving...",
+      createReminder: "Create Reminder",
+      add: "Add",
+      history: "Comments History",
+      loading: "Loading...",
+      noComments: "No comments yet",
+      remindAt: "Remind at",
+      syncedToAirtable: "Synced to Airtable",
+      deleteConfirm: "Are you sure you want to delete this comment?",
     },
   },
 };

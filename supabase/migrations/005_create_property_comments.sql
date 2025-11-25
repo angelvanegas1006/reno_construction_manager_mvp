@@ -49,3 +49,4 @@ COMMENT ON COLUMN property_comments.comment_text IS 'Texto del comentario';
 COMMENT ON COLUMN property_comments.synced_to_airtable IS 'Indica si el comentario ya fue sincronizado con Airtable';
 COMMENT ON COLUMN property_comments.airtable_sync_date IS 'Fecha en que se sincronizó con Airtable';
 
+

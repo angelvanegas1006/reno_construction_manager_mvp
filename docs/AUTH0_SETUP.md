@@ -190,3 +190,4 @@ O desde Supabase Dashboard:
 
 Una vez completados todos los pasos, tus usuarios podrán iniciar sesión con Auth0 además del método tradicional de email/password.
 
+

@@ -27,30 +27,6 @@ export function LoginForm() {
     setShowForm(true);
   };
 
-  const handleAuth0Login = async () => {
-    setError(null);
-    setLoading(true);
-
-    try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'auth0',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (oauthError) {
-        throw oauthError;
-      }
-      // El redirect se maneja automáticamente
-    } catch (err: any) {
-      console.error('Auth0 login error:', err);
-      const errorMessage = err.message || "Error al iniciar sesión con Auth0";
-      setError(errorMessage);
-      toast.error(errorMessage);
-      setLoading(false);
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,23 +134,10 @@ export function LoginForm() {
             {t.login.secureLoginButton}
           </Button>
           
-          {/* Auth0 Login Button */}
-          <Button 
-            onClick={handleAuth0Login}
-            variant="outline"
-            className="w-full text-base h-12 font-medium"
-            size="lg"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Conectando...
-              </>
-            ) : (
-              "Continuar con Auth0"
-            )}
-          </Button>
+          {/* Auth0 Login Button (SDK) */}
+          <div className="w-full">
+            <Auth0LoginButton />
+          </div>
         </div>
 
         {/* Secondary Link */}

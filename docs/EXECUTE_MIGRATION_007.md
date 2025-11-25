@@ -76,3 +76,4 @@ Después de ejecutar esta migración:
 2. Podrás crear visitas y recordatorios desde el botón "Crear"
 3. Se mostrarán en el home ordenados por fecha
 
+

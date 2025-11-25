@@ -42,7 +42,7 @@ export function VisitsCalendar({
   propertiesByPhase,
   onPropertyClick,
 }: VisitsCalendarProps) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const supabase = createClient();
   const [visits, setVisits] = useState<CalendarVisit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,7 +185,7 @@ export function VisitsCalendar({
   // Crear nueva visita
   const handleCreateVisit = async () => {
     if (!selectedPropertyId || !visitDate) {
-      toast.error("Debes seleccionar una propiedad y una fecha");
+      toast.error(t.calendar.selectPropertyAndDate);
       return;
     }
 
@@ -204,8 +204,8 @@ export function VisitsCalendar({
 
       toast.success(
         visitType === "reminder"
-          ? "Recordatorio creado correctamente"
-          : "Visita creada correctamente"
+          ? t.calendar.reminderCreated
+          : t.calendar.visitCreated
       );
       setSelectedPropertyId("");
       setVisitDate(undefined);
@@ -214,7 +214,7 @@ export function VisitsCalendar({
       await fetchVisits();
     } catch (error: any) {
       console.error("Error creating visit:", error);
-      toast.error("Error al crear la visita");
+      toast.error(t.calendar.visitCreateError);
     } finally {
       setIsSubmitting(false);
     }
@@ -223,7 +223,7 @@ export function VisitsCalendar({
   // Formatear fecha para mostrar
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("es-ES", {
+    return date.toLocaleDateString(language === "es" ? "es-ES" : "en-US", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -251,15 +251,15 @@ export function VisitsCalendar({
   const getVisitLabel = (type: string) => {
     switch (type) {
       case "initial-check":
-        return "Check Inicial";
+        return t.calendar.visitTypes.initialCheck;
       case "final-check":
-        return "Check Final";
+        return t.calendar.visitTypes.finalCheck;
       case "obra-seguimiento":
-        return "Seguimiento Obra";
+        return t.calendar.visitTypes.obraSeguimiento;
       case "reminder":
-        return "Recordatorio";
+        return t.calendar.visitTypes.reminder;
       default:
-        return "Visita";
+        return t.calendar.visitTypes.visit;
     }
   };
 
@@ -308,10 +308,10 @@ export function VisitsCalendar({
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-lg font-semibold">
-            Calendario de Visitas
+            {t.calendar.title}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Checklist inicial, final y seguimiento de obra
+            {t.calendar.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -326,7 +326,7 @@ export function VisitsCalendar({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Día
+              {t.calendar.day}
             </button>
             <button
               onClick={() => setViewMode("week")}
@@ -337,7 +337,7 @@ export function VisitsCalendar({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Semana
+              {t.calendar.week}
             </button>
           </div>
           
@@ -355,7 +355,7 @@ export function VisitsCalendar({
               size="sm"
               onClick={goToToday}
             >
-              Hoy
+              {t.calendar.today}
             </Button>
             <Button
               variant="outline"
@@ -371,19 +371,19 @@ export function VisitsCalendar({
             <DialogTrigger asChild>
               <Button size="sm" variant="outline">
                 <Plus className="h-4 w-4 mr-2" />
-                Crear
+                {t.calendar.create}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>
-                  {visitType === "reminder" ? "Crear Recordatorio" : "Crear Visita"}
+                  {visitType === "reminder" ? t.calendar.createReminder : t.calendar.createVisit}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-4">
                 {/* Tipo selector */}
                 <div className="space-y-2">
-                  <Label>Tipo de Visita</Label>
+                  <Label>{t.calendar.visitType}</Label>
                   <Select
                     value={visitType}
                     onValueChange={(value: "initial-check" | "final-check" | "obra-seguimiento" | "reminder") =>
@@ -394,30 +394,30 @@ export function VisitsCalendar({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="initial-check">Check Inicial</SelectItem>
-                      <SelectItem value="final-check">Check Final</SelectItem>
-                      <SelectItem value="obra-seguimiento">Seguimiento de Obra</SelectItem>
-                      <SelectItem value="reminder">Recordatorio</SelectItem>
+                      <SelectItem value="initial-check">{t.calendar.visitTypes.initialCheck}</SelectItem>
+                      <SelectItem value="final-check">{t.calendar.visitTypes.finalCheck}</SelectItem>
+                      <SelectItem value="obra-seguimiento">{t.calendar.visitTypes.obraSeguimiento}</SelectItem>
+                      <SelectItem value="reminder">{t.calendar.visitTypes.reminder}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Property selector */}
                 <div className="space-y-2">
-                  <Label>Propiedad</Label>
+                  <Label>{t.calendar.property}</Label>
                   <Select
                     value={selectedPropertyId}
                     onValueChange={setSelectedPropertyId}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una propiedad" />
+                      <SelectValue placeholder={t.calendar.selectProperty} />
                     </SelectTrigger>
                     <SelectContent>
                       {getAvailableProperties.length === 0 ? (
                         <div className="p-2 text-sm text-muted-foreground">
                           {visitType === "reminder"
-                            ? "No hay propiedades asignadas a tu rol"
-                            : "No hay propiedades disponibles para este tipo de visita"}
+                            ? t.calendar.noPropertiesAssigned
+                            : t.calendar.noPropertiesAvailable}
                         </div>
                       ) : (
                         getAvailableProperties.map((property) => (
@@ -432,22 +432,22 @@ export function VisitsCalendar({
 
                 {/* Date picker */}
                 <div className="space-y-2">
-                  <Label>Fecha y hora</Label>
+                  <Label>{t.calendar.dateTime}</Label>
                   <DateTimePicker
                     value={visitDate}
                     onChange={setVisitDate}
-                    placeholder="DD/MM/YYYY HH:mm"
-                    errorMessage="La fecha y hora deben ser futuras"
+                    placeholder={t.calendar.dateTimePlaceholder}
+                    errorMessage={t.calendar.dateTimeError}
                   />
                 </div>
 
                 {/* Notes */}
                 <div className="space-y-2">
-                  <Label>Notas (opcional)</Label>
+                  <Label>{t.calendar.notes}</Label>
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Agregar notas sobre la visita..."
+                    placeholder={t.calendar.notesPlaceholder}
                     rows={3}
                   />
                 </div>
@@ -458,13 +458,13 @@ export function VisitsCalendar({
                     variant="outline"
                     onClick={() => setIsCreateDialogOpen(false)}
                   >
-                    Cancelar
+                    {t.calendar.cancel}
                   </Button>
                   <Button
                     onClick={handleCreateVisit}
                     disabled={!selectedPropertyId || !visitDate || isSubmitting}
                   >
-                    {isSubmitting ? "Creando..." : "Crear"}
+                    {isSubmitting ? t.calendar.creating : t.calendar.create}
                   </Button>
                 </div>
               </div>
@@ -475,7 +475,7 @@ export function VisitsCalendar({
       <CardContent>
         {loading ? (
           <p className="text-sm text-muted-foreground text-center py-8">
-            Cargando...
+            {t.calendar.loading}
           </p>
         ) : viewMode === "day" ? (
           // Vista diaria por horas
@@ -489,7 +489,7 @@ export function VisitsCalendar({
                   </div>
                   <div className="flex-1 flex flex-wrap gap-2">
                     {hourVisits.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">Sin visitas</span>
+                      <span className="text-xs text-muted-foreground">{t.calendar.noVisits}</span>
                     ) : (
                       hourVisits.map((visit) => (
                         <button
@@ -528,11 +528,11 @@ export function VisitsCalendar({
                   )}
                 >
                   <div className="text-xs font-medium mb-2">
-                    {day.toLocaleDateString("es-ES", { weekday: "short", day: "numeric" })}
+                    {day.toLocaleDateString(language === "es" ? "es-ES" : "en-US", { weekday: "short", day: "numeric" })}
                   </div>
                   <div className="space-y-1">
                     {dayVisits.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">Sin visitas</span>
+                      <span className="text-xs text-muted-foreground">{t.calendar.noVisits}</span>
                     ) : (
                       dayVisits.map((visit) => (
                         <button
@@ -546,7 +546,7 @@ export function VisitsCalendar({
                               {visit.property_address || visit.property_id}
                             </div>
                             <div className="text-muted-foreground">
-                              {new Date(visit.visit_date).toLocaleTimeString("es-ES", {
+                              {new Date(visit.visit_date).toLocaleTimeString(language === "es" ? "es-ES" : "en-US", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })}
@@ -577,7 +577,7 @@ export function VisitsCalendar({
               </DialogHeader>
               <div className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label>Dirección</Label>
+                  <Label>{t.calendar.address}</Label>
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <span>{selectedVisit.property_address || selectedVisit.property_id}</span>
@@ -585,7 +585,7 @@ export function VisitsCalendar({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Fecha y hora</Label>
+                  <Label>{t.calendar.dateTime}</Label>
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>{formatDate(selectedVisit.visit_date)}</span>
@@ -594,7 +594,7 @@ export function VisitsCalendar({
 
                 {selectedVisit.last_comment && (
                   <div className="space-y-2">
-                    <Label>Último comentario</Label>
+                    <Label>{t.calendar.lastComment}</Label>
                     <div className="flex items-start gap-2 text-sm bg-muted p-3 rounded-md">
                       <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5" />
                       <span className="flex-1">{selectedVisit.last_comment}</span>
@@ -604,7 +604,7 @@ export function VisitsCalendar({
 
                 {selectedVisit.notes && (
                   <div className="space-y-2">
-                    <Label>Notas</Label>
+                    <Label>{t.calendar.notes}</Label>
                     <div className="text-sm bg-muted p-3 rounded-md">
                       {selectedVisit.notes}
                     </div>
@@ -616,7 +616,7 @@ export function VisitsCalendar({
                     variant="outline"
                     onClick={() => setSelectedVisit(null)}
                   >
-                    Cerrar
+                    {t.calendar.close}
                   </Button>
                   <Button
                     onClick={() => {
@@ -626,7 +626,7 @@ export function VisitsCalendar({
                       setSelectedVisit(null);
                     }}
                   >
-                    Ir a la tarea
+                    {t.calendar.goToTask}
                   </Button>
                 </div>
               </div>

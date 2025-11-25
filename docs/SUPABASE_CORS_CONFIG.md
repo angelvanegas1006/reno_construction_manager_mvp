@@ -77,3 +77,4 @@ Después de configurar, verifica en DevTools:
 - El error CORS debería desaparecer
 - El request `token?grant_type=password` debería tener status `200`
 
+

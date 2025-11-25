@@ -114,3 +114,4 @@ Después de configurar CORS correctamente:
 - ✅ El login debería funcionar correctamente
 - ✅ No deberías ver más errores CORS en DevTools
 
+

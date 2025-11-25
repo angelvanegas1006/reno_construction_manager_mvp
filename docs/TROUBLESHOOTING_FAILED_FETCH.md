@@ -148,3 +148,4 @@ El problema más común es que **las variables de entorno no están configuradas
 
 3. **Contacta soporte de Vercel** si el problema persiste
 
+

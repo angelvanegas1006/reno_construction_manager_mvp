@@ -11,3 +11,4 @@ CREATE INDEX IF NOT EXISTS idx_properties_reno_phase ON properties(reno_phase);
 -- Comentario para documentación
 COMMENT ON COLUMN properties.reno_phase IS 'Renovation phase for Reno Construction Manager (e.g., upcoming-settlements, initial-check, etc.)';
 
+

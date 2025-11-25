@@ -80,3 +80,4 @@ Todas tienen:
 - Algunas propiedades pueden tener "Set Up Status" diferente a "Pending to visit" (eso es normal según los datos de Airtable)
 - Las propiedades se actualizarán automáticamente cada vez que se ejecute el cron job (6 veces al día)
 
+

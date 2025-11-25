@@ -86,3 +86,4 @@ Después del deploy, verifica:
 - [ ] Los indicadores muestran datos correctos
 - [ ] No hay errores en la consola del navegador
 
+

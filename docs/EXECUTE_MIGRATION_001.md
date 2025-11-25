@@ -73,3 +73,4 @@ Deberías ver estas columnas:
 - Si la migración falla porque alguna tabla ya existe, puedes ejecutar solo las partes que faltan
 - Los tipos ENUM se crean automáticamente si no existen
 
+

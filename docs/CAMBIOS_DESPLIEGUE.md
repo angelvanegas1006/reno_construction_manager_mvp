@@ -135,3 +135,4 @@
 - Los cambios requieren que las migraciones SQL estén ejecutadas en Supabase
 - Algunos cambios requieren variables de entorno configuradas en Vercel
 
+
