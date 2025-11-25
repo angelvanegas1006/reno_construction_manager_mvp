@@ -71,8 +71,35 @@ export async function findRecordByPropertyId(
       .firstPage();
     
     return records[0]?.id || null;
-  } catch (error) {
-    console.error('Error finding Airtable record:', error);
+  } catch (error: any) {
+    // Distinguir entre errores reales y casos donde simplemente no se encuentra un registro
+    // Si el error es sobre "not found" o es un objeto vacío, no es un error crítico
+    const errorMessage = error?.message || String(error);
+    const errorCode = error?.statusCode || error?.code;
+    
+    // Errores que indican problemas reales (conexión, autenticación, etc.)
+    const isRealError = errorCode === 401 || errorCode === 403 || errorCode === 500 || 
+                       errorMessage.includes('authentication') || 
+                       errorMessage.includes('unauthorized') ||
+                       errorMessage.includes('network') ||
+                       errorMessage.includes('timeout');
+    
+    if (isRealError) {
+      console.error('Error finding Airtable record:', {
+        tableName,
+        propertyId,
+        error: errorMessage,
+        code: errorCode,
+      });
+    } else {
+      // No se encontró el registro o error menor - solo log de debug
+      console.debug('Airtable record not found or minor error:', {
+        tableName,
+        propertyId,
+        error: errorMessage || 'Record not found',
+      });
+    }
+    
     return null;
   }
 }
