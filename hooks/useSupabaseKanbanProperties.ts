@@ -176,6 +176,8 @@ export function useSupabaseKanbanProperties() {
           throw fetchError;
         }
 
+        // Log initial-check properties BEFORE filtering
+        const initialCheckProperties = data?.filter(p => p.reno_phase === 'initial-check') || [];
         console.log('[useSupabaseKanbanProperties] ✅ Raw data from Supabase:', {
           count: data?.length || 0,
           sample: data?.[0] ? {
@@ -186,8 +188,14 @@ export function useSupabaseKanbanProperties() {
             reno_phase: data[0].reno_phase,
           } : null,
           allStatuses: data?.map(p => p['Set Up Status']).filter(Boolean) || [],
-          initialCheckCount: data?.filter(p => p.reno_phase === 'initial-check').length || 0,
-          initialCheckIds: data?.filter(p => p.reno_phase === 'initial-check').map(p => p.id).slice(0, 5) || [],
+          initialCheckCount: initialCheckProperties.length,
+          initialCheckIds: initialCheckProperties.map(p => p.id).slice(0, 10),
+          initialCheckSample: initialCheckProperties.slice(0, 3).map(p => ({
+            id: p.id,
+            reno_phase: p.reno_phase,
+            setUpStatus: p['Set Up Status'],
+            technicalConstruction: p['Technical construction'],
+          })),
         });
 
         // Apply client-side filtering for foreman
@@ -250,10 +258,12 @@ export function useSupabaseKanbanProperties() {
             console.warn('[useSupabaseKanbanProperties] ⚠️ TEMPORARY: Showing all properties for foreman (dev mode)');
             filteredData = data || [];
             
-            // TEMPORARY: For development, if no matches, show all properties
-            // TODO: Remove this in production or adjust user role to 'admin'
-            console.warn('[useSupabaseKanbanProperties] ⚠️ TEMPORARY: Showing all properties for foreman (dev mode)');
-            filteredData = data || [];
+            // Log initial-check properties after resetting filter
+            const initialCheckAfterReset = filteredData.filter(p => p.reno_phase === 'initial-check');
+            console.log('[useSupabaseKanbanProperties] 🔍 Initial-check properties after filter reset:', {
+              count: initialCheckAfterReset.length,
+              ids: initialCheckAfterReset.map(p => p.id).slice(0, 10),
+            });
           }
         }
 
