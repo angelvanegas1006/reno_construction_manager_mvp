@@ -37,7 +37,7 @@ export function PropertyTabs({
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                "relative px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap",
+                "relative px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap",
                 "border-b-2 border-transparent",
                 isActive
                   ? "text-primary border-primary"
