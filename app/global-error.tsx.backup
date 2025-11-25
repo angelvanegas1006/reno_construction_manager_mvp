@@ -1,5 +1,9 @@
 'use client';
 
+// Deshabilitar prerender para evitar errores de contexto
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+
 export default function GlobalError({
   error,
   reset,
