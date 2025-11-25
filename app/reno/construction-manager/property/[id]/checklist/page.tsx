@@ -674,6 +674,22 @@ export default function RenoChecklistPage() {
     );
   }
 
+  // Calculate phase and counts before any conditional returns
+  const phase = property ? (getPropertyRenoPhase(property) || "initial-check") : null;
+  const isFinalCheck = phase === "final-check";
+  const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
+  const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
+  
+  // Set initial section: property-info for final-check, checklist for initial-check
+  // This hook must be called before any conditional returns
+  useEffect(() => {
+    if (property && !isLoading && !checklistLoading && activeSection === "checklist-entorno-zonas-comunes") {
+      if (isFinalCheck) {
+        setActiveSection("property-info");
+      }
+    }
+  }, [property, isFinalCheck, isLoading, checklistLoading, activeSection]);
+
   // TypeScript guard: ensure property is not null before rendering
   if (!property) {
     return (
@@ -684,20 +700,6 @@ export default function RenoChecklistPage() {
       </div>
     );
   }
-
-  const phase = getPropertyRenoPhase(property) || "initial-check";
-  const isFinalCheck = phase === "final-check";
-  const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
-  const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
-  
-  // Set initial section: property-info for final-check, checklist for initial-check
-  useEffect(() => {
-    if (property && !isLoading && !checklistLoading && activeSection === "checklist-entorno-zonas-comunes") {
-      if (isFinalCheck) {
-        setActiveSection("property-info");
-      }
-    }
-  }, [property, isFinalCheck, isLoading, checklistLoading, activeSection]);
 
   // Get section title and subtitle for HeaderL3
   const getSectionInfo = () => {
