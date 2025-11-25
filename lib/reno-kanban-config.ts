@@ -37,6 +37,11 @@ export const renoKanbanColumns: RenoKanbanColumn[] = [
   { key: "done", stage: "done", translationKey: "done" },
 ];
 
+// Visible columns (excluding hidden phases)
+export const visibleRenoKanbanColumns: RenoKanbanColumn[] = renoKanbanColumns.filter(
+  (column) => column.key !== "reno-fixes" && column.key !== "done"
+);
+
 
 
 

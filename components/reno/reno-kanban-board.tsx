@@ -9,7 +9,7 @@ import { Property } from "@/lib/property-storage";
 import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
 import { calculateOverallProgress } from "@/lib/property-validation";
 import { useI18n } from "@/lib/i18n";
-import { renoKanbanColumns, RenoKanbanPhase } from "@/lib/reno-kanban-config";
+import { visibleRenoKanbanColumns, RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { sortPropertiesByExpired } from "@/lib/property-sorting";
 
 interface RenoKanbanBoardProps {
@@ -155,7 +155,7 @@ export function RenoKanbanBoard({ searchQuery }: RenoKanbanBoardProps) {
       return null;
     }
     
-    for (const column of renoKanbanColumns) {
+    for (const column of visibleRenoKanbanColumns) {
       const properties = filteredProperties[column.key] || [];
       if (properties.length > 0) {
         return properties[0].id;
@@ -170,7 +170,7 @@ export function RenoKanbanBoard({ searchQuery }: RenoKanbanBoardProps) {
     if (!highlightedPropertyId) return;
 
     let targetColumnKey: RenoKanbanPhase | null = null;
-    for (const column of renoKanbanColumns) {
+    for (const column of visibleRenoKanbanColumns) {
       const properties = filteredProperties[column.key] || [];
       if (properties.some(p => p.id === highlightedPropertyId)) {
         targetColumnKey = column.key;
@@ -284,7 +284,7 @@ export function RenoKanbanBoard({ searchQuery }: RenoKanbanBoardProps) {
     >
       {/* Mobile: Vertical layout */}
       <div className="flex flex-col md:hidden gap-6 pb-20">
-        {renoKanbanColumns.map((column) => {
+        {visibleRenoKanbanColumns.map((column) => {
           const properties = filteredProperties[column.key] || [];
           const title = t.kanban[column.translationKey];
           return (
@@ -304,7 +304,7 @@ export function RenoKanbanBoard({ searchQuery }: RenoKanbanBoardProps) {
 
       {/* Desktop: Horizontal layout */}
       <div className="hidden md:flex h-full gap-4 px-1" style={{ minWidth: "fit-content" }}>
-        {renoKanbanColumns.map((column) => {
+        {visibleRenoKanbanColumns.map((column) => {
           const properties = filteredProperties[column.key] || [];
           const title = t.kanban[column.translationKey];
           return (
