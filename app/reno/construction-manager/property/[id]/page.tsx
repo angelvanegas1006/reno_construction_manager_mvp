@@ -497,7 +497,7 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
   const phaseLabels: Record<RenoKanbanPhase, string> = {
     "upcoming-settlements": t.kanban.upcomingSettlements,
     "initial-check": t.kanban.initialCheck,
-    "upcoming": t.kanban.upcoming,
+    "reno-budget": t.kanban.renoBudget,
     "reno-in-progress": t.kanban.renoInProgress,
     "furnishing-cleaning": t.kanban.furnishingCleaning,
     "final-check": t.kanban.finalCheck,

@@ -30,7 +30,7 @@ interface CalendarVisit {
 
 interface VisitsCalendarProps {
   propertiesByPhase?: Record<RenoKanbanPhase, Property[]>;
-  onPropertyClick?: (propertyId: string) => void;
+  onPropertyClick?: (property: Property) => void;
 }
 
 // Fases que permiten agendar cada tipo de visita
@@ -620,8 +620,17 @@ export function VisitsCalendar({
                   </Button>
                   <Button
                     onClick={() => {
-                      if (onPropertyClick) {
-                        onPropertyClick(selectedVisit.property_id);
+                      if (onPropertyClick && selectedVisit.property) {
+                        onPropertyClick(selectedVisit.property);
+                      } else if (onPropertyClick && propertiesByPhase) {
+                        // Find property in propertiesByPhase
+                        for (const phaseProperties of Object.values(propertiesByPhase)) {
+                          const property = phaseProperties.find(p => p.id === selectedVisit.property_id);
+                          if (property) {
+                            onPropertyClick(property);
+                            break;
+                          }
+                        }
                       }
                       setSelectedVisit(null);
                     }}

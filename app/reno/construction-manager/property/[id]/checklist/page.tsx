@@ -21,6 +21,7 @@ import { useSupabaseChecklist } from "@/hooks/useSupabaseChecklist";
 import { ChecklistType } from "@/lib/checklist-storage";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
+import { fetchInitialCheckFieldsFromAirtable } from "@/lib/airtable/initial-check-sync";
 import { useSupabaseInspection } from "@/hooks/useSupabaseInspection";
 import { areAllActivitiesReported } from "@/lib/checklist-validation";
 
