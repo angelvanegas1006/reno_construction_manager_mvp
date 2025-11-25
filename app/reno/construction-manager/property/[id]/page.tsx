@@ -27,6 +27,7 @@ import { DynamicCategoriesProgress } from "@/components/reno/dynamic-categories-
 import { toast } from "sonner";
 import { appendSetUpNotesToAirtable } from "@/lib/airtable/initial-check-sync";
 import { updateAirtableWithRetry, findRecordByPropertyId } from "@/lib/airtable/client";
+import { useDynamicCategories } from "@/hooks/useDynamicCategories";
 
 type PropertyUpdate = Database['public']['Tables']['properties']['Update'];
 
@@ -38,6 +39,7 @@ export default function RenoPropertyDetailPage() {
   const [activeTab, setActiveTab] = useState("tareas"); // Tab por defecto: Tareas
   const propertyId = params.id && typeof params.id === "string" ? params.id : null;
   const { property: supabaseProperty, loading: supabaseLoading, updateProperty: updateSupabaseProperty, refetch } = useSupabaseProperty(propertyId);
+  const { categories: dynamicCategories, loading: categoriesLoading } = useDynamicCategories(propertyId);
   
   // Convert Supabase property to Property format
   const property: Property | null = supabaseProperty ? convertSupabasePropertyToProperty(supabaseProperty) : null;
