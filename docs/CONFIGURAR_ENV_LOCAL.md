@@ -157,3 +157,4 @@ NEXT_PUBLIC_ENABLE_ANALYTICS=false
 2. **Recomendado**: Supabase completo (URL + anon + service_role)
 3. **Opcional**: Auth0 y Airtable según tus necesidades
 
+

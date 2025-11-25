@@ -9,3 +9,4 @@ DROP INDEX IF EXISTS idx_properties_next_reno_steps;
 -- Comentario explicativo
 COMMENT ON COLUMN properties.next_reno_steps IS 'Next Reno Steps from Airtable. Campo de texto largo que puede contener información detallada. No tiene índice para evitar problemas con contenido extenso.';
 
+

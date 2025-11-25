@@ -111,3 +111,4 @@ La tabla `property_dynamic_categories` almacena:
 - El trigger `trigger_update_property_dynamic_categories_updated_at` actualiza automáticamente `updated_at` cuando se modifica un registro.
 - El campo `percentage` tiene una restricción CHECK que solo permite valores entre 0 y 100, o NULL.
 
+

@@ -178,3 +178,4 @@ Si necesitas re-ejecutar la migración:
 - Migración de tabla: `supabase/migrations/009_create_property_dynamic_categories.sql`
 - Documentación de migración: `docs/EXECUTE_MIGRATION_009.md`
 
+
