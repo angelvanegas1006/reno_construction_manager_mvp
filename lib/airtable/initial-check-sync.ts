@@ -116,7 +116,12 @@ export async function fetchInitialCheckFieldsFromAirtable(
     const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
 
     if (!recordId) {
-      console.warn('Airtable record not found, skipping fetch:', airtablePropertyId);
+      // No es un error crítico - simplemente el registro no existe en Airtable
+      console.debug('Airtable record not found for property:', {
+        propertyId,
+        airtablePropertyId,
+        tableName,
+      });
       return null;
     }
 
@@ -140,8 +145,20 @@ export async function fetchInitialCheckFieldsFromAirtable(
       keysLocation: fields['Keys Location'] as string | undefined,
       setUpStatus: fields['Set Up Status'] as string | undefined,
     };
-  } catch (error) {
-    console.error('Error fetching initial check fields from Airtable:', error);
+  } catch (error: any) {
+    // Solo mostrar errores reales, no casos donde simplemente no se encuentra un registro
+    const errorMessage = error?.message || String(error);
+    const isRealError = errorMessage && errorMessage !== '{}' && errorMessage !== '[object Object]';
+    
+    if (isRealError) {
+      console.error('Error fetching initial check fields from Airtable:', {
+        propertyId,
+        error: errorMessage,
+        code: error?.code || error?.statusCode,
+      });
+    } else {
+      console.debug('No Airtable data available for property:', propertyId);
+    }
     return null;
   }
 }
