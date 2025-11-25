@@ -6,8 +6,6 @@ import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoHomeHeader } from "@/components/reno/reno-home-header";
 import { RenoHomeIndicators } from "@/components/reno/reno-home-indicators";
 import { VisitsCalendar } from "@/components/reno/visits-calendar";
-import { RenoHomeTasks } from "@/components/reno/reno-home-tasks";
-import { RenoHomeVisits } from "@/components/reno/reno-home-visits";
 import { RenoHomeRecentProperties } from "@/components/reno/reno-home-recent-properties";
 import { RenoHomePortfolio } from "@/components/reno/reno-home-portfolio";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
@@ -146,53 +144,6 @@ export default function RenoConstructionManagerHomePage() {
     };
   }, [properties]);
 
-  // Get checks to execute today (initial-check and final-check with proximaActualizacion = today or expired)
-  const checksForToday = useMemo(() => {
-    const initialCheck = propertiesByPhase?.['initial-check'] || [];
-    const finalCheck = propertiesByPhase?.['final-check'] || [];
-    const allChecks = [...initialCheck, ...finalCheck];
-    
-    const filtered = allChecks.filter((p) => {
-      return isToday(p.proximaActualizacion) || isExpired(p);
-    });
-    
-    // Sort expired first
-    return sortPropertiesByExpired(filtered);
-  }, [propertiesByPhase]);
-
-  // Get visits for today (reno-in-progress with proximaActualizacion = today or expired)
-  const visitsForToday = useMemo(() => {
-    const renoInProgress = propertiesByPhase?.['reno-in-progress'] || [];
-    
-    const filtered = renoInProgress.filter((p) => {
-      return isToday(p.proximaActualizacion) || isExpired(p);
-    });
-    
-    // Sort expired first
-    return sortPropertiesByExpired(filtered);
-  }, [propertiesByPhase]);
-
-  // Get upcoming visits (initial-check properties with estimatedVisitDate)
-  const upcomingVisits = useMemo(() => {
-    const initialCheck = propertiesByPhase?.['initial-check'] || [];
-    
-    // Filter properties that have estimatedVisitDate and it's in the future
-    const filtered = initialCheck.filter((p) => {
-      if (!p.estimatedVisitDate) return false;
-      const visitDate = new Date(p.estimatedVisitDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Reset time to start of day
-      visitDate.setHours(0, 0, 0, 0);
-      return visitDate >= today; // Only future or today visits
-    });
-    
-    // Sort by date (earliest first)
-    return filtered.sort((a, b) => {
-      const dateA = new Date(a.estimatedVisitDate || "");
-      const dateB = new Date(b.estimatedVisitDate || "");
-      return dateA.getTime() - dateB.getTime();
-    });
-  }, [propertiesByPhase]);
 
   // Handle property click - navigate to property detail or task
   const handlePropertyClick = (property: Property) => {
@@ -243,24 +194,11 @@ export default function RenoConstructionManagerHomePage() {
                 totalVisitasMesDelta={indicators.totalVisitasMesDelta}
               />
 
-              {/* Tasks and Visits Row */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <RenoHomeTasks
-                  checks={checksForToday}
-                  visits={visitsForToday}
-                  onPropertyClick={handlePropertyClick}
-                />
-                <RenoHomeVisits
-                  visits={upcomingVisits}
-                  onPropertyClick={handlePropertyClick}
-                  onAddVisit={handleAddVisit}
-                />
-              </div>
-
               {/* Calendar Row */}
               <VisitsCalendar
                 propertiesByPhase={propertiesByPhase}
                 onPropertyClick={handlePropertyClick}
+                onAddVisit={handleAddVisit}
               />
 
               {/* Recent Properties and Portfolio Row */}

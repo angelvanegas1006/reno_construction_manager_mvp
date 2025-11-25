@@ -31,6 +31,7 @@ interface CalendarVisit {
 interface VisitsCalendarProps {
   propertiesByPhase?: Record<RenoKanbanPhase, Property[]>;
   onPropertyClick?: (property: Property) => void;
+  onAddVisit?: () => void;
 }
 
 // Fases que permiten agendar cada tipo de visita
@@ -104,7 +105,94 @@ export function VisitsCalendar({
     }
   }, [currentDate, viewMode]);
 
-  // Cargar visitas y obtener último comentario
+  // Generate calendar events from properties (checks and upcoming visits)
+  const generatePropertyEvents = useMemo(() => {
+    if (!propertiesByPhase) return [];
+    
+    const events: CalendarVisit[] = [];
+    const { start, end } = getDateRange();
+    
+    // Checks for today (initial-check and final-check with proximaActualizacion = today or expired)
+    const initialCheck = propertiesByPhase['initial-check'] || [];
+    const finalCheck = propertiesByPhase['final-check'] || [];
+    const allChecks = [...initialCheck, ...finalCheck];
+    
+    allChecks.forEach((property) => {
+      if (property.proximaActualizacion) {
+        const checkDate = new Date(property.proximaActualizacion);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        checkDate.setHours(0, 0, 0, 0);
+        
+        // Include if it's today or expired (yesterday or earlier)
+        if (checkDate <= today && checkDate >= start && checkDate <= end) {
+          events.push({
+            id: `check-${property.id}`,
+            property_id: property.id,
+            visit_date: property.proximaActualizacion,
+            visit_type: property.renoPhase === 'final-check' ? 'final-check' : 'initial-check',
+            notes: null,
+            created_by: null,
+            property_address: property.fullAddress,
+            property: property,
+          });
+        }
+      }
+    });
+    
+    // Upcoming visits (initial-check properties with estimatedVisitDate in the future)
+    initialCheck.forEach((property) => {
+      if (property.estimatedVisitDate) {
+        const visitDate = new Date(property.estimatedVisitDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        visitDate.setHours(0, 0, 0, 0);
+        
+        // Include if it's in the future and within the date range
+        if (visitDate >= today && visitDate >= start && visitDate <= end) {
+          events.push({
+            id: `upcoming-${property.id}`,
+            property_id: property.id,
+            visit_date: property.estimatedVisitDate,
+            visit_type: 'initial-check',
+            notes: null,
+            created_by: null,
+            property_address: property.fullAddress,
+            property: property,
+          });
+        }
+      }
+    });
+    
+    // Visits for today (reno-in-progress with proximaActualizacion = today or expired)
+    const renoInProgress = propertiesByPhase['reno-in-progress'] || [];
+    renoInProgress.forEach((property) => {
+      if (property.proximaActualizacion) {
+        const visitDate = new Date(property.proximaActualizacion);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        visitDate.setHours(0, 0, 0, 0);
+        
+        // Include if it's today or expired and within the date range
+        if (visitDate <= today && visitDate >= start && visitDate <= end) {
+          events.push({
+            id: `visit-${property.id}`,
+            property_id: property.id,
+            visit_date: property.proximaActualizacion,
+            visit_type: 'obra-seguimiento',
+            notes: null,
+            created_by: null,
+            property_address: property.fullAddress,
+            property: property,
+          });
+        }
+      }
+    });
+    
+    return events;
+  }, [propertiesByPhase, getDateRange]);
+
+  // Cargar visitas de la tabla property_visits y obtener último comentario
   const fetchVisits = useCallback(async () => {
     setLoading(true);
     try {
@@ -139,21 +227,46 @@ export function VisitsCalendar({
             .limit(1)
             .single();
 
+          // Find property from propertiesByPhase to include full Property object
+          let property: Property | undefined;
+          if (propertiesByPhase) {
+            for (const phaseProperties of Object.values(propertiesByPhase)) {
+              const found = phaseProperties.find(p => p.id === visit.property_id);
+              if (found) {
+                property = found;
+                break;
+              }
+            }
+          }
+
           return {
             ...visit,
             property_address: visit.properties?.address || null,
             last_comment: comments?.comment_text || null,
+            property: property,
           };
         })
       );
 
-      setVisits(visitsWithComments);
+      // Combine database visits with property-based events
+      const allVisits = [...visitsWithComments, ...generatePropertyEvents];
+      
+      // Remove duplicates (if a property event matches a database visit)
+      const uniqueVisits = allVisits.reduce((acc: CalendarVisit[], visit: CalendarVisit) => {
+        const key = `${visit.property_id}-${visit.visit_date}`;
+        if (!acc.find((v: CalendarVisit) => `${v.property_id}-${v.visit_date}` === key)) {
+          acc.push(visit);
+        }
+        return acc;
+      }, [] as CalendarVisit[]);
+
+      setVisits(uniqueVisits);
     } catch (err) {
       console.error("Error fetching visits:", err);
     } finally {
       setLoading(false);
     }
-  }, [getDateRange, supabase]);
+  }, [getDateRange, supabase, generatePropertyEvents, propertiesByPhase]);
 
   useEffect(() => {
     fetchVisits();
