@@ -368,6 +368,18 @@ export default function RenoPropertyDetailPage() {
           );
         }
         
+        // For reno-in-progress, show DynamicCategoriesProgress
+        if (currentPhase === "reno-in-progress") {
+          return (
+            <div className="space-y-6">
+              <PropertyActionTab property={property} supabaseProperty={supabaseProperty} propertyId={propertyId} />
+              {supabaseProperty && (
+                <DynamicCategoriesProgress property={supabaseProperty} />
+              )}
+            </div>
+          );
+        }
+        
         // For other phases, show action tab
         return <PropertyActionTab property={property} supabaseProperty={supabaseProperty} propertyId={propertyId} />;
       case "resumen":
