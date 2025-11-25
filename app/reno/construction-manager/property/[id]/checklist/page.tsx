@@ -167,9 +167,6 @@ export default function RenoChecklistPage() {
     return areAllActivitiesReported(checklist);
   }, [checklist]);
 
-  // Combine loading states - also check if checklist is null when we have a property
-  const isFullyLoading = isLoading || checklistLoading || (property && !checklist);
-
   // Get property data (habitaciones, banos) from Supabase property
   const propertyData = useMemo(() => {
     if (!supabaseProperty) return {};
@@ -178,6 +175,25 @@ export default function RenoChecklistPage() {
       banos: supabaseProperty.bathrooms || 0,
     };
   }, [supabaseProperty]);
+
+  // Calculate phase and counts before any conditional returns
+  const phase = property ? (getPropertyRenoPhase(property) || "initial-check") : null;
+  const isFinalCheck = phase === "final-check";
+  const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
+  const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
+
+  // Set initial section: property-info for final-check, checklist for initial-check
+  // This hook must be called before any conditional returns
+  useEffect(() => {
+    if (property && !isLoading && !checklistLoading && activeSection === "checklist-entorno-zonas-comunes") {
+      if (isFinalCheck) {
+        setActiveSection("property-info");
+      }
+    }
+  }, [property, isFinalCheck, isLoading, checklistLoading, activeSection]);
+
+  // Combine loading states - also check if checklist is null when we have a property
+  const isFullyLoading = isLoading || checklistLoading || (property && !checklist);
 
   // Update checklist section
   const updateChecklistSection = useCallback(
@@ -673,22 +689,6 @@ export default function RenoChecklistPage() {
       </div>
     );
   }
-
-  // Calculate phase and counts before any conditional returns
-  const phase = property ? (getPropertyRenoPhase(property) || "initial-check") : null;
-  const isFinalCheck = phase === "final-check";
-  const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
-  const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
-  
-  // Set initial section: property-info for final-check, checklist for initial-check
-  // This hook must be called before any conditional returns
-  useEffect(() => {
-    if (property && !isLoading && !checklistLoading && activeSection === "checklist-entorno-zonas-comunes") {
-      if (isFinalCheck) {
-        setActiveSection("property-info");
-      }
-    }
-  }, [property, isFinalCheck, isLoading, checklistLoading, activeSection]);
 
   // TypeScript guard: ensure property is not null before rendering
   if (!property) {
