@@ -80,6 +80,13 @@ export default function RenoChecklistPage() {
     return getPropertyRenoPhaseFromSupabase(supabaseProperty);
   }, [supabaseProperty]);
 
+  // Determine checklist type based on phase
+  const checklistType: ChecklistType = useMemo(() => {
+    if (!property || !supabaseProperty) return "reno_initial";
+    const phase = getPropertyRenoPhase(property);
+    return phase === "final-check" ? "reno_final" : "reno_initial";
+  }, [property, supabaseProperty, getPropertyRenoPhase]);
+
   // Redirect back if trying to access final-check but not in final-check phase
   // Initial-check remains accessible from all phases
   useEffect(() => {
@@ -91,13 +98,6 @@ export default function RenoChecklistPage() {
       }
     }
   }, [property, supabaseProperty, isLoading, checklistType, getPropertyRenoPhase, router]);
-
-  // Determine checklist type based on phase
-  const checklistType: ChecklistType = useMemo(() => {
-    if (!property || !supabaseProperty) return "reno_initial";
-    const phase = getPropertyRenoPhase(property);
-    return phase === "final-check" ? "reno_final" : "reno_initial";
-  }, [property, supabaseProperty, getPropertyRenoPhase]);
 
   // Load Airtable fields when entering initial-check phase
   useEffect(() => {
@@ -797,19 +797,28 @@ export default function RenoChecklistPage() {
 
         {/* Mobile Sidebar Menu */}
         <MobileSidebarMenu
+          address={formatAddress()}
+          overallProgress={0}
           sections={[
-            { id: "property-info", name: t.sidebar.propertyInformation },
-            { id: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title },
-            { id: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title },
-            { id: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title },
-            { id: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title },
-            { id: "checklist-salon", name: t.checklist.sections.salon.title },
-            { id: "checklist-banos", name: t.checklist.sections.banos.title },
-            { id: "checklist-cocina", name: t.checklist.sections.cocina.title },
-            { id: "checklist-exteriores", name: t.checklist.sections.exteriores.title },
+            { sectionId: "property-info", name: t.sidebar.propertyInformation, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-salon", name: t.checklist.sections.salon.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-banos", name: t.checklist.sections.banos.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-cocina", name: t.checklist.sections.cocina.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-exteriores", name: t.checklist.sections.exteriores.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
           ]}
           activeSection={activeSection}
           onSectionClick={handleSectionClick}
+          onSave={() => {}}
+          onSubmit={() => {}}
+          onDelete={() => {}}
+          canSubmit={false}
+          hasUnsavedChanges={hasUnsavedChanges}
+          habitacionesCount={habitacionesCount}
+          banosCount={banosCount}
         />
       </div>
     );
