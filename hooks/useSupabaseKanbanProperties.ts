@@ -325,8 +325,9 @@ export function useSupabaseKanbanProperties() {
       if (kanbanProperty && kanbanProperty.renoPhase) {
         // Use the renoPhase that was already assigned during conversion
         const phase = kanbanProperty.renoPhase;
-        if (phase && grouped[phase]) {
-          grouped[phase].push(kanbanProperty);
+        // Type guard to ensure phase is a valid RenoKanbanPhase
+        if (phase && phase in grouped) {
+          grouped[phase as RenoKanbanPhase].push(kanbanProperty);
           phaseCounts[phase] = (phaseCounts[phase] || 0) + 1;
           convertedCount++;
         } else {
