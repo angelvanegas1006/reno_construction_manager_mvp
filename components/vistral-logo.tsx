@@ -22,8 +22,12 @@ export function VistralLogo({ className, variant }: VistralLogoProps) {
   // Update dark mode state when theme changes
   useEffect(() => {
     if (!mounted) return;
+    if (typeof document === 'undefined' || !document.documentElement) return;
     
     const checkDarkMode = () => {
+      // Verificar que document.documentElement todavía existe
+      if (!document.documentElement) return;
+      
       const hasDarkClass = document.documentElement.classList.contains("dark");
       const isDark = resolvedTheme === "dark" || hasDarkClass;
       setIsDarkMode(isDark);
@@ -32,13 +36,29 @@ export function VistralLogo({ className, variant }: VistralLogoProps) {
     checkDarkMode();
 
     // Listen for class changes on HTML element
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
+    let observer: MutationObserver | null = null;
+    
+    try {
+      observer = new MutationObserver(checkDarkMode);
+      if (document.documentElement) {
+        observer.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+      }
+    } catch (error) {
+      console.warn('[VistralLogo] Error setting up observer:', error);
+    }
 
-    return () => observer.disconnect();
+    return () => {
+      try {
+        if (observer) {
+          observer.disconnect();
+        }
+      } catch (error) {
+        // Silenciar errores durante desmontaje
+      }
+    };
   }, [mounted, resolvedTheme]);
 
   // If variant is null, use theme-aware colors
