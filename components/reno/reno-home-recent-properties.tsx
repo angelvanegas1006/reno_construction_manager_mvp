@@ -209,7 +209,9 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
                       <span className="text-xs text-muted-foreground">
                         {item.count === 1 ? (language === 'es' ? 'obra' : 'work') : (language === 'es' ? 'obras' : 'works')}
                       </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground ml-2" />
+                      <span className="ml-2 flex-shrink-0">
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </span>
                     </div>
                   </div>
                 ))}
