@@ -599,14 +599,6 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                         </div>
                         <span className="text-sm font-semibold min-w-[3rem] text-right">{percentage}%</span>
                       </CollapsibleTrigger>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(category.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
 
                     {/* Barra de progreso - siempre visible */}
@@ -640,22 +632,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                                 ✓
                               </Button>
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingInput(prev => ({ ...prev, [category.id]: true }));
-                                }}
-                                title="Editar manualmente"
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                       {/* Slider with blue background and visible thumb */}
