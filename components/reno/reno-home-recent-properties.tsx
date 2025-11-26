@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { useMemo, useState } from "react";
-import { Trophy, Medal, Award, ChevronRight } from "lucide-react";
+import { Trophy, Medal, Award, ChevronRight, ArrowLeft, Building2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface RenoHomeRecentPropertiesProps {
   properties: Property[];
@@ -15,7 +16,9 @@ interface RenoHomeRecentPropertiesProps {
 
 export function RenoHomeRecentProperties({ properties, propertiesByPhase }: RenoHomeRecentPropertiesProps) {
   const { t, language } = useI18n();
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedRenovator, setSelectedRenovator] = useState<string | null>(null);
 
   // Filter active works: from reno-in-progress to final-check
   const activeWorks = useMemo(() => {
@@ -32,8 +35,8 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
     return activeProperties;
   }, [propertiesByPhase]);
 
-  // Group by renovator name and create ranking
-  const fullRanking = useMemo(() => {
+  // Group by renovator name with properties
+  const renovatorGroups = useMemo(() => {
     const grouped: Record<string, Property[]> = {};
     
     activeWorks.forEach(property => {
@@ -44,20 +47,31 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
       grouped[renovatorName].push(property);
     });
     
-    // Sort renovators by count (most works first) and add ranking position
-    return Object.entries(grouped)
+    return grouped;
+  }, [activeWorks, language]);
+
+  // Create ranking from groups
+  const fullRanking = useMemo(() => {
+    return Object.entries(renovatorGroups)
       .sort(([, a], [, b]) => b.length - a.length)
       .map(([renovatorName, properties], index) => ({
         position: index + 1,
         renovatorName,
         count: properties.length,
+        properties,
       }));
-  }, [activeWorks, language]);
+  }, [renovatorGroups]);
 
   // Top 5 only for widget
   const top5Ranking = useMemo(() => {
     return fullRanking.slice(0, 5);
   }, [fullRanking]);
+
+  // Get properties for selected renovator
+  const selectedRenovatorProperties = useMemo(() => {
+    if (!selectedRenovator) return [];
+    return renovatorGroups[selectedRenovator] || [];
+  }, [selectedRenovator, renovatorGroups]);
 
   const getRankIcon = (position: number) => {
     if (position === 1) return <Trophy className="h-4 w-4 text-yellow-500" />;
@@ -66,10 +80,32 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
     return null;
   };
 
+  const handleRenovatorClick = (renovatorName: string) => {
+    setSelectedRenovator(renovatorName);
+  };
+
+  const handleBackToRanking = () => {
+    setSelectedRenovator(null);
+  };
+
+  const handlePropertyClick = (property: Property) => {
+    router.push(`/reno/construction-manager/property/${property.id}`);
+    setIsModalOpen(false);
+    setSelectedRenovator(null);
+  };
+
+  const handleModalClose = (open: boolean) => {
+    setIsModalOpen(open);
+    if (!open) {
+      setSelectedRenovator(null);
+    }
+  };
+
   const renderRankingItem = (item: { position: number; renovatorName: string; count: number }) => (
     <div
       key={item.renovatorName}
-      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)] transition-colors"
+      onClick={() => handleRenovatorClick(item.renovatorName)}
+      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)] transition-colors cursor-pointer"
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Ranking position */}
@@ -95,7 +131,29 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
         <span className="text-xs text-muted-foreground">
           {item.count === 1 ? (language === 'es' ? 'obra' : 'work') : (language === 'es' ? 'obras' : 'works')}
         </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground ml-2" />
       </div>
+    </div>
+  );
+
+  const renderPropertyItem = (property: Property) => (
+    <div
+      key={property.id}
+      onClick={() => handlePropertyClick(property)}
+      className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)] transition-colors cursor-pointer"
+    >
+      <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground truncate">
+          {property.address || property.fullAddress || property.id}
+        </p>
+        {property.renoPhase && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {property.renoPhase}
+          </p>
+        )}
+      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
     </div>
   );
 
@@ -134,13 +192,39 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
       </Card>
 
       {/* Full Ranking Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog open={isModalOpen} onOpenChange={handleModalClose}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t.dashboard.fullRanking}</DialogTitle>
+            {selectedRenovator ? (
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBackToRanking}
+                  className="h-8 w-8 p-0"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <DialogTitle>
+                  {t.dashboard.worksByPartner} {selectedRenovator}
+                </DialogTitle>
+              </div>
+            ) : (
+              <DialogTitle>{t.dashboard.fullRanking}</DialogTitle>
+            )}
           </DialogHeader>
           <div className="space-y-2 mt-4">
-            {fullRanking.map(renderRankingItem)}
+            {selectedRenovator ? (
+              selectedRenovatorProperties.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  {t.messages.notFound}
+                </p>
+              ) : (
+                selectedRenovatorProperties.map(renderPropertyItem)
+              )
+            ) : (
+              fullRanking.map(renderRankingItem)
+            )}
           </div>
         </DialogContent>
       </Dialog>
