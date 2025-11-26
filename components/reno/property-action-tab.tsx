@@ -31,7 +31,7 @@ export function PropertyActionTab({
   const technicalConstructor = supabaseProperty?.['Technical construction'] || supabaseProperty?.technical_construction;
   const responsibleOwner = supabaseProperty?.responsible_owner;
   
-  // Campos para Upcoming Settlements
+  // Campos para Upcoming Reno
   const setUpStatus = supabaseProperty?.['Set Up Status'];
   const renovatorName = supabaseProperty?.['Renovator name'];
   const estimatedEndDate = supabaseProperty?.estimated_end_date;
@@ -53,7 +53,7 @@ export function PropertyActionTab({
 
   return (
     <div className="space-y-6">
-      {/* Información para fase Upcoming Settlements */}
+      {/* Información para fase Upcoming Reno */}
       {renoPhase === "upcoming-settlements" && (
         <>
           {/* Set Up Status */}

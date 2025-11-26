@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Plus, CheckCircle2, Wrench, Bell } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Plus, CheckCircle2, Wrench, Bell, Edit, Trash2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -56,6 +56,9 @@ export function VisitsCalendar({
   const [visitDate, setVisitDate] = useState<string | undefined>(undefined);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditingVisit, setIsEditingVisit] = useState(false);
+  const [editVisitDate, setEditVisitDate] = useState<string | undefined>(undefined);
+  const [editNotes, setEditNotes] = useState("");
 
   // Navegación de fechas
   const goToPreviousPeriod = () => {
@@ -252,11 +255,36 @@ export function VisitsCalendar({
       const allVisits = [...visitsWithComments, ...generatePropertyEvents];
       
       // Remove duplicates (if a property event matches a database visit)
+      // Compare by property_id, date (without time), and visit_type
       const uniqueVisits = allVisits.reduce((acc: CalendarVisit[], visit: CalendarVisit) => {
-        const key = `${visit.property_id}-${visit.visit_date}`;
-        if (!acc.find((v: CalendarVisit) => `${v.property_id}-${v.visit_date}` === key)) {
+        const visitDate = new Date(visit.visit_date);
+        const dateKey = visitDate.toISOString().split('T')[0]; // YYYY-MM-DD only
+        const key = `${visit.property_id}-${dateKey}-${visit.visit_type}`;
+        
+        // Check if we already have a visit for this property, date, and type
+        const existingIndex = acc.findIndex((v: CalendarVisit) => {
+          const vDate = new Date(v.visit_date);
+          const vDateKey = vDate.toISOString().split('T')[0];
+          return `${v.property_id}-${vDateKey}-${v.visit_type}` === key;
+        });
+        
+        if (existingIndex === -1) {
+          // No duplicate found, add it
           acc.push(visit);
+        } else {
+          // Duplicate found - prefer the database visit over the generated event
+          // Database visits have numeric IDs (UUIDs), generated events have string IDs like "upcoming-..."
+          const existing = acc[existingIndex];
+          const isExistingFromDB = existing.id && !existing.id.startsWith('upcoming-') && !existing.id.startsWith('check-') && !existing.id.startsWith('visit-');
+          const isNewFromDB = visit.id && !visit.id.startsWith('upcoming-') && !visit.id.startsWith('check-') && !visit.id.startsWith('visit-');
+          
+          // If the new one is from DB and existing is not, replace it
+          if (isNewFromDB && !isExistingFromDB) {
+            acc[existingIndex] = visit;
+          }
+          // Otherwise keep the existing one (database visits take priority)
         }
+        
         return acc;
       }, [] as CalendarVisit[]);
 
@@ -328,6 +356,79 @@ export function VisitsCalendar({
     } catch (error: any) {
       console.error("Error creating visit:", error);
       toast.error(t.calendar.visitCreateError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Actualizar visita/recordatorio
+  const handleUpdateVisit = async () => {
+    if (!selectedVisit || !editVisitDate) {
+      toast.error(t.calendar.selectPropertyAndDate);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("property_visits")
+        .update({
+          visit_date: editVisitDate,
+          notes: editNotes.trim() || null,
+        })
+        .eq("id", selectedVisit.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(
+        selectedVisit.visit_type === "reminder"
+          ? t.calendar.reminderUpdated || "Recordatorio actualizado"
+          : t.calendar.visitUpdated || "Visita actualizada"
+      );
+      setIsEditingVisit(false);
+      setSelectedVisit(null);
+      await fetchVisits();
+    } catch (error: any) {
+      console.error("Error updating visit:", error);
+      toast.error(t.calendar.visitUpdateError || "Error al actualizar");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Eliminar visita/recordatorio
+  const handleDeleteVisit = async () => {
+    if (!selectedVisit) return;
+
+    const confirmMessage = selectedVisit.visit_type === "reminder"
+      ? t.calendar.deleteReminderConfirm || "¿Estás seguro de que quieres eliminar este recordatorio?"
+      : t.calendar.deleteVisitConfirm || "¿Estás seguro de que quieres eliminar esta visita?";
+
+    if (!confirm(confirmMessage)) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("property_visits")
+        .delete()
+        .eq("id", selectedVisit.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(
+        selectedVisit.visit_type === "reminder"
+          ? t.calendar.reminderDeleted || "Recordatorio eliminado"
+          : t.calendar.visitDeleted || "Visita eliminada"
+      );
+      setSelectedVisit(null);
+      await fetchVisits();
+    } catch (error: any) {
+      console.error("Error deleting visit:", error);
+      toast.error(t.calendar.visitDeleteError || "Error al eliminar");
     } finally {
       setIsSubmitting(false);
     }
@@ -691,7 +792,10 @@ export function VisitsCalendar({
 
         {/* Modal de detalles */}
         {selectedVisit && (
-          <Dialog open={!!selectedVisit} onOpenChange={() => setSelectedVisit(null)}>
+          <Dialog open={!!selectedVisit} onOpenChange={() => {
+            setSelectedVisit(null);
+            setIsEditingVisit(false);
+          }}>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
@@ -700,68 +804,152 @@ export function VisitsCalendar({
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label>{t.calendar.address}</Label>
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedVisit.property_address || selectedVisit.property_id}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t.calendar.dateTime}</Label>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatDate(selectedVisit.visit_date)}</span>
-                  </div>
-                </div>
-
-                {selectedVisit.last_comment && (
-                  <div className="space-y-2">
-                    <Label>{t.calendar.lastComment}</Label>
-                    <div className="flex items-start gap-2 text-sm bg-muted p-3 rounded-md">
-                      <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <span className="flex-1">{selectedVisit.last_comment}</span>
+                {!isEditingVisit ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>{t.calendar.address}</Label>
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span>{selectedVisit.property_address || selectedVisit.property_id}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
 
-                {selectedVisit.notes && (
-                  <div className="space-y-2">
-                    <Label>{t.calendar.notes}</Label>
-                    <div className="text-sm bg-muted p-3 rounded-md">
-                      {selectedVisit.notes}
+                    <div className="space-y-2">
+                      <Label>{t.calendar.dateTime}</Label>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{formatDate(selectedVisit.visit_date)}</span>
+                      </div>
                     </div>
-                  </div>
-                )}
 
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedVisit(null)}
-                  >
-                    {t.calendar.close}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      if (onPropertyClick && selectedVisit.property) {
-                        onPropertyClick(selectedVisit.property);
-                      } else if (onPropertyClick && propertiesByPhase) {
-                        // Find property in propertiesByPhase
-                        for (const phaseProperties of Object.values(propertiesByPhase)) {
-                          const property = phaseProperties.find(p => p.id === selectedVisit.property_id);
-                          if (property) {
-                            onPropertyClick(property);
-                            break;
-                          }
-                        }
-                      }
-                      setSelectedVisit(null);
-                    }}
-                  >
-                    {t.calendar.goToTask}
-                  </Button>
-                </div>
+                    {selectedVisit.last_comment && (
+                      <div className="space-y-2">
+                        <Label>{t.calendar.lastComment}</Label>
+                        <div className="flex items-start gap-2 text-sm bg-muted p-3 rounded-md">
+                          <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <span className="flex-1">{selectedVisit.last_comment}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedVisit.notes && (
+                      <div className="space-y-2">
+                        <Label>{t.calendar.notes}</Label>
+                        <div className="text-sm bg-muted p-3 rounded-md">
+                          {selectedVisit.notes}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center pt-4 border-t">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setIsEditingVisit(true);
+                            setEditVisitDate(selectedVisit.visit_date);
+                            setEditNotes(selectedVisit.notes || "");
+                          }}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          {t.calendar.edit || "Editar"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDeleteVisit}
+                          disabled={isSubmitting}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {t.calendar.delete || "Eliminar"}
+                        </Button>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedVisit(null);
+                            setIsEditingVisit(false);
+                          }}
+                        >
+                          {t.calendar.close}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            if (onPropertyClick && selectedVisit.property) {
+                              onPropertyClick(selectedVisit.property);
+                            } else if (onPropertyClick && propertiesByPhase) {
+                              // Find property in propertiesByPhase
+                              for (const phaseProperties of Object.values(propertiesByPhase)) {
+                                const property = phaseProperties.find(p => p.id === selectedVisit.property_id);
+                                if (property) {
+                                  onPropertyClick(property);
+                                  break;
+                                }
+                              }
+                            }
+                            setSelectedVisit(null);
+                            setIsEditingVisit(false);
+                          }}
+                        >
+                          {t.calendar.goToTask}
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label>{t.calendar.address}</Label>
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span>{selectedVisit.property_address || selectedVisit.property_id}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>{t.calendar.dateTime}</Label>
+                      <DateTimePicker
+                        value={editVisitDate}
+                        onChange={setEditVisitDate}
+                        placeholder={t.calendar.dateTimePlaceholder}
+                        errorMessage={t.calendar.dateTimeError}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>{t.calendar.notes}</Label>
+                      <Textarea
+                        value={editNotes}
+                        onChange={(e) => setEditNotes(e.target.value)}
+                        placeholder={t.calendar.notesPlaceholder}
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditingVisit(false);
+                          setEditVisitDate(selectedVisit.visit_date);
+                          setEditNotes(selectedVisit.notes || "");
+                        }}
+                        disabled={isSubmitting}
+                      >
+                        {t.calendar.cancel}
+                      </Button>
+                      <Button
+                        onClick={handleUpdateVisit}
+                        disabled={!editVisitDate || isSubmitting}
+                      >
+                        {isSubmitting ? t.calendar.saving : (t.calendar.save || "Guardar")}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             </DialogContent>
           </Dialog>

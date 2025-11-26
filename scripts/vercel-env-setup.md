@@ -47,3 +47,5 @@ vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY preview
 Podríamos crear un script que lea `.env.example` y configure todo automáticamente.
 
 
+
+

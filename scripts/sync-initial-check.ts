@@ -5,28 +5,15 @@
  * Uso: npm run sync:initial-check
  */
 
+import { loadEnvConfig } from '@next/env';
 import { syncInitialCheckFromAirtable } from '../lib/airtable/sync-initial-check';
+
+// Load environment variables
+const projectDir = process.cwd();
+loadEnvConfig(projectDir);
 
 async function main() {
   console.log('🔄 Iniciando sincronización de Initial Check desde Airtable...\n');
-
-  // Verificar variables de entorno
-  const requiredEnvVars = [
-    'NEXT_PUBLIC_AIRTABLE_API_KEY',
-    'NEXT_PUBLIC_AIRTABLE_BASE_ID',
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
-  ];
-
-  const missingVars = requiredEnvVars.filter(
-    (varName) => !process.env[varName]
-  );
-
-  if (missingVars.length > 0) {
-    console.error('❌ Faltan variables de entorno:');
-    missingVars.forEach((varName) => console.error(`   - ${varName}`));
-    process.exit(1);
-  }
 
   try {
     const result = await syncInitialCheckFromAirtable();
@@ -66,5 +53,7 @@ main().catch((error) => {
   console.error('❌ Error fatal:', error);
   process.exit(1);
 });
+
+
 
 

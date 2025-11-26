@@ -273,3 +273,5 @@ console.log('From Auth0:', isFromAuth0); // true o false
 
 **Resultado:** Los roles de Auth0 se sincronizan automáticamente a Supabase cada vez que un usuario hace login.
 
+
+

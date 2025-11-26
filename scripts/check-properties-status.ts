@@ -35,10 +35,22 @@ async function main() {
       return;
     }
 
-    console.log(`✅ Encontradas ${data.length} propiedades\n`);
+    type PropertyWithFields = { 
+      id: string; 
+      address: string | null; 
+      reno_phase: string | null; 
+      'Set Up Status': string | null; 
+      next_reno_steps: string | null; 
+      'Renovator name': string | null; 
+      keys_location: string | null;
+    };
+    
+    const typedData = (data || []) as unknown as PropertyWithFields[];
+    
+    console.log(`✅ Encontradas ${typedData.length} propiedades\n`);
     console.log('📋 Estado actual:\n');
 
-    data.forEach((property, index) => {
+    typedData.forEach((property, index) => {
       console.log(`${index + 1}. ID: ${property.id}`);
       console.log(`   Dirección: ${property.address}`);
       console.log(`   reno_phase: ${property.reno_phase || '❌ NULL'}`);
@@ -59,5 +71,7 @@ main().catch((error) => {
   console.error('❌ Error fatal:', error);
   process.exit(1);
 });
+
+
 
 

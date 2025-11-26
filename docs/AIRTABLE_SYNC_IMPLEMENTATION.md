@@ -169,3 +169,5 @@ curl https://dev.vistral.io/api/cron/sync-airtable
 | Technical Constructor | `Technical construction` | TEXT |
 
 
+
+

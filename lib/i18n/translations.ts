@@ -193,6 +193,7 @@ export interface Translations {
     propertyInformation: string;
     editableFields: string;
     dateMustBeFuture: string;
+    autoVisitNote: string;
   };
   
   // Initial Check phase
@@ -230,6 +231,12 @@ export interface Translations {
     // Recent Properties
     recentProperties: string;
     recentPropertiesDescription: string;
+    activeWorksByRenovator: string;
+    activeWorksByRenovatorDescription: string;
+    viewMore: string;
+    fullRanking: string;
+    back: string;
+    worksByPartner: string;
     // Portfolio
     portfolio: string;
     portfolioDescription: string;
@@ -286,6 +293,18 @@ export interface Translations {
     goToTask: string;
     noVisits: string;
     loading: string;
+    edit: string;
+    delete: string;
+    save: string;
+    saving: string;
+    visitUpdated: string;
+    reminderUpdated: string;
+    visitDeleted: string;
+    reminderDeleted: string;
+    visitUpdateError: string;
+    visitDeleteError: string;
+    deleteVisitConfirm: string;
+    deleteReminderConfirm: string;
     visitTypes: {
       initialCheck: string;
       finalCheck: string;
@@ -370,6 +389,10 @@ export interface Translations {
     loadingProperty: string;
     renovationBudget: string;
     comingSoon: string;
+    currentDate: string;
+    modifyDate: string;
+    saving: string;
+    save: string;
   };
   
   // Property Status Tab
@@ -542,7 +565,7 @@ export const translations: Record<Language, Translations> = {
       clearAll: "Limpiar todos",
       applyFilters: "Aplicar filtros",
       // Reno Construction Manager phases
-      upcomingSettlements: "Nuevas escrituras",
+      upcomingSettlements: "Upcoming Reno",
       initialCheck: "Check inicial",
       renoBudget: "Reno Budget",
       renoInProgress: "Obras en proceso",
@@ -602,6 +625,7 @@ export const translations: Record<Language, Translations> = {
       propertyInformation: "Información de la Propiedad",
       editableFields: "Campos editables",
       dateMustBeFuture: "La fecha debe ser futura",
+      autoVisitNote: "Visita técnica inicial agendada automáticamente al guardar la fecha de visita estimada.",
     },
     initialCheck: {
       realSettlementDate: "Fecha real firma",
@@ -1106,8 +1130,14 @@ export const translations: Record<Language, Translations> = {
       upcomingAppointments: "Próximas citas",
       upcomingAppointmentsDescription: "Citas añadidas en tu calendario",
       addAppointment: "Añadir",
-      recentProperties: "Propiedades recientes",
-      recentPropertiesDescription: "Últimas actualizaciones de tus propiedades",
+      recentProperties: "Obras Activas",
+      recentPropertiesDescription: "Obras activas agrupadas por renovator",
+      activeWorksByRenovator: "Obras Activas",
+      activeWorksByRenovatorDescription: "Obras activas agrupadas por renovator",
+      viewMore: "Ver más",
+      fullRanking: "Ranking Completo",
+      back: "Volver",
+      worksByPartner: "Obras de",
       portfolio: "Portfolio",
       portfolioDescription: "Distribución de propiedades por fase",
       totalPortfolioValue: "Valor total del portfolio",
@@ -1161,6 +1191,18 @@ export const translations: Record<Language, Translations> = {
       goToTask: "Ir a la tarea",
       noVisits: "Sin visitas",
       loading: "Cargando...",
+      edit: "Editar",
+      delete: "Eliminar",
+      save: "Guardar",
+      saving: "Guardando...",
+      visitUpdated: "Visita actualizada correctamente",
+      reminderUpdated: "Recordatorio actualizado correctamente",
+      visitDeleted: "Visita eliminada correctamente",
+      reminderDeleted: "Recordatorio eliminado correctamente",
+      visitUpdateError: "Error al actualizar la visita",
+      visitDeleteError: "Error al eliminar la visita",
+      deleteVisitConfirm: "¿Estás seguro de que quieres eliminar esta visita?",
+      deleteReminderConfirm: "¿Estás seguro de que quieres eliminar este recordatorio?",
       visitTypes: {
         initialCheck: "Check Inicial",
         finalCheck: "Check Final",
@@ -1198,7 +1240,7 @@ export const translations: Record<Language, Translations> = {
       pending: "Pendiente",
       completeInitialChecklist: "Completar checklist inicial",
       completeFinalChecklist: "Completar checklist final",
-      completeNewSettlementsInfo: "Completar información de nuevas escrituras",
+      completeNewSettlementsInfo: "Completar información de upcoming reno",
       technicalConstructor: "Constructor Técnico",
       siteManager: "Jefe de Obra",
       reminders: "Recordatorios",
@@ -1235,6 +1277,10 @@ export const translations: Record<Language, Translations> = {
       loadingProperty: "Cargando propiedad...",
       renovationBudget: "Presupuesto de reforma",
       comingSoon: "Coming soon",
+      currentDate: "Fecha actual",
+      modifyDate: "Modificar fecha",
+      saving: "Guardando...",
+      save: "Guardar",
     },
     propertyStatusTab: {
       loadingHistory: "Cargando historial...",
@@ -1282,7 +1328,7 @@ export const translations: Record<Language, Translations> = {
     },
     nav: {
       home: "Home",
-      properties: "Property Management",
+      properties: "Renovation Management",
       renoManagement: "Reno Management",
       notifications: "Notifications",
       help: "Help",
@@ -1322,7 +1368,7 @@ export const translations: Record<Language, Translations> = {
     },
     property: {
       title: "Property",
-      management: "Property Management",
+      management: "Renovation Management",
       addNew: "Add New Property",
       edit: "Edit Property",
       delete: "Delete Property",
@@ -1371,7 +1417,7 @@ export const translations: Record<Language, Translations> = {
       clearAll: "Clear All",
       applyFilters: "Apply Filters",
       // Reno Construction Manager phases
-      upcomingSettlements: "Upcoming Settlements",
+      upcomingSettlements: "Upcoming Reno",
       initialCheck: "Initial Check",
       renoBudget: "Reno Budget",
       renoInProgress: "Reno in Progress",
@@ -1431,6 +1477,7 @@ export const translations: Record<Language, Translations> = {
       propertyInformation: "Property Information",
       editableFields: "Editable Fields",
       dateMustBeFuture: "Date must be in the future",
+      autoVisitNote: "Initial technical visit automatically scheduled when saving the estimated visit date.",
     },
     initialCheck: {
       realSettlementDate: "Real Settlement Date",
@@ -1934,8 +1981,14 @@ export const translations: Record<Language, Translations> = {
       upcomingAppointments: "Upcoming Appointments",
       upcomingAppointmentsDescription: "Appointments added to your calendar",
       addAppointment: "Add",
-      recentProperties: "Recent Properties",
-      recentPropertiesDescription: "Latest updates on your properties",
+      recentProperties: "Active Works",
+      recentPropertiesDescription: "Active works grouped by renovator",
+      activeWorksByRenovator: "Active Works",
+      activeWorksByRenovatorDescription: "Active works grouped by renovator",
+      viewMore: "View more",
+      fullRanking: "Full Ranking",
+      back: "Back",
+      worksByPartner: "Works by",
       portfolio: "Portfolio",
       portfolioDescription: "Distribution of properties by phase",
       totalPortfolioValue: "Total portfolio value",
@@ -1989,6 +2042,18 @@ export const translations: Record<Language, Translations> = {
       goToTask: "Go to task",
       noVisits: "No visits",
       loading: "Loading...",
+      edit: "Edit",
+      delete: "Delete",
+      save: "Save",
+      saving: "Saving...",
+      visitUpdated: "Visit updated successfully",
+      reminderUpdated: "Reminder updated successfully",
+      visitDeleted: "Visit deleted successfully",
+      reminderDeleted: "Reminder deleted successfully",
+      visitUpdateError: "Error updating visit",
+      visitDeleteError: "Error deleting visit",
+      deleteVisitConfirm: "Are you sure you want to delete this visit?",
+      deleteReminderConfirm: "Are you sure you want to delete this reminder?",
       visitTypes: {
         initialCheck: "Initial Check",
         finalCheck: "Final Check",
@@ -2063,6 +2128,10 @@ export const translations: Record<Language, Translations> = {
       loadingProperty: "Loading property...",
       renovationBudget: "Renovation Budget",
       comingSoon: "Coming soon",
+      currentDate: "Current date",
+      modifyDate: "Modify date",
+      saving: "Saving...",
+      save: "Save",
     },
     propertyStatusTab: {
       loadingHistory: "Loading history...",

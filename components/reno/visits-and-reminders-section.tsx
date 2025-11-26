@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Bell, Plus, MapPin, Clock } from "lucide-react";
+import { Calendar, Bell, Plus, MapPin, Clock, Edit, Trash2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -54,6 +54,9 @@ export function VisitsAndRemindersSection({
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [editingVisit, setEditingVisit] = useState<PropertyVisit | null>(null);
+  const [editVisitDate, setEditVisitDate] = useState<string | undefined>(undefined);
+  const [editNotes, setEditNotes] = useState("");
 
   // Obtener usuario actual
   useEffect(() => {
@@ -143,6 +146,115 @@ export function VisitsAndRemindersSection({
 
     loadProperties();
   }, [visitType, propertiesByPhase, currentUser, supabase]);
+
+  // Actualizar visita/recordatorio
+  const handleUpdateVisit = async () => {
+    if (!editingVisit || !editVisitDate) {
+      toast.error("Debes seleccionar una fecha");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("property_visits")
+        .update({
+          visit_date: editVisitDate,
+          notes: editNotes.trim() || null,
+        })
+        .eq("id", editingVisit.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(
+        editingVisit.visit_type === "reminder"
+          ? "Recordatorio actualizado correctamente"
+          : "Visita actualizada correctamente"
+      );
+      setEditingVisit(null);
+      setEditVisitDate(undefined);
+      setEditNotes("");
+      // Refetch visits
+      const { data, error: fetchError } = await supabase
+        .from("property_visits")
+        .select(`
+          *,
+          properties:property_id (
+            address
+          )
+        `)
+        .gte("visit_date", new Date().toISOString())
+        .order("visit_date", { ascending: true })
+        .limit(10);
+
+      if (!fetchError && data) {
+        const transformedVisits = (data || []).map((visit: any) => ({
+          ...visit,
+          property_address: visit.properties?.address || null,
+        }));
+        setVisits(transformedVisits);
+      }
+    } catch (error: any) {
+      console.error("Error updating visit:", error);
+      toast.error("Error al actualizar la visita/recordatorio");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Eliminar visita/recordatorio
+  const handleDeleteVisit = async (visit: PropertyVisit) => {
+    const confirmMessage = visit.visit_type === "reminder"
+      ? "¿Estás seguro de que quieres eliminar este recordatorio?"
+      : "¿Estás seguro de que quieres eliminar esta visita?";
+
+    if (!confirm(confirmMessage)) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("property_visits")
+        .delete()
+        .eq("id", visit.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(
+        visit.visit_type === "reminder"
+          ? "Recordatorio eliminado correctamente"
+          : "Visita eliminada correctamente"
+      );
+      // Refetch visits
+      const { data, error: fetchError } = await supabase
+        .from("property_visits")
+        .select(`
+          *,
+          properties:property_id (
+            address
+          )
+        `)
+        .gte("visit_date", new Date().toISOString())
+        .order("visit_date", { ascending: true })
+        .limit(10);
+
+      if (!fetchError && data) {
+        const transformedVisits = (data || []).map((visit: any) => ({
+          ...visit,
+          property_address: visit.properties?.address || null,
+        }));
+        setVisits(transformedVisits);
+      }
+    } catch (error: any) {
+      console.error("Error deleting visit:", error);
+      toast.error("Error al eliminar la visita/recordatorio");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleCreateVisit = async () => {
     if (!selectedPropertyId || !visitDate) {
@@ -310,7 +422,7 @@ export function VisitsAndRemindersSection({
                   Propiedad
                   {visitType === "visit" && (
                     <span className="text-xs text-muted-foreground ml-2">
-                      (Solo fases: Nuevas escrituras, Check inicial, Obras en proceso, Check final)
+                      (Solo fases: Upcoming Reno, Check inicial, Obras en proceso, Check final)
                     </span>
                   )}
                 </Label>
@@ -396,11 +508,10 @@ export function VisitsAndRemindersSection({
         ) : (
           <div className="space-y-3">
             {visits.map((visit) => (
-              <button
+              <div
                 key={visit.id}
-                onClick={() => onPropertyClick?.(visit.property_id)}
                 className={cn(
-                  "w-full text-left flex items-start gap-3 p-3 rounded-lg border transition-colors",
+                  "w-full flex items-start gap-3 p-3 rounded-lg border transition-colors",
                   "hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)]",
                   visit.visit_type === "reminder" &&
                     "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20 border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]"
@@ -413,7 +524,10 @@ export function VisitsAndRemindersSection({
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
+                    <button
+                      onClick={() => onPropertyClick?.(visit.property_id)}
+                      className="flex-1 min-w-0 text-left"
+                    >
                       <p className="text-sm font-medium text-foreground truncate">
                         {visit.property_address || visit.property_id}
                       </p>
@@ -433,14 +547,106 @@ export function VisitsAndRemindersSection({
                           {visit.notes}
                         </p>
                       )}
+                    </button>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingVisit(visit);
+                          setEditVisitDate(visit.visit_date);
+                          setEditNotes(visit.notes || "");
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteVisit(visit);
+                        }}
+                        disabled={isSubmitting}
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}
       </CardContent>
+
+      {/* Modal de edición */}
+      {editingVisit && (
+        <Dialog open={!!editingVisit} onOpenChange={() => {
+          setEditingVisit(null);
+          setEditVisitDate(undefined);
+          setEditNotes("");
+        }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingVisit.visit_type === "reminder" ? "Editar Recordatorio" : "Editar Visita"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Propiedad</Label>
+                <div className="text-sm text-muted-foreground p-2 bg-muted rounded-md">
+                  {editingVisit.property_address || editingVisit.property_id}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Fecha y hora</Label>
+                <DateTimePicker
+                  value={editVisitDate}
+                  onChange={setEditVisitDate}
+                  placeholder="DD/MM/YYYY HH:mm"
+                  errorMessage="La fecha y hora deben ser futuras"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notas (opcional)</Label>
+                <Textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Agregar notas sobre la visita..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingVisit(null);
+                    setEditVisitDate(undefined);
+                    setEditNotes("");
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleUpdateVisit}
+                  disabled={!editVisitDate || isSubmitting}
+                >
+                  {isSubmitting ? "Guardando..." : "Guardar"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }

@@ -4,11 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { syncPropertiesFromAirtable } from '@/lib/airtable/sync-from-airtable';
-
-// Configuración de Airtable
-const AIRTABLE_TABLE_ID = 'tblmX19OTsj3cTHmA';
-const AIRTABLE_VIEW_ID = 'viwpYQ0hsSSdFrSD1';
+import { syncAllPhasesFromAirtable } from '@/lib/airtable/sync-all-phases';
 
 /**
  * Verifica que la request viene de Vercel Cron
@@ -38,17 +34,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('[Airtable Sync Cron] Starting sync...');
+    console.log('[Airtable Sync Cron] Starting complete sync for all phases...');
 
-    const result = await syncPropertiesFromAirtable(
-      AIRTABLE_TABLE_ID,
-      AIRTABLE_VIEW_ID
-    );
+    const result = await syncAllPhasesFromAirtable();
 
     return NextResponse.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      ...result,
+      success: result.success,
+      timestamp: result.timestamp,
+      totalCreated: result.totalCreated,
+      totalUpdated: result.totalUpdated,
+      totalErrors: result.totalErrors,
+      phases: result.phases,
     });
   } catch (error: any) {
     console.error('[Airtable Sync Cron] Error:', error);
@@ -67,5 +63,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return GET(request);
 }
+
+
 
 

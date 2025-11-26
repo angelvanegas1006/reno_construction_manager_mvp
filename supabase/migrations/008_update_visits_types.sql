@@ -11,3 +11,5 @@ COMMENT ON COLUMN property_visits.visit_type IS 'Tipo de visita: initial-check (
 COMMENT ON TABLE property_visits IS 'Visitas programadas para propiedades. Tipos: initial-check (Checklist inicial), final-check (Checklist final), obra-seguimiento (Seguimiento de obra en fase reno-in-progress), reminder (Recordatorio).';
 
 
+
+

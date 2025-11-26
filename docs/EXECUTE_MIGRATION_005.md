@@ -65,3 +65,5 @@ Deberías ver estas columnas:
 - El campo `synced_to_airtable` indica si el comentario ya fue sincronizado
 
 
+
+

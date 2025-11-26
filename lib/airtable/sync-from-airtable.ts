@@ -454,6 +454,27 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
     // Campos adicionales para Initial Check
     next_reno_steps: getFieldValue('Next Reno Steps', ['Next Reno Steps', 'Next reno steps']) || null,
     'Renovator name': getFieldValue('Renovator Name', ['Renovator Name', 'Renovator name']) || null,
+    // Estimated Visit Date - campo importante para Initial Check y Upcoming Settlements
+    'Estimated Visit Date': (() => {
+      const dateValue = getFieldValue('Est. visit date', [
+        'Est. visit date',
+        'Estimated Visit Date', 
+        'Estimated visit date', 
+        'fldIhqPOAFL52MMBn'
+      ]);
+      // Si es una fecha válida, convertirla a formato ISO string
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0]; // YYYY-MM-DD
+          }
+        } catch (e) {
+          // Si falla la conversión, retornar null
+        }
+      }
+      return null;
+    })(),
     // Campos para Upcoming Settlements (Pending to validate Budget)
     estimated_end_date: getFieldValue('Est. Reno End Date', [
       'Est. Reno End Date', 
@@ -498,9 +519,10 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
       // Si es un array de URLs (strings)
       if (Array.isArray(picsField)) {
         const urls = picsField
+          .filter(item => item != null) // Filtrar valores null/undefined
           .map(item => {
             // Si es un objeto con url (attachment de Airtable)
-            if (typeof item === 'object' && item.url) {
+            if (typeof item === 'object' && item !== null && item.url) {
               return item.url;
             }
             // Si es un string que empieza con http o https

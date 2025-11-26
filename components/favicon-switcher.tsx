@@ -1,18 +1,23 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useTheme } from "next-themes";
 
 export function FaviconSwitcher() {
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const isUnmountingRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
+    return () => {
+      isUnmountingRef.current = true;
+    };
   }, []);
 
   const updateFavicon = useCallback(() => {
-    if (!mounted) return;
+    // No hacer nada si estamos desmontando
+    if (!mounted || isUnmountingRef.current) return;
     
     // Verificar que document y document.head existan
     if (typeof document === 'undefined' || !document.head) return;
@@ -30,10 +35,10 @@ export function FaviconSwitcher() {
 
     // Función para actualizar o crear un link de forma más agresiva
     const updateOrCreateLink = (rel: string) => {
+      // Verificar nuevamente antes de manipular el DOM
+      if (isUnmountingRef.current || typeof document === 'undefined' || !document.head) return;
+      
       try {
-        // Verificar que document.head existe antes de continuar
-        if (!document.head || !document.head.parentNode) return;
-
         // Buscar todos los links con ese rel
         const existingLinks = Array.from(document.querySelectorAll(`link[rel]`)).filter(
           (link) => {
@@ -42,46 +47,44 @@ export function FaviconSwitcher() {
           }
         ) as HTMLLinkElement[];
 
-        // Eliminar los existentes que no coincidan (con verificación de seguridad)
+        // En lugar de remover elementos, solo actualizar el href de los existentes
+        // Esto evita conflictos con React durante el desmontaje
+        let foundCorrectLink = false;
         existingLinks.forEach((link) => {
-          if (!link.href.includes(iconPath)) {
-            // Verificar que el link todavía está en el DOM antes de eliminarlo
-            if (link.parentNode) {
-              try {
-                link.remove();
-              } catch (e) {
-                // Si falla, intentar con removeChild de forma segura
-                if (link.parentNode && link.parentNode.contains(link)) {
-                  link.parentNode.removeChild(link);
-                }
+          try {
+            if (link.isConnected && link.parentNode && !isUnmountingRef.current) {
+              if (link.href.includes(iconPath)) {
+                // Actualizar el existente con timestamp
+                link.href = `${iconPath}?v=${Date.now()}`;
+                foundCorrectLink = true;
+              } else {
+                // Actualizar el href del link existente en lugar de removerlo
+                link.href = `${iconPath}?v=${Date.now()}`;
+                foundCorrectLink = true;
               }
             }
+          } catch (e) {
+            // Silenciar todos los errores durante manipulación del DOM
           }
         });
 
-        // Crear nuevo link si no existe uno con el path correcto
-        const hasCorrectLink = existingLinks.some((link) => link.href.includes(iconPath));
-        
-        if (!hasCorrectLink && document.head) {
-          const link = document.createElement("link");
-          link.rel = rel;
-          link.href = `${iconPath}?v=${Date.now()}`; // Agregar timestamp para forzar actualización
-          
-          // Verificar que document.head todavía existe antes de agregar
-          if (document.head && document.head.parentNode) {
-            document.head.appendChild(link);
-          }
-        } else {
-          // Actualizar el existente con timestamp
-          existingLinks.forEach((link) => {
-            if (link.href.includes(iconPath) && link.parentNode) {
-              link.href = `${iconPath}?v=${Date.now()}`;
+        // Solo crear nuevo link si no existe ninguno y no estamos desmontando
+        if (!foundCorrectLink && document.head && !isUnmountingRef.current) {
+          try {
+            const link = document.createElement("link");
+            link.rel = rel;
+            link.href = `${iconPath}?v=${Date.now()}`; // Agregar timestamp para forzar actualización
+            
+            // Verificar que document.head todavía existe antes de agregar
+            if (document.head && document.head.parentNode && !isUnmountingRef.current) {
+              document.head.appendChild(link);
             }
-          });
+          } catch (e) {
+            // Silenciar errores
+          }
         }
       } catch (error) {
         // Silenciar errores de manipulación del DOM durante desmontaje
-        console.warn('[FaviconSwitcher] Error updating favicon:', error);
       }
     };
 
@@ -90,29 +93,34 @@ export function FaviconSwitcher() {
     updateOrCreateLink("shortcut icon");
     updateOrCreateLink("apple-touch-icon");
 
-    // También eliminar y recrear el favicon.ico si existe
-    try {
-      const faviconIco = document.querySelector("link[rel='icon'][type='image/x-icon']") as HTMLLinkElement;
-      if (faviconIco && faviconIco.parentNode) {
-        faviconIco.remove();
+    // Actualizar favicon.ico si existe (en lugar de removerlo)
+    if (!isUnmountingRef.current) {
+      try {
+        const faviconIco = document.querySelector("link[rel='icon'][type='image/x-icon']") as HTMLLinkElement;
+        if (faviconIco && faviconIco.isConnected && faviconIco.parentNode) {
+          // Actualizar href en lugar de remover
+          faviconIco.href = `${iconPath}?v=${Date.now()}`;
+        }
+      } catch (error) {
+        // Silenciar errores durante desmontaje
       }
-    } catch (error) {
-      // Silenciar errores durante desmontaje
     }
   }, [mounted, resolvedTheme]);
 
   useEffect(() => {
-    updateFavicon();
+    if (!isUnmountingRef.current) {
+      updateFavicon();
+    }
   }, [updateFavicon]);
 
   // Escuchar cambios en la clase dark del HTML
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || isUnmountingRef.current) return;
     if (typeof document === 'undefined' || !document.documentElement) return;
 
     const observer = new MutationObserver(() => {
       // Verificar que el componente todavía está montado antes de actualizar
-      if (mounted && document.documentElement) {
+      if (!isUnmountingRef.current && mounted && document.documentElement) {
         updateFavicon();
       }
     });
@@ -123,10 +131,11 @@ export function FaviconSwitcher() {
         attributeFilter: ["class"],
       });
     } catch (error) {
-      console.warn('[FaviconSwitcher] Error setting up observer:', error);
+      // Silenciar errores
     }
 
     return () => {
+      isUnmountingRef.current = true;
       try {
         observer.disconnect();
       } catch (error) {

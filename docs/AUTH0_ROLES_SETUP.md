@@ -211,3 +211,5 @@ ORDER BY ur.updated_at DESC;
 
 Una vez completados todos los pasos, los roles de Auth0 se sincronizarán automáticamente con Supabase cada vez que un usuario inicie sesión.
 
+
+
