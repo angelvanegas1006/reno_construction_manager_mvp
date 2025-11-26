@@ -50,9 +50,6 @@ export default function RenoPropertyDetailPage() {
   const [localEstimatedVisitDate, setLocalEstimatedVisitDate] = useState<string | undefined>(property?.estimatedVisitDate);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
-  // Debounce timer refs
-  const dateDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Determine phase using "Set Up Status" from Supabase
   const getPropertyRenoPhase = useCallback((): RenoKanbanPhase | null => {
@@ -210,39 +207,12 @@ export default function RenoPropertyDetailPage() {
   const handleDateChange = useCallback((date: string | undefined) => {
     setLocalEstimatedVisitDate(date);
     setHasUnsavedChanges(true);
-    
-    const currentPhase = getPropertyRenoPhase();
-    
-    // Clear existing debounce timer
-    if (dateDebounceRef.current) {
-      clearTimeout(dateDebounceRef.current);
-    }
-    
-    // Auto-save after 2 seconds of inactivity
-    // For upcoming-settlements: will auto-advance to initial-check if date is new
-    // For other phases: just saves the date silently
-    dateDebounceRef.current = setTimeout(async () => {
-      await saveToSupabase(false);
-    }, 2000);
-  }, [saveToSupabase, getPropertyRenoPhase]);
+  }, []);
 
   // Manual save handler
   const handleManualSave = useCallback(async () => {
-    // Clear any pending debounce timers
-    if (dateDebounceRef.current) {
-      clearTimeout(dateDebounceRef.current);
-      dateDebounceRef.current = null;
-    }
-    
     await saveToSupabase(true);
   }, [saveToSupabase]);
-
-  // Cleanup debounce timers on unmount
-  useEffect(() => {
-    return () => {
-      if (dateDebounceRef.current) clearTimeout(dateDebounceRef.current);
-    };
-  }, []);
 
   // Calculate progress (simplified - could be improved)
   const progress = 25; // TODO: Calculate from checklist completion
