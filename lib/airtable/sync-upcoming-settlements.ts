@@ -54,10 +54,10 @@ export async function syncUpcomingSettlementsFromAirtable(): Promise<{
 
       if (fetchPropsError) {
         console.error('[Upcoming Settlements Sync] Error fetching properties:', fetchPropsError);
-      } else {
+      } else if (propertiesWithDates) {
         // Separar propiedades con y sin fecha
         type PropertyWithDate = { id: string; 'Estimated Visit Date': string | null; 'Set Up Status': string | null };
-        const typedProperties = (propertiesWithDates || []) as PropertyWithDate[];
+        const typedProperties = propertiesWithDates as unknown as PropertyWithDate[];
         const propertiesWithoutDate = typedProperties.filter(p => !p['Estimated Visit Date']);
         const propertiesWithDate = typedProperties.filter(p => p['Estimated Visit Date']);
 
