@@ -31,8 +31,18 @@ async function fixPropertiesPhase() {
       return;
     }
     
+    type PropertyWithDate = { 
+      id: string; 
+      reno_phase: string | null; 
+      'Set Up Status': string | null; 
+      'Estimated Visit Date': string | null; 
+      airtable_property_id: string | null;
+    };
+    
+    const typedProperties = properties as unknown as PropertyWithDate[];
+    
     console.log('📋 Current state of properties:');
-    properties.forEach(p => {
+    typedProperties.forEach(p => {
       console.log(`\n  ${p.id}:`);
       console.log(`    Current phase: ${p.reno_phase}`);
       console.log(`    Set Up Status: ${p['Set Up Status'] || 'null'}`);
@@ -65,8 +75,16 @@ async function fixPropertiesPhase() {
       .select('id, reno_phase, "Set Up Status"')
       .in('id', propertyIds);
     
+    type UpdatedProperty = { 
+      id: string; 
+      reno_phase: string | null; 
+      'Set Up Status': string | null;
+    };
+    
+    const typedUpdatedProperties = (updatedProperties || []) as unknown as UpdatedProperty[];
+    
     console.log('\n📋 Updated state:');
-    updatedProperties?.forEach(p => {
+    typedUpdatedProperties.forEach(p => {
       console.log(`  ${p.id}: ${p.reno_phase} (Set Up Status: ${p['Set Up Status']})`);
     });
     

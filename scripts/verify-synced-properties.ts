@@ -25,9 +25,20 @@ async function main() {
 
   console.log(`✅ Encontradas ${properties?.length || 0} propiedades en "upcoming-settlements"\n`);
 
-  if (properties && properties.length > 0) {
+  type PropertyWithStatus = { 
+    id: string; 
+    address: string | null; 
+    reno_phase: string | null; 
+    'Set Up Status': string | null; 
+    type: string | null; 
+    created_at: string | null;
+  };
+  
+  const typedProperties = (properties || []) as unknown as PropertyWithStatus[];
+  
+  if (typedProperties.length > 0) {
     console.log('📋 Primeras 10 propiedades:');
-    properties.forEach((prop, index) => {
+    typedProperties.forEach((prop, index) => {
       console.log(`\n${index + 1}. ID: ${prop.id}`);
       console.log(`   Dirección: ${prop.address || 'N/A'}`);
       console.log(`   Fase: ${prop.reno_phase}`);

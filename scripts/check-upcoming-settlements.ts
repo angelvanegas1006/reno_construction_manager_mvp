@@ -31,10 +31,20 @@ async function checkUpcomingSettlements() {
       return;
     }
     
-    console.log(`📊 Found ${properties.length} properties in upcoming-settlements phase\n`);
+    type PropertyWithDate = { 
+      id: string; 
+      'Estimated Visit Date': string | null; 
+      reno_phase: string | null; 
+      'Set Up Status': string | null; 
+      airtable_property_id: string | null;
+    };
+    
+    const typedProperties = properties as unknown as PropertyWithDate[];
+    
+    console.log(`📊 Found ${typedProperties.length} properties in upcoming-settlements phase\n`);
     console.log('='.repeat(60));
     
-    properties.forEach((p, index) => {
+    typedProperties.forEach((p, index) => {
       console.log(`\n${index + 1}. Property ID: ${p.id}`);
       console.log(`   Estimated Visit Date: ${p['Estimated Visit Date'] || 'NO DATE'}`);
       console.log(`   Set Up Status: ${p['Set Up Status'] || 'null'}`);
@@ -45,7 +55,7 @@ async function checkUpcomingSettlements() {
       }
     });
     
-    const withDates = properties.filter(p => p['Estimated Visit Date']);
+    const withDates = typedProperties.filter(p => p['Estimated Visit Date']);
     if (withDates.length > 0) {
       console.log(`\n\n⚠️  Found ${withDates.length} properties in upcoming-settlements WITH dates that should be migrated!`);
     } else {

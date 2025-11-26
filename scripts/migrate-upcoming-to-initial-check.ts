@@ -35,8 +35,19 @@ async function migrateUpcomingToInitialCheck() {
       return;
     }
     
+    type PropertyWithDate = { 
+      id: string; 
+      'Estimated Visit Date': string | null; 
+      airtable_property_id: string | null; 
+      'Unique ID From Engagements': string | null; 
+      'Set Up Status': string | null; 
+      reno_phase: string | null;
+    };
+    
+    const typedAllProperties = (allProperties || []) as unknown as PropertyWithDate[];
+    
     // Filtrar propiedades que deberían estar en initial-check pero no lo están
-    const properties = (allProperties || []).filter(p => {
+    const properties = typedAllProperties.filter(p => {
       const hasDate = !!p['Estimated Visit Date'];
       const currentPhase = p.reno_phase;
       const setUpStatus = (p['Set Up Status'] || '').toLowerCase().trim();

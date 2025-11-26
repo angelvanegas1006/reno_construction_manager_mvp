@@ -31,11 +31,21 @@ async function diagnoseProperties() {
       return;
     }
     
-    console.log(`📊 Found ${properties.length} properties with Estimated Visit Date\n`);
+    type PropertyWithDate = { 
+      id: string; 
+      'Estimated Visit Date': string | null; 
+      reno_phase: string | null; 
+      'Set Up Status': string | null; 
+      airtable_property_id: string | null;
+    };
+    
+    const typedProperties = properties as unknown as PropertyWithDate[];
+    
+    console.log(`📊 Found ${typedProperties.length} properties with Estimated Visit Date\n`);
     
     // Agrupar por fase
-    const byPhase: Record<string, typeof properties> = {};
-    properties.forEach(p => {
+    const byPhase: Record<string, PropertyWithDate[]> = {};
+    typedProperties.forEach(p => {
       const phase = p.reno_phase || 'null';
       if (!byPhase[phase]) {
         byPhase[phase] = [];
@@ -56,7 +66,7 @@ async function diagnoseProperties() {
     // Identificar propiedades que deberían estar en initial-check
     console.log('\n\n⚠️  Properties that should be in initial-check:');
     console.log('='.repeat(60));
-    const shouldBeInInitialCheck = properties.filter(p => {
+    const shouldBeInInitialCheck = typedProperties.filter(p => {
       const phase = p.reno_phase;
       const setUpStatus = (p['Set Up Status'] || '').toLowerCase().trim();
       return phase !== 'initial-check' && 
