@@ -48,3 +48,5 @@ Para agregar sincronización de otras fases, necesitarás:
 - Las propiedades que ya no cumplen los filtros de la view permanecen en Supabase en su fase actual (no se eliminan automáticamente)
 
 
+
+

@@ -222,3 +222,5 @@ Una vez completados todos los pasos, podrás:
 - ✅ Gestionar usuarios vía API
 - ✅ Sincronizar roles entre Supabase y Auth0
 
+
+

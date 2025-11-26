@@ -115,3 +115,5 @@ Después de configurar CORS correctamente:
 - ✅ No deberías ver más errores CORS en DevTools
 
 
+
+

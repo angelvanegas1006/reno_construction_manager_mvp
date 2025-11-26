@@ -5,8 +5,13 @@
  * Ejecutar con: npm run migrate:upcoming-to-initial-check
  */
 
+import { loadEnvConfig } from '@next/env';
 import { createAdminClient } from '../lib/supabase/admin';
 import { findRecordByPropertyId, updateAirtableWithRetry } from '../lib/airtable/client';
+
+// Load environment variables
+const projectDir = process.cwd();
+loadEnvConfig(projectDir);
 
 async function migrateUpcomingToInitialCheck() {
   console.log('🚀 Starting migration: Upcoming Settlements → Initial Check\n');
@@ -15,14 +20,36 @@ async function migrateUpcomingToInitialCheck() {
   const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
   
   try {
-    // 1. Buscar todas las propiedades en upcoming-settlements que tengan Estimated Visit Date
-    console.log('📋 Step 1: Finding properties in upcoming-settlements with Estimated Visit Date...');
+    // 1. Buscar propiedades que deberían estar en initial-check:
+    //    - Propiedades con Estimated Visit Date que NO estén en initial-check
+    //    - Propiedades con Set Up Status = "initial check" que estén en upcoming-settlements
+    console.log('📋 Step 1: Finding properties that should be in initial-check...');
     
-    const { data: properties, error: fetchError } = await supabase
+    const { data: allProperties, error: fetchError } = await supabase
       .from('properties')
-      .select('id, "Estimated Visit Date", airtable_property_id, "Unique ID From Engagements", "Set Up Status"')
-      .eq('reno_phase', 'upcoming-settlements')
-      .not('Estimated Visit Date', 'is', null);
+      .select('id, "Estimated Visit Date", airtable_property_id, "Unique ID From Engagements", "Set Up Status", reno_phase')
+      .or('Estimated Visit Date.not.is.null,Set Up Status.eq.initial check,Set Up Status.eq.Initial Check');
+    
+    if (fetchError) {
+      console.error('❌ Error fetching properties:', fetchError);
+      return;
+    }
+    
+    // Filtrar propiedades que deberían estar en initial-check pero no lo están
+    const properties = (allProperties || []).filter(p => {
+      const hasDate = !!p['Estimated Visit Date'];
+      const currentPhase = p.reno_phase;
+      const setUpStatus = (p['Set Up Status'] || '').toLowerCase().trim();
+      const isInitialCheckStatus = setUpStatus === 'initial check' || setUpStatus === 'check inicial';
+      
+      // Debe migrarse si:
+      // 1. Tiene fecha Y no está en initial-check
+      // 2. Tiene Set Up Status = "initial check" Y está en upcoming-settlements
+      return (
+        (hasDate && currentPhase !== 'initial-check') ||
+        (isInitialCheckStatus && currentPhase === 'upcoming-settlements')
+      );
+    });
     
     if (fetchError) {
       console.error('❌ Error fetching properties:', fetchError);
@@ -52,9 +79,16 @@ async function migrateUpcomingToInitialCheck() {
       console.log(`   Estimated Visit Date: ${estimatedVisitDate}`);
       
       try {
-        // 2a. Verificar si ya existe una visita para esta fecha
-        const visitDate = new Date(estimatedVisitDate);
-        visitDate.setHours(9, 0, 0, 0); // Set to 9 AM
+        // 2a. Crear visita solo si hay fecha válida
+        if (!estimatedVisitDate) {
+          console.log(`   ℹ️  No Estimated Visit Date, skipping visit creation`);
+        } else {
+          // Verificar si ya existe una visita para esta fecha
+          const visitDate = new Date(estimatedVisitDate);
+          if (isNaN(visitDate.getTime())) {
+            console.log(`   ⚠️  Invalid date format, skipping visit creation`);
+          } else {
+            visitDate.setHours(9, 0, 0, 0); // Set to 9 AM
         
         const { data: existingVisits } = await supabase
           .from('property_visits')
@@ -65,34 +99,46 @@ async function migrateUpcomingToInitialCheck() {
           .lte('visit_date', new Date(visitDate.getTime() + 24 * 60 * 60 * 1000).toISOString())
           .limit(1);
         
-        // 2b. Crear visita si no existe
-        if (!existingVisits || existingVisits.length === 0) {
-          const { error: visitError } = await supabase
-            .from('property_visits')
-            .insert({
-              property_id: propertyId,
-              visit_date: visitDate.toISOString(),
-              visit_type: 'initial-check',
-              notes: null,
-            });
-          
-          if (visitError) {
-            console.error(`   ❌ Error creating visit:`, visitError);
-            errors.push(`${propertyId}: Visit creation failed - ${visitError.message}`);
-          } else {
-            console.log(`   ✅ Created visit for ${visitDate.toISOString()}`);
-            visitCreatedCount++;
+            // 2b. Crear visita si no existe
+            const { data: existingVisits } = await supabase
+              .from('property_visits')
+              .select('id')
+              .eq('property_id', propertyId)
+              .eq('visit_type', 'initial-check')
+              .gte('visit_date', new Date(visitDate.getTime() - 24 * 60 * 60 * 1000).toISOString())
+              .lte('visit_date', new Date(visitDate.getTime() + 24 * 60 * 60 * 1000).toISOString())
+              .limit(1);
+            
+            if (!existingVisits || existingVisits.length === 0) {
+              const { error: visitError } = await supabase
+                .from('property_visits')
+                .insert({
+                  property_id: propertyId,
+                  visit_date: visitDate.toISOString(),
+                  visit_type: 'initial-check',
+                  notes: null,
+                });
+              
+              if (visitError) {
+                console.error(`   ❌ Error creating visit:`, visitError);
+                errors.push(`${propertyId}: Visit creation failed - ${visitError.message}`);
+              } else {
+                console.log(`   ✅ Created visit for ${visitDate.toISOString()}`);
+                visitCreatedCount++;
+              }
+            } else {
+              console.log(`   ℹ️  Visit already exists, skipping`);
+              visitSkippedCount++;
+            }
           }
-        } else {
-          console.log(`   ℹ️  Visit already exists, skipping`);
-          visitSkippedCount++;
         }
         
-        // 2c. Actualizar Set Up Status a 'initial check' en Supabase
+        // 2c. Actualizar Set Up Status y reno_phase a 'initial check' en Supabase
         const { error: updateError } = await supabase
           .from('properties')
           .update({
             'Set Up Status': 'initial check',
+            reno_phase: 'initial-check',
             updated_at: new Date().toISOString(),
           })
           .eq('id', propertyId);

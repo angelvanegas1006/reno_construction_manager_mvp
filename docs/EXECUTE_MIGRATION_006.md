@@ -80,3 +80,5 @@ Después de ejecutar esta migración, necesitarás:
 3. Actualizar la UI para mostrar recordatorios pendientes
 
 
+
+

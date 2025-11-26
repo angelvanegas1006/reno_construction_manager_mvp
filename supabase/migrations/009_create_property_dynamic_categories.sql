@@ -50,3 +50,5 @@ COMMENT ON COLUMN property_dynamic_categories.category_name IS 'Nombre de la cat
 COMMENT ON COLUMN property_dynamic_categories.activities_text IS 'Texto descriptivo de las actividades incluidas en esta categoría';
 COMMENT ON COLUMN property_dynamic_categories.percentage IS 'Porcentaje de progreso de la categoría (0-100). No se puede retroceder, solo avanzar.';
 
+
+

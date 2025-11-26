@@ -74,3 +74,5 @@ Deberías ver estas columnas:
 - Los tipos ENUM se crean automáticamente si no existen
 
 
+
+

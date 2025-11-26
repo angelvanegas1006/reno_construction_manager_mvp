@@ -81,3 +81,5 @@ Todas tienen:
 - Las propiedades se actualizarán automáticamente cada vez que se ejecute el cron job (6 veces al día)
 
 
+
+

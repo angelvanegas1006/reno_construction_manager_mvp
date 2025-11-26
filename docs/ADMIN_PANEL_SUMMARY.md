@@ -294,3 +294,5 @@ Ahora tienes un sistema completo de gestión de usuarios vía API que:
 - ✅ Asigna roles automáticamente
 - ✅ Está protegido con verificación de admin
 
+
+

@@ -44,21 +44,65 @@ export async function syncUpcomingSettlementsFromAirtable(): Promise<{
       .filter(Boolean) as string[];
 
     if (propertyIds.length > 0) {
-      console.log(`[Upcoming Settlements Sync] Forcing reno_phase to 'upcoming-settlements' for ${propertyIds.length} properties...`);
+      console.log(`[Upcoming Settlements Sync] Checking ${propertyIds.length} properties for phase assignment...`);
       
-      // Actualizar todas las propiedades sincronizadas a fase 'upcoming-settlements'
-      const { error: updateError } = await supabase
+      // Obtener propiedades con sus fechas estimadas de visita
+      const { data: propertiesWithDates, error: fetchPropsError } = await supabase
         .from('properties')
-        .update({ 
-          reno_phase: 'upcoming-settlements',
-          updated_at: new Date().toISOString()
-        })
+        .select('id, "Estimated Visit Date", "Set Up Status"')
         .in('id', propertyIds);
 
-      if (updateError) {
-        console.error('[Upcoming Settlements Sync] Error updating reno_phase:', updateError);
+      if (fetchPropsError) {
+        console.error('[Upcoming Settlements Sync] Error fetching properties:', fetchPropsError);
       } else {
-        console.log(`[Upcoming Settlements Sync] ✅ Successfully set reno_phase to 'upcoming-settlements' for ${propertyIds.length} properties`);
+        // Separar propiedades con y sin fecha
+        const propertiesWithoutDate = propertiesWithDates?.filter(p => !p['Estimated Visit Date']) || [];
+        const propertiesWithDate = propertiesWithDates?.filter(p => p['Estimated Visit Date']) || [];
+
+        // Solo actualizar propiedades SIN fecha a 'upcoming-settlements'
+        if (propertiesWithoutDate.length > 0) {
+          const idsWithoutDate = propertiesWithoutDate.map(p => p.id);
+          const { error: updateError } = await supabase
+            .from('properties')
+            .update({ 
+              reno_phase: 'upcoming-settlements',
+              updated_at: new Date().toISOString()
+            })
+            .in('id', idsWithoutDate);
+
+          if (updateError) {
+            console.error('[Upcoming Settlements Sync] Error updating reno_phase:', updateError);
+          } else {
+            console.log(`[Upcoming Settlements Sync] ✅ Set reno_phase to 'upcoming-settlements' for ${idsWithoutDate.length} properties without date`);
+          }
+        }
+
+        // Propiedades con fecha deben estar en 'initial-check' si no lo están ya
+        if (propertiesWithDate.length > 0) {
+          const idsWithDate = propertiesWithDate
+            .filter(p => {
+              const setUpStatus = (p['Set Up Status'] || '').toLowerCase();
+              return setUpStatus !== 'initial check' && setUpStatus !== 'check inicial';
+            })
+            .map(p => p.id);
+
+          if (idsWithDate.length > 0) {
+            const { error: updateWithDateError } = await supabase
+              .from('properties')
+              .update({ 
+                reno_phase: 'initial-check',
+                'Set Up Status': 'initial check',
+                updated_at: new Date().toISOString()
+              })
+              .in('id', idsWithDate);
+
+            if (updateWithDateError) {
+              console.error('[Upcoming Settlements Sync] Error updating properties with date:', updateWithDateError);
+            } else {
+              console.log(`[Upcoming Settlements Sync] ✅ Set reno_phase to 'initial-check' for ${idsWithDate.length} properties with date`);
+            }
+          }
+        }
       }
 
       // Limpiar propiedades que ya no están en esta view pero estaban en fase 'upcoming-settlements'

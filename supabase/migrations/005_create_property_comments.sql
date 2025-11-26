@@ -50,3 +50,5 @@ COMMENT ON COLUMN property_comments.synced_to_airtable IS 'Indica si el comentar
 COMMENT ON COLUMN property_comments.airtable_sync_date IS 'Fecha en que se sincronizó con Airtable';
 
 
+
+

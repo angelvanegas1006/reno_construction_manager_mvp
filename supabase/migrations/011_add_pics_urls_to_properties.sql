@@ -13,3 +13,5 @@ ON properties USING GIN (pics_urls);
 -- Comentario para documentación
 COMMENT ON COLUMN properties.pics_urls IS 'URLs de las fotos de la propiedad sincronizadas desde Airtable. Field ID: fldq1FLXBToYEY9W3';
 
+
+

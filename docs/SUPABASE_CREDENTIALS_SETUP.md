@@ -66,3 +66,5 @@ Para configurar en Vercel, necesitas:
 - ⚠️ `SUPABASE_SERVICE_ROLE_KEY` = (opcional, pero recomendado)
 
 
+
+

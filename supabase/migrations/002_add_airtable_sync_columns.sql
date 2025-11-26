@@ -20,3 +20,5 @@ COMMENT ON COLUMN properties.stage IS 'Stage from Airtable (e.g., Presettlement 
 COMMENT ON COLUMN properties.property_unique_id IS 'Property Unique ID from Airtable';
 
 
+
+
