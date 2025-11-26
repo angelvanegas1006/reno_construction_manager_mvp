@@ -81,7 +81,7 @@ export function VistralLogo({ className, variant }: VistralLogoProps) {
           alt="Vistral Logo"
           width={32}
           height={32}
-          className="object-contain"
+          className="object-contain w-full h-full"
           priority
           unoptimized
         />

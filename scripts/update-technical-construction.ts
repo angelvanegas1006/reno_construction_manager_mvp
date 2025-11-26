@@ -71,21 +71,19 @@ async function main() {
 
     console.log(`📋 Encontradas ${supabaseProperties.length} propiedades en Supabase\n`);
 
-    // Obtener Technical Constructor de Properties en Airtable
-    console.log('📥 Obteniendo Technical Constructor de Properties en Airtable...\n');
+    // Obtener Technical construction directamente de Transactions en Airtable
+    // El campo está en Transactions con field ID fldtTmer8awVKDx7Y
+    console.log('📥 Obteniendo Technical construction directamente de Transactions en Airtable...\n');
     
     const transactionsTable = base('tblmX19OTsj3cTHmA');
-    const propertiesTable = base('Properties');
     
-    // Mapa: Unique ID -> Technical Constructor
+    // Mapa: Unique ID -> Technical construction
     const technicalConstructorMap = new Map<string, string | null>();
-    const propertiesIdsToFetch = new Set<string>();
-    const uniqueIdToPropertyIdMap = new Map<string, string>(); // Unique ID -> Property ID en Airtable
 
-    // Primera pasada: obtener todos los links a Properties y mapear Unique IDs
+    // Obtener Technical construction directamente de Transactions
     await transactionsTable
       .select({
-        // Obtener todos los campos
+        // Obtener todos los campos para incluir Technical construction (field ID: fldtTmer8awVKDx7Y)
       })
       .eachPage((records, fetchNextPage) => {
         records.forEach((record) => {
@@ -97,46 +95,20 @@ async function main() {
           const uniqueId = Array.isArray(uniqueIdValue) ? uniqueIdValue[0] : uniqueIdValue;
           if (!uniqueId) return;
 
-          const propertiesLinks = record.fields['Properties'];
-          if (Array.isArray(propertiesLinks) && propertiesLinks.length > 0) {
-            const firstPropertyId = propertiesLinks[0];
-            propertiesIdsToFetch.add(firstPropertyId);
-            uniqueIdToPropertyIdMap.set(uniqueId, firstPropertyId);
+          // Buscar Technical construction por field ID primero, luego por nombre
+          const technicalConstruction = record.fields['fldtTmer8awVKDx7Y'] || 
+                                       record.fields['Technical construction'] ||
+                                       record.fields['Technical Constructor'] ||
+                                       null;
+          
+          if (technicalConstruction !== null && technicalConstruction !== undefined) {
+            technicalConstructorMap.set(uniqueId, String(technicalConstruction));
           }
         });
         fetchNextPage();
       });
 
-    console.log(`📥 Encontrados ${propertiesIdsToFetch.size} links únicos a Properties\n`);
-
-    // Segunda pasada: obtener Technical Constructor de Properties
-    const propertiesIdsArray = Array.from(propertiesIdsToFetch);
-    
-    for (let i = 0; i < propertiesIdsArray.length; i += 50) {
-      const batch = propertiesIdsArray.slice(i, i + 50);
-      const formula = `OR(${batch.map(id => `RECORD_ID() = "${id}"`).join(', ')})`;
-      
-      await propertiesTable
-        .select({
-          filterByFormula: formula,
-        })
-        .eachPage((records, fetchNextPage) => {
-          records.forEach((record) => {
-            const technicalConstructor = record.fields['Technical Constructor'] || 
-                                       record.fields['Technical construction'] ||
-                                       null;
-            // Mapear de Property ID a Unique ID
-            uniqueIdToPropertyIdMap.forEach((propertyId, uniqueId) => {
-              if (propertyId === record.id) {
-                technicalConstructorMap.set(uniqueId, technicalConstructor ? String(technicalConstructor) : null);
-              }
-            });
-          });
-          fetchNextPage();
-        });
-    }
-
-    console.log(`✅ Mapeadas ${technicalConstructorMap.size} propiedades con Technical Constructor\n`);
+    console.log(`✅ Mapeadas ${technicalConstructorMap.size} propiedades con Technical construction desde Transactions\n`);
 
     // Actualizar propiedades en Supabase
     let updated = 0;

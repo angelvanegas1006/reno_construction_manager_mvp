@@ -46,7 +46,8 @@ export function RenoKanbanFilters({
       }
 
       // Technical construction - buscar en supabaseProperty
-      const technicalConstructor = (property as any).supabaseProperty?.["Technical construction"];
+      const technicalConstructor = (property as any).supabaseProperty?.["Technical construction"] ||
+                                   (property as any).supabaseProperty?.["Technical Constructor"];
       if (technicalConstructor && typeof technicalConstructor === 'string' && technicalConstructor.trim()) {
         technicalConstructors.add(technicalConstructor.trim());
       }

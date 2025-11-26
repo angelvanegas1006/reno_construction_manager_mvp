@@ -15,7 +15,7 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle }: 
   const { t } = useI18n();
 
   return (
-    <header className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-3 md:px-6 py-4">
+    <nav className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-3">
       {/* Mobile Layout */}
       <div className="flex flex-col gap-3 md:hidden">
         {/* Top row: Menu, Title */}
@@ -41,7 +41,7 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle }: 
               placeholder={t.kanban.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-background border-input"
+              className="pl-10 bg-background border-input rounded-full"
             />
           </div>
           <button
@@ -58,31 +58,32 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle }: 
 
       {/* Desktop Layout */}
       <div className="hidden md:flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">{t.property.management}</h1>
+        <h1 className="text-xl font-semibold text-foreground whitespace-nowrap">{t.property.management}</h1>
         
-        <div className="flex items-center gap-3 flex-1 max-w-md">
-          <div className="relative flex-1">
+        <div className="flex items-center gap-3 flex-1 max-w-2xl ml-auto">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder={t.kanban.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-background border-input"
+              className="pl-10 bg-background border-input rounded-full"
             />
           </div>
           <button
             onClick={() => {
               console.log("Filter - Coming soon");
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors flex-shrink-0"
             aria-label={t.kanban.filterProperties}
           >
             <FilterIcon className="h-4 w-4 text-foreground" />
           </button>
+          <div className="h-10 w-px bg-border"></div>
         </div>
       </div>
-    </header>
+    </nav>
   );
 }
 

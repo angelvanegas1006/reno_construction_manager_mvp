@@ -1,122 +1,97 @@
-# 📋 Instrucciones para crear Pull Request a `dev` de Angel
+# 📋 Instrucciones para Crear Pull Request
 
 ## ✅ Estado Actual
 
-- **Commit creado**: `df44219` - "feat: Task Reno In Progress - Integración completa con Airtable y categorías dinámicas"
-- **Rama**: `develop`
-- **Listo para push**: ✅
+- ✅ Commit realizado: `0d86fd6 - fix: Corregir sincronización de Estimated Visit Date a Airtable`
+- ✅ Archivos modificados:
+  - `app/reno/construction-manager/property/[id]/page.tsx`
+  - `lib/airtable/client.ts`
+  - `package.json`
+  - `scripts/debug-estimated-visit-sync.ts` (nuevo)
 
-## 🚀 Pasos para crear el PR
+## 🚀 Pasos para Crear el PR
 
-### 1️⃣ Hacer Push (requiere autenticación manual)
-
-Ejecuta en tu terminal:
+### 1. Hacer Push a tu Fork
 
 ```bash
+# Si tienes problemas de autenticación, usa SSH o configura un token
 git push origin develop
 ```
 
-**Cuando pida credenciales:**
-- **Username**: tu-usuario-de-github
-- **Password**: tu-personal-access-token (NO tu contraseña)
-
-> 💡 Si no tienes un Personal Access Token, créalo en: https://github.com/settings/tokens
-> - Selecciona permisos: `repo`
-> - Copia el token y úsalo como password
-
-### 2️⃣ Crear Pull Request
-
-Una vez hecho el push, crea el PR desde este enlace directo:
-
-🔗 **Enlace directo para crear PR:**
-```
-https://github.com/angelvanegas1006/reno_construction_manager_mvp/compare/dev...manuelPH:reno_construction_manager_mvp:develop
+**Alternativa con SSH** (si tienes SSH configurado):
+```bash
+# Verificar remoto
+git remote set-url origin git@github.com:manuelPH/reno_construction_manager_mvp.git
+git push origin develop
 ```
 
-O manualmente:
+### 2. Crear Pull Request en GitHub
+
 1. Ve a: https://github.com/angelvanegas1006/reno_construction_manager_mvp
-2. Click en **"Pull requests"** → **"New pull request"**
-3. Selecciona:
-   - **Base**: `dev` (de `angelvanegas1006`)
-   - **Compare**: `develop` (de `manuelPH`)
+2. Click en "Pull requests"
+3. Click en "New pull request"
+4. Selecciona:
+   - **Base**: `dev` (de angelvanegas1006)
+   - **Compare**: `develop` (de manuelPH)
+5. Click en "Create pull request"
 
-### 3️⃣ Título y Descripción del PR
+### 3. Título y Descripción del PR
 
-**Título sugerido:**
+**Título:**
 ```
-feat: Task Reno In Progress - Integración completa con Airtable y categorías dinámicas
+fix: Corregir sincronización de Estimated Visit Date a Airtable
 ```
 
-**Descripción sugerida:**
+**Descripción:**
+Copia el contenido de `PR_DESCRIPTION.md` o usa este resumen:
+
 ```markdown
-## 🎯 Objetivo
-Pull request de la task de **Reno In Progress** para que Angel pueda obtener los cambios en su laptop y continuar trabajando en ella.
+## 🐛 Problema
+Al actualizar "Estimated Visit Date" desde la aplicación, el campo no se sincronizaba a Airtable porque el código intentaba buscar el registro cuando ya teníamos el record ID directo.
 
-## ✨ Cambios Implementados
+## ✅ Solución
+- Detección automática: Si `airtable_property_id` empieza con "rec", se usa directamente como record ID
+- Mejoras en logging para facilitar debugging
+- Nuevo script de debug: `npm run debug:estimated-visit-sync`
 
-### 🔄 Integración con Airtable
-- ✅ Conectar fase **"Reno In Progress"** a Airtable (view: `viwQUOrLzUrScuU4k`)
-- ✅ Sincronizar campos: Tech Budget Attachment, Reno Start Date, Est. Reno End Date, Set Up Status, SetUp Team Notes
-- ✅ Conectar fase **"Furnishing & Cleaning"** a Airtable (view: `viw9NDUaeGIQDvugU`)
-- ✅ Conectar fase **"Final Check"** a Airtable (view: `viwnDG5TY6wjZhBL2`)
-
-### 📊 Categorías Dinámicas
-- ✅ Implementar sistema de categorías dinámicas para reportar progreso de obras
-- ✅ Ordenamiento numérico de categorías (ej: 1, 2, 8.1, 8.2, etc.)
-- ✅ Formato mejorado de actividades con división por números de actividad
-- ✅ Extracción automática de categorías desde PDF del presupuesto
-- ✅ Actualización manual de porcentajes de progreso
-
-### 🗄️ Base de Datos
-- ✅ Crear tabla `property_dynamic_categories` (migración 009)
-- ✅ Fix índice problemático `next_reno_steps` (migración 010)
-- ✅ Script de migración de datos de prod a dev
-
-### 📝 Scripts de Sincronización
-- ✅ `npm run sync:reno-in-progress` - Sincronizar propiedades en obras
-- ✅ `npm run sync:furnishing-cleaning` - Sincronizar limpieza y amoblamiento
-- ✅ `npm run sync:final-check` - Sincronizar final check
-
-### 📚 Documentación
-- ✅ Guías de configuración de entorno local
-- ✅ Documentación de migraciones
-- ✅ Instrucciones de uso de scripts
+## 📁 Archivos Modificados
+- `app/reno/construction-manager/property/[id]/page.tsx` - Detección inteligente de record ID
+- `lib/airtable/client.ts` - Logging mejorado
+- `package.json` - Nuevo script de debug
+- `scripts/debug-estimated-visit-sync.ts` - Script de diagnóstico
 
 ## 🧪 Testing
-- ✅ Probado en local con servidor de desarrollo
-- ✅ Sincronizaciones probadas con Airtable
-- ✅ Categorías dinámicas funcionando correctamente
-
-## 📋 Checklist para Angel
-- [ ] Ejecutar migraciones 009 y 010 en Supabase dev
-- [ ] Configurar variables de entorno en `.env.local`
-- [ ] Probar sincronizaciones: `npm run sync:reno-in-progress`
-- [ ] Verificar categorías dinámicas en UI
-
-## 🔗 Archivos Principales Modificados
-- `lib/airtable/sync-reno-in-progress.ts`
-- `lib/airtable/sync-furnishing-cleaning.ts`
-- `lib/airtable/sync-final-check.ts`
-- `components/reno/dynamic-categories-progress.tsx`
-- `app/reno/construction-manager/property/[id]/page.tsx`
-- `supabase/migrations/009_create_property_dynamic_categories.sql`
-- `supabase/migrations/010_fix_next_reno_steps_index.sql`
+✅ Verificado con script de debug en propiedad "C. Calvario, 41, 2º-A, Algezares (Murcia)"
+✅ Confirmado que la actualización a Airtable funciona correctamente
 ```
 
-## 📦 Resumen de Cambios
-
-- **10 archivos modificados**
-- **Integración completa de 3 fases del Kanban con Airtable**
-- **Sistema de categorías dinámicas implementado**
-- **2 migraciones de base de datos**
-- **Scripts de sincronización listos para usar**
+### 4. Etiquetas (Labels)
+- `bug`
+- `airtable`
+- `sync`
 
 ---
 
-💡 **Nota**: Este PR contiene todos los cambios necesarios para que Angel pueda continuar trabajando en la task de Reno In Progress desde su laptop.
+## 📝 Notas Adicionales
 
+- **Commits incluidos en el PR**: 
+  - `0d86fd6` - fix: Corregir sincronización de Estimated Visit Date a Airtable
+  - También incluye commits anteriores que ya estaban en `develop`
 
+- **Cambios en upstream/dev**: Hay algunos commits nuevos en `upstream/dev` que no están en `develop`, pero no deberían causar conflictos con este PR.
 
+- **Si hay conflictos**: 
+  ```bash
+  git fetch upstream dev
+  git merge upstream/dev
+  # Resolver conflictos si los hay
+  git push origin develop
+  ```
 
+---
 
+## 🔗 Enlaces Útiles
 
+- Repositorio base: https://github.com/angelvanegas1006/reno_construction_manager_mvp
+- Tu fork: https://github.com/manuelPH/reno_construction_manager_mvp
+- Comparar cambios: https://github.com/angelvanegas1006/reno_construction_manager_mvp/compare/dev...manuelPH:develop

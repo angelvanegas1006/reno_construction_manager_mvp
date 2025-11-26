@@ -153,8 +153,8 @@ async function debugBudgetPdfUrl() {
             }
           } else if (typeof value === 'object' && value !== null) {
             console.log(`   Objeto:`, JSON.stringify(value, null, 2));
-            if (value.url) {
-              console.log(`   ✅ URL encontrada en objeto: ${value.url}`);
+            if ((value as any).url) {
+              console.log(`   ✅ URL encontrada en objeto: ${(value as any).url}`);
             }
           }
           break;

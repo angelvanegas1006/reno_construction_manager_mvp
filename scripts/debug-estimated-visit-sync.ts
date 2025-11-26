@@ -124,8 +124,22 @@ async function debugEstimatedVisitSync(address?: string) {
       console.log(`   Field ID: fldIhqPOAFL52MMBn`);
       console.log(`   Valor: ${property['Estimated Visit Date']}`);
 
-      const syncSuccess = await updateAirtableWithRetry(tableName, recordId, {
-        'fldIhqPOAFL52MMBn': property['Estimated Visit Date'],
+      if (!property['Estimated Visit Date']) {
+        console.log('   ⚠️ La propiedad no tiene Estimated Visit Date. No se puede sincronizar.');
+        continue;
+      }
+
+      const estimatedVisitDate = property['Estimated Visit Date'];
+      if (!estimatedVisitDate) {
+        console.log('   ⚠️ La propiedad no tiene Estimated Visit Date. No se puede sincronizar.');
+        continue;
+      }
+
+      // Type assertion después de verificar que no es null
+      const visitDateString = estimatedVisitDate as string;
+
+      const syncSuccess = await (updateAirtableWithRetry as any)(tableName, recordId, {
+        'fldIhqPOAFL52MMBn': visitDateString,
       });
 
       if (syncSuccess) {

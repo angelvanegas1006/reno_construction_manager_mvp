@@ -53,7 +53,7 @@ export function NavbarL1({
   const { t } = useI18n();
 
   return (
-    <nav className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-4">
+    <nav className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-3">
       <div className="flex items-center justify-between gap-4">
         {/* Zona B: Nombre corto de la Clase (opcional) */}
         {classNameTitle && (

@@ -18,6 +18,9 @@ import { LanguageSelector } from "@/components/user/language-selector";
 import { useI18n } from "@/lib/i18n";
 import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
+import { HelpModal } from "@/components/reno/help-modal";
+import { extractNameFromEmail } from "@/lib/supabase/user-name-utils";
+import { useHelpConversations } from "@/hooks/useHelpConversations";
 
 // Navigation items for Reno Construction Manager
 const getNavigationItems = (t: any) => [
@@ -33,12 +36,13 @@ const getNavigationItems = (t: any) => [
   },
 ];
 
-const getSettingsItems = (t: any) => [
+const getSettingsItems = (t: any, unreadCount: number = 0) => [
   {
     label: t.nav.notifications,
     href: "/reno/construction-manager/notifications",
     icon: Bell,
-    comingSoon: true,
+    comingSoon: false,
+    badge: unreadCount > 0 ? unreadCount : undefined,
   },
   {
     label: t.nav.help,
@@ -57,14 +61,23 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
   const { t } = useI18n();
   const { user: supabaseUser, signOut } = useSupabaseAuthContext();
   const { user: appUser, role } = useAppAuth();
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const { unreadCount } = useHelpConversations();
   
   // Use Supabase signOut, fallback to mock logout if needed
   const handleLogout = async () => {
     await signOut();
   };
   const navigationItems = getNavigationItems(t);
-  const settingsItems = getSettingsItems(t);
+  const settingsItems = getSettingsItems(t, unreadCount);
   const pathname = usePathname();
+  
+  // Get user name from email
+  const userName = supabaseUser?.email 
+    ? extractNameFromEmail(supabaseUser.email) 
+    : appUser?.email 
+    ? extractNameFromEmail(appUser.email)
+    : undefined;
   
   // Check if we're on any property page (detail or checklist)
   // Routes: /reno/construction-manager/property/[id] or /reno/construction-manager/property/[id]/checklist
@@ -128,7 +141,13 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
           <div className="flex flex-col h-full">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <VistralLogo variant={null} className="h-8" />
+              <Link 
+                href="/reno/construction-manager"
+                onClick={onMobileToggle}
+                className="flex-shrink-0 hover:opacity-80"
+              >
+                <VistralLogo variant={null} className="h-8" />
+              </Link>
               <button
                 onClick={onMobileToggle}
                 className="p-2 rounded-md hover:bg-accent"
@@ -256,9 +275,12 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         {!collapsed && (
-          <div className="flex-shrink-0 transition-all duration-300 ease-in-out">
+          <Link 
+            href="/reno/construction-manager"
+            className="flex-shrink-0 transition-all duration-300 ease-in-out hover:opacity-80 flex items-center"
+          >
             <VistralLogo variant={null} className="h-8" />
-          </div>
+          </Link>
         )}
         <button
           onClick={(e) => {
@@ -355,6 +377,24 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
               {settingsItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
+                
+                // Special handling for help item - open modal instead of link
+                if (item.label === t.nav.help) {
+                  return (
+                    <button
+                      key={item.href}
+                      onClick={() => setIsHelpModalOpen(true)}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors w-full text-left",
+                        "text-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      <span className="whitespace-nowrap truncate">{item.label}</span>
+                    </button>
+                  );
+                }
+                
                 return (
                   <Link
                     key={item.href}
@@ -369,7 +409,12 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   >
                     <Icon className="h-4 w-4 flex-shrink-0" />
                     <span className="whitespace-nowrap truncate">{item.label}</span>
-                    {item.comingSoon && (
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-xs font-semibold text-white">
+                        {item.badge}
+                      </span>
+                    )}
+                    {item.comingSoon && !item.badge && (
                       <span className="ml-auto text-xs text-muted-foreground">Pronto</span>
                     )}
                   </Link>
@@ -416,6 +461,14 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      
+      {/* Help Modal */}
+      <HelpModal
+        open={isHelpModalOpen}
+        onOpenChange={setIsHelpModalOpen}
+        userName={userName}
+        userRole={role || undefined}
+      />
     </aside>
   );
 }

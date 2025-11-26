@@ -28,8 +28,7 @@ export async function syncUpcomingSettlementsFromAirtable(): Promise<{
   // Primera fase: actualizar pics_urls normalmente
   const result = await syncPropertiesFromAirtable(
     AIRTABLE_TABLE_ID,
-    AIRTABLE_VIEW_ID_UPCOMING_SETTLEMENTS,
-    true // isFirstPhase = true
+    AIRTABLE_VIEW_ID_UPCOMING_SETTLEMENTS
   );
   
   // Después de sincronizar, forzar reno_phase a 'upcoming-settlements' para todas las propiedades de esta view

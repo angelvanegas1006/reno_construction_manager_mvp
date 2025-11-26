@@ -99,7 +99,7 @@ function convertSupabasePropertyToKanbanProperty(
     renoPhase: kanbanPhase,
     // Incluir el supabaseProperty original para acceso a todos los campos
     supabaseProperty: supabaseProperty as any,
-  };
+  } as Property & { supabaseProperty?: any };
 }
 
 export function useSupabaseKanbanProperties() {
