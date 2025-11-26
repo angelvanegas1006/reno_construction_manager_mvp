@@ -38,14 +38,14 @@ export function NavbarL2({
   actions = [],
 }: NavbarL2Props) {
   return (
-    <nav className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-4">
+    <nav className="border-b bg-card px-4 md:px-6 py-4">
       <div className="flex items-center justify-between gap-4">
         {/* Zona A: Botón de Retroceso */}
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             onClick={onBack}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 hover:bg-muted hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden md:inline">{backLabel}</span>

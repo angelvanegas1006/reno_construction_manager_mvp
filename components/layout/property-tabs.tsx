@@ -28,7 +28,7 @@ export function PropertyTabs({
   className,
 }: PropertyTabsProps) {
   return (
-    <div className={cn("border-b bg-card dark:bg-[var(--prophero-gray-900)]", className)}>
+    <div className={cn("border-b bg-card", className)}>
       <nav className="flex items-center gap-1 px-4 md:px-6 overflow-x-auto">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -40,7 +40,7 @@ export function PropertyTabs({
                 "relative px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap",
                 "border-b-2 border-transparent",
                 isActive
-                  ? "text-primary border-primary"
+                  ? "text-foreground border-foreground"
                   : "text-muted-foreground hover:text-foreground hover:border-muted-foreground"
               )}
             >

@@ -84,11 +84,14 @@ export function RenoPropertyCard({
     <div 
       data-property-id={property.id}
       className={cn(
-        "rounded-lg border-2 border-border bg-card dark:bg-[var(--prophero-gray-900)] p-4 shadow-sm w-full",
-        "transition-shadow duration-500 ease-out",
+        "rounded-lg border-2 border-border bg-card p-4 shadow-sm w-full",
+        "transition-all duration-300 ease-out",
         disabled 
           ? "cursor-not-allowed opacity-60" 
-          : "cursor-pointer hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.15)]",
+          : cn(
+              "cursor-pointer hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.15)]",
+              "dark:hover:bg-[#1a1a1a] dark:hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.6)]"
+            ),
         isHighlighted 
           ? "ring-2 ring-[var(--prophero-blue-500)] shadow-lg border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30" 
           : "",

@@ -74,7 +74,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
   };
 
   return (
-    <Card className="bg-card dark:bg-[var(--prophero-gray-900)] h-full flex flex-col">
+    <Card className="bg-card h-full flex flex-col">
       <CardHeader className="flex-shrink-0">
         <CardTitle className="text-lg font-semibold">{t.dashboard.portfolio}</CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
@@ -106,7 +106,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
                       title={`${getStageLabel(column.stage)}: ${count}`}
                     />
                     {count > 0 && (
-                      <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-semibold text-foreground bg-card dark:bg-[var(--prophero-gray-900)] border border-border rounded-md px-2.5 py-1 shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 whitespace-nowrap pointer-events-none">
+                      <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-semibold text-foreground bg-card border border-border rounded-md px-2.5 py-1 shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 whitespace-nowrap pointer-events-none">
                         {count}
                       </span>
                     )}

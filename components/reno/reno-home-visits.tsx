@@ -49,7 +49,7 @@ export function RenoHomeVisits({
   };
 
   return (
-    <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
+    <Card className="bg-card bg-card">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-lg font-semibold">{t.dashboard.upcomingVisits}</CardTitle>

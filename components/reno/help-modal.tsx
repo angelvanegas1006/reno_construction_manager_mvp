@@ -195,7 +195,7 @@ export function HelpModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-card">
         <DialogHeader>
           <DialogTitle>{t.help.title}</DialogTitle>
           <DialogDescription>

@@ -518,7 +518,7 @@ export function VisitsCalendar({
   }, [getDateRange]);
 
   return (
-    <Card className="bg-card dark:bg-[var(--prophero-gray-900)] col-span-2">
+    <Card className="bg-card bg-card col-span-2">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-lg font-semibold">

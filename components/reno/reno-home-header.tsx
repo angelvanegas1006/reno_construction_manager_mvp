@@ -14,7 +14,7 @@ export function RenoHomeHeader({ searchQuery, setSearchQuery }: RenoHomeHeaderPr
   const { t } = useI18n();
 
   return (
-    <header className="border-b border-border bg-card dark:bg-[var(--prophero-gray-900)] px-3 md:px-6 pt-2 pb-4">
+    <header className="border-b border-border bg-card px-3 md:px-6 pt-2 pb-4">
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <h1 className="text-xl md:text-2xl font-semibold">{t.nav.home}</h1>
         

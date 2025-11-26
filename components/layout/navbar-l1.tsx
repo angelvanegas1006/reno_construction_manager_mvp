@@ -53,7 +53,7 @@ export function NavbarL1({
   const { t } = useI18n();
 
   return (
-    <nav className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-3">
+    <nav className="border-b bg-card px-4 md:px-6 py-3">
       <div className="flex items-center justify-between gap-4">
         {/* Zona B: Nombre corto de la Clase (opcional) */}
         {classNameTitle && (
@@ -80,7 +80,7 @@ export function NavbarL1({
           {onFilterClick && (
             <button
               onClick={onFilterClick}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors flex-shrink-0"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-muted focus:bg-muted focus:outline-none focus:ring-2 focus:ring-border transition-colors flex-shrink-0"
               aria-label={t.kanban.filterProperties}
             >
               <FilterIcon className="h-4 w-4 text-foreground" />

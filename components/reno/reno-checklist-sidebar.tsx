@@ -83,7 +83,7 @@ export function RenoChecklistSidebar({
   ];
 
   return (
-    <div className="hidden md:flex flex-col h-screen w-80 border-r bg-card dark:bg-[var(--prophero-gray-900)]">
+    <div className="hidden md:flex flex-col h-screen w-80 border-r bg-card">
       {/* Header */}
       <div className="p-4 border-b">
         <div className="flex items-start justify-between gap-2 mb-4">
@@ -144,7 +144,7 @@ export function RenoChecklistSidebar({
                             "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between",
                             activeSection === section.sectionId && !showSubItems
                               ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium"
-                              : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] hover:text-foreground"
+                              : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] hover:text-foreground"
                           )}
                         >
                           <span>{section.name}</span>
@@ -168,7 +168,7 @@ export function RenoChecklistSidebar({
                                     "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between",
                                     activeSection === subItemId
                                       ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium"
-                                      : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] hover:text-foreground"
+                                      : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] hover:text-foreground"
                                   )}
                                 >
                                   <span>{subItemName}</span>

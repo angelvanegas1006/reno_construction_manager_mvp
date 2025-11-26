@@ -336,7 +336,7 @@ export default function RenoPropertyDetailPage() {
       // Early return if property is null
       if (!property) {
         return (
-          <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+          <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
             <p className="text-muted-foreground">{t.propertyPage.loadingProperty}</p>
           </div>
         );
@@ -352,7 +352,7 @@ export default function RenoPropertyDetailPage() {
               <PropertyActionTab property={property} supabaseProperty={supabaseProperty} />
               
               {/* Checklist CTA Card */}
-              <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border-2 border-primary/20 p-8 shadow-lg">
+              <div className="bg-card bg-card rounded-lg border-2 border-primary/20 p-8 shadow-lg">
                 <div className="text-center space-y-4">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
                     <svg
@@ -399,7 +399,7 @@ export default function RenoPropertyDetailPage() {
           return (
             <div className="space-y-6">
               {/* Editable Fields for Upcoming Settlements */}
-              <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+              <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
                 <div className="space-y-6">
                   {/* Estimated Visit Date */}
                   <div className="space-y-2">
@@ -485,7 +485,7 @@ export default function RenoPropertyDetailPage() {
         return propertyId ? <PropertyStatusTab propertyId={propertyId} /> : null;
       case "presupuesto-reforma":
         return (
-          <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+          <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
             <p className="text-muted-foreground">{t.propertyPage.renovationBudget} - {t.propertyPage.comingSoon}</p>
           </div>
         );
@@ -566,7 +566,7 @@ export default function RenoPropertyDetailPage() {
         {/* Content with Sidebar */}
         <div className="flex flex-1 overflow-hidden">
           {/* Main Content */}
-          <div className="flex-1 overflow-y-auto p-6 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)]">
+          <div className="flex-1 overflow-y-auto p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
             <div className="max-w-4xl mx-auto">
               {renderTabContent()}
             </div>

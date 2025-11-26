@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 
@@ -67,32 +68,12 @@ export function RenoKanbanFilters({
     };
   }, [properties]);
 
-  const handleToggleRenovator = (renovatorName: string) => {
-    const newFilters = { ...filters };
-    if (newFilters.renovatorNames.includes(renovatorName)) {
-      newFilters.renovatorNames = newFilters.renovatorNames.filter(n => n !== renovatorName);
-    } else {
-      newFilters.renovatorNames = [...newFilters.renovatorNames, renovatorName];
-    }
-    onFiltersChange(newFilters);
-  };
-
   const handleToggleTechnicalConstructor = (technicalConstructor: string) => {
     const newFilters = { ...filters };
     if (newFilters.technicalConstructors.includes(technicalConstructor)) {
       newFilters.technicalConstructors = newFilters.technicalConstructors.filter(t => t !== technicalConstructor);
     } else {
       newFilters.technicalConstructors = [...newFilters.technicalConstructors, technicalConstructor];
-    }
-    onFiltersChange(newFilters);
-  };
-
-  const handleToggleAreaCluster = (areaCluster: string) => {
-    const newFilters = { ...filters };
-    if (newFilters.areaClusters.includes(areaCluster)) {
-      newFilters.areaClusters = newFilters.areaClusters.filter(a => a !== areaCluster);
-    } else {
-      newFilters.areaClusters = [...newFilters.areaClusters, areaCluster];
     }
     onFiltersChange(newFilters);
   };
@@ -122,29 +103,23 @@ export function RenoKanbanFilters({
 
         <div className="space-y-6 py-4">
           {/* Renovator Name */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">{t.kanban.renovatorName || "Renovator Name"}</Label>
-            <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
-              {uniqueValues.renovatorNames.length === 0 ? (
+          <div className="space-y-4 pt-4">
+            {uniqueValues.renovatorNames.length === 0 ? (
+              <>
+                <Label className="text-base font-semibold">{t.kanban.renovatorName || "Renovator Name"}</Label>
                 <p className="text-sm text-muted-foreground">{t.kanban.noValuesAvailable || "No hay valores disponibles"}</p>
-              ) : (
-                uniqueValues.renovatorNames.map((name) => (
-                  <div key={name} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`renovator-${name}`}
-                      checked={filters.renovatorNames.includes(name)}
-                      onCheckedChange={() => handleToggleRenovator(name)}
-                    />
-                    <label
-                      htmlFor={`renovator-${name}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                    >
-                      {name}
-                    </label>
-                  </div>
-                ))
-              )}
-            </div>
+              </>
+            ) : (
+              <MultiCombobox
+                label={t.kanban.renovatorName || "Renovator Name"}
+                options={uniqueValues.renovatorNames}
+                selectedValues={filters.renovatorNames}
+                onSelectionChange={(values) => {
+                  onFiltersChange({ ...filters, renovatorNames: values });
+                }}
+                placeholder={t.kanban.searchRenovator || "Buscar renovador..."}
+              />
+            )}
           </div>
 
           {/* Technical Constructor */}
@@ -174,29 +149,23 @@ export function RenoKanbanFilters({
           </div>
 
           {/* Area Cluster */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">{t.kanban.areaCluster || "Area Cluster"}</Label>
-            <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3">
-              {uniqueValues.areaClusters.length === 0 ? (
+          <div className="space-y-4">
+            {uniqueValues.areaClusters.length === 0 ? (
+              <>
+                <Label className="text-base font-semibold">{t.kanban.areaCluster || "Area Cluster"}</Label>
                 <p className="text-sm text-muted-foreground">{t.kanban.noValuesAvailable || "No hay valores disponibles"}</p>
-              ) : (
-                uniqueValues.areaClusters.map((cluster) => (
-                  <div key={cluster} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`area-${cluster}`}
-                      checked={filters.areaClusters.includes(cluster)}
-                      onCheckedChange={() => handleToggleAreaCluster(cluster)}
-                    />
-                    <label
-                      htmlFor={`area-${cluster}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                    >
-                      {cluster}
-                    </label>
-                  </div>
-                ))
-              )}
-            </div>
+              </>
+            ) : (
+              <MultiCombobox
+                label={t.kanban.areaCluster || "Area Cluster"}
+                options={uniqueValues.areaClusters}
+                selectedValues={filters.areaClusters}
+                onSelectionChange={(values) => {
+                  onFiltersChange({ ...filters, areaClusters: values });
+                }}
+                placeholder={t.kanban.searchAreaCluster || "Buscar área..."}
+              />
+            )}
           </div>
         </div>
 

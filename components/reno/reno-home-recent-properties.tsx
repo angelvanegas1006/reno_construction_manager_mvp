@@ -110,7 +110,7 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
     <div
       key={item.renovatorName}
       onClick={() => handleRenovatorClick(item.renovatorName)}
-      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)] transition-colors cursor-pointer"
+      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer"
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Ranking position */}
@@ -145,7 +145,7 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
     <div
       key={property.id}
       onClick={() => handlePropertyClick(property)}
-      className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)] transition-colors cursor-pointer"
+      className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer"
     >
       <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
       <div className="flex-1 min-w-0">
@@ -164,7 +164,7 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
 
   return (
     <>
-      <Card className="bg-card dark:bg-[var(--prophero-gray-900)] h-full flex flex-col">
+      <Card className="bg-card h-full flex flex-col">
         <CardHeader className="flex-shrink-0">
           <CardTitle className="text-lg font-semibold">{t.dashboard.activeWorksByRenovator}</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
@@ -183,7 +183,7 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
                   <div
                     key={item.renovatorName}
                     onClick={() => handleRenovatorClickInWidget(item.renovatorName)}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)] transition-colors cursor-pointer"
+                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       {/* Ranking position */}

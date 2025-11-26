@@ -177,18 +177,18 @@ input[type="range"].slider-blue::-moz-range-thumb {
 
 .dark {
   /* Dark Mode Color Scheme */
-  /* Background bg */
-  --background: #212121; /* bg.page - secondary.950 */
-  --secondary: #3d3d3d; /* bg.elevated - secondary.900 */
-  --card: #454545; /* bg.card - secondary.800 */
-  --popover: #3d3d3d; /* bg.elevated - secondary.900 */
+  /* Background bg - Negro puro */
+  --background: #000000; /* Fondo negro puro */
+  --secondary: #1a1a1a; /* Gris muy oscuro para elementos elevados */
+  --card: #1f1f1f; /* Gris oscuro para cards */
+  --popover: #1a1a1a; /* Gris muy oscuro para popovers */
   
   /* Foreground fg */
   --foreground: #ffffff; /* fg.primary - base.white */
   --card-foreground: #ffffff; /* fg.primary */
   --popover-foreground: #ffffff; /* fg.primary */
   --secondary-foreground: #ffffff; /* fg.primary */
-  --muted-foreground: #d1d1d1; /* fg.secondary - secondary.200 */
+  --muted-foreground: #a3a3a3; /* fg.secondary - gris medio */
   
   /* Brand */
   --primary: #316eff; /* fg.brand - primary.500 */
@@ -196,16 +196,16 @@ input[type="range"].slider-blue::-moz-range-thumb {
   --ring: #316eff; /* border.brand - primary.500 */
   
   /* States - reduced saturation */
-  --destructive: #f87171; /* Reduced saturation - using 400 instead of 700 */
+  --destructive: #dc2626; /* Rojo más oscuro para mejor contraste en dark mode */
   --destructive-foreground: #ffffff;
   --accent: var(--prophero-blue-900);
   --accent-foreground: #ffffff;
-  --muted: #3d3d3d; /* bg.elevated - secondary.900 */
+  --muted: #262626; /* bg.elevated - gris oscuro */
   
-  /* Borders */
-  --border: #4f4f4f; /* border.default - secondary.700 */
-  --input: #4f4f4f; /* border.default - secondary.700 */
-  --sidebar-border: #4f4f4f; /* border.default - secondary.700 */
+  /* Borders - Grises para contraste con fondo negro */
+  --border: #333333; /* border.default - gris medio oscuro */
+  --input: #333333; /* border.default - gris medio oscuro */
+  --sidebar-border: #333333; /* border.default - gris medio oscuro */
   
   /* Charts */
   --chart-1: var(--prophero-blue-400);
@@ -214,12 +214,12 @@ input[type="range"].slider-blue::-moz-range-thumb {
   --chart-4: var(--prophero-blue-100);
   --chart-5: var(--prophero-blue-50);
   
-  /* Sidebar */
-  --sidebar: #3d3d3d; /* bg.elevated - secondary.900 */
+  /* Sidebar - Grises oscuros */
+  --sidebar: #1a1a1a; /* bg.elevated - gris muy oscuro */
   --sidebar-foreground: #ffffff; /* fg.primary */
   --sidebar-primary: #316eff; /* fg.brand - primary.500 */
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #454545; /* bg.card - secondary.800 */
+  --sidebar-accent: #262626; /* bg.card - gris oscuro */
   --sidebar-accent-foreground: #ffffff; /* fg.primary */
   --sidebar-ring: #316eff; /* border.brand - primary.500 */
 }

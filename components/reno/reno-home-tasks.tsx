@@ -63,7 +63,7 @@ export function RenoHomeTasks({ checks, visits, onPropertyClick }: RenoHomeTasks
   };
 
   return (
-    <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
+    <Card className="bg-card bg-card">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">
           {activeTab === "checks" ? t.dashboard.checksForToday : t.dashboard.workStatusVisitsToday}

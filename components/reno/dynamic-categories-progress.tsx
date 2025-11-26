@@ -387,7 +387,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
 
   if (loading) {
     return (
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
         <p className="text-muted-foreground">Cargando categorías...</p>
       </div>
     );
@@ -396,7 +396,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
   // Show error state if there's an error
   if (error) {
     return (
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border border-destructive/50 p-6 shadow-sm">
+      <div className="bg-card bg-card rounded-lg border border-destructive/50 p-6 shadow-sm">
         <p className="text-destructive">Error al cargar categorías: {error}</p>
         <Button
           onClick={() => refetch()}
@@ -411,7 +411,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
 
   return (
     <>
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm space-y-6">
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Progreso de Obras</h2>
           {hasUnsavedChanges && (

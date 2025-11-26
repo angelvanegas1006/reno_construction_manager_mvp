@@ -53,7 +53,7 @@ export default function RenoConstructionManagerKanbanPage() {
         
         {/* Kanban Board */}
         <div 
-          className="flex-1 overflow-y-auto md:overflow-hidden p-3 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)]"
+          className="flex-1 overflow-y-auto md:overflow-hidden p-3 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]"
           data-scroll-container
         >
           <RenoKanbanBoard searchQuery={searchQuery} filters={filters} />

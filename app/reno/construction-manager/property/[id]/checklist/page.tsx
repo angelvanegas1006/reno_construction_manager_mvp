@@ -277,7 +277,7 @@ export default function RenoChecklistPage() {
         checklistLoading,
       });
       return (
-        <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+        <div className="bg-card rounded-lg border p-6 shadow-sm">
           <p className="text-muted-foreground">
             {!property ? 'Cargando propiedad...' : !checklist ? 'Cargando checklist...' : 'Cargando...'}
           </p>
@@ -802,7 +802,7 @@ export default function RenoChecklistPage() {
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <header className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-6 py-4">
+          <header className="border-b bg-card px-6 py-4">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -827,7 +827,7 @@ export default function RenoChecklistPage() {
           </header>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)]">
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
             <div className="max-w-4xl mx-auto">
               {renderActiveSection()}
             </div>
@@ -917,7 +917,7 @@ export default function RenoChecklistPage() {
         />
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
           <div className="max-w-4xl mx-auto">
             {renderActiveSection()}
           </div>

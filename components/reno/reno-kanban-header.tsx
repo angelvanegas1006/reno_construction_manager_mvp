@@ -15,7 +15,7 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle }: 
   const { t } = useI18n();
 
   return (
-    <nav className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-3">
+    <nav className="border-b bg-card px-4 md:px-6 py-3">
       {/* Mobile Layout */}
       <div className="flex flex-col gap-3 md:hidden">
         {/* Top row: Menu, Title */}

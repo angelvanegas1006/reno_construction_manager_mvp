@@ -100,8 +100,8 @@ export function PropertySummaryTab({
   return (
     <div className="space-y-6">
       {/* Image Gallery - Grid con imagen principal */}
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-        <h3 className="text-lg font-semibold mb-4">{t.property.gallery || "Galería de imágenes"}</h3>
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+        <h3 className="text-lg font-semibold mb-4 text-foreground">{t.property.gallery || "Galería de imágenes"}</h3>
         {hasPics ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             {/* Imagen principal (izquierda) - ocupa 2 columnas */}
@@ -207,7 +207,7 @@ export function PropertySummaryTab({
       {/* Modal para ver imagen en pantalla completa */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className={cn(
-          "p-0 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-900)]",
+          "p-0 bg-[var(--prophero-gray-50)] bg-card",
           isImageVertical ? "max-w-2xl w-auto h-auto" : "max-w-7xl w-full h-[90vh]"
         )}>
           <DialogTitle className="sr-only">
@@ -308,8 +308,8 @@ export function PropertySummaryTab({
       </Dialog>
 
       {/* Amenities Grid */}
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-        <h3 className="text-lg font-semibold mb-4">Amenities</h3>
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+        <h3 className="text-lg font-semibold mb-4 text-foreground">Amenities</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {usableArea && (
             <div className="flex items-center gap-2">
@@ -387,8 +387,8 @@ export function PropertySummaryTab({
       </div>
 
       {/* Property Information */}
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-        <h3 className="text-lg font-semibold mb-4">Información de la propiedad</h3>
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Información de la propiedad</h3>
         <div className="space-y-4">
           {propertyType && (
             <div className="pt-2 border-t first:border-t-0 first:pt-0">
@@ -419,8 +419,8 @@ export function PropertySummaryTab({
 
       {/* Economic Information */}
       {(salePrice || annualIBI || communityFees) && (
-        <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">Información económica</h3>
+        <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Información económica</h3>
           <div className="space-y-4">
             {salePrice && (
               <div className="pt-2 border-t first:border-t-0 first:pt-0">
@@ -454,7 +454,7 @@ export function PropertySummaryTab({
       )}
 
       {/* Legal and Community Status */}
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4">Estado legal y de la comunidad</h3>
         <div className="space-y-3">
           {/* Estos campos vendrían de Supabase/Airtable */}
@@ -482,7 +482,7 @@ export function PropertySummaryTab({
       </div>
 
       {/* Documentation */}
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4">Documentación</h3>
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">Los documentos se cargarán desde la checklist</p>
@@ -491,7 +491,7 @@ export function PropertySummaryTab({
       </div>
 
       {/* Location Map */}
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4">Ubicación del inmueble</h3>
         <PropertyMap 
           address={property.fullAddress} 

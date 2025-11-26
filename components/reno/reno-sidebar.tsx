@@ -134,7 +134,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
         {/* Mobile sidebar drawer */}
         <aside
           className={cn(
-            "fixed left-0 top-0 h-full w-80 bg-card dark:bg-[var(--prophero-gray-900)] border-r border-border z-50 transform transition-transform duration-300 ease-in-out md:hidden",
+            "fixed left-0 top-0 h-full w-80 bg-card border-r border-border z-50 transform transition-transform duration-300 ease-in-out md:hidden",
             isMobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
@@ -268,7 +268,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col h-screen w-16 border-r border-border bg-card dark:bg-[var(--prophero-gray-900)] transition-all duration-300",
+        "hidden md:flex flex-col h-screen w-16 border-r border-border bg-card transition-all duration-300",
         !collapsed && "md:w-64"
       )}
     >
@@ -289,7 +289,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
             setCollapsed((prev) => !prev);
           }}
           className={cn(
-            "p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] transition-colors flex-shrink-0",
+            "p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] transition-colors flex-shrink-0",
             collapsed ? "ml-auto" : ""
           )}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}

@@ -58,8 +58,8 @@ export function PropertyActionTab({
         <>
           {/* Set Up Status */}
           {setUpStatus && (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
                 <FileText className="h-5 w-5" />
                 {t.propertyAction.preparationStatus}
               </h3>
@@ -69,8 +69,8 @@ export function PropertyActionTab({
 
           {/* Next Reno Steps */}
           {nextRenoSteps && (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
                 <Wrench className="h-5 w-5" />
                 {t.propertyAction.nextRenoSteps}
               </h3>
@@ -80,8 +80,8 @@ export function PropertyActionTab({
 
           {/* Renovator Name */}
           {renovatorName && (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
                 <User className="h-5 w-5" />
                 {t.propertyAction.renovator}
               </h3>
@@ -91,8 +91,8 @@ export function PropertyActionTab({
 
           {/* Fechas de Reforma */}
           {(renoStartDate || estimatedEndDate) && (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
                 <Calendar className="h-5 w-5" />
                 {t.propertyAction.renovationDates}
               </h3>
@@ -117,7 +117,7 @@ export function PropertyActionTab({
 
       {/* Mostrar fecha estimada solo si no está en upcoming-settlements */}
       {estimatedVisitDate && renoPhase !== "upcoming-settlements" && (
-        <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+        <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Calendar className="h-5 w-5" />
             {t.propertyAction.estimatedVisitDate}

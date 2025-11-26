@@ -92,7 +92,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
 
   if (loading) {
     return (
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
         <p className="text-muted-foreground">{t.propertyStatusTab.loadingHistory}</p>
       </div>
     );
@@ -100,7 +100,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
 
   if (checklists.length === 0) {
     return (
-      <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
         <p className="text-muted-foreground">{t.propertyStatusTab.noChecklistsYet}</p>
       </div>
     );
@@ -130,7 +130,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
         return (
           <div
             key={checklist.id}
-            className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm"
+            className="bg-card bg-card rounded-lg border p-6 shadow-sm"
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -140,7 +140,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
                   ) : (
                     <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                   )}
-                  <h3 className="text-lg font-semibold">{checklistType}</h3>
+                  <h3 className="text-lg font-semibold text-foreground">{checklistType}</h3>
                   <span
                     className={cn(
                       "px-2 py-1 text-xs font-medium rounded-full",

@@ -114,8 +114,10 @@ export interface Translations {
     filters: string;
     filtersDescription: string;
     renovatorName: string;
+    searchRenovator: string;
     technicalConstructor: string;
     areaCluster: string;
+    searchAreaCluster: string;
     noValuesAvailable: string;
     clearAll: string;
     applyFilters: string;
@@ -615,8 +617,10 @@ export const translations: Record<Language, Translations> = {
       filters: "Filtros",
       filtersDescription: "Selecciona uno o más valores para filtrar las propiedades. Los filtros se combinan con OR (cualquiera de los seleccionados).",
       renovatorName: "Renovator Name",
-      technicalConstructor: "Constructor Técnico",
+      searchRenovator: "Buscar renovador...",
+      technicalConstructor: "Jefe de Obra",
       areaCluster: "Area Cluster",
+      searchAreaCluster: "Buscar área...",
       noValuesAvailable: "No hay valores disponibles",
       clearAll: "Limpiar todos",
       applyFilters: "Aplicar filtros",
@@ -1297,8 +1301,8 @@ export const translations: Record<Language, Translations> = {
       completeInitialChecklist: "Completar checklist inicial",
       completeFinalChecklist: "Completar checklist final",
       completeNewSettlementsInfo: "Completar información de upcoming reno",
-      technicalConstructor: "Constructor Técnico",
-      siteManager: "Jefe de Obra",
+      technicalConstructor: "Jefe de Obra",
+      siteManager: "Responsable",
       reminders: "Recordatorios",
       comments: "Comentarios",
       checklistInProgress: "Checklist en progreso",
@@ -1517,8 +1521,10 @@ export const translations: Record<Language, Translations> = {
       filters: "Filters",
       filtersDescription: "Select one or more values to filter properties. Filters are combined with OR (any of the selected).",
       renovatorName: "Renovator Name",
-      technicalConstructor: "Technical Constructor",
+      searchRenovator: "Search renovator...",
+      technicalConstructor: "Site Manager",
       areaCluster: "Area Cluster",
+      searchAreaCluster: "Search area...",
       noValuesAvailable: "No values available",
       clearAll: "Clear All",
       applyFilters: "Apply Filters",
@@ -2198,8 +2204,8 @@ export const translations: Record<Language, Translations> = {
       completeInitialChecklist: "Complete initial checklist",
       completeFinalChecklist: "Complete final checklist",
       completeNewSettlementsInfo: "Complete new settlements information",
-      technicalConstructor: "Technical Constructor",
-      siteManager: "Site Manager",
+      technicalConstructor: "Site Manager",
+      siteManager: "Responsible Owner",
       reminders: "Reminders",
       comments: "Comments",
       checklistInProgress: "Checklist in progress",
