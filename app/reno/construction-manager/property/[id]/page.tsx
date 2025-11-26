@@ -117,27 +117,98 @@ export default function RenoPropertyDetailPage() {
       const success = await updateSupabaseProperty(supabaseUpdates);
       
       if (success) {
-        // If transitioning to initial-check, update Airtable
-        if (phaseChanged) {
+        // Sync Estimated Visit Date to Airtable if:
+        // 1. We're in upcoming-settlements phase (first phase), OR
+        // 2. We're transitioning to initial-check phase
+        const shouldSyncToAirtable = 
+          (currentPhase === 'upcoming-settlements' && localEstimatedVisitDate) || 
+          phaseChanged;
+        
+        if (shouldSyncToAirtable) {
           try {
-            // 1. Sync comments to Airtable (replaces SetUpnotes)
-            // Los comentarios se sincronizan automáticamente cuando se agregan
-            // Aquí podríamos forzar una sincronización si es necesario
-            
-            // 2. Update Estimated Visit Date in Airtable (field ID: fldIhqPOAFL52MMBn)
-            const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
+            // Usar la tabla Transactions (no Properties) ya que es donde están los registros principales
+            const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Transactions';
             const airtablePropertyId = supabaseProperty.airtable_property_id || supabaseProperty['Unique ID From Engagements'];
             
             if (airtablePropertyId && localEstimatedVisitDate) {
-              const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
-              if (recordId) {
-                await updateAirtableWithRetry(tableName, recordId, {
-                  'fldIhqPOAFL52MMBn': localEstimatedVisitDate, // Estimated visit date field ID
+              console.log(`[Airtable Sync] Syncing Estimated Visit Date to Airtable for property ${propertyId}`, {
+                tableName,
+                airtablePropertyId,
+                estimatedVisitDate: localEstimatedVisitDate,
+                phase: currentPhase
+              });
+              
+              // Si airtable_property_id empieza con "rec", es un record ID directo de Airtable
+              // Si no, es un Property ID y necesitamos buscarlo
+              let recordId: string | null = null;
+              
+              if (airtablePropertyId.startsWith('rec')) {
+                // Es un record ID directo, usarlo directamente
+                recordId = airtablePropertyId;
+                console.log(`[Airtable Sync] Using direct record ID:`, recordId);
+              } else {
+                // Es un Property ID, buscar el record ID
+                recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
+                console.log(`[Airtable Sync] Record ID found by search:`, recordId, {
+                  tableName,
+                  airtablePropertyId,
+                  propertyId
                 });
               }
+              
+              if (recordId) {
+                // Intentar con el field ID primero, y también con nombres alternativos del campo
+                // El campo en Airtable puede llamarse "Est. Visit date" o "Estimated Visit Date"
+                // Usar solo el field ID primero, si falla intentar con nombres
+                const fieldsToUpdate: Record<string, any> = {
+                  'fldIhqPOAFL52MMBn': localEstimatedVisitDate, // Field ID (prioridad)
+                };
+                
+                // También intentar con nombres alternativos (Airtable puede aceptar múltiples)
+                // Pero mejor usar solo el field ID que es más confiable
+                
+                console.log(`[Airtable Sync] Attempting to update with field ID fldIhqPOAFL52MMBn:`, localEstimatedVisitDate);
+                
+                const syncSuccess = await updateAirtableWithRetry(tableName, recordId, fieldsToUpdate);
+                
+                if (syncSuccess) {
+                  console.log(`✅ Synced Estimated Visit Date to Airtable for property ${propertyId}`);
+                  if (showToast && currentPhase === 'upcoming-settlements') {
+                    toast.success("Fecha sincronizada con Airtable", {
+                      description: "La fecha estimada de visita se ha actualizado en Airtable.",
+                    });
+                  }
+                } else {
+                  console.warn(`⚠️ Failed to sync Estimated Visit Date to Airtable for property ${propertyId}`);
+                }
+              } else {
+                console.warn(`⚠️ Airtable record not found for property ${propertyId} (${airtablePropertyId})`);
+              }
+            } else {
+              console.warn(`⚠️ Missing data for Airtable sync:`, {
+                hasAirtableId: !!airtablePropertyId,
+                hasEstimatedVisitDate: !!localEstimatedVisitDate
+              });
             }
           } catch (airtableError) {
-            console.error('Error updating Airtable during phase transition:', airtableError);
+            console.error('Error updating Airtable with Estimated Visit Date:', airtableError);
+            // Don't fail the whole operation if Airtable update fails
+            if (showToast) {
+              toast.error("Error al sincronizar con Airtable", {
+                description: "Los cambios se guardaron en Supabase, pero hubo un error al sincronizar con Airtable.",
+              });
+            }
+          }
+        }
+        
+        // If transitioning to initial-check, also sync comments
+        if (phaseChanged) {
+          try {
+            // Sync comments to Airtable (replaces SetUpnotes)
+            // Los comentarios se sincronizan automáticamente cuando se agregan
+            // Aquí podríamos forzar una sincronización si es necesario
+          } catch (airtableError) {
+            console.error('Error syncing comments to Airtable during phase transition:', airtableError);
             // Don't fail the whole operation if Airtable update fails
           }
         }

@@ -35,6 +35,8 @@ export async function updateAirtableRecord(
       return false;
     }
 
+    console.log(`[Airtable Update] Updating record ${recordId} in table ${tableName} with fields:`, fields);
+    
     await base(tableName).update([
       {
         id: recordId,
@@ -42,16 +44,24 @@ export async function updateAirtableRecord(
       },
     ]);
     
-    console.log(`✅ Updated Airtable record ${recordId} in ${tableName}`);
+    console.log(`✅ Updated Airtable record ${recordId} in ${tableName}`, { fields });
     return true;
-  } catch (error) {
-    console.error('Error updating Airtable:', error);
+  } catch (error: any) {
+    console.error('Error updating Airtable:', {
+      error: error?.message || error,
+      statusCode: error?.statusCode,
+      errorType: error?.errorType,
+      tableName,
+      recordId,
+      fields,
+    });
     return false;
   }
 }
 
 /**
- * Busca un registro por Property ID
+ * Busca un registro por Property ID o Unique ID (From Engagements)
+ * Intenta múltiples campos para mayor compatibilidad
  */
 export async function findRecordByPropertyId(
   tableName: string,
@@ -63,14 +73,38 @@ export async function findRecordByPropertyId(
       return null;
     }
 
-    const records = await base(tableName)
-      .select({
-        filterByFormula: `{Property ID} = "${propertyId}"`,
-        maxRecords: 1,
-      })
-      .firstPage();
+    // Intentar buscar por diferentes campos posibles
+    const possibleFields = [
+      'Property ID',
+      'Unique ID (From Engagements)',
+      'Unique ID From Engagements',
+      'UNIQUEID (from Engagements)',
+      'Unique ID'
+    ];
+
+    for (const fieldName of possibleFields) {
+      try {
+        const records = await base(tableName)
+          .select({
+            filterByFormula: `{${fieldName}} = "${propertyId}"`,
+            maxRecords: 1,
+          })
+          .firstPage();
+        
+        if (records.length > 0) {
+          return records[0].id;
+        }
+      } catch (fieldError: any) {
+        // Si el campo no existe, continuar con el siguiente
+        if (fieldError?.message?.includes('Unknown field') || fieldError?.message?.includes('does not exist')) {
+          continue;
+        }
+        // Si es otro error, loguearlo pero continuar
+        console.debug(`Field ${fieldName} search failed:`, fieldError?.message);
+      }
+    }
     
-    return records[0]?.id || null;
+    return null;
   } catch (error: any) {
     // Distinguir entre errores reales y casos donde simplemente no se encuentra un registro
     // Si el error es sobre "not found" o es un objeto vacío, no es un error crítico

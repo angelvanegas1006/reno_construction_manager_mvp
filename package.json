@@ -43,6 +43,7 @@
     "debug:airtable-technical": "tsx scripts/debug-airtable-technical-constructor.ts",
     "debug:transactions-technical": "tsx scripts/debug-transactions-technical.ts",
     "debug:properties-pics": "tsx scripts/debug-properties-pics-field.ts",
+    "debug:estimated-visit-sync": "tsx scripts/debug-estimated-visit-sync.ts",
     "test:webhook": "tsx scripts/test-webhook-with-property.ts",
     "test:supabase-insert": "tsx scripts/test-supabase-insert.ts",
     "debug:budget-pdf": "tsx scripts/debug-budget-pdf-url.ts",
