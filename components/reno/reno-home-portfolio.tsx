@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Property } from "@/lib/property-storage";
-import { RenoKanbanPhase, visibleRenoKanbanColumns } from "@/lib/reno-kanban-config";
+import { RenoKanbanPhase, renoKanbanColumns } from "@/lib/reno-kanban-config";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
@@ -53,7 +53,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
 
   const getStageLabel = (stage: RenoKanbanPhase) => {
     const stageMap: Record<RenoKanbanPhase, string> = {
-      "upcoming-settlements": language === "es" ? "Upcoming Reno" : "Upcoming Reno",
+      "upcoming-settlements": language === "es" ? "Nuevas escrituras" : "Upcoming Settlements",
       "initial-check": language === "es" ? "Check inicial" : "Initial Check",
       "reno-budget": language === "es" ? "Reno Budget" : "Reno Budget",
       "reno-in-progress": language === "es" ? "Obras en proceso" : "Reno In Progress",
@@ -81,11 +81,11 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
           {t.dashboard.portfolioDescription}
         </p>
       </CardHeader>
-      <CardContent className="pt-6">
+      <CardContent>
         <div className="space-y-4">
           {/* Chart */}
-          <div className="flex items-end justify-between gap-2 h-[220px] relative">
-            {visibleRenoKanbanColumns.map((column) => {
+          <div className="flex items-end justify-between gap-2 h-[220px]">
+            {renoKanbanColumns.map((column) => {
               const count = stageCounts[column.stage];
               const height = getBarHeight(count);
 
@@ -102,7 +102,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
                       title={`${getStageLabel(column.stage)}: ${count}`}
                     />
                     {count > 0 && (
-                      <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-xs font-medium text-foreground bg-card dark:bg-[var(--prophero-gray-900)] border border-border rounded px-2 py-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap pointer-events-none">
+                      <span className="absolute -top-5 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                         {count}
                       </span>
                     )}
@@ -119,7 +119,6 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
     </Card>
   );
 }
-
 
 
 
