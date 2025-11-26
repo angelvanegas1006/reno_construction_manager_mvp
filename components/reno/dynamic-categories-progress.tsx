@@ -636,14 +636,14 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                         </div>
                       </div>
                       {/* Slider with blue background and visible thumb */}
-                      <div className="relative h-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="relative h-3 overflow-hidden rounded-lg" onClick={(e) => e.stopPropagation()}>
                         {/* Background track (full width, blue) */}
                         <div className="absolute inset-0 h-3 rounded-lg bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]" />
                         {/* Progress fill (blue primary) */}
                         <div 
-                          className="absolute inset-y-0 left-0 rounded-l-lg bg-primary"
+                          className={`absolute inset-y-0 left-0 bg-primary ${percentage >= 100 ? 'rounded-lg' : 'rounded-l-lg'}`}
                           style={{
-                            width: `${percentage}%`,
+                            width: `${Math.min(100, percentage)}%`,
                           }}
                         />
                         {/* Slider input on top - transparent track, only thumb visible */}
