@@ -1,14 +1,21 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Trash2, Save, Send, Calendar, Clock, Edit2, Download } from 'lucide-react';
+import { Trash2, Save, Send, Calendar, Clock, Edit2, Download, ChevronDown, ChevronUp, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DateTimePicker } from '@/components/property/datetime-picker';
+import { Textarea } from '@/components/ui/textarea';
 import { useDynamicCategories } from '@/hooks/useDynamicCategories';
 import { SendUpdateDialog } from './send-update-dialog';
+import { PartidaItem } from './partida-item';
+import { parseActivitiesText } from '@/lib/parsers/parse-activities-text';
+import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { Database } from '@/lib/supabase/types';
 import { callN8nCategoriesWebhook, prepareWebhookPayload } from '@/lib/n8n/webhook-caller';
@@ -71,6 +78,7 @@ function extractCategoryOrderNumber(categoryName: string): number {
 
 export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgressProps) {
   const { categories, loading, saveAllProgress, deleteCategory, refetch } = useDynamicCategories(property.id);
+  const supabase = createClient();
   const [localPercentages, setLocalPercentages] = useState<Record<string, number>>({});
   const [savedPercentages, setSavedPercentages] = useState<Record<string, number>>({}); // Valores guardados (mínimos permitidos)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -78,6 +86,11 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
   const [editingInput, setEditingInput] = useState<Record<string, boolean>>({}); // Control de inputs manuales
   const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({}); // Control de acordeones
+  const [isScheduleVisitOpen, setIsScheduleVisitOpen] = useState(false);
+  const [visitDate, setVisitDate] = useState<string | undefined>(undefined);
+  const [visitNotes, setVisitNotes] = useState("");
+  const [isSchedulingVisit, setIsSchedulingVisit] = useState(false);
   const justSavedRef = useRef<Record<string, number> | null>(null); // Track values we just saved
 
   // Show extract button only if: budget_pdf_url exists AND no categories created
@@ -321,6 +334,57 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
     }
   };
 
+  // Manejar agendar visita desde próxima actualización
+  const handleScheduleVisit = useCallback(async () => {
+    if (!visitDate) {
+      toast.error('Debes seleccionar una fecha y hora');
+      return;
+    }
+
+    setIsSchedulingVisit(true);
+    try {
+      // Verificar si ya existe una visita para esta fecha
+      const visitDateObj = new Date(visitDate);
+      const { data: existingVisits } = await supabase
+        .from('property_visits')
+        .select('id')
+        .eq('property_id', property.id)
+        .eq('visit_type', 'obra-seguimiento')
+        .gte('visit_date', new Date(visitDateObj.getTime() - 24 * 60 * 60 * 1000).toISOString())
+        .lte('visit_date', new Date(visitDateObj.getTime() + 24 * 60 * 60 * 1000).toISOString())
+        .limit(1);
+
+      if (existingVisits && existingVisits.length > 0) {
+        toast.info('Ya existe una visita programada para esta fecha');
+        setIsScheduleVisitOpen(false);
+        return;
+      }
+
+      const { error: visitError } = await supabase
+        .from('property_visits')
+        .insert({
+          property_id: property.id,
+          visit_date: visitDate,
+          visit_type: 'obra-seguimiento',
+          notes: visitNotes.trim() || null,
+        });
+
+      if (visitError) {
+        throw visitError;
+      }
+
+      toast.success('Visita de seguimiento agendada correctamente');
+      setIsScheduleVisitOpen(false);
+      setVisitDate(undefined);
+      setVisitNotes("");
+    } catch (error: any) {
+      console.error('Error scheduling visit:', error);
+      toast.error('Error al agendar la visita');
+    } finally {
+      setIsSchedulingVisit(false);
+    }
+  }, [visitDate, visitNotes, property.id, supabase]);
+
   if (loading) {
     return (
       <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
@@ -358,7 +422,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
           )}
         </div>
 
-        {/* Información General - Fechas */}
+        {/* Información General - Fechas y Tipo de Renovación */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -381,11 +445,69 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
               <p className="text-sm font-medium">{formatDate(property.last_update)}</p>
             </div>
           </div>
+          <Dialog open={isScheduleVisitOpen} onOpenChange={setIsScheduleVisitOpen}>
+            <DialogTrigger asChild>
+              <button className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity text-left w-full">
+                <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">Próxima actualización</p>
+                  <p className="text-sm font-medium text-primary hover:underline">
+                    {formatDate(property.next_update)}
+                  </p>
+                </div>
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Agendar Visita de Seguimiento</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label>Fecha y Hora</Label>
+                  <DateTimePicker
+                    value={visitDate}
+                    onChange={setVisitDate}
+                    placeholder="Selecciona fecha y hora"
+                    errorMessage="Debes seleccionar una fecha y hora válida"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Notas (opcional)</Label>
+                  <Textarea
+                    value={visitNotes}
+                    onChange={(e) => setVisitNotes(e.target.value)}
+                    placeholder="Agrega notas sobre la visita..."
+                    rows={3}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsScheduleVisitOpen(false);
+                      setVisitDate(undefined);
+                      setVisitNotes("");
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleScheduleVisit}
+                    disabled={isSchedulingVisit || !visitDate}
+                  >
+                    {isSchedulingVisit ? 'Agendando...' : 'Agendar Visita'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Wrench className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-muted-foreground">Próxima actualización</p>
-              <p className="text-sm font-medium">{formatDate(property.next_update)}</p>
+              <p className="text-xs text-muted-foreground">Tipo de renovación</p>
+              <p className="text-sm font-medium">
+                {(property as any).renovation_type || (property as any)['Required reno'] || 'No definido'}
+              </p>
             </div>
           </div>
         </div>
@@ -443,116 +565,153 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
               const minAllowedValue = getMinAllowedValue(category.id);
               const hasChanged = percentage !== savedValue;
               const isEditingInput = editingInput[category.id] || false;
+              const isExpanded = expandedCategories[category.id] || false;
+              
+              // Parsear partidas del activities_text
+              const partidas = category.activities_text 
+                ? parseActivitiesText(category.activities_text)
+                : [];
 
               return (
-                <div
+                <Collapsible
                   key={category.id}
-                  className="p-4 border rounded-lg space-y-3 bg-background"
+                  open={isExpanded}
+                  onOpenChange={(open) => setExpandedCategories(prev => ({ ...prev, [category.id]: open }))}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-foreground">{category.category_name}</h3>
-                        {hasChanged && (
-                          <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700">
-                            Sin guardar
-                          </Badge>
+                  <div className="border rounded-lg bg-background overflow-hidden">
+                    {/* Header del acordeón - siempre visible */}
+                    <div className="p-4 flex items-center justify-between gap-4">
+                      <CollapsibleTrigger className="flex items-center gap-3 flex-1 hover:bg-muted/50 transition-colors rounded-md p-2 -m-2">
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         )}
-                      </div>
-                      {category.activities_text && (
-                        <div className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
-                          {formatActivitiesText(category.activities_text)}
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-foreground">{category.category_name}</h3>
+                            {hasChanged && (
+                              <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700">
+                                Sin guardar
+                              </Badge>
+                            )}
+                          </div>
                         </div>
+                        <span className="text-sm font-semibold min-w-[3rem] text-right">{percentage}%</span>
+                      </CollapsibleTrigger>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(category.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Barra de progreso - siempre visible */}
+                    <div className="px-4 pb-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm">Progreso</Label>
+                        <div className="flex items-center gap-2">
+                          {isEditingInput ? (
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="number"
+                                min={minAllowedValue}
+                                max={100}
+                                value={percentage}
+                                onChange={(e) => handleInputChange(category.id, e.target.value)}
+                                onBlur={() => setEditingInput(prev => ({ ...prev, [category.id]: false }))}
+                                className="w-16 h-7 text-sm text-center"
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <span className="text-sm text-muted-foreground">%</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingInput(prev => ({ ...prev, [category.id]: false }));
+                                }}
+                              >
+                                ✓
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingInput(prev => ({ ...prev, [category.id]: true }));
+                                }}
+                                title="Editar manualmente"
+                              >
+                                <Edit2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {/* Slider with blue background and visible thumb */}
+                      <div className="relative h-3" onClick={(e) => e.stopPropagation()}>
+                        {/* Background track (full width, blue) */}
+                        <div className="absolute inset-0 h-3 rounded-lg bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]" />
+                        {/* Progress fill (blue primary) */}
+                        <div 
+                          className="absolute inset-y-0 left-0 rounded-l-lg bg-primary"
+                          style={{
+                            width: `${percentage}%`,
+                          }}
+                        />
+                        {/* Slider input on top - transparent track, only thumb visible */}
+                        <input
+                          key={`slider-${category.id}-${percentage}`}
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={5}
+                          value={Math.max(0, Math.min(100, percentage))}
+                          onChange={(e) => {
+                            const newValue = parseInt(e.target.value, 10);
+                            handleSliderChange(category.id, newValue);
+                          }}
+                          className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-10"
+                          title={`Mínimo permitido: ${minAllowedValue}%`}
+                        />
+                      </div>
+                      {minAllowedValue > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Mínimo permitido: {minAllowedValue}% (último valor guardado)
+                        </p>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(category.id)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm">Progreso</Label>
-                      <div className="flex items-center gap-2">
-                        {isEditingInput ? (
-                          <div className="flex items-center gap-1">
-                            <Input
-                              type="number"
-                              min={minAllowedValue}
-                              max={100}
-                              value={percentage}
-                              onChange={(e) => handleInputChange(category.id, e.target.value)}
-                              onBlur={() => setEditingInput(prev => ({ ...prev, [category.id]: false }))}
-                              className="w-16 h-7 text-sm text-center"
-                              autoFocus
-                            />
-                            <span className="text-sm text-muted-foreground">%</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => setEditingInput(prev => ({ ...prev, [category.id]: false }))}
-                            >
-                              ✓
-                            </Button>
+                    {/* Contenido colapsable - partidas */}
+                    <CollapsibleContent>
+                      <div className="px-4 pb-4 space-y-3 border-t pt-4">
+                        {partidas.length > 0 ? (
+                          partidas.map((partida, index) => (
+                            <PartidaItem key={`${category.id}-${partida.number}-${index}`} partida={partida} />
+                          ))
+                        ) : category.activities_text ? (
+                          <div className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
+                            {category.activities_text}
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm font-semibold">{percentage}%</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => setEditingInput(prev => ({ ...prev, [category.id]: true }))}
-                              title="Editar manualmente"
-                            >
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
+                          <div className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
+                            No hay actividades definidas para esta categoría.
                           </div>
                         )}
                       </div>
-                    </div>
-                    {/* Slider with blue background and visible thumb */}
-                    <div className="relative h-3">
-                      {/* Background track (full width, blue) */}
-                      <div className="absolute inset-0 h-3 rounded-lg bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]" />
-                      {/* Progress fill (blue primary) */}
-                      <div 
-                        className="absolute inset-y-0 left-0 rounded-l-lg bg-primary"
-                        style={{
-                          width: `${percentage}%`,
-                        }}
-                      />
-                      {/* Slider input on top - transparent track, only thumb visible */}
-                      {/* IMPORTANTE: Usar min={0} siempre para que el thumb se posicione correctamente en el porcentaje absoluto */}
-                      {/* La lógica de "no retroceso" se maneja en handleSliderChange */}
-                      <input
-                        key={`slider-${category.id}-${percentage}`}
-                        type="range"
-                        min={0}
-                        max={100}
-                        step={5}
-                        value={Math.max(0, Math.min(100, percentage))}
-                        onChange={(e) => {
-                          const newValue = parseInt(e.target.value, 10);
-                          handleSliderChange(category.id, newValue);
-                        }}
-                        className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-10"
-                        title={`Mínimo permitido: ${minAllowedValue}%`}
-                      />
-                    </div>
-                    {minAllowedValue > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        Mínimo permitido: {minAllowedValue}% (último valor guardado)
-                      </p>
-                    )}
+                    </CollapsibleContent>
                   </div>
-                </div>
+                </Collapsible>
               );
             })
           )}

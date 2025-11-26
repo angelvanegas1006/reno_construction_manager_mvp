@@ -428,6 +428,12 @@ export interface Translations {
       siteManager: string;
     };
   
+  // Partner
+  partner: {
+    management: string;
+    navProperties: string;
+  };
+  
   // Checklist
   checklist: {
     title: string;
@@ -1311,6 +1317,10 @@ export const translations: Record<Language, Translations> = {
       lessThanHour: "Hace menos de 1 hora",
       siteManager: "Jefe de Obra",
     },
+    partner: {
+      management: "Property Selling",
+      navProperties: "Property Selling",
+    },
   },
   en: {
     common: {
@@ -2161,6 +2171,10 @@ export const translations: Record<Language, Translations> = {
       hour: "hour",
       lessThanHour: "Less than 1 hour ago",
       siteManager: "Site Manager",
+    },
+    partner: {
+      management: "Property Selling",
+      navProperties: "Property Selling",
     },
   },
 };

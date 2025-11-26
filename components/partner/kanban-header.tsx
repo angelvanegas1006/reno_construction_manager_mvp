@@ -30,7 +30,7 @@ export function KanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, onAddP
             <Menu className="h-5 w-5 text-foreground" />
           </button>
           
-          <h1 className="text-lg font-bold text-foreground flex-1 truncate">{t.property.management}</h1>
+          <h1 className="text-lg font-bold text-foreground flex-1 truncate">{t.partner.management}</h1>
 
           <button
             onClick={() => {
@@ -59,7 +59,7 @@ export function KanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, onAddP
       {/* Desktop Layout */}
       <div className="hidden md:flex items-center justify-between gap-4">
         {/* Title - Left aligned */}
-        <h1 className="text-2xl font-bold text-foreground whitespace-nowrap">{t.property.management}</h1>
+        <h1 className="text-2xl font-bold text-foreground whitespace-nowrap">{t.partner.management}</h1>
 
         {/* Right section: Search, Filter */}
         <div className="flex items-center gap-4">

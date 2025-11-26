@@ -26,7 +26,7 @@ const getNavigationItems = (t: any) => [
     icon: Home,
   },
   {
-    label: t.nav.properties,
+    label: t.partner.navProperties,
     href: "/partner/kanban",
     icon: Grid,
   },
