@@ -15,14 +15,51 @@ import { sortPropertiesByExpired, isPropertyExpired } from "@/lib/property-sorti
 import { toast } from "sonner";
 import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
+import { createClient } from "@/lib/supabase/client";
 
 export default function RenoConstructionManagerHomePage() {
   const { t } = useI18n();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const supabase = createClient();
 
   // Load properties from Supabase
   const { propertiesByPhase, loading: supabaseLoading, error: supabaseError } = useSupabaseKanbanProperties();
+  
+  // Load visits for today
+  const [visitsForToday, setVisitsForToday] = useState<number>(0);
+  const [loadingVisits, setLoadingVisits] = useState(true);
+  
+  useEffect(() => {
+    const fetchVisitsForToday = async () => {
+      try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const { count, error } = await supabase
+          .from("property_visits")
+          .select("*", { count: "exact", head: true })
+          .gte("visit_date", today.toISOString())
+          .lt("visit_date", tomorrow.toISOString());
+        
+        if (error) {
+          console.error("Error fetching visits for today:", error);
+          setVisitsForToday(0);
+        } else {
+          setVisitsForToday(count || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching visits for today:", error);
+        setVisitsForToday(0);
+      } finally {
+        setLoadingVisits(false);
+      }
+    };
+    
+    fetchVisitsForToday();
+  }, [supabase]);
   
   // Log when propertiesByPhase changes
   useEffect(() => {
@@ -121,10 +158,9 @@ export default function RenoConstructionManagerHomePage() {
       (propertiesByPhase?.['final-check']?.length || 0)
     );
 
-    // Visitas para hoy: properties that need update today (including expired ones from yesterday)
-    const visitasParaHoy = properties.filter((p) => {
-      return isToday(p.proximaActualizacion) || isExpired(p);
-    }).length;
+    // Visitas para hoy: todas las visitas de la tabla property_visits programadas para hoy
+    // Se carga desde Supabase en el useEffect anterior
+    const visitasParaHoy = visitsForToday;
 
     // Total visitas del mes: simulated with dummy data
     const totalVisitasMes = 28; // Dummy for now

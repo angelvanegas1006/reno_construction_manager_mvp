@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { appendSetUpNotesToAirtable } from "@/lib/airtable/initial-check-sync";
 import { updateAirtableWithRetry, findRecordByPropertyId } from "@/lib/airtable/client";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
+import { createClient } from "@/lib/supabase/client";
 
 type PropertyUpdate = Database['public']['Tables']['properties']['Update'];
 
