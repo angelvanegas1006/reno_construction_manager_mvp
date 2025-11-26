@@ -230,6 +230,12 @@ export interface Translations {
     // Recent Properties
     recentProperties: string;
     recentPropertiesDescription: string;
+    activeWorksByRenovator: string;
+    activeWorksByRenovatorDescription: string;
+    viewMore: string;
+    fullRanking: string;
+    back: string;
+    worksByPartner: string;
     // Portfolio
     portfolio: string;
     portfolioDescription: string;
