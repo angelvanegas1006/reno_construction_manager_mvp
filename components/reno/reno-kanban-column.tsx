@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { RenoPropertyCard } from "./reno-property-card";
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { isDelayedWork, isPropertyExpired } from "@/lib/property-sorting";
 import { Property } from "@/lib/property-storage";
 import { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 
@@ -52,6 +53,11 @@ export function RenoKanbanColumn({
     }
   }, [hasHighlightedProperty, isCollapsed]);
 
+  // Count properties in alert (delayed or expired)
+  const alertCount = properties.filter(p => {
+    return isDelayedWork(p, stage) || isPropertyExpired(p);
+  }).length;
+
   return (
     <div
       ref={onColumnRef}
@@ -68,9 +74,16 @@ export function RenoKanbanColumn({
         >
           <h2 className="text-sm md:text-sm font-semibold text-foreground truncate flex-1 min-w-0 text-left">{title}</h2>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs font-medium text-muted-foreground bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] px-2.5 py-1 rounded-full min-w-[24px] text-center">
-              {count}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] px-2.5 py-1 rounded-full min-w-[24px] text-center">
+                {count}
+              </span>
+              {alertCount > 0 && (
+                <span className="text-xs font-medium text-white bg-red-500 px-2 py-1 rounded-full min-w-[20px] text-center">
+                  {alertCount}
+                </span>
+              )}
+            </div>
             {isCollapsed ? (
               <ChevronDown className="h-5 w-5 text-muted-foreground md:hidden" />
             ) : (
