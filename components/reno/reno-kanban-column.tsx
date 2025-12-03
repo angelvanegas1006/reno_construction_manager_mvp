@@ -66,8 +66,8 @@ export function RenoKanbanColumn({
           className="md:pointer-events-none flex w-full md:w-auto items-center justify-between md:justify-start gap-2 hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] rounded-md px-2 py-1 -mx-2 md:mx-0 md:hover:bg-transparent transition-colors"
         >
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-foreground">{title}</h2>
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            <h2 className="text-base font-semibold text-foreground whitespace-nowrap">{title}</h2>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full flex-shrink-0">
               {properties.length}
             </span>
           </div>

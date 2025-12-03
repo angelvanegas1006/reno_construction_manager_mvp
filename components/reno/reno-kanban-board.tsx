@@ -49,9 +49,9 @@ export function RenoKanbanBoard({ searchQuery, filters }: RenoKanbanBoardProps) 
 
   const handleCardClick = (property: Property) => {
     // For construction manager, navigate to view-only page
-    // Later, this will open the task execution screen
+    // Always go to "tareas" tab when clicking from kanban
     startTransition(() => {
-      router.push(`/reno/construction-manager/property/${property.id}`);
+      router.push(`/reno/construction-manager/property/${property.id}?tab=tareas`);
     });
   };
 
@@ -70,7 +70,10 @@ export function RenoKanbanBoard({ searchQuery, filters }: RenoKanbanBoardProps) 
       return {
       "upcoming-settlements": [],
       "initial-check": [],
-      "reno-budget": [],
+      "reno-budget-renovator": [],
+      "reno-budget-client": [],
+      "reno-budget-start": [],
+      "reno-budget": [], // Legacy
       "reno-in-progress": [],
       "furnishing-cleaning": [],
       "final-check": [],
@@ -81,12 +84,93 @@ export function RenoKanbanBoard({ searchQuery, filters }: RenoKanbanBoardProps) 
 
     // Use properties from Supabase, already grouped by phase
     // Sort each column: expired first
+    // For reno-budget phases, also sort by Days to Start Reno (Since RSD) descending (most days first)
+    const sortRenoBudgetPhase = (phase: RenoKanbanPhase) => {
+      const expiredFirst = sortPropertiesByExpired(transformProperties[phase] || []);
+      // Helper function to check if property exceeds Days to Start Reno limit
+      const exceedsDaysLimit = (prop: Property): boolean => {
+        return prop.daysToStartRenoSinceRSD !== null && 
+               prop.daysToStartRenoSinceRSD !== undefined && 
+               prop.daysToStartRenoSinceRSD > 25;
+      };
+      
+      return expiredFirst.sort((a, b) => {
+        const aExceeds = exceedsDaysLimit(a);
+        const bExceeds = exceedsDaysLimit(b);
+        
+        // Red cards (exceeding 25 days) first
+        if (aExceeds && !bExceeds) return -1;
+        if (!aExceeds && bExceeds) return 1;
+        
+        // Then sort by Days to Start Reno (Since RSD) descending (most days first)
+        // Properties without this field go to the end
+        const aDays = a.daysToStartRenoSinceRSD ?? -Infinity;
+        const bDays = b.daysToStartRenoSinceRSD ?? -Infinity;
+        return bDays - aDays; // Descending order (most days first)
+      });
+    };
+
+    // Sort initial-check and upcoming-settlements phases by days_to_visit (descending, most days first)
+    // Red cards (exceeding 5 days) first
+    const sortDaysToVisitPhase = (phase: RenoKanbanPhase) => {
+      const expiredFirst = sortPropertiesByExpired(transformProperties[phase] || []);
+      const exceedsDaysToVisitLimit = (prop: Property): boolean => {
+        return prop.daysToVisit !== null && 
+               prop.daysToVisit !== undefined && 
+               prop.daysToVisit > 5;
+      };
+      
+      return expiredFirst.sort((a, b) => {
+        const aExceeds = exceedsDaysToVisitLimit(a);
+        const bExceeds = exceedsDaysToVisitLimit(b);
+        
+        // Red cards (exceeding 5 days) first
+        if (aExceeds && !bExceeds) return -1;
+        if (!aExceeds && bExceeds) return 1;
+        
+        // Then sort by days_to_visit descending (most days first)
+        // Properties without this field go to the end
+        const aDays = a.daysToVisit ?? -Infinity;
+        const bDays = b.daysToVisit ?? -Infinity;
+        return bDays - aDays; // Descending order (most days first)
+      });
+    };
+
+    // Sort furnishing-cleaning phase by days_to_property_ready (descending, most days first)
+    // Red cards (exceeding 25 days) first
+    const sortFurnishingCleaningPhase = (phase: RenoKanbanPhase) => {
+      const expiredFirst = sortPropertiesByExpired(transformProperties[phase] || []);
+      const exceedsDaysToPropertyReadyLimit = (prop: Property): boolean => {
+        return prop.daysToPropertyReady !== null && 
+               prop.daysToPropertyReady !== undefined && 
+               prop.daysToPropertyReady > 25;
+      };
+      
+      return expiredFirst.sort((a, b) => {
+        const aExceeds = exceedsDaysToPropertyReadyLimit(a);
+        const bExceeds = exceedsDaysToPropertyReadyLimit(b);
+        
+        // Red cards (exceeding 25 days) first
+        if (aExceeds && !bExceeds) return -1;
+        if (!aExceeds && bExceeds) return 1;
+        
+        // Then sort by days_to_property_ready descending (most days first)
+        // Properties without this field go to the end
+        const aDays = a.daysToPropertyReady ?? -Infinity;
+        const bDays = b.daysToPropertyReady ?? -Infinity;
+        return bDays - aDays; // Descending order (most days first)
+      });
+    };
+
     const sorted: Record<RenoKanbanPhase, Property[]> = {
-      "upcoming-settlements": sortPropertiesByExpired(transformProperties["upcoming-settlements"] || []),
-      "initial-check": sortPropertiesByExpired(transformProperties["initial-check"] || []),
-      "reno-budget": sortPropertiesByExpired(transformProperties["reno-budget"] || []),
+      "upcoming-settlements": sortDaysToVisitPhase("upcoming-settlements"),
+      "initial-check": sortDaysToVisitPhase("initial-check"),
+      "reno-budget-renovator": sortRenoBudgetPhase("reno-budget-renovator"),
+      "reno-budget-client": sortRenoBudgetPhase("reno-budget-client"),
+      "reno-budget-start": sortRenoBudgetPhase("reno-budget-start"),
+      "reno-budget": sortRenoBudgetPhase("reno-budget"), // Legacy
       "reno-in-progress": sortPropertiesByExpired(transformProperties["reno-in-progress"] || []),
-      "furnishing-cleaning": sortPropertiesByExpired(transformProperties["furnishing-cleaning"] || []),
+      "furnishing-cleaning": sortFurnishingCleaningPhase("furnishing-cleaning"),
       "final-check": sortPropertiesByExpired(transformProperties["final-check"] || []),
       "reno-fixes": sortPropertiesByExpired(transformProperties["reno-fixes"] || []),
       "done": sortPropertiesByExpired(transformProperties["done"] || []),
@@ -101,12 +185,14 @@ export function RenoKanbanBoard({ searchQuery, filters }: RenoKanbanBoardProps) 
       renovatorNames: [],
       technicalConstructors: [],
       areaClusters: [],
+      delayedWorks: false,
     };
 
     const hasActiveFilters = 
       activeFilters.renovatorNames.length > 0 ||
       activeFilters.technicalConstructors.length > 0 ||
-      activeFilters.areaClusters.length > 0;
+      activeFilters.areaClusters.length > 0 ||
+      activeFilters.delayedWorks;
 
     const query = searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -134,9 +220,54 @@ export function RenoKanbanBoard({ searchQuery, filters }: RenoKanbanBoardProps) 
       return false;
     };
 
+    // Helper function to check if a property is marked in red (delayed work)
+    const isDelayedWork = (property: Property): boolean => {
+      const phase = property.renoPhase;
+      
+      // reno-in-progress: check duration limit based on reno type
+      if (phase === "reno-in-progress" && property.renoDuration && property.renoType) {
+        const renoTypeLower = property.renoType.toLowerCase();
+        const duration = property.renoDuration;
+        
+        if (renoTypeLower.includes('light')) {
+          return duration > 30;
+        } else if (renoTypeLower.includes('medium')) {
+          return duration > 60;
+        } else if (renoTypeLower.includes('major')) {
+          return duration > 120;
+        }
+      }
+      
+      // Budget phases: daysToStartRenoSinceRSD > 25
+      if ((phase === "reno-budget-renovator" || phase === "reno-budget-client" || phase === "reno-budget-start") && 
+          property.daysToStartRenoSinceRSD) {
+        return property.daysToStartRenoSinceRSD > 25;
+      }
+      
+      // initial-check and upcoming-settlements: daysToVisit > 5
+      if ((phase === "initial-check" || phase === "upcoming-settlements") && 
+          property.daysToVisit) {
+        return property.daysToVisit > 5;
+      }
+      
+      // furnishing-cleaning: daysToPropertyReady > 25
+      if (phase === "furnishing-cleaning" && property.daysToPropertyReady) {
+        return property.daysToPropertyReady > 25;
+      }
+      
+      return false;
+    };
+
     const matchesFilters = (property: Property) => {
       // Si no hay filtros activos, mostrar todas las propiedades
       if (!hasActiveFilters) return true;
+
+      // Si el filtro de obras tardías está activo, verificar primero
+      if (activeFilters.delayedWorks) {
+        if (!isDelayedWork(property)) {
+          return false; // Si está activo y la propiedad no es tardía, excluirla
+        }
+      }
 
       // Obtener valores de la propiedad
       const renovatorName = (property as any).renovador || 
@@ -194,7 +325,12 @@ export function RenoKanbanBoard({ searchQuery, filters }: RenoKanbanBoardProps) 
       if (activeFilters.technicalConstructors.length > 0) activeFilterTypes.push(matchesTechnical);
       if (activeFilters.areaClusters.length > 0) activeFilterTypes.push(matchesArea);
 
-      // Si hay tipos de filtros activos, al menos uno debe cumplirse
+      // Si solo está activo el filtro de obras tardías (sin otros filtros), mostrar todas las tardías
+      if (activeFilters.delayedWorks && activeFilterTypes.length === 0) {
+        return true; // Ya verificamos que es tardía arriba
+      }
+
+      // Si hay tipos de filtros activos además de obras tardías, al menos uno debe cumplirse
       return activeFilterTypes.length === 0 || activeFilterTypes.some(match => match);
     };
 
@@ -207,7 +343,10 @@ export function RenoKanbanBoard({ searchQuery, filters }: RenoKanbanBoardProps) 
     const filtered: typeof allProperties = {
       "upcoming-settlements": allProperties["upcoming-settlements"].filter(matchesAll),
       "initial-check": allProperties["initial-check"].filter(matchesAll),
-      "reno-budget": allProperties["reno-budget"].filter(matchesAll),
+      "reno-budget-renovator": allProperties["reno-budget-renovator"].filter(matchesAll),
+      "reno-budget-client": allProperties["reno-budget-client"].filter(matchesAll),
+      "reno-budget-start": allProperties["reno-budget-start"].filter(matchesAll),
+      "reno-budget": allProperties["reno-budget"].filter(matchesAll), // Legacy
       "reno-in-progress": allProperties["reno-in-progress"].filter(matchesAll),
       "furnishing-cleaning": allProperties["furnishing-cleaning"].filter(matchesAll),
       "final-check": allProperties["final-check"].filter(matchesAll),
@@ -216,11 +355,72 @@ export function RenoKanbanBoard({ searchQuery, filters }: RenoKanbanBoardProps) 
     };
 
     // Sort each column: expired first (even after filtering)
+    // For reno-budget phases, sort: first red cards (exceeding 25 days), then by Days to Start Reno (Since RSD) descending
+    const sortRenoBudgetPhaseFiltered = (phase: RenoKanbanPhase) => {
+      const expiredFirst = sortPropertiesByExpired(filtered[phase]);
+      // Helper function to check if property exceeds Days to Start Reno limit
+      const exceedsDaysLimit = (prop: Property): boolean => {
+        return prop.daysToStartRenoSinceRSD !== null && 
+               prop.daysToStartRenoSinceRSD !== undefined && 
+               prop.daysToStartRenoSinceRSD > 25;
+      };
+      
+      return expiredFirst.sort((a, b) => {
+        const aExceeds = exceedsDaysLimit(a);
+        const bExceeds = exceedsDaysLimit(b);
+        
+        // Red cards (exceeding 25 days) first
+        if (aExceeds && !bExceeds) return -1;
+        if (!aExceeds && bExceeds) return 1;
+        
+        // Then sort by Days to Start Reno (Since RSD) descending (most days first)
+        // Properties without this field go to the end
+        const aDays = a.daysToStartRenoSinceRSD ?? -Infinity;
+        const bDays = b.daysToStartRenoSinceRSD ?? -Infinity;
+        return bDays - aDays; // Descending order (most days first)
+      });
+    };
+
     const sorted: typeof filtered = {
       "upcoming-settlements": sortPropertiesByExpired(filtered["upcoming-settlements"]),
       "initial-check": sortPropertiesByExpired(filtered["initial-check"]),
-      "reno-budget": sortPropertiesByExpired(filtered["reno-budget"]),
-      "reno-in-progress": sortPropertiesByExpired(filtered["reno-in-progress"]),
+      "reno-budget-renovator": sortRenoBudgetPhaseFiltered("reno-budget-renovator"),
+      "reno-budget-client": sortRenoBudgetPhaseFiltered("reno-budget-client"),
+      "reno-budget-start": sortRenoBudgetPhaseFiltered("reno-budget-start"),
+      "reno-budget": sortRenoBudgetPhaseFiltered("reno-budget"), // Legacy
+      "reno-in-progress": (() => {
+        const expiredFirst = sortPropertiesByExpired(filtered["reno-in-progress"]);
+        // Sort: first red cards (exceeding duration limit), then by duration descending
+        return expiredFirst.sort((a, b) => {
+          // Helper function to check if property exceeds duration limit
+          const exceedsLimit = (prop: Property): boolean => {
+            if (!prop.renoDuration || !prop.renoType) return false;
+            const renoTypeLower = prop.renoType.toLowerCase();
+            const duration = prop.renoDuration;
+            
+            if (renoTypeLower.includes('light')) {
+              return duration > 30;
+            } else if (renoTypeLower.includes('medium')) {
+              return duration > 60;
+            } else if (renoTypeLower.includes('major')) {
+              return duration > 120;
+            }
+            return false;
+          };
+          
+          const aExceeds = exceedsLimit(a);
+          const bExceeds = exceedsLimit(b);
+          
+          // Red cards (exceeding limit) first
+          if (aExceeds && !bExceeds) return -1;
+          if (!aExceeds && bExceeds) return 1;
+          
+          // Then sort by duration descending (most days first)
+          const aDuration = a.renoDuration ?? -Infinity;
+          const bDuration = b.renoDuration ?? -Infinity;
+          return bDuration - aDuration;
+        });
+      })(),
       "furnishing-cleaning": sortPropertiesByExpired(filtered["furnishing-cleaning"]),
       "final-check": sortPropertiesByExpired(filtered["final-check"]),
       "reno-fixes": sortPropertiesByExpired(filtered["reno-fixes"]),

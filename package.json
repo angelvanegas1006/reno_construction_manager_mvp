@@ -56,6 +56,8 @@
     "list:airtable-tables": "tsx scripts/list-airtable-tables.ts",
     "debug:related-tables": "tsx scripts/debug-related-tables.ts",
     "check:supabase-columns": "tsx scripts/check-supabase-columns.ts",
+    "debug:airtable-days-fields": "tsx scripts/debug-airtable-days-fields.ts",
+    "verify:days-fields": "tsx scripts/verify-days-fields.ts",
     "find:missing-fields": "tsx scripts/find-missing-fields.ts",
     "clear:properties": "tsx scripts/clear-properties-table.ts",
     "verify:table-empty": "tsx scripts/verify-table-empty.ts"

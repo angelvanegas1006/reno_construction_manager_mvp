@@ -1,178 +1,107 @@
-# 🚀 Pull Request: Mejoras y Nuevas Funcionalidades - Reno Construction Manager
+# PR: Mejoras en Kanban - Campos de días y filtro de obras tardías
 
-## 📋 Descripción General
+## 📋 Resumen
 
-Este PR incluye múltiples mejoras y nuevas funcionalidades para la aplicación Reno Construction Manager, incluyendo filtros avanzados, sistema de ayuda con notificaciones, integración de Google Maps, mejoras de UI/UX, y correcciones de sincronización con Airtable.
+Esta PR incluye mejoras significativas en el sistema de Kanban para el gestor de construcción, añadiendo nuevos campos de días desde Airtable, mejoras visuales en las cards y un nuevo filtro para obras tardías.
 
----
+## 🎯 Cambios Principales
 
-## ✨ Nuevas Funcionalidades
+### 1. Nuevo campo `days_to_visit` desde Airtable
+- ✅ Añadido campo `days_to_visit` (numeric) en Supabase
+- ✅ Mapeo desde Airtable campo "Days to visit"
+- ✅ Incluido en scripts de sincronización (`sync-from-airtable.ts`, `sync-unified.ts`)
+- ✅ Script de actualización masiva: `scripts/update-days-to-visit.ts`
+- ✅ Migración SQL para cambiar tipo de columna de `date` a `numeric`: `supabase/migrations/009_change_days_to_visit_to_numeric.sql`
 
-### 1. **Sistema de Ayuda y Notificaciones**
-- ✅ Modal de ayuda accesible desde el sidebar
-- ✅ Formulario de dos pasos: selección de tipo de error (propiedad/general)
-- ✅ Integración con webhook de n8n para envío de mensajes
-- ✅ Sistema de notificaciones en tiempo real con badge de mensajes no leídos
-- ✅ Página de notificaciones con vista de conversaciones
-- ✅ Tabla `help_conversations` en Supabase con soporte para respuestas
-- ✅ Endpoint webhook `/api/webhooks/help-response` para recibir respuestas de n8n
+### 2. Visualización de campos de Kanban Cards
 
-### 2. **Filtros Avanzados en Kanban**
-- ✅ Filtros múltiples para:
-  - Renovator Name
-  - Technical Constructor
-  - Area Cluster
-- ✅ Lógica OR: muestra propiedades que coincidan con cualquiera de los valores seleccionados
-- ✅ Todos los valores visibles por defecto
-- ✅ Badge con número de filtros activos
-- ✅ Filtros no persisten entre sesiones
+#### Fase "Upcoming Settlements" y "Check Inicial"
+- ✅ Muestra campo "Días para visitar" en las cards
+- ✅ Ordenamiento de mayor a menor por `days_to_visit`
+- ✅ Marcado en rojo (borde izquierdo + triángulo de alerta) cuando `days_to_visit > 5`
+- ✅ Cards rojas aparecen primero en la columna
+- ✅ Ocultado texto "hace X días" en estas fases
 
-### 3. **Integración de Google Maps**
-- ✅ Componente `PropertyMap` para mostrar ubicación de propiedades
-- ✅ Geocodificación de direcciones usando Google Maps Geocoding API
-- ✅ Marcadores con InfoWindow mostrando dirección y area cluster
-- ✅ Estados de carga y error con mensajes informativos
-- ✅ Soporte para dark mode
+#### Fase "Limpieza y Amoblamiento" (furnishing-cleaning)
+- ✅ Muestra campo "Días para propiedad lista" (`daysToPropertyReady`)
+- ✅ Ordenamiento de mayor a menor por `daysToPropertyReady`
+- ✅ Marcado en rojo cuando `daysToPropertyReady > 25`
+- ✅ Cards rojas aparecen primero en la columna
+- ✅ Ocultado texto "hace X días" en esta fase
 
-### 4. **Mejoras de UI/UX**
+### 3. Nuevo filtro "Obras Tardías"
+- ✅ Añadido checkbox "Obras Tardías" en el diálogo de filtros
+- ✅ Filtra solo propiedades marcadas en rojo según su fase:
+  - `reno-in-progress`: según tipo de reno (Light > 30, Medium > 60, Major > 120 días)
+  - `reno-budget-renovator/client/start`: `daysToStartRenoSinceRSD > 25`
+  - `initial-check/upcoming-settlements`: `daysToVisit > 5`
+  - `furnishing-cleaning`: `daysToPropertyReady > 25`
+- ✅ Se combina con otros filtros (AND con obras tardías, OR entre otros filtros)
 
-#### Image Viewer
-- ✅ Zoom ajustado para imágenes verticales (mejor visualización)
-- ✅ Modal con fondo claro en lugar de negro
-- ✅ Botones de navegación con estilo "Light Reno" (azul claro)
-- ✅ Ajuste dinámico del tamaño del modal según orientación de la imagen
+### 4. Mejoras en tipos y mapeos
+- ✅ Actualizado `lib/supabase/types.ts` con nuevo campo `days_to_visit`
+- ✅ Actualizado `lib/property-storage.ts` con `daysToVisit` y `daysToPropertyReady`
+- ✅ Actualizado `hooks/useSupabaseKanbanProperties.ts` para mapear nuevos campos
 
-#### Logo y Branding
-- ✅ Nuevo logo para dark mode con diseño circular y segmento azul
-- ✅ Logo clicable que redirige al home
-- ✅ Logo responsive en mobile y desktop
-
-#### Headers y Alineación
-- ✅ Headers alineados con la línea del sidebar
-- ✅ Padding consistente entre home y kanban
-- ✅ Mejoras visuales en navbar L1
-
-### 5. **Internacionalización (i18n)**
-- ✅ Traducciones completas para modal de ayuda (español/inglés)
-- ✅ Traducciones completas para página de notificaciones (español/inglés)
-- ✅ Locale dinámico para fechas relativas (date-fns)
-
-### 6. **Sincronización con Airtable**
-
-#### Technical Construction
-- ✅ Sincronización correcta desde tabla `Transactions` en Airtable
-- ✅ Campo ID: `fldtTmer8awVKDx7Y`
-- ✅ Script `update-technical-construction.ts` para actualización masiva
-- ✅ Mapeo mejorado en `sync-from-airtable.ts`
-
-#### Estimated Visit Date
-- ✅ Detección inteligente de record ID de Airtable
-- ✅ Soporte para record IDs directos (formato `recXXXXXXXXXXXXXX`)
-- ✅ Fallback a búsqueda por Property ID cuando sea necesario
-
----
-
-## 📁 Archivos Nuevos
+## 📁 Archivos Modificados
 
 ### Componentes
-- `components/reno/help-modal.tsx` - Modal de ayuda con formulario de dos pasos
-- `components/reno/property-combobox.tsx` - Combobox para selección de propiedades
-- `components/reno/property-map.tsx` - Componente de Google Maps para propiedades
+- `components/reno/reno-property-card.tsx` - Visualización de campos y marcado en rojo
+- `components/reno/reno-kanban-board.tsx` - Ordenamiento y filtrado
+- `components/reno/reno-kanban-filters.tsx` - Nuevo filtro de obras tardías
+- `components/reno/reno-kanban-column.tsx` - Mejoras en título de columnas
 
-### Hooks
-- `hooks/useHelpConversations.ts` - Hook para gestionar conversaciones de ayuda con real-time
+### Hooks y Utilidades
+- `hooks/useSupabaseKanbanProperties.ts` - Mapeo de nuevos campos
+- `lib/property-storage.ts` - Tipos actualizados
+- `lib/supabase/types.ts` - Tipos de Supabase actualizados
+- `lib/supabase/kanban-mapping.ts` - Mapeos mejorados
 
-### Páginas
-- `app/reno/construction-manager/notifications/page.tsx` - Página de notificaciones
-- `app/api/webhooks/help-response/route.ts` - Endpoint para recibir respuestas de n8n
-
-### Migraciones
-- `supabase/migrations/003_help_conversations.sql` - Migración para tabla de conversaciones
-
-### Assets
-- `public/vistral-logo-dark.svg` - Nuevo logo para dark mode
-- `public/login-left.jpeg` - Nueva imagen de login
-
----
-
-## 🔧 Archivos Modificados
-
-### Componentes
-- `components/reno/reno-sidebar.tsx` - Integración de modal de ayuda y logo clicable
-- `components/reno/reno-kanban-filters.tsx` - Filtros múltiples mejorados
-- `components/reno/reno-kanban-header.tsx` - Ajustes de padding y alineación
-- `components/reno/reno-home-header.tsx` - Ajustes de padding y alineación
-- `components/reno/property-summary-tab.tsx` - Integración de Google Maps e image viewer mejorado
-- `components/vistral-logo.tsx` - Soporte para logo dark mode
-- `components/layout/navbar-l1.tsx` - Ajustes de padding
-- `components/architectural-wireframe-background.tsx` - Soporte para login-left.jpeg
-
-### Hooks
-- `hooks/useSupabaseKanbanProperties.ts` - Inclusión de supabaseProperty en conversión
-
-### Librerías
-- `lib/airtable/sync-from-airtable.ts` - Mapeo mejorado de Technical construction
-- `lib/airtable/sync-upcoming-settlements.ts` - Ajustes menores
-- `lib/i18n/translations.ts` - Traducciones para help y notifications
+### Sincronización
+- `lib/airtable/sync-from-airtable.ts` - Mapeo de `days_to_visit`
+- `lib/airtable/sync-unified.ts` - Mapeo de `days_to_visit`
 
 ### Scripts
-- `scripts/update-technical-construction.ts` - Script mejorado para sincronización desde Transactions
-- `scripts/debug-estimated-visit-sync.ts` - Mejoras en logging
+- `scripts/update-days-to-visit.ts` - Script de actualización masiva
+- `scripts/check-days-to-visit-type.ts` - Script de verificación
 
----
+### Migraciones
+- `supabase/migrations/009_change_days_to_visit_to_numeric.sql` - Cambio de tipo de columna
 
-## 🐛 Correcciones
+## 🚀 Cómo Probar
 
-1. **Technical Construction Sync**: Corregida la sincronización para obtener valores desde tabla `Transactions` en lugar de `Properties`
-2. **Estimated Visit Date**: Mejorada la detección de record IDs de Airtable
-3. **Image Viewer**: Corregido el zoom y tamaño del modal para imágenes verticales
-4. **Logo Dark Mode**: Implementado logo específico para dark mode
-5. **Alineación Headers**: Corregida la alineación de headers con sidebar
+1. **Migración de Base de Datos:**
+   ```sql
+   -- Ejecutar en Supabase SQL Editor
+   -- Archivo: supabase/migrations/009_change_days_to_visit_to_numeric.sql
+   ```
 
----
+2. **Sincronización de Datos:**
+   ```bash
+   npx tsx scripts/update-days-to-visit.ts
+   ```
 
-## 🧪 Testing Realizado
+3. **Verificar en UI:**
+   - Verificar que las cards muestran "Días para visitar" en fases correspondientes
+   - Verificar que las cards muestran "Días para propiedad lista" en furnishing-cleaning
+   - Verificar ordenamiento (mayor a menor)
+   - Verificar marcado en rojo cuando superan los límites
+   - Probar filtro "Obras Tardías"
 
-✅ **Filtros de Kanban**: Verificado funcionamiento con múltiples valores y lógica OR  
-✅ **Modal de Ayuda**: Probado flujo completo de envío de mensajes  
-✅ **Notificaciones**: Verificado sistema de real-time y badge de no leídos  
-✅ **Google Maps**: Probado geocodificación y visualización de mapas  
-✅ **Technical Construction**: Ejecutado script de sincronización masiva (116 propiedades actualizadas)  
-✅ **i18n**: Verificado traducciones en español e inglés  
-✅ **Logo Dark Mode**: Verificado cambio automático según tema  
+## ⚠️ Notas Importantes
 
----
+- La migración SQL eliminará datos existentes en `days_to_visit` si estaban en formato fecha
+- Los datos se repoblarán desde Airtable al ejecutar el script de sincronización
+- El filtro de obras tardías funciona como AND con otros filtros (si está activo, solo muestra tardías)
 
-## 📝 Checklist para Review
+## 📝 Checklist
 
-- [x] Nuevas funcionalidades implementadas
-- [x] Correcciones de bugs aplicadas
-- [x] Traducciones completas (español/inglés)
-- [x] Testing manual realizado
+- [x] Campos añadidos a tipos TypeScript
+- [x] Mapeo desde Airtable implementado
+- [x] Visualización en cards implementada
+- [x] Ordenamiento implementado
+- [x] Marcado en rojo implementado
+- [x] Filtro de obras tardías implementado
+- [x] Scripts de sincronización actualizados
+- [x] Migración SQL creada
 - [x] Documentación actualizada
-- [ ] Testing en ambiente de desarrollo
-- [ ] Verificar migración de Supabase en producción
-
----
-
-## 🚀 Próximos Pasos
-
-1. Merge a `upstream/dev`
-2. Ejecutar migración de Supabase en producción (`003_help_conversations.sql`)
-3. Verificar funcionamiento de webhook con n8n
-4. Monitorear sincronización de Technical Construction
-5. Verificar Google Maps en producción
-
----
-
-## 🔑 Variables de Entorno Requeridas
-
-- `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` - API key de Google Maps
-- `NEXT_PUBLIC_N8N_WEBHOOK_URL` - URL del webhook de n8n (ya configurado en código)
-- Variables existentes de Supabase y Airtable
-
----
-
-**Branch**: `develop` → `upstream/dev`  
-**Autor**: Manuel  
-**Fecha**: 2025-11-25

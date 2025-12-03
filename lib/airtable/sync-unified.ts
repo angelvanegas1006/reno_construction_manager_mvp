@@ -284,6 +284,40 @@ function mapAirtablePropertyToSupabase(airtableProperty: any): any {
       
       return [];
     })(),
+    // Campos de duración y días (números enteros)
+    'Days to Start Reno (Since RSD)': (() => {
+      const value = getFieldValue('Days to start reno since real settlement date', [
+        'Days to start reno since real settlement date',
+        'Days to start reno since settlement date',
+        'Days to Start Reno (Since RSD)',
+        'Days to Start Reno Since Settlement Date',
+        'Days to start reno since RSD',
+        'Days to Start Reno Since RSD',
+        'Days to Start Reno',
+        'Days to start reno',
+      ]);
+      if (value === null || value === undefined) return null;
+      const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+      return isNaN(num) ? null : num;
+    })(),
+    'Reno Duration': (() => {
+      const value = getFieldValue('Reno Duration');
+      if (value === null || value === undefined) return null;
+      const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+      return isNaN(num) ? null : num;
+    })(),
+    'Days to Property Ready': (() => {
+      const value = getFieldValue('Days to Property Ready');
+      if (value === null || value === undefined) return null;
+      const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+      return isNaN(num) ? null : num;
+    })(),
+    days_to_visit: (() => {
+      const value = getFieldValue('Days to visit', ['Days to visit', 'Days to Visit']);
+      if (value === null || value === undefined) return null;
+      const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+      return isNaN(num) ? null : num;
+    })(),
     airtable_property_id: airtableProperty.id,
     updated_at: new Date().toISOString(),
   };
@@ -517,6 +551,19 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         console.log(`  ${phase}: ${count}`);
       }
     });
+    
+    // Mostrar primeros errores si los hay
+    if (result.totalErrors > 0 && result.details.length > 0) {
+      console.log('\n⚠️  First errors (showing up to 10):');
+      result.details
+        .filter(d => d.includes('Error'))
+        .slice(0, 10)
+        .forEach(error => console.log(`  - ${error}`));
+      if (result.details.filter(d => d.includes('Error')).length > 10) {
+        console.log(`  ... and ${result.details.filter(d => d.includes('Error')).length - 10} more errors`);
+      }
+    }
+    
     console.log('='.repeat(80) + '\n');
 
     result.success = result.totalErrors === 0;

@@ -27,7 +27,10 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
     const counts: Record<RenoKanbanPhase, number> = {
       "upcoming-settlements": 0,
       "initial-check": 0,
-      "reno-budget": 0,
+      "reno-budget-renovator": 0,
+      "reno-budget-client": 0,
+      "reno-budget-start": 0,
+      "reno-budget": 0, // Legacy
       "reno-in-progress": 0,
       "furnishing-cleaning": 0,
       "final-check": 0,
@@ -55,7 +58,10 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
     const stageMap: Record<RenoKanbanPhase, string> = {
       "upcoming-settlements": language === "es" ? "Upcoming Reno" : "Upcoming Reno",
       "initial-check": language === "es" ? "Check inicial" : "Initial Check",
-      "reno-budget": language === "es" ? "Reno Budget" : "Reno Budget",
+      "reno-budget-renovator": language === "es" ? "Pendiente Presupuesto (Renovador)" : "Pending Budget (Renovator)",
+      "reno-budget-client": language === "es" ? "Pendiente Presupuesto (Cliente)" : "Pending Budget (Client)",
+      "reno-budget-start": language === "es" ? "Obra a Empezar" : "Reno to Start",
+      "reno-budget": language === "es" ? "Reno Budget" : "Reno Budget", // Legacy
       "reno-in-progress": language === "es" ? "Obras en proceso" : "Reno In Progress",
       "furnishing-cleaning": language === "es" ? "Limpieza y amoblamiento" : "Furnishing & Cleaning",
       "final-check": language === "es" ? "Check final" : "Final Check",

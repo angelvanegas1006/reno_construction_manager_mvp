@@ -197,6 +197,10 @@ export type Database = {
           stage: string | null
           next_reno_steps: string | null
           pics_urls: string[] | null
+          "Days to Start Reno (Since RSD)": number | null
+          "Reno Duration": number | null
+          "Days to Property Ready": number | null
+          days_to_visit: number | null
         }
         Insert: {
           address?: string | null
@@ -239,6 +243,10 @@ export type Database = {
           stage?: string | null
           next_reno_steps?: string | null
           pics_urls?: string[] | null
+          "Days to Start Reno (Sice RSD)"?: number | null
+          "Reno Duration"?: number | null
+          "Days to Property Ready"?: number | null
+          days_to_visit?: number | null
         }
         Update: {
           address?: string | null
@@ -281,6 +289,10 @@ export type Database = {
           stage?: string | null
           next_reno_steps?: string | null
           pics_urls?: string[] | null
+          "Days to Start Reno (Sice RSD)"?: number | null
+          "Reno Duration"?: number | null
+          "Days to Property Ready"?: number | null
+          days_to_visit?: number | null
         }
         Relationships: []
       }

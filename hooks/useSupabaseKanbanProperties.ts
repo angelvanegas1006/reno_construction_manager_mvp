@@ -24,23 +24,38 @@ interface UseSupabaseKanbanPropertiesReturn {
 function convertSupabasePropertyToKanbanProperty(
   supabaseProperty: SupabaseProperty
 ): Property | null {
-  // Preferir reno_phase si está disponible, sino usar el mapeo de Set Up Status
+  // Preferir reno_phase si está disponible, pero si es 'reno-budget' (legacy),
+  // intentar mapear desde Set Up Status para determinar la fase específica
   let kanbanPhase: RenoKanbanPhase | null = null;
   
   if (supabaseProperty.reno_phase) {
-    // Validar que reno_phase es un RenoKanbanPhase válido
-    const validPhases: RenoKanbanPhase[] = [
-      'upcoming-settlements',
-      'initial-check',
-      'reno-budget',
-      'reno-in-progress',
-      'furnishing-cleaning',
-      'final-check',
-      'reno-fixes',
-      'done',
-    ];
-    if (validPhases.includes(supabaseProperty.reno_phase as RenoKanbanPhase)) {
-      kanbanPhase = supabaseProperty.reno_phase as RenoKanbanPhase;
+    // Si es 'reno-budget' (legacy), intentar mapear desde Set Up Status primero
+    if (supabaseProperty.reno_phase === 'reno-budget') {
+      const mappedFromStatus = mapSetUpStatusToKanbanPhase(supabaseProperty['Set Up Status']);
+      // Si el mapeo da una de las nuevas fases, usarla; sino mantener reno-budget
+      if (mappedFromStatus && mappedFromStatus !== 'reno-budget') {
+        kanbanPhase = mappedFromStatus;
+      } else {
+        kanbanPhase = 'reno-budget'; // Mantener legacy si no hay mapeo específico
+      }
+    } else {
+      // Para otras fases, validar que reno_phase es un RenoKanbanPhase válido
+      const validPhases: RenoKanbanPhase[] = [
+        'upcoming-settlements',
+        'initial-check',
+        'reno-budget-renovator',
+        'reno-budget-client',
+        'reno-budget-start',
+        'reno-budget', // Legacy
+        'reno-in-progress',
+        'furnishing-cleaning',
+        'final-check',
+        'reno-fixes',
+        'done',
+      ];
+      if (validPhases.includes(supabaseProperty.reno_phase as RenoKanbanPhase)) {
+        kanbanPhase = supabaseProperty.reno_phase as RenoKanbanPhase;
+      }
     }
   }
   
@@ -97,6 +112,19 @@ function convertSupabasePropertyToKanbanProperty(
     uniqueIdFromEngagements: supabaseProperty['Unique ID From Engagements'] || undefined,
     // Campo para la fase de renovación
     renoPhase: kanbanPhase,
+    // Days and duration fields from Supabase
+    daysToStartRenoSinceRSD: supabaseProperty['Days to Start Reno (Since RSD)'] !== null && supabaseProperty['Days to Start Reno (Since RSD)'] !== undefined 
+      ? supabaseProperty['Days to Start Reno (Since RSD)'] 
+      : undefined,
+    renoDuration: supabaseProperty['Reno Duration'] !== null && supabaseProperty['Reno Duration'] !== undefined 
+      ? supabaseProperty['Reno Duration'] 
+      : undefined,
+    daysToPropertyReady: supabaseProperty['Days to Property Ready'] !== null && supabaseProperty['Days to Property Ready'] !== undefined 
+      ? supabaseProperty['Days to Property Ready'] 
+      : undefined,
+    daysToVisit: supabaseProperty.days_to_visit !== null && supabaseProperty.days_to_visit !== undefined 
+      ? supabaseProperty.days_to_visit 
+      : undefined,
     // Incluir el supabaseProperty original para acceso a todos los campos
     supabaseProperty: supabaseProperty as any,
   } as Property & { supabaseProperty?: any };
@@ -344,7 +372,10 @@ export function useSupabaseKanbanProperties() {
     const grouped: Record<RenoKanbanPhase, Property[]> = {
       'upcoming-settlements': [],
       'initial-check': [],
-      'reno-budget': [],
+      'reno-budget-renovator': [],
+      'reno-budget-client': [],
+      'reno-budget-start': [],
+      'reno-budget': [], // Legacy
       'reno-in-progress': [],
       'furnishing-cleaning': [],
       'final-check': [],
