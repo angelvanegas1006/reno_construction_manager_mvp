@@ -1115,7 +1115,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             )}
                           >
                             {getVisibleColumnsForPhase(column.key).has("id") && (
-                              <td className="px-4 py-3 whitespace-nowrap relative">
+                              <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-medium text-foreground">
                                     {property.uniqueIdFromEngagements || property.id}
@@ -1126,12 +1126,6 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                     </Badge>
                                   )}
                                 </div>
-                                {/* Alert icon in top right corner */}
-                                {isDelayed && (
-                                  <div className="absolute top-2 right-2 z-10">
-                                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                                  </div>
-                                )}
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("address") && (
