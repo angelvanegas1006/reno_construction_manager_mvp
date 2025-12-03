@@ -350,14 +350,26 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     });
   }, [language]);
 
-  // Get all properties for list view with their phase (must be before early returns)
-  const allPropertiesForList = useMemo(() => {
-    const allProps: Array<Property & { currentPhase?: RenoKanbanPhase }> = [];
+  // Group properties by phase for list view (must be before early returns)
+  const propertiesByPhaseForList = useMemo(() => {
+    const grouped: Record<RenoKanbanPhase, Array<Property & { currentPhase?: RenoKanbanPhase }>> = {
+      'upcoming-settlements': [],
+      'initial-check': [],
+      'upcoming': [],
+      'reno-budget': [],
+      'reno-in-progress': [],
+      'furnishing-cleaning': [],
+      'final-check': [],
+      'reno-fixes': [],
+      'done': [],
+    };
+
     visibleRenoKanbanColumns.forEach((column) => {
       const properties = filteredProperties[column.key] || [];
-      allProps.push(...properties.map(p => ({ ...p, currentPhase: column.key })));
+      grouped[column.key] = properties.map(p => ({ ...p, currentPhase: column.key }));
     });
-    return allProps;
+
+    return grouped;
   }, [filteredProperties]);
 
   // Show error message if Supabase fails
@@ -380,28 +392,6 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       </div>
     );
   }
-
-  // Group properties by phase for list view
-  const propertiesByPhaseForList = useMemo(() => {
-    const grouped: Record<RenoKanbanPhase, Array<Property & { currentPhase?: RenoKanbanPhase }>> = {
-      'upcoming-settlements': [],
-      'initial-check': [],
-      'upcoming': [],
-      'reno-budget': [],
-      'reno-in-progress': [],
-      'furnishing-cleaning': [],
-      'final-check': [],
-      'reno-fixes': [],
-      'done': [],
-    };
-
-    visibleRenoKanbanColumns.forEach((column) => {
-      const properties = filteredProperties[column.key] || [];
-      grouped[column.key] = properties.map(p => ({ ...p, currentPhase: column.key }));
-    });
-
-    return grouped;
-  }, [filteredProperties]);
 
   // Render List View
   const renderListView = () => {
