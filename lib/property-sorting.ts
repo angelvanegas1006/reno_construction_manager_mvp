@@ -27,6 +27,52 @@ export function sortPropertiesByExpired(properties: Property[]): Property[] {
   });
 }
 
+/**
+ * Check if a property is marked in red (delayed work) based on its phase
+ */
+export function isDelayedWork(property: Property, phase?: string): boolean {
+  const renoPhase = phase || property.renoPhase;
+  
+  if (!renoPhase) return false;
+  
+  // reno-in-progress: check duration limit based on reno type
+  if (renoPhase === "reno-in-progress" && property.renoDuration && property.renoType) {
+    const renoTypeLower = property.renoType.toLowerCase();
+    const duration = property.renoDuration;
+    
+    if (renoTypeLower.includes('light')) {
+      return duration > 30;
+    } else if (renoTypeLower.includes('medium')) {
+      return duration > 60;
+    } else if (renoTypeLower.includes('major')) {
+      return duration > 120;
+    }
+  }
+  
+  // Budget phases: daysToStartRenoSinceRSD > 25
+  if ((renoPhase === "reno-budget-renovator" || renoPhase === "reno-budget-client" || renoPhase === "reno-budget-start") && 
+      property.daysToStartRenoSinceRSD !== null && 
+      property.daysToStartRenoSinceRSD !== undefined) {
+    return property.daysToStartRenoSinceRSD > 25;
+  }
+  
+  // initial-check and upcoming-settlements: daysToVisit > 5
+  if ((renoPhase === "initial-check" || renoPhase === "upcoming-settlements") && 
+      property.daysToVisit !== null && 
+      property.daysToVisit !== undefined) {
+    return property.daysToVisit > 5;
+  }
+  
+  // furnishing-cleaning: daysToPropertyReady > 25
+  if (renoPhase === "furnishing-cleaning" && 
+      property.daysToPropertyReady !== null && 
+      property.daysToPropertyReady !== undefined) {
+    return property.daysToPropertyReady > 25;
+  }
+  
+  return false;
+}
+
 
 
 

@@ -51,6 +51,11 @@ export function convertSupabasePropertyToProperty(
                       undefined,
     // Additional Supabase fields
     uniqueIdFromEngagements: supabaseProperty['Unique ID From Engagements'] || undefined,
+    // Days and duration fields
+    daysToStartRenoSinceRSD: (supabaseProperty as any)['Days to Start Reno (Since RSD)'] || undefined,
+    renoDuration: (supabaseProperty as any)['Reno Duration'] || undefined,
+    daysToPropertyReady: (supabaseProperty as any)['Days to Property Ready'] || undefined,
+    daysToVisit: (supabaseProperty as any)['days_to_visit'] || undefined,
   };
 }
 

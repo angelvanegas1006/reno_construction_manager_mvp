@@ -525,6 +525,31 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
       'Reno Start Date:',
       'Start Date'
     ]) || null,
+    // Days and duration fields - convert to numbers
+    'Days to Start Reno (Since RSD)': (() => {
+      const value = getFieldValue('Days to Start Reno (Since RSD)', ['Days to Start Reno (Since RSD)', 'Days to Start Reno (Sice RSD)']);
+      if (value === null || value === undefined) return null;
+      const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+      return isNaN(num) ? null : num;
+    })(),
+    'Reno Duration': (() => {
+      const value = getFieldValue('Reno Duration', ['Reno Duration']);
+      if (value === null || value === undefined) return null;
+      const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+      return isNaN(num) ? null : num;
+    })(),
+    'Days to Property Ready': (() => {
+      const value = getFieldValue('Days to Property Ready', ['Days to Property Ready']);
+      if (value === null || value === undefined) return null;
+      const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+      return isNaN(num) ? null : num;
+    })(),
+    days_to_visit: (() => {
+      const value = getFieldValue('Days to visit', ['Days to visit', 'Days to Visit']);
+      if (value === null || value === undefined) return null;
+      const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+      return isNaN(num) ? null : num;
+    })(),
     // Determinar fase basada en Set Up Status
     // IMPORTANTE: Usar la función de mapeo para mantener consistencia
     reno_phase: (() => {

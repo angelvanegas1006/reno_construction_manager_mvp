@@ -3,13 +3,13 @@
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "lucide-react";
+import { Calendar, AlertTriangle } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
 import { useMixpanel } from "@/hooks/useMixpanel";
 
-type RenoStage = "upcoming-settlements" | "initial-check" | "upcoming" | "reno-budget" | "reno-in-progress" | "furnishing-cleaning" | "final-check" | "reno-fixes" | "done";
+type RenoStage = "upcoming-settlements" | "initial-check" | "upcoming" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "reno-in-progress" | "furnishing-cleaning" | "final-check" | "reno-fixes" | "done";
 
 interface RenoPropertyCardProps {
   property: Property;
@@ -35,6 +35,57 @@ export function RenoPropertyCard({
   const needsUpdateToday = property.proximaActualizacion
     ? new Date(property.proximaActualizacion).toDateString() === new Date().toDateString()
     : false;
+
+  // Check if property exceeds duration limit based on reno type (for reno-in-progress)
+  const exceedsDurationLimit = (() => {
+    if (stage !== "reno-in-progress" || !property.renoDuration || !property.renoType) {
+      return false;
+    }
+    
+    const renoTypeLower = property.renoType.toLowerCase();
+    const duration = property.renoDuration;
+    
+    if (renoTypeLower.includes('light')) {
+      return duration > 30;
+    } else if (renoTypeLower.includes('medium')) {
+      return duration > 60;
+    } else if (renoTypeLower.includes('major')) {
+      return duration > 120;
+    }
+    
+    return false;
+  })();
+
+  // Check if property exceeds Days to Start Reno limit (for budget phases)
+  const exceedsDaysToStartLimit = (() => {
+    const budgetPhases = ["reno-budget-renovator", "reno-budget-client", "reno-budget-start"];
+    if (!budgetPhases.includes(stage) || !property.daysToStartRenoSinceRSD) {
+      return false;
+    }
+    
+    return property.daysToStartRenoSinceRSD > 25;
+  })();
+
+  // Check if property exceeds Days to Visit limit (for initial-check and upcoming-settlements phases)
+  const exceedsDaysToVisitLimit = (() => {
+    if ((stage !== "initial-check" && stage !== "upcoming-settlements") || !property.daysToVisit) {
+      return false;
+    }
+    
+    return property.daysToVisit > 5;
+  })();
+
+  // Check if property exceeds Days to Property Ready limit (for furnishing-cleaning phase)
+  const exceedsDaysToPropertyReadyLimit = (() => {
+    if (stage !== "furnishing-cleaning" || !property.daysToPropertyReady) {
+      return false;
+    }
+    
+    return property.daysToPropertyReady > 25;
+  })();
+
+  // Determine if property should be marked in red
+  const isMarkedInRed = exceedsDurationLimit || exceedsDaysToStartLimit || exceedsDaysToVisitLimit || exceedsDaysToPropertyReadyLimit;
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
@@ -86,7 +137,7 @@ export function RenoPropertyCard({
     <div 
       data-property-id={property.id}
       className={cn(
-        "rounded-lg border-2 border-border bg-card p-4 shadow-sm w-full",
+        "rounded-lg border-2 border-border bg-card p-4 shadow-sm w-full relative",
         "transition-all duration-300 ease-out",
         disabled 
           ? "cursor-not-allowed opacity-60" 
@@ -97,7 +148,8 @@ export function RenoPropertyCard({
         isHighlighted 
           ? "ring-2 ring-[var(--prophero-blue-500)] shadow-lg border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30" 
           : "",
-        isExpired && "border-l-4 border-l-red-100 dark:border-l-red-900/30"
+        isExpired && "border-l-4 border-l-red-100 dark:border-l-red-900/30",
+        isMarkedInRed && "border-l-4 border-l-red-500"
       )}
       onClick={disabled ? undefined : () => {
         track("Property Card Clicked", {
@@ -110,6 +162,13 @@ export function RenoPropertyCard({
         onClick?.();
       }}
     >
+      {/* Alert icon in top right corner */}
+      {isMarkedInRed && (
+        <div className="absolute top-2 right-2 z-10">
+          <AlertTriangle className="h-5 w-5 text-red-500" />
+        </div>
+      )}
+      
       {/* ID and Expired tag aligned at top */}
       <div className="flex items-center justify-between mb-2 gap-2 min-w-0">
         <div className="text-xs font-semibold text-muted-foreground truncate min-w-0">
@@ -214,7 +273,32 @@ export function RenoPropertyCard({
               <span>{t.propertyCard.estimatedVisit}: {formatDate(property.estimatedVisitDate)}</span>
             </div>
           )}
-          <div className="text-xs text-muted-foreground">{timeInPhase}</div>
+          {property.daysToVisit !== null && property.daysToVisit !== undefined && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Días para visitar:</span> {property.daysToVisit} días
+            </div>
+          )}
+          {/* Ocultar timeInPhase para initial-check */}
+        </div>
+      ) : stage === "upcoming-settlements" ? (
+        <div className="space-y-2">
+          {property.region && (
+            <div className="text-xs text-muted-foreground">
+              {t.propertyCard.region}: {property.region}
+            </div>
+          )}
+          {property.estimatedVisitDate && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3 flex-shrink-0" />
+              <span>{t.propertyCard.estimatedVisit}: {formatDate(property.estimatedVisitDate)}</span>
+            </div>
+          )}
+          {property.daysToVisit !== null && property.daysToVisit !== undefined && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Días para visitar:</span> {property.daysToVisit} días
+            </div>
+          )}
+          {/* Ocultar timeInPhase para upcoming-settlements */}
         </div>
       ) : stage === "final-check" ? (
         <div className="space-y-2">
@@ -281,10 +365,11 @@ export function RenoPropertyCard({
           <div className="text-xs text-muted-foreground">
             {stage === "furnishing-cleaning" && `${t.propertyCard.cleaningFurnishing} `}
             {stage === "reno-fixes" && `${t.propertyCard.repairs} `}
-            {timeInPhase}
+            {/* Ocultar timeInPhase para furnishing-cleaning */}
+            {stage === "reno-fixes" && timeInPhase}
           </div>
         </div>
-      ) : stage === "reno-budget" ? (
+      ) : stage === "reno-budget" || stage === "reno-budget-renovator" || stage === "reno-budget-client" || stage === "reno-budget-start" ? (
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
@@ -296,7 +381,7 @@ export function RenoPropertyCard({
               <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
-          <div className="text-xs text-muted-foreground">{timeInPhase}</div>
+          {/* Ocultar timeInPhase para fases de budget */}
         </div>
       ) : stage === "done" ? (
         <div className="space-y-2">

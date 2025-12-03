@@ -254,6 +254,30 @@ export default function RenoPropertyDetailPage() {
     await saveToSupabase(true);
   }, [saveToSupabase]);
 
+  // Handler para actualizar Renovator Name
+  const handleUpdateRenovatorName = useCallback(async (newName: string): Promise<boolean> => {
+    if (!propertyId || !supabaseProperty) return false;
+    
+    try {
+      const supabaseUpdates: PropertyUpdate & Record<string, any> = {
+        'Renovator name': newName || null,
+        updated_at: new Date().toISOString(),
+      };
+      
+      const success = await updateSupabaseProperty(supabaseUpdates);
+      
+      if (success) {
+        await refetch();
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error updating renovator name:', error);
+      return false;
+    }
+  }, [propertyId, supabaseProperty, updateSupabaseProperty, refetch]);
+
   // Calculate progress (simplified - could be improved)
   const progress = 25; // TODO: Calculate from checklist completion
 
@@ -318,7 +342,7 @@ export default function RenoPropertyDetailPage() {
           
           return (
             <div className="space-y-6">
-              <PropertyActionTab property={property} supabaseProperty={supabaseProperty} />
+              <PropertyActionTab property={property} supabaseProperty={supabaseProperty} propertyId={propertyId} onUpdateRenovatorName={handleUpdateRenovatorName} />
               
               {/* Date section for initial-check (with or without date) */}
               {showDateSection && (
@@ -559,7 +583,7 @@ export default function RenoPropertyDetailPage() {
         if (currentPhase === "reno-in-progress") {
           return (
             <div className="space-y-6">
-              <PropertyActionTab property={property} supabaseProperty={supabaseProperty} propertyId={propertyId} />
+              <PropertyActionTab property={property} supabaseProperty={supabaseProperty} propertyId={propertyId} onUpdateRenovatorName={handleUpdateRenovatorName} />
               {supabaseProperty && (
                 <DynamicCategoriesProgress property={supabaseProperty} />
               )}
@@ -757,7 +781,10 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "upcoming-settlements": t.kanban.upcomingSettlements,
     "initial-check": t.kanban.initialCheck,
     "upcoming": t.kanban.upcoming,
-    "reno-budget": t.kanban.renoBudget,
+    "reno-budget-renovator": t.kanban.renoBudgetRenovator,
+    "reno-budget-client": t.kanban.renoBudgetClient,
+    "reno-budget-start": t.kanban.renoBudgetStart,
+    "reno-budget": t.kanban.renoBudget, // Legacy
     "reno-in-progress": t.kanban.renoInProgress,
     "furnishing-cleaning": t.kanban.furnishingCleaning,
     "final-check": t.kanban.finalCheck,

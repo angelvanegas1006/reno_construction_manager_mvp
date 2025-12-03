@@ -32,7 +32,10 @@ function convertSupabasePropertyToKanbanProperty(
     const validPhases: RenoKanbanPhase[] = [
       'upcoming-settlements',
       'initial-check',
-      'reno-budget',
+      'reno-budget-renovator',
+      'reno-budget-client',
+      'reno-budget-start',
+      'reno-budget', // Legacy
       'reno-in-progress',
       'furnishing-cleaning',
       'final-check',
@@ -93,6 +96,11 @@ function convertSupabasePropertyToKanbanProperty(
     bedrooms: supabaseProperty.bedrooms || undefined,
     bathrooms: supabaseProperty.bathrooms || undefined,
     square_meters: supabaseProperty.square_meters || undefined,
+    // Days and duration fields
+    daysToStartRenoSinceRSD: (supabaseProperty as any)['Days to Start Reno (Since RSD)'] || undefined,
+    renoDuration: (supabaseProperty as any)['Reno Duration'] || undefined,
+    daysToPropertyReady: (supabaseProperty as any)['Days to Property Ready'] || undefined,
+    daysToVisit: (supabaseProperty as any)['days_to_visit'] || undefined,
     // Campo para mostrar el ID único de Engagements
     uniqueIdFromEngagements: supabaseProperty['Unique ID From Engagements'] || undefined,
     // Campo para la fase de renovación
@@ -343,7 +351,10 @@ export function useSupabaseKanbanProperties() {
       'upcoming-settlements': [],
       'initial-check': [],
       'upcoming': [],
-      'reno-budget': [],
+      'reno-budget-renovator': [],
+      'reno-budget-client': [],
+      'reno-budget-start': [],
+      'reno-budget': [], // Legacy
       'reno-in-progress': [],
       'furnishing-cleaning': [],
       'final-check': [],

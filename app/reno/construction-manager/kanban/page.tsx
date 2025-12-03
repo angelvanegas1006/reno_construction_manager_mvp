@@ -30,6 +30,7 @@ export default function RenoConstructionManagerKanbanPage() {
     renovatorNames: [],
     technicalConstructors: [],
     areaClusters: [],
+    delayedWorks: false,
   });
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const { t } = useI18n();
@@ -61,7 +62,8 @@ export default function RenoConstructionManagerKanbanPage() {
           filterBadgeCount={
             filters.renovatorNames.length +
             filters.technicalConstructors.length +
-            filters.areaClusters.length
+            filters.areaClusters.length +
+            (filters.delayedWorks ? 1 : 0)
           }
           viewMode={viewMode}
           onViewModeChange={setViewMode}

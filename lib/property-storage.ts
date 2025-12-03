@@ -170,6 +170,11 @@ export interface Property {
   bedrooms?: number;
   bathrooms?: number;
   square_meters?: number;
+  // Days and duration fields
+  daysToStartRenoSinceRSD?: number | null; // Days to start reno since RSD
+  renoDuration?: number | null; // Reno duration
+  daysToPropertyReady?: number | null; // Days to property ready
+  daysToVisit?: number | null; // Days to visit
 }
 
 const STORAGE_KEY = "vistral_properties";

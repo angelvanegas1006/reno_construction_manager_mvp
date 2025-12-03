@@ -125,7 +125,10 @@ export interface Translations {
       upcomingSettlements: string;
       initialCheck: string;
       upcoming: string;
-      renoBudget: string;
+      renoBudgetRenovator: string;
+      renoBudgetClient: string;
+      renoBudgetStart: string;
+      renoBudget: string; // Legacy
       renoInProgress: string;
       furnishingCleaning: string;
       finalCheck: string;
@@ -630,7 +633,10 @@ export const translations: Record<Language, Translations> = {
       upcomingSettlements: "Upcoming Reno",
       initialCheck: "Check inicial",
       upcoming: "Próximas propiedades",
-      renoBudget: "Reno Budget",
+      renoBudgetRenovator: "Pendiente Presupuesto (Renovador)",
+      renoBudgetClient: "Pendiente Presupuesto (Cliente)",
+      renoBudgetStart: "Obra a Empezar",
+      renoBudget: "Reno Budget", // Legacy
       renoInProgress: "Obras en proceso",
       furnishingCleaning: "Limpieza y amoblamiento",
       finalCheck: "Check final",
@@ -1536,7 +1542,10 @@ export const translations: Record<Language, Translations> = {
       upcomingSettlements: "Upcoming Reno",
       initialCheck: "Initial Check",
       upcoming: "Upcoming Properties",
-      renoBudget: "Reno Budget",
+      renoBudgetRenovator: "Pending Budget (Renovator)",
+      renoBudgetClient: "Pending Budget (Client)",
+      renoBudgetStart: "Reno to Start",
+      renoBudget: "Reno Budget", // Legacy
       renoInProgress: "Reno in Progress",
       furnishingCleaning: "Furnishing/Cleaning",
       finalCheck: "Final Check",

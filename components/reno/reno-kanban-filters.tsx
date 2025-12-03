@@ -13,6 +13,7 @@ export interface KanbanFilters {
   renovatorNames: string[];
   technicalConstructors: string[];
   areaClusters: string[];
+  delayedWorks: boolean; // Obras tardías (solo propiedades marcadas en rojo)
 }
 
 interface RenoKanbanFiltersProps {
@@ -83,13 +84,15 @@ export function RenoKanbanFilters({
       renovatorNames: [],
       technicalConstructors: [],
       areaClusters: [],
+      delayedWorks: false,
     });
   };
 
   const hasActiveFilters = 
     filters.renovatorNames.length > 0 ||
     filters.technicalConstructors.length > 0 ||
-    filters.areaClusters.length > 0;
+    filters.areaClusters.length > 0 ||
+    filters.delayedWorks === true;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -167,6 +170,26 @@ export function RenoKanbanFilters({
                 placeholder={t.kanban.searchAreaCluster || "Buscar área..."}
               />
             )}
+          </div>
+
+          {/* Obras Tardías */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Obras Tardías</Label>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="delayed-works"
+                checked={filters.delayedWorks || false}
+                onCheckedChange={(checked) => {
+                  onFiltersChange({ ...filters, delayedWorks: checked === true });
+                }}
+              />
+              <label
+                htmlFor="delayed-works"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Mostrar solo obras tardías (marcadas en rojo)
+              </label>
+            </div>
           </div>
         </div>
 
