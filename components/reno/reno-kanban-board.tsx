@@ -15,7 +15,7 @@ import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Columns, Settings } from "lucide-react";
+import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -866,18 +866,18 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                     </Badge>
                   </button>
                   
-                  {/* Column Visibility Toggle */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Columns className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
+                        {/* Column Visibility Toggle */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 flex-shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
                       <DropdownMenuLabel>Columnas visibles</DropdownMenuLabel>
                       <DropdownMenuSeparator />
