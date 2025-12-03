@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Search, X, GripVertical, Hash, MapPin, User, Wrench, Calendar, Clock, BarChart3, CheckCircle } from "lucide-react";
+import { Search, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 
@@ -262,11 +262,6 @@ export function ColumnSelectorDialog({
         {!isDraggable && (
           <div className="w-4 flex-shrink-0" /> // Spacer for alignment
         )}
-        {column.icon && (
-          <div className="flex-shrink-0 text-muted-foreground">
-            <column.icon className="h-4 w-4" />
-          </div>
-        )}
         <Label
           htmlFor={`column-${column.key}`}
           className={cn(
@@ -288,21 +283,11 @@ export function ColumnSelectorDialog({
     <Dialog open={open} onOpenChange={handleCancel}>
       <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-lg font-semibold">Columnas</DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground mt-1">
-                {phaseLabel}
-              </DialogDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={handleCancel}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+          <div>
+            <DialogTitle className="text-lg font-semibold">Columnas</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-1">
+              {phaseLabel}
+            </DialogDescription>
           </div>
         </DialogHeader>
 
