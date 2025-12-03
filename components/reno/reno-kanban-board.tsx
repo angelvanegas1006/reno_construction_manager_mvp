@@ -338,6 +338,28 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     return () => clearTimeout(timeoutId);
   }, [highlightedPropertyId, filteredProperties]);
 
+  // Format date helper (must be defined before early returns)
+  const formatDate = useCallback((dateString?: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const locale = language === "es" ? "es-ES" : "en-US";
+    return date.toLocaleDateString(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  }, [language]);
+
+  // Get all properties for list view with their phase (must be before early returns)
+  const allPropertiesForList = useMemo(() => {
+    const allProps: Array<Property & { currentPhase?: RenoKanbanPhase }> = [];
+    visibleRenoKanbanColumns.forEach((column) => {
+      const properties = filteredProperties[column.key] || [];
+      allProps.push(...properties.map(p => ({ ...p, currentPhase: column.key })));
+    });
+    return allProps;
+  }, [filteredProperties]);
+
   // Show error message if Supabase fails
   if (supabaseError) {
     return (
@@ -358,28 +380,6 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       </div>
     );
   }
-
-  // Format date helper
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    const locale = language === "es" ? "es-ES" : "en-US";
-    return date.toLocaleDateString(locale, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-  };
-
-  // Get all properties for list view with their phase
-  const allPropertiesForList = useMemo(() => {
-    const allProps: Array<Property & { currentPhase?: RenoKanbanPhase }> = [];
-    visibleRenoKanbanColumns.forEach((column) => {
-      const properties = filteredProperties[column.key] || [];
-      allProps.push(...properties.map(p => ({ ...p, currentPhase: column.key })));
-    });
-    return allProps;
-  }, [filteredProperties]);
 
   // Render List View
   const renderListView = () => {
