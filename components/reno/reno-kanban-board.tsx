@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, startTransition, useRef, useCallback } fr
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { RenoKanbanColumn } from "./reno-kanban-column";
+import { ColumnSelectorDialog } from "./column-selector-dialog";
 import { RenoHomeLoader } from "./reno-home-loader";
 import { Property } from "@/lib/property-storage";
 import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
@@ -15,7 +16,7 @@ import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Settings } from "lucide-react";
+import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Settings, Hash, BarChart3, CheckCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,19 +47,21 @@ interface ColumnConfig {
   key: SortColumn;
   label: string;
   defaultVisible: boolean;
+  icon?: React.ComponentType<{ className?: string }>;
+  category?: "shown" | "popular" | "hidden";
 }
 
-// Column configuration
+// Column configuration with icons and categories
 const COLUMN_CONFIG: ColumnConfig[] = [
-  { key: "id", label: "ID", defaultVisible: true },
-  { key: "address", label: "Dirección", defaultVisible: true },
-  { key: "region", label: "Región", defaultVisible: true },
-  { key: "renovador", label: "Renovador", defaultVisible: true },
-  { key: "renoType", label: "Tipo Reno", defaultVisible: true },
-  { key: "estimatedVisit", label: "Est. Visit", defaultVisible: true },
-  { key: "proximaActualizacion", label: "Próxima Actualización", defaultVisible: true },
-  { key: "progress", label: "Progreso", defaultVisible: true },
-  { key: "status", label: "Estado", defaultVisible: true },
+  { key: "id", label: "ID", defaultVisible: true, icon: Hash, category: "shown" },
+  { key: "address", label: "Dirección", defaultVisible: true, icon: MapPin, category: "shown" },
+  { key: "region", label: "Región", defaultVisible: true, icon: MapPin, category: "shown" },
+  { key: "renovador", label: "Renovador", defaultVisible: true, icon: User, category: "shown" },
+  { key: "renoType", label: "Tipo Reno", defaultVisible: true, icon: Wrench, category: "shown" },
+  { key: "estimatedVisit", label: "Est. Visit", defaultVisible: true, icon: Calendar, category: "popular" },
+  { key: "proximaActualizacion", label: "Próxima Actualización", defaultVisible: true, icon: Clock, category: "popular" },
+  { key: "progress", label: "Progreso", defaultVisible: true, icon: BarChart3, category: "shown" },
+  { key: "status", label: "Estado", defaultVisible: true, icon: CheckCircle, category: "shown" },
 ];
 
 export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onViewModeChange }: RenoKanbanBoardProps) {
@@ -71,6 +74,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [selectedPhaseFilter, setSelectedPhaseFilter] = useState<RenoKanbanPhase | "all">("all");
+  const [columnSelectorOpen, setColumnSelectorOpen] = useState<{ phase: RenoKanbanPhase | null }>({ phase: null });
   
   // Column visibility state per phase - Map<phase, Set<columns>>
   const [visibleColumnsByPhase, setVisibleColumnsByPhase] = useState<Map<RenoKanbanPhase, Set<SortColumn>>>(() => {
@@ -867,31 +871,17 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                   </button>
                   
                         {/* Column Visibility Toggle */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 flex-shrink-0"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>Columnas visibles</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {COLUMN_CONFIG.map((colConfig) => (
-                        <DropdownMenuCheckboxItem
-                          key={colConfig.key}
-                          checked={getVisibleColumnsForPhase(column.key).has(colConfig.key)}
-                          onCheckedChange={() => toggleColumnVisibility(column.key, colConfig.key)}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setColumnSelectorOpen({ phase: column.key });
+                          }}
                         >
-                          {colConfig.label}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                          <Settings className="h-4 w-4" />
+                        </Button>
                 </div>
               </div>
 
@@ -1195,6 +1185,55 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     </div>
   );
 
-  return viewMode === "list" ? renderListView() : renderKanbanView();
+  return (
+    <>
+      {viewMode === "list" ? renderListView() : renderKanbanView()}
+      
+      {/* Column Selector Dialog */}
+      {columnSelectorOpen.phase && (
+        <ColumnSelectorDialog
+          open={!!columnSelectorOpen.phase}
+          onOpenChange={(open) => {
+            if (!open) {
+              setColumnSelectorOpen({ phase: null });
+            }
+          }}
+          columns={COLUMN_CONFIG}
+          visibleColumns={getVisibleColumnsForPhase(columnSelectorOpen.phase)}
+          phase={columnSelectorOpen.phase}
+          phaseLabel={t.kanban[visibleRenoKanbanColumns.find(col => col.key === columnSelectorOpen.phase)?.translationKey || "upcomingSettlements"]}
+          onSave={async (visibleColumns) => {
+            // Update all columns at once
+            setVisibleColumnsByPhase(prev => {
+              const newMap = new Map(prev);
+              newMap.set(columnSelectorOpen.phase!, visibleColumns);
+              
+              // Save to Supabase
+              if (user?.id) {
+                supabase
+                  .from('user_column_preferences')
+                  .upsert({
+                    user_id: user.id,
+                    view_type: 'reno_kanban_list',
+                    phase: columnSelectorOpen.phase!,
+                    visible_columns: Array.from(visibleColumns),
+                    updated_at: new Date().toISOString(),
+                  }, {
+                    onConflict: 'user_id,view_type,phase',
+                  })
+                  .then(({ error }) => {
+                    if (error) {
+                      console.warn('[RenoKanbanBoard] Error saving column preferences:', error);
+                    }
+                  });
+              }
+              
+              return newMap;
+            });
+          }}
+        />
+      )}
+    </>
+  );
 }
 
