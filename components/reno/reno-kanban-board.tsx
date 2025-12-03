@@ -381,9 +381,35 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     );
   }
 
+  // Group properties by phase for list view
+  const propertiesByPhaseForList = useMemo(() => {
+    const grouped: Record<RenoKanbanPhase, Array<Property & { currentPhase?: RenoKanbanPhase }>> = {
+      'upcoming-settlements': [],
+      'initial-check': [],
+      'upcoming': [],
+      'reno-budget': [],
+      'reno-in-progress': [],
+      'furnishing-cleaning': [],
+      'final-check': [],
+      'reno-fixes': [],
+      'done': [],
+    };
+
+    visibleRenoKanbanColumns.forEach((column) => {
+      const properties = filteredProperties[column.key] || [];
+      grouped[column.key] = properties.map(p => ({ ...p, currentPhase: column.key }));
+    });
+
+    return grouped;
+  }, [filteredProperties]);
+
   // Render List View
   const renderListView = () => {
-    if (allPropertiesForList.length === 0) {
+    const hasAnyProperties = visibleRenoKanbanColumns.some(
+      column => (propertiesByPhaseForList[column.key] || []).length > 0
+    );
+
+    if (!hasAnyProperties) {
       return (
         <div className="flex items-center justify-center h-full p-6">
           <div className="text-center space-y-2">
@@ -394,105 +420,160 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     }
 
     return (
-      <div className="space-y-3 pb-4">
-        {allPropertiesForList.map((property) => {
-          const expired = isPropertyExpired(property);
-          const phase = property.currentPhase || "upcoming-settlements";
-          const phaseColumn = visibleRenoKanbanColumns.find(c => c.key === phase);
-          const phaseLabel = phaseColumn ? t.kanban[phaseColumn.translationKey] : phase;
+      <div className="space-y-6 pb-4 overflow-y-auto h-full">
+        {visibleRenoKanbanColumns.map((column) => {
+          const properties = propertiesByPhaseForList[column.key] || [];
+          const phaseLabel = t.kanban[column.translationKey];
+
+          if (properties.length === 0) return null;
 
           return (
-            <Card
-              key={property.id}
-              onClick={() => handleCardClick(property)}
-              className={cn(
-                "bg-card cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors",
-                expired && "border-l-4 border-l-red-500"
-              )}
-            >
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  {/* Left side: Main info */}
-                  <div className="flex-1 min-w-0 space-y-2">
-                    {/* ID and Phase */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-foreground text-sm">
-                        ID {property.uniqueIdFromEngagements || property.id}
-                      </p>
-                      {expired && (
-                        <Badge variant="destructive" className="text-xs">
-                          {t.propertyCard.expired}
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className="text-xs">
-                        {phaseLabel}
-                      </Badge>
-                    </div>
-
-                    {/* Address */}
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-foreground break-words line-clamp-2">
-                        {property.fullAddress}
-                        {property.region && (
-                          <span className="text-xs text-muted-foreground ml-1">({property.region})</span>
-                        )}
-                      </p>
-                    </div>
-
-                    {/* Details row */}
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                      {/* Renovator */}
-                      {property.renovador && (
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          <span className="truncate">{property.renovador}</span>
-                        </div>
-                      )}
-
-                      {/* Reno Type */}
-                      {property.renoType && (
-                        <Badge variant="secondary" className="text-xs">
-                          {property.renoType}
-                        </Badge>
-                      )}
-
-                      {/* Estimated Visit Date */}
-                      {(property as any).estimatedVisitDate && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{formatDate((property as any).estimatedVisitDate)}</span>
-                        </div>
-                      )}
-
-                      {/* Proxima Actualizacion */}
-                      {property.proximaActualizacion && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>
-                            {t.propertyCard.next || "Next"}: {formatDate(property.proximaActualizacion)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Right side: Progress/Status */}
-                  <div className="flex items-center gap-3 sm:flex-shrink-0">
-                    {(property as any).progress !== undefined && (
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-foreground">
-                          {Math.round((property as any).progress)}%
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {t.propertyCard.completed || "Completed"}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+            <div key={column.key} className="bg-card rounded-lg border border-border overflow-hidden">
+              {/* Phase Header */}
+              <div className="bg-accent dark:bg-[var(--prophero-gray-800)] px-4 py-3 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-foreground text-lg">{phaseLabel}</h3>
+                  <Badge variant="secondary" className="text-sm">
+                    {properties.length}
+                  </Badge>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-accent dark:bg-[var(--prophero-gray-800)] border-b border-border">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Dirección
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Región
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Renovador
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Tipo Reno
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Est. Visit
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Próxima Actualización
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Progreso
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Estado
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {properties.map((property) => {
+                      const expired = isPropertyExpired(property);
+                      return (
+                        <tr
+                          key={property.id}
+                          onClick={() => handleCardClick(property)}
+                          className={cn(
+                            "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors",
+                            expired && "bg-red-50 dark:bg-red-950/10"
+                          )}
+                        >
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-foreground">
+                                {property.uniqueIdFromEngagements || property.id}
+                              </span>
+                              {expired && (
+                                <Badge variant="destructive" className="text-xs">
+                                  {t.propertyCard.expired}
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-start gap-2 max-w-xs">
+                              <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                              <span className="text-sm text-foreground break-words">
+                                {property.fullAddress}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className="text-sm text-muted-foreground">
+                              {property.region || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1">
+                              <User className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm text-foreground">
+                                {property.renovador || "N/A"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {property.renoType ? (
+                              <Badge variant="secondary" className="text-xs">
+                                {property.renoType}
+                              </Badge>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">N/A</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm text-foreground">
+                                {(property as any).estimatedVisitDate 
+                                  ? formatDate((property as any).estimatedVisitDate)
+                                  : "N/A"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm text-foreground">
+                                {property.proximaActualizacion 
+                                  ? formatDate(property.proximaActualizacion)
+                                  : "N/A"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {(property as any).progress !== undefined ? (
+                              <div className="text-sm font-semibold text-foreground">
+                                {Math.round((property as any).progress)}%
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">N/A</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {expired ? (
+                              <Badge variant="destructive" className="text-xs">
+                                {t.propertyCard.expired}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                {t.propertyCard.workInProgress || "Active"}
+                              </Badge>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           );
         })}
       </div>
