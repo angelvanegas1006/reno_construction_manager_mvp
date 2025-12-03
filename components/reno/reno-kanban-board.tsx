@@ -209,6 +209,7 @@ export function RenoKanbanBoard({ searchQuery, filters }: RenoKanbanBoardProps) 
     const filtered: typeof allProperties = {
       "upcoming-settlements": allProperties["upcoming-settlements"].filter(matchesAll),
       "initial-check": allProperties["initial-check"].filter(matchesAll),
+      "upcoming": allProperties["upcoming"].filter(matchesAll),
       "reno-budget": allProperties["reno-budget"].filter(matchesAll),
       "reno-in-progress": allProperties["reno-in-progress"].filter(matchesAll),
       "furnishing-cleaning": allProperties["furnishing-cleaning"].filter(matchesAll),
