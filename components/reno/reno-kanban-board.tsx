@@ -804,13 +804,26 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
             <button
               onClick={() => setSelectedPhaseFilter("all")}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0",
+                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-2",
                 selectedPhaseFilter === "all"
                   ? "bg-[var(--prophero-blue-500)] text-white"
                   : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-accent"
               )}
             >
-              All ({totalCount})
+              <span>All ({totalCount})</span>
+              {(() => {
+                const totalAlertCount = visibleRenoKanbanColumns.reduce((sum, col) => {
+                  const props = propertiesByPhaseForList[col.key] || [];
+                  return sum + props.filter((p: Property) => {
+                    return isDelayedWork(p, col.key) || isPropertyExpired(p);
+                  }).length;
+                }, 0);
+                return totalAlertCount > 0 ? (
+                  <span className="text-xs font-medium text-white bg-red-500 px-2 py-0.5 rounded-full">
+                    {totalAlertCount}
+                  </span>
+                ) : null;
+              })()}
             </button>
             
             {/* Phase Buttons */}
