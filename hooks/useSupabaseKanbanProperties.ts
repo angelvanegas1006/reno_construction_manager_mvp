@@ -24,30 +24,45 @@ interface UseSupabaseKanbanPropertiesReturn {
 function convertSupabasePropertyToKanbanProperty(
   supabaseProperty: SupabaseProperty
 ): Property | null {
-  // Preferir reno_phase si está disponible, sino usar el mapeo de Set Up Status
+  // Preferir reno_phase si está disponible, pero si es 'reno-budget' (legacy) o 'orphaned',
+  // intentar mapear desde Set Up Status a las nuevas fases específicas
   let kanbanPhase: RenoKanbanPhase | null = null;
   
   if (supabaseProperty.reno_phase) {
-    // Validar que reno_phase es un RenoKanbanPhase válido
-    const validPhases: RenoKanbanPhase[] = [
-      'upcoming-settlements',
-      'initial-check',
-      'reno-budget-renovator',
-      'reno-budget-client',
-      'reno-budget-start',
-      'reno-budget', // Legacy
-      'reno-in-progress',
-      'furnishing-cleaning',
-      'final-check',
-      'reno-fixes',
-      'done',
-    ];
-    if (validPhases.includes(supabaseProperty.reno_phase as RenoKanbanPhase)) {
-      kanbanPhase = supabaseProperty.reno_phase as RenoKanbanPhase;
+    // Si es 'reno-budget' (legacy), intentar mapear desde Set Up Status primero
+    if (supabaseProperty.reno_phase === 'reno-budget') {
+      const mappedFromStatus = mapSetUpStatusToKanbanPhase(supabaseProperty['Set Up Status']);
+      // Si el mapeo da una de las nuevas fases específicas, usarla; sino mantener reno-budget
+      if (mappedFromStatus && mappedFromStatus !== 'reno-budget') {
+        kanbanPhase = mappedFromStatus;
+      } else {
+        kanbanPhase = 'reno-budget'; // Mantener legacy si no hay mapeo específico
+      }
+    } else if (supabaseProperty.reno_phase === 'orphaned') {
+      // Las propiedades 'orphaned' no están en ninguna vista de Airtable
+      // y no deberían aparecer en el kanban, así que las ignoramos
+      return null;
+    } else {
+      // Para otras fases, validar que reno_phase es un RenoKanbanPhase válido
+      const validPhases: RenoKanbanPhase[] = [
+        'upcoming-settlements',
+        'initial-check',
+        'reno-budget-renovator',
+        'reno-budget-client',
+        'reno-budget-start',
+        'reno-in-progress',
+        'furnishing-cleaning',
+        'final-check',
+        'reno-fixes',
+        'done',
+      ];
+      if (validPhases.includes(supabaseProperty.reno_phase as RenoKanbanPhase)) {
+        kanbanPhase = supabaseProperty.reno_phase as RenoKanbanPhase;
+      }
     }
   }
   
-  // Si no hay reno_phase, usar el mapeo de Set Up Status
+  // Si no hay reno_phase o no se pudo determinar, usar el mapeo de Set Up Status
   if (!kanbanPhase) {
     kanbanPhase = mapSetUpStatusToKanbanPhase(supabaseProperty['Set Up Status']);
   }
@@ -365,8 +380,18 @@ export function useSupabaseKanbanProperties() {
     let convertedCount = 0;
     let skippedCount = 0;
     const phaseCounts: Record<string, number> = {};
+    const propertyIdsSeen = new Set<string>(); // Track properties to avoid duplicates
 
     supabaseProperties.forEach((supabaseProperty) => {
+      // Skip if we've already processed this property ID (avoid duplicates)
+      if (propertyIdsSeen.has(supabaseProperty.id)) {
+        console.warn('[useSupabaseKanbanProperties] ⚠️ Duplicate property ID detected:', {
+          id: supabaseProperty.id,
+          address: supabaseProperty.address,
+        });
+        return;
+      }
+      
       // Debug: log initial-check properties before conversion
       if (supabaseProperty.reno_phase === 'initial-check') {
         console.log('[useSupabaseKanbanProperties] 🔍 Found initial-check property before conversion:', {
@@ -393,6 +418,9 @@ export function useSupabaseKanbanProperties() {
         const phase = kanbanProperty.renoPhase;
         // Type guard to ensure phase is a valid RenoKanbanPhase
         if (phase && phase in grouped) {
+          // Mark property as seen
+          propertyIdsSeen.add(supabaseProperty.id);
+          
           grouped[phase as RenoKanbanPhase].push(kanbanProperty);
           phaseCounts[phase] = (phaseCounts[phase] || 0) + 1;
           convertedCount++;
