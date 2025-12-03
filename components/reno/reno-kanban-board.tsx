@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, startTransition, useRef, useCallback } fr
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { RenoKanbanColumn } from "./reno-kanban-column";
+import { ColumnSelectorDialog } from "./column-selector-dialog";
 import { RenoHomeLoader } from "./reno-home-loader";
 import { Property } from "@/lib/property-storage";
 import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
@@ -86,6 +87,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     return map;
   });
   const [isLoadingColumns, setIsLoadingColumns] = useState(true);
+  const [columnSelectorOpen, setColumnSelectorOpen] = useState<{ phase: RenoKanbanPhase | null }>({ phase: null });
   
   const router = useRouter();
   
@@ -646,42 +648,34 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     }
   }, [sortColumn, sortDirection]);
 
-  // Handle column visibility toggle per phase
-  const toggleColumnVisibility = useCallback(async (phase: RenoKanbanPhase, columnKey: SortColumn) => {
+  // Handle column visibility save (called from ColumnSelectorDialog)
+  const handleColumnSave = useCallback(async (phase: RenoKanbanPhase, visibleColumns: Set<SortColumn>, columnOrder?: SortColumn[]) => {
     setVisibleColumnsByPhase(prev => {
       const newMap = new Map(prev);
-      const phaseColumns = new Set(newMap.get(phase) || []);
-      
-      if (phaseColumns.has(columnKey)) {
-        phaseColumns.delete(columnKey);
-      } else {
-        phaseColumns.add(columnKey);
-      }
-      
-      newMap.set(phase, phaseColumns);
-      
-      // Save to Supabase
-      if (user?.id) {
-        supabase
-          .from('user_column_preferences')
-          .upsert({
-            user_id: user.id,
-            view_type: 'reno_kanban_list',
-            phase: phase,
-            visible_columns: Array.from(phaseColumns),
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'user_id,view_type,phase',
-          })
-          .then(({ error }) => {
-            if (error) {
-              console.warn('[RenoKanbanBoard] Error saving column preferences:', error);
-            }
-          });
-      }
-      
+      newMap.set(phase, visibleColumns);
       return newMap;
     });
+    
+    // Save to Supabase
+    if (user?.id) {
+      supabase
+        .from('user_column_preferences')
+        .upsert({
+          user_id: user.id,
+          view_type: 'reno_kanban_list',
+          phase: phase,
+          visible_columns: Array.from(visibleColumns),
+          column_order: columnOrder ? Array.from(columnOrder) : null,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,view_type,phase',
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.warn('[RenoKanbanBoard] Error saving column preferences:', error);
+          }
+        });
+    }
   }, [user?.id, supabase]);
 
   // Get visible columns for a specific phase
@@ -921,31 +915,17 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                   </button>
                   
                   {/* Column Visibility Toggle */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>Columnas visibles</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      {COLUMN_CONFIG.map((colConfig) => (
-                        <DropdownMenuCheckboxItem
-                          key={colConfig.key}
-                          checked={getVisibleColumnsForPhase(column.key).has(colConfig.key)}
-                          onCheckedChange={() => toggleColumnVisibility(column.key, colConfig.key)}
-                        >
-                          {colConfig.label}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 flex-shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setColumnSelectorOpen({ phase: column.key });
+                    }}
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
@@ -1329,6 +1309,31 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     </div>
   );
 
-  return viewMode === "list" ? renderListView() : renderKanbanView();
+  return (
+    <>
+      {viewMode === "list" ? renderListView() : renderKanbanView()}
+      
+      {/* Column Selector Dialog */}
+      {columnSelectorOpen.phase && (
+        <ColumnSelectorDialog
+          open={!!columnSelectorOpen.phase}
+          onOpenChange={(open) => {
+            if (!open) {
+              setColumnSelectorOpen({ phase: null });
+            }
+          }}
+          columns={COLUMN_CONFIG}
+          visibleColumns={getVisibleColumnsForPhase(columnSelectorOpen.phase)}
+          phase={columnSelectorOpen.phase}
+          phaseLabel={t.kanban[visibleRenoKanbanColumns.find(col => col.key === columnSelectorOpen.phase)?.translationKey || "upcomingSettlements"]}
+          onSave={(visibleColumns, columnOrder) => {
+            if (columnSelectorOpen.phase) {
+              handleColumnSave(columnSelectorOpen.phase, visibleColumns, columnOrder);
+            }
+          }}
+        />
+      )}
+    </>
+  );
 }
 

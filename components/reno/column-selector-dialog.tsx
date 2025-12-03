@@ -12,7 +12,7 @@ import { Search, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 
-type SortColumn = "id" | "address" | "region" | "renovador" | "renoType" | "estimatedVisit" | "proximaActualizacion" | "progress" | "status";
+type SortColumn = "id" | "address" | "region" | "renovador" | "renoType" | "estimatedVisit" | "proximaActualizacion" | "progress" | "status" | "daysToVisit" | "daysToStartRenoSinceRSD" | "renoDuration" | "daysToPropertyReady";
 
 interface ColumnConfig {
   key: SortColumn;
