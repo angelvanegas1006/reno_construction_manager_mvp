@@ -52,7 +52,11 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
     return counts;
   }, [propertiesByPhase]);
 
-  const maxCount = Math.max(...Object.values(stageCounts), 1);
+  // Only use visible columns for maxCount calculation
+  const maxCount = Math.max(
+    ...visibleRenoKanbanColumns.map(col => stageCounts[col.stage]),
+    1
+  );
   const maxHeight = 200; // Max height in pixels for the bars
 
   const getStageLabel = (stage: RenoKanbanPhase) => {
