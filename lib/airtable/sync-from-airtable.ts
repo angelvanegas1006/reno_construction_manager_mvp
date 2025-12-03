@@ -103,8 +103,8 @@ async function fetchRelatedFields(
     const batchSize = 50;
     const result = new Map();
 
-    // Si estamos buscando el campo de pics URLs, obtener todos los campos para encontrar el nombre real
-    const shouldFetchAllFields = fieldsToFetch.includes('fldq1FLXBToYEY9W3');
+    // Si estamos buscando campos por field ID, obtener todos los campos para encontrar el nombre real
+    const shouldFetchAllFields = fieldsToFetch.includes('fldq1FLXBToYEY9W3') || fieldsToFetch.includes('fldtTmer8awVKDx7Y');
 
     for (let i = 0; i < recordIds.length; i += batchSize) {
       const batch = recordIds.slice(i, i + batchSize);
@@ -118,47 +118,81 @@ async function fetchRelatedFields(
         .all();
 
       relatedRecords.forEach((record: any) => {
-        // Si estamos buscando el campo de pics URLs, buscar el campo por field ID en todos los campos
+        // Si estamos buscando campos por field ID, buscar el campo por field ID en todos los campos
         if (shouldFetchAllFields) {
-          // Buscar el campo que tenga el field ID o nombres relacionados
           const allFields = record.fields;
-          let picsField = null;
           
-          // El campo se llama 'pics_url' en Properties (field ID: fldq1FLXBToYEY9W3)
-          const possibleNames = [
-            'pics_url',  // Nombre real encontrado en Properties
-            'Pics URLs', 
-            'Pics', 
-            'Photos URLs', 
-            'Photos', 
-            'Images URLs', 
-            'Images', 
-            'Property pictures & videos',
-            'pics_urls',
-            'Property Pics',
-            'Property Photos',
-            'Property Images',
-            'Pics URL',
-            'Photo URLs',
-            'Photo URL',
-            'Picture URLs',
-            'Picture URL',
-            'Media URLs',
-            'Media URL'
-          ];
-          
-          // Buscar por nombres exactos
-          for (const name of possibleNames) {
-            if (allFields[name] !== undefined && allFields[name] !== null && allFields[name] !== '') {
-              picsField = allFields[name];
-              break;
+          // Buscar pics URLs (field ID: fldq1FLXBToYEY9W3)
+          if (fieldsToFetch.includes('fldq1FLXBToYEY9W3')) {
+            let picsField = null;
+            
+            // El campo se llama 'pics_url' en Properties (field ID: fldq1FLXBToYEY9W3)
+            const possiblePicsNames = [
+              'pics_url',  // Nombre real encontrado en Properties
+              'Pics URLs', 
+              'Pics', 
+              'Photos URLs', 
+              'Photos', 
+              'Images URLs', 
+              'Images', 
+              'Property pictures & videos',
+              'pics_urls',
+              'Property Pics',
+              'Property Photos',
+              'Property Images',
+              'Pics URL',
+              'Photo URLs',
+              'Photo URL',
+              'Picture URLs',
+              'Picture URL',
+              'Media URLs',
+              'Media URL'
+            ];
+            
+            // Buscar por nombres exactos
+            for (const name of possiblePicsNames) {
+              if (allFields[name] !== undefined && allFields[name] !== null && allFields[name] !== '') {
+                picsField = allFields[name];
+                break;
+              }
+            }
+            
+            // Si encontramos el campo, agregarlo con el field ID como clave para facilitar el mapeo
+            if (picsField !== null) {
+              allFields['fldq1FLXBToYEY9W3'] = picsField;
+              allFields['pics_urls_from_properties'] = picsField; // También con nombre más descriptivo
             }
           }
           
-          // Si encontramos el campo, agregarlo con el field ID como clave para facilitar el mapeo
-          if (picsField !== null) {
-            allFields['fldq1FLXBToYEY9W3'] = picsField;
-            allFields['pics_urls_from_properties'] = picsField; // También con nombre más descriptivo
+          // Buscar Technical Constructor (field ID: fldtTmer8awVKDx7Y)
+          if (fieldsToFetch.includes('fldtTmer8awVKDx7Y')) {
+            let technicalConstructorField = null;
+            
+            // Posibles nombres del campo Technical Constructor
+            const possibleTechnicalConstructorNames = [
+              'Technical Constructor',
+              'Technical construction',
+              'Technical Constructor Name',
+              'Constructor',
+              'Tech Constructor',
+              'Technical Builder',
+              'Builder'
+            ];
+            
+            // Buscar por nombres exactos
+            for (const name of possibleTechnicalConstructorNames) {
+              if (allFields[name] !== undefined && allFields[name] !== null && allFields[name] !== '') {
+                technicalConstructorField = allFields[name];
+                break;
+              }
+            }
+            
+            // Si encontramos el campo, agregarlo con el field ID como clave para facilitar el mapeo
+            if (technicalConstructorField !== null) {
+              allFields['fldtTmer8awVKDx7Y'] = technicalConstructorField;
+              allFields['Technical Constructor'] = technicalConstructorField; // También con nombre estándar
+              allFields['Technical construction'] = technicalConstructorField; // También con nombre alternativo
+            }
           }
         }
         
@@ -193,6 +227,8 @@ export async function fetchPropertiesFromAirtable(
     await base(tableId)
       .select({
         view: viewId,
+        // Technical construction está directamente en Transactions con field ID fldtTmer8awVKDx7Y
+        // No necesitamos especificar fields aquí porque queremos todos los campos de la view
         // Expandir campos relacionados para obtener datos de Properties y Engagements
         // Nota: Airtable puede requerir que estos campos estén en la view
       })
@@ -254,7 +290,7 @@ export async function fetchPropertiesFromAirtable(
       base,
       'Properties', // Nombre de la tabla relacionada
       Array.from(propertiesIds),
-      ['Area cluster', 'Property UniqueID', 'Technical Constructor', 'fldq1FLXBToYEY9W3'] // Buscar pics URLs también (field ID)
+      ['Area cluster', 'Property UniqueID', 'fldq1FLXBToYEY9W3'] // Technical construction está en Transactions, no en Properties
     );
 
     const engagementsData = await fetchRelatedFields(
@@ -290,8 +326,8 @@ export async function fetchPropertiesFromAirtable(
           record.fields['Area cluster'] = areaClusterFinal; // También agregar con minúscula por si acaso
           record.fields['Property Unique ID'] = propertyData['Property UniqueID'] || propertyData['Property Unique ID'];
           record.fields['Property UniqueID'] = propertyData['Property UniqueID'] || propertyData['Property Unique ID']; // También con el nombre exacto
-          // Technical Constructor puede estar en Properties
-          record.fields['Technical Constructor'] = propertyData['Technical Constructor'] || propertyData['Technical construction'] || null;
+          // Technical construction está directamente en Transactions (no en Properties relacionada)
+          // Ya viene en record.fields desde la query inicial con field ID fldtTmer8awVKDx7Y
           // Pics URLs - El campo ya viene mapeado como 'fldq1FLXBToYEY9W3' o 'pics_urls_from_properties' desde fetchRelatedFields
           const picsUrlsFromProperties = propertyData['fldq1FLXBToYEY9W3'] || 
                                         propertyData['pics_urls_from_properties'] ||
@@ -446,7 +482,8 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
     // Campos de tabla relacionada Properties (ya agregados en fetchPropertiesFromAirtable)
     area_cluster: getFieldValue('Area Cluster', ['Area Cluster', 'Area cluster']) || null,
     property_unique_id: getFieldValue('Property Unique ID', ['Property Unique ID', 'Property UniqueID']) || null,
-    'Technical construction': getFieldValue('Technical Constructor', ['Technical Constructor', 'Technical construction']) || null,
+    // Technical construction está directamente en Transactions con field ID fldtTmer8awVKDx7Y
+    'Technical construction': getFieldValue('fldtTmer8awVKDx7Y', ['fldtTmer8awVKDx7Y', 'Technical construction', 'Technical Constructor']) || null,
     // Campos de tabla relacionada Team Profiles (Responsible Owner)
     responsible_owner: getFieldValue('Responsible Owner', ['Responsible Owner', 'Responsible owner']) || null,
     // Campos de tabla relacionada Engagements (ya agregados en fetchPropertiesFromAirtable)

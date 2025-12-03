@@ -114,7 +114,7 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Ranking position */}
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] flex-shrink-0">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex-shrink-0">
           {getRankIcon(item.position) || (
             <span className="text-xs font-semibold text-muted-foreground">
               {item.position}
@@ -166,8 +166,8 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
     <>
       <Card className="bg-card h-full flex flex-col">
         <CardHeader className="flex-shrink-0">
-          <CardTitle className="text-base md:text-lg font-semibold">{t.dashboard.activeWorksByRenovator}</CardTitle>
-          <p className="text-xs md:text-sm text-muted-foreground mt-1">
+          <CardTitle className="text-lg font-semibold">{t.dashboard.activeWorksByRenovator}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
             {t.dashboard.activeWorksByRenovatorDescription}
           </p>
         </CardHeader>
@@ -187,7 +187,7 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       {/* Ranking position */}
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] flex-shrink-0">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex-shrink-0">
                         {getRankIcon(item.position) || (
                           <span className="text-xs font-semibold text-muted-foreground">
                             {item.position}
@@ -236,24 +236,24 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
 
       {/* Full Ranking Modal */}
       <Dialog open={isModalOpen} onOpenChange={handleModalClose}>
-        <DialogContent className="max-w-2xl max-h-[85vh] md:max-h-[80vh] overflow-y-auto w-[95vw] md:w-full">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             {selectedRenovator ? (
-              <div className="flex items-center gap-2 md:gap-3 min-w-0">
+              <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleBackToRanking}
-                  className="h-8 w-8 p-0 flex-shrink-0"
+                  className="h-8 w-8 p-0"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <DialogTitle className="text-base md:text-lg truncate min-w-0">
+                <DialogTitle>
                   {t.dashboard.worksByPartner} {selectedRenovator}
                 </DialogTitle>
               </div>
             ) : (
-              <DialogTitle className="text-base md:text-lg">{t.dashboard.fullRanking}</DialogTitle>
+              <DialogTitle>{t.dashboard.fullRanking}</DialogTitle>
             )}
           </DialogHeader>
           <div className="space-y-2 mt-4">

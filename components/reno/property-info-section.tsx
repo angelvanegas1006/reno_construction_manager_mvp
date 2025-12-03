@@ -32,7 +32,7 @@ export function PropertyInfoSection({ property, phase, onStartChecklist }: Prope
 
   return (
     <div className="bg-card rounded-lg border p-6 shadow-sm">
-      <h2 className="text-lg font-semibold mb-4">
+      <h2 className="text-lg font-semibold mb-4 text-foreground">
         {isInitialCheck 
           ? t.initialCheck.propertyInformation 
           : isFinalCheck
@@ -155,7 +155,8 @@ export function PropertyInfoSection({ property, phase, onStartChecklist }: Prope
         <div className="mt-6 pt-6 border-t">
           <Button
             onClick={onStartChecklist}
-            className="w-full"
+            variant="outline"
+            className="w-full hover:bg-muted hover:text-foreground"
             size="lg"
           >
             Iniciar checklist

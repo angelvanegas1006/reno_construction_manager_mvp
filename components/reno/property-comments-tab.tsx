@@ -57,7 +57,7 @@ export function PropertyCommentsTab({
   return (
     <div className="space-y-6">
       {/* Add New Comment Form */}
-      <div className="bg-card rounded-lg border p-6 shadow-sm">
+      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <Plus className="h-5 w-5" />
           Nuevo Comentario
@@ -101,13 +101,13 @@ export function PropertyCommentsTab({
         </h3>
 
         {loading && (
-          <div className="bg-card rounded-lg border p-6 shadow-sm">
+          <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
             <p className="text-muted-foreground text-center">Cargando comentarios...</p>
           </div>
         )}
 
         {!loading && comments.length === 0 && (
-          <div className="bg-card rounded-lg border p-6 shadow-sm">
+          <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
             <p className="text-muted-foreground text-center">
               No hay comentarios aún. Sé el primero en comentar.
             </p>
@@ -155,7 +155,7 @@ function CommentCard({ comment, onDelete }: CommentCardProps) {
   };
 
   return (
-    <div className="bg-card rounded-lg border p-6 shadow-sm">
+    <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <p className="text-base whitespace-pre-wrap">{comment.comment_text}</p>
@@ -192,9 +192,6 @@ function CommentCard({ comment, onDelete }: CommentCardProps) {
     </div>
   );
 }
-
-
-
 
 
 

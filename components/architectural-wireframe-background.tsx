@@ -6,10 +6,10 @@ import Image from "next/image";
 // Uses a provided reference image placed at public/login-left.jpg
 // Replace the file with your exact artwork to match the mock.
 export function ArchitecturalWireframeBackground() {
-  const [src, setSrc] = React.useState<string>("/login-left.jpg");
+  const [src, setSrc] = React.useState<string>("/login-left.jpeg");
   const tried = React.useRef<Set<string>>(new Set());
   const tryNext = () => {
-    const order = ["/login-left.png", "/login-left.webp"];
+    const order = ["/login-left.jpg", "/login-left.png", "/login-left.webp"];
     tried.current.add(src);
     const next = order.find((p) => !tried.current.has(p));
     if (next) setSrc(next);

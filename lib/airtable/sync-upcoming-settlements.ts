@@ -25,6 +25,7 @@ export async function syncUpcomingSettlementsFromAirtable(): Promise<{
   console.log('[Upcoming Settlements Sync] Starting sync for Upcoming Settlements phase...');
   console.log(`[Upcoming Settlements Sync] Using view: ${AIRTABLE_VIEW_ID_UPCOMING_SETTLEMENTS}`);
   
+  // Primera fase: actualizar pics_urls normalmente
   const result = await syncPropertiesFromAirtable(
     AIRTABLE_TABLE_ID,
     AIRTABLE_VIEW_ID_UPCOMING_SETTLEMENTS

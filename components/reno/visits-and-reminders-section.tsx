@@ -511,8 +511,9 @@ export function VisitsAndRemindersSection({
               <div
                 key={visit.id}
                 className={cn(
-                  "w-full flex items-start gap-3 p-3 rounded-lg border transition-colors",
+                  "w-full flex items-start gap-3 p-3 rounded-lg border transition-all",
                   "hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a]",
+                  "hover:shadow-md dark:hover:shadow-none",
                   visit.visit_type === "reminder" &&
                     "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20 border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]"
                 )}

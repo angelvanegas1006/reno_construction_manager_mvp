@@ -31,7 +31,7 @@ export function HeaderL2({
   className,
 }: HeaderL2Props) {
   return (
-    <header className={cn("border-b bg-card dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-6", className)}>
+    <header className={cn("border-b bg-card px-4 md:px-6 py-6", className)}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
@@ -61,6 +61,8 @@ export function HeaderL2({
     </header>
   );
 }
+
+
 
 
 
