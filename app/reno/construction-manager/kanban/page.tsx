@@ -60,8 +60,8 @@ export default function RenoConstructionManagerKanbanPage() {
         {/* Kanban Board */}
         <div 
           className={cn(
-            "flex-1 overflow-y-auto md:overflow-hidden p-2 md:p-3 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]",
-            viewMode === "list" && "overflow-y-auto"
+            "flex-1 p-2 md:p-3 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]",
+            viewMode === "list" ? "overflow-y-auto" : "md:overflow-hidden overflow-y-auto"
           )}
           data-scroll-container
         >
