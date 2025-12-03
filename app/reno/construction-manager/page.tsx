@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoHomeHeader } from "@/components/reno/reno-home-header";
 import { RenoHomeIndicators } from "@/components/reno/reno-home-indicators";
+import { RenoHomeTodoWidgets } from "@/components/reno/reno-home-todo-widgets";
 import { VisitsCalendar } from "@/components/reno/visits-calendar";
 import { RenoHomeRecentProperties } from "@/components/reno/reno-home-recent-properties";
 import { RenoHomePortfolio } from "@/components/reno/reno-home-portfolio";
@@ -75,6 +76,7 @@ export default function RenoConstructionManagerHomePage() {
     });
   }, [propertiesByPhase, supabaseLoading, supabaseError]);
   
+
   // Convert Supabase properties to Property format for home page
   const properties = useMemo(() => {
     console.log('[RenoHomePage] 🔄 Computing properties...', {
@@ -219,6 +221,9 @@ export default function RenoConstructionManagerHomePage() {
                 visitasParaHoyDelta={indicators.visitasParaHoyDelta}
                 totalVisitasMesDelta={indicators.totalVisitasMesDelta}
               />
+
+              {/* Todo List Widgets */}
+              <RenoHomeTodoWidgets propertiesByPhase={propertiesByPhase} />
 
               {/* Calendar Row */}
               <VisitsCalendar
