@@ -1011,17 +1011,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             key={property.id}
                             onClick={() => handleCardClick(property)}
                             className={cn(
-                              "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors relative",
+                              "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors",
                               expired && "border-l-4 border-l-red-100 dark:border-l-red-900/30 bg-red-50 dark:bg-red-950/10",
                               isDelayed && "border-l-4 border-l-red-500 bg-red-50 dark:bg-red-950/10"
                             )}
                           >
-                            {/* Alert icon in top right corner */}
-                            {isDelayed && (
-                              <div className="absolute top-2 right-2 z-10">
-                                <AlertTriangle className="h-4 w-4 text-red-500" />
-                              </div>
-                            )}
                             {getVisibleColumnsForPhase(column.key).has("id") && (
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
