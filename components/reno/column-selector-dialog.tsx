@@ -157,7 +157,10 @@ export function ColumnSelectorDialog({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+    e.stopPropagation();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
   };
 
   const handleDrop = (e: React.DragEvent, targetColumnKey: SortColumn) => {
@@ -239,7 +242,11 @@ export function ColumnSelectorDialog({
         draggable={isDraggable && isVisible}
         onDragStart={(e) => isDraggable && isVisible && handleDragStart(e, column.key)}
         onDragEnd={handleDragEnd}
-        onDragOver={isDraggable && isVisible ? handleDragOver : undefined}
+        onDragOver={(e) => {
+          if (isDraggable && isVisible) {
+            handleDragOver(e);
+          }
+        }}
         onDrop={(e) => isDraggable && isVisible && handleDrop(e, column.key)}
         className={cn(
           "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
