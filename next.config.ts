@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
     maxInactiveAge: 25 * 1000,
     pagesBufferLength: 2,
   },
+  // Configuración de TypeScript
+  typescript: {
+    ignoreBuildErrors: false,
+  },
 };
 
 export default nextConfig;

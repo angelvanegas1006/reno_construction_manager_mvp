@@ -7,8 +7,9 @@ import { Calendar, AlertTriangle } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
+import { useMixpanel } from "@/hooks/useMixpanel";
 
-type RenoStage = "upcoming-settlements" | "initial-check" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "reno-in-progress" | "furnishing-cleaning" | "final-check" | "reno-fixes" | "done";
+type RenoStage = "upcoming-settlements" | "initial-check" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "upcoming" | "reno-in-progress" | "furnishing-cleaning" | "final-check" | "reno-fixes" | "done";
 
 interface RenoPropertyCardProps {
   property: Property;
@@ -28,6 +29,7 @@ export function RenoPropertyCard({
   showRenoDetails = true,
 }: RenoPropertyCardProps) {
   const { t, language } = useI18n();
+  const { track } = useMixpanel();
   const isExpired = isPropertyExpired(property);
 
   const needsUpdateToday = property.proximaActualizacion
@@ -149,7 +151,16 @@ export function RenoPropertyCard({
         exceedsDaysToVisitLimit && "border-l-4 border-l-red-500", // Red left border for initial-check phase
         exceedsDaysToPropertyReadyLimit && "border-l-4 border-l-red-500" // Red left border for furnishing-cleaning phase
       )}
-      onClick={disabled ? undefined : onClick}
+      onClick={disabled ? undefined : () => {
+        track("Property Card Clicked", {
+          property_id: property.id,
+          property_phase: stage,
+          property_type: property.propertyType,
+          renovation_type: property.renoType,
+          is_expired: isExpired,
+        });
+        onClick?.();
+      }}
     >
       {/* Alert icon in top right corner */}
       {(exceedsDurationLimit && stage === "reno-in-progress") || exceedsDaysToStartLimit || exceedsDaysToVisitLimit || exceedsDaysToPropertyReadyLimit ? (
@@ -158,12 +169,12 @@ export function RenoPropertyCard({
         </div>
       ) : null}
       {/* ID and Expired tag aligned at top */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-xs font-semibold text-muted-foreground">
+      <div className="flex items-center justify-between mb-2 gap-2 min-w-0">
+        <div className="text-xs font-semibold text-muted-foreground truncate min-w-0">
           ID {property.uniqueIdFromEngagements || property.id}
         </div>
         {isExpired && (
-          <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 flex-shrink-0">
+          <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 flex-shrink-0 whitespace-nowrap">
             {t.propertyCard.expired}
           </span>
         )}
@@ -294,12 +305,12 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
-                <span className="text-xs font-semibold text-foreground">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+                <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">{property.renovador || t.propertyCard.siteManager}</span>
+              <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
           {showRenoDetails && property.proximaActualizacion && (
@@ -319,12 +330,12 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
-                <span className="text-xs font-semibold text-foreground">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+                <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">{property.renovador || t.propertyCard.siteManager}</span>
+              <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
           {showRenoDetails && property.proximaActualizacion && (
@@ -369,12 +380,12 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
-                <span className="text-xs font-semibold text-foreground">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+                <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">{property.renovador || t.propertyCard.siteManager}</span>
+              <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
           <div className="text-xs text-muted-foreground">
@@ -385,12 +396,12 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
-                <span className="text-xs font-semibold text-foreground">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+                <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">{property.renovador || t.propertyCard.siteManager}</span>
+              <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
           {/* Days and duration fields - only show if filled */}

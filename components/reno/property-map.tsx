@@ -44,7 +44,7 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
     console.log('[PropertyMap] useEffect triggered', { apiKey: apiKey ? 'present' : 'missing', address, hasMapRef: !!mapRef.current });
     
     if (!apiKey) {
-      console.error('[PropertyMap] API key no configurada');
+      console.warn('[PropertyMap] API key no configurada - mostrando placeholder');
       setError("API key no configurada");
       setIsLoading(false);
       return;

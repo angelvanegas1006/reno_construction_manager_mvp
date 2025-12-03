@@ -261,7 +261,7 @@ export function ChecklistUploadZone({
           "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
           (photosHook.isDragOver || videosHook.isDragOver)
             ? "border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20"
-            : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-white dark:bg-[var(--prophero-gray-900)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)]"
+            : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-white dark:bg-card hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)]"
         )}
         onDragOver={(e) => {
           e.preventDefault();

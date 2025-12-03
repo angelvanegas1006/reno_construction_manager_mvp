@@ -649,6 +649,44 @@ export type Database = {
           },
         ]
       }
+      user_column_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          view_type: string
+          phase: string
+          visible_columns: string[]
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          view_type: string
+          phase: string
+          visible_columns?: string[]
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          view_type?: string
+          phase?: string
+          visible_columns?: string[]
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_column_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null

@@ -32,7 +32,7 @@ export function PartidaItem({ partida }: PartidaItemProps) {
     : null;
 
   return (
-    <div className="bg-muted/30 dark:bg-[var(--prophero-gray-800)] rounded-lg p-4">
+    <div className="bg-muted/30 dark:bg-[#1a1a1a] rounded-lg p-4">
       {/* Título con precio alineado */}
       <div className="flex items-start justify-between gap-4 mb-1">
         <h4 className="font-medium text-foreground flex-1">

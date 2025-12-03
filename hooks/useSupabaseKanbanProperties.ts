@@ -376,6 +376,7 @@ export function useSupabaseKanbanProperties() {
       'reno-budget-client': [],
       'reno-budget-start': [],
       'reno-budget': [], // Legacy
+      'upcoming': [],
       'reno-in-progress': [],
       'furnishing-cleaning': [],
       'final-check': [],

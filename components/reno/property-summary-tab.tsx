@@ -100,7 +100,7 @@ export function PropertySummaryTab({
   return (
     <div className="space-y-6">
       {/* Image Gallery - Grid con imagen principal */}
-      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4 text-foreground">{t.property.gallery || "Galería de imágenes"}</h3>
         {hasPics ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -308,7 +308,7 @@ export function PropertySummaryTab({
       </Dialog>
 
       {/* Amenities Grid */}
-      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4 text-foreground">Amenities</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {usableArea && (
@@ -387,7 +387,7 @@ export function PropertySummaryTab({
       </div>
 
       {/* Property Information */}
-      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
           <h3 className="text-lg font-semibold mb-4 text-foreground">Información de la propiedad</h3>
         <div className="space-y-4">
           {propertyType && (
@@ -419,7 +419,7 @@ export function PropertySummaryTab({
 
       {/* Economic Information */}
       {(salePrice || annualIBI || communityFees) && (
-        <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+        <div className="bg-card rounded-lg border p-6 shadow-sm">
           <h3 className="text-lg font-semibold mb-4 text-foreground">Información económica</h3>
           <div className="space-y-4">
             {salePrice && (
@@ -454,7 +454,7 @@ export function PropertySummaryTab({
       )}
 
       {/* Legal and Community Status */}
-      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4">Estado legal y de la comunidad</h3>
         <div className="space-y-3">
           {/* Estos campos vendrían de Supabase/Airtable */}
@@ -482,7 +482,7 @@ export function PropertySummaryTab({
       </div>
 
       {/* Documentation */}
-      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4">Documentación</h3>
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">Los documentos se cargarán desde la checklist</p>
@@ -491,7 +491,7 @@ export function PropertySummaryTab({
       </div>
 
       {/* Location Map */}
-      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4">Ubicación del inmueble</h3>
         <PropertyMap 
           address={property.fullAddress} 

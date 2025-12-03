@@ -147,55 +147,55 @@ export function PropertyActionTab({
         <>
           {/* Set Up Status */}
           {setUpStatus && (
-            <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
-                <FileText className="h-5 w-5" />
-                {t.propertyAction.preparationStatus}
+            <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <FileText className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
+                <span className="break-words">{t.propertyAction.preparationStatus}</span>
               </h3>
-              <p className="text-sm text-foreground">{setUpStatus}</p>
+              <p className="text-sm text-foreground break-words">{setUpStatus}</p>
             </div>
           )}
 
           {/* Next Reno Steps */}
           {nextRenoSteps && (
-            <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
-                <Wrench className="h-5 w-5" />
-                {t.propertyAction.nextRenoSteps}
+            <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <Wrench className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
+                <span className="break-words">{t.propertyAction.nextRenoSteps}</span>
               </h3>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{nextRenoSteps}</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap break-words">{nextRenoSteps}</p>
             </div>
           )}
 
-          {/* Renovator Name */}
-          {renovatorNameFromSupabase && (
-            <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
-                <User className="h-5 w-5" />
-                {t.propertyAction.renovator}
+          {/* Renovator Name - Solo mostrar si no está en las fases de budget donde es editable */}
+          {renovatorNameFromSupabase && renoPhase !== "reno-budget-renovator" && renoPhase !== "reno-budget-client" && (
+            <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <User className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
+                <span className="break-words">{t.propertyAction.renovator}</span>
               </h3>
-              <p className="text-sm text-foreground">{renovatorNameFromSupabase}</p>
+              <p className="text-sm text-foreground break-words">{renovatorNameFromSupabase}</p>
             </div>
           )}
 
           {/* Fechas de Reforma */}
           {(renoStartDate || estimatedEndDate) && (
-            <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
-                <Calendar className="h-5 w-5" />
-                {t.propertyAction.renovationDates}
+            <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+              <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+                <Calendar className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
+                <span className="break-words">{t.propertyAction.renovationDates}</span>
               </h3>
               <div className="space-y-3">
                 {renoStartDate && (
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">{t.propertyAction.startDate}</label>
-                    <p className="text-sm text-foreground mt-1">{formatDate(renoStartDate)}</p>
+                    <p className="text-sm text-foreground mt-1 break-words">{formatDate(renoStartDate)}</p>
                   </div>
                 )}
                 {estimatedEndDate && (
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">{t.propertyAction.estimatedEndDate}</label>
-                    <p className="text-sm text-foreground mt-1">{formatDate(estimatedEndDate)}</p>
+                    <p className="text-sm text-foreground mt-1 break-words">{formatDate(estimatedEndDate)}</p>
                   </div>
                 )}
               </div>
@@ -206,10 +206,10 @@ export function PropertyActionTab({
 
       {/* Campo editable de Renovator Name para fase reno-budget-renovator y reno-budget-client */}
       {(renoPhase === "reno-budget-renovator" || renoPhase === "reno-budget-client") && (
-        <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
-            <User className="h-5 w-5" />
-            {t.propertyAction.renovator || "Renovador"}
+        <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+          <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+            <User className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
+            <span className="break-words">{t.propertyAction.renovator || "Renovador"}</span>
           </h3>
           <Input
             type="text"
@@ -238,12 +238,12 @@ export function PropertyActionTab({
 
       {/* Mostrar fecha estimada solo si no está en upcoming-settlements ni en las fases de budget */}
       {estimatedVisitDate && renoPhase !== "upcoming-settlements" && renoPhase !== "reno-budget-renovator" && renoPhase !== "reno-budget-client" && (
-        <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            {t.propertyAction.estimatedVisitDate}
+        <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+          <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
+            <Calendar className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
+            <span className="break-words">{t.propertyAction.estimatedVisitDate}</span>
           </h3>
-          <p className="text-sm text-foreground">
+          <p className="text-sm text-foreground break-words">
             {formatDate(estimatedVisitDate)}
           </p>
         </div>

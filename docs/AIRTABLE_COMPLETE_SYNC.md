@@ -200,3 +200,8 @@ Si hay propiedades que ya no están en ninguna view de Airtable, se reportan:
 - `app/api/cron/sync-airtable/route.ts` - Endpoint de API para cron job
 - `scripts/sync-all-phases.ts` - Script para ejecución manual
 
+
+
+
+
+

@@ -518,23 +518,23 @@ export function VisitsCalendar({
   }, [getDateRange]);
 
   return (
-    <Card className="bg-card bg-card col-span-2">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-lg font-semibold">
+    <Card className="bg-card w-full">
+      <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-0">
+        <div className="min-w-0">
+          <CardTitle className="text-base md:text-lg font-semibold">
             {t.calendar.title}
           </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">
             {t.calendar.subtitle}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {/* Selector de vista */}
-          <div className="flex gap-1 border rounded-md">
+          <div className="flex gap-1 border rounded-md flex-shrink-0">
             <button
               onClick={() => setViewMode("day")}
               className={cn(
-                "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                "px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-colors",
                 viewMode === "day"
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -545,7 +545,7 @@ export function VisitsCalendar({
             <button
               onClick={() => setViewMode("week")}
               className={cn(
-                "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                "px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-colors",
                 viewMode === "week"
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -556,21 +556,21 @@ export function VisitsCalendar({
           </div>
           
           {/* Navegación */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <button
               onClick={goToPreviousPeriod}
               className={cn(
-                "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                "px-3 py-1 text-xs font-medium h-auto"
+                "inline-flex items-center justify-center gap-1 md:gap-2 whitespace-nowrap rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                "px-2 md:px-3 py-1 text-xs font-medium h-auto"
               )}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3 w-3 md:h-4 md:w-4" />
             </button>
             <button
               onClick={goToToday}
               className={cn(
-                "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                "px-3 py-1 text-xs font-medium h-auto"
+                "inline-flex items-center justify-center gap-1 md:gap-2 whitespace-nowrap rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                "px-2 md:px-3 py-1 text-xs font-medium h-auto"
               )}
             >
               {t.calendar.today}
@@ -578,11 +578,11 @@ export function VisitsCalendar({
             <button
               onClick={goToNextPeriod}
               className={cn(
-                "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                "px-3 py-1 text-xs font-medium h-auto"
+                "inline-flex items-center justify-center gap-1 md:gap-2 whitespace-nowrap rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                "px-2 md:px-3 py-1 text-xs font-medium h-auto"
               )}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
             </button>
           </div>
 
@@ -591,12 +591,12 @@ export function VisitsCalendar({
             <DialogTrigger asChild>
               <button
                 className={cn(
-                  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                  "px-3 py-1 text-xs font-medium h-auto"
+                  "inline-flex items-center justify-center gap-1 md:gap-2 whitespace-nowrap rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                  "px-2 md:px-3 py-1 text-xs font-medium h-auto flex-shrink-0"
                 )}
               >
-                <Plus className="h-4 w-4" />
-                {t.calendar.create}
+                <Plus className="h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">{t.calendar.create}</span>
               </button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
@@ -704,15 +704,15 @@ export function VisitsCalendar({
           </p>
         ) : viewMode === "day" ? (
           // Vista diaria por horas
-          <div className="space-y-2 max-h-[600px] overflow-y-auto">
+          <div className="space-y-2 max-h-[400px] md:max-h-[600px] overflow-y-auto">
             {hours.map((hour) => {
               const hourVisits = groupedVisits[hour] || [];
               return (
-                <div key={hour} className="flex gap-4 border-b pb-2">
-                  <div className="w-16 text-sm font-medium text-muted-foreground">
+                <div key={hour} className="flex gap-2 md:gap-4 border-b pb-2 min-w-0">
+                  <div className="w-12 md:w-16 text-xs md:text-sm font-medium text-muted-foreground flex-shrink-0">
                     {hour.toString().padStart(2, "0")}:00
                   </div>
-                  <div className="flex-1 flex flex-wrap gap-2">
+                  <div className="flex-1 flex flex-wrap gap-2 min-w-0">
                     {hourVisits.length === 0 ? (
                       <span className="text-xs text-muted-foreground">{t.calendar.noVisits}</span>
                     ) : (
@@ -720,13 +720,13 @@ export function VisitsCalendar({
                         <button
                           key={visit.id}
                           onClick={() => setSelectedVisit(visit)}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-white/10 dark:bg-white/10 hover:bg-white/20 dark:hover:bg-white/20 transition-colors text-left"
+                          className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-md border bg-white/10 dark:bg-white/10 hover:bg-white/20 dark:hover:bg-white/20 hover:shadow-md dark:hover:shadow-none transition-all text-left min-w-0"
                         >
-                          {getVisitIcon(visit.visit_type)}
-                          <span className="text-xs font-medium">
+                          <span className="flex-shrink-0">{getVisitIcon(visit.visit_type)}</span>
+                          <span className="text-xs font-medium truncate">
                             {visit.property_address || visit.property_id}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground hidden sm:inline">
                             {getVisitLabel(visit.visit_type)}
                           </span>
                         </button>
@@ -739,7 +739,7 @@ export function VisitsCalendar({
           </div>
         ) : (
           // Vista semanal por días
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 overflow-x-auto">
             {weekDays.map((day, index) => {
               const dayVisits = groupedVisits[index] || [];
               const isToday = day.toDateString() === new Date().toDateString();
@@ -748,14 +748,14 @@ export function VisitsCalendar({
                 <div
                   key={index}
                   className={cn(
-                    "border rounded-lg p-2 min-h-[200px]",
+                    "border rounded-lg p-2 min-h-[150px] md:min-h-[200px] flex flex-col",
                     isToday && "border-primary bg-primary/5"
                   )}
                 >
-                  <div className="text-xs font-medium mb-2">
+                  <div className="text-xs font-medium mb-2 flex-shrink-0">
                     {day.toLocaleDateString(language === "es" ? "es-ES" : "en-US", { weekday: "short", day: "numeric" })}
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 flex-1 overflow-y-auto">
                     {dayVisits.length === 0 ? (
                       <span className="text-xs text-muted-foreground">{t.calendar.noVisits}</span>
                     ) : (
@@ -763,20 +763,20 @@ export function VisitsCalendar({
                         <button
                           key={visit.id}
                           onClick={() => setSelectedVisit(visit)}
-                          className="w-full flex items-start gap-1.5 px-2 py-1 rounded text-xs border bg-white/10 dark:bg-white/10 hover:bg-white/20 dark:hover:bg-white/20 transition-colors text-left"
+                          className="w-full flex items-start gap-1.5 px-2 py-1 rounded text-xs border bg-white/10 dark:bg-white/10 hover:bg-white/20 dark:hover:bg-white/20 hover:shadow-md dark:hover:shadow-none transition-all text-left"
                         >
-                          {getVisitIcon(visit.visit_type)}
+                          <span className="flex-shrink-0">{getVisitIcon(visit.visit_type)}</span>
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">
+                            <div className="font-medium truncate text-[10px] md:text-xs">
                               {visit.property_address || visit.property_id}
                             </div>
-                            <div className="text-muted-foreground">
+                            <div className="text-muted-foreground text-[10px]">
                               {new Date(visit.visit_date).toLocaleTimeString(language === "es" ? "es-ES" : "en-US", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })}
                             </div>
-                            <div className="text-muted-foreground text-[10px]">
+                            <div className="text-muted-foreground text-[9px] md:text-[10px]">
                               {getVisitLabel(visit.visit_type)}
                             </div>
                           </div>
@@ -796,11 +796,11 @@ export function VisitsCalendar({
             setSelectedVisit(null);
             setIsEditingVisit(false);
           }}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] w-[95vw] md:w-full max-h-[85vh] md:max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+                <DialogTitle className="flex items-center gap-2 text-base md:text-lg">
                   {getVisitIcon(selectedVisit.visit_type)}
-                  {getVisitLabel(selectedVisit.visit_type)}
+                  <span className="break-words">{getVisitLabel(selectedVisit.visit_type)}</span>
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-4">

@@ -128,6 +128,7 @@ export interface Translations {
       renoBudgetClient: string;
       renoBudgetStart: string;
       renoBudget: string; // Legacy
+      upcoming: string;
       renoInProgress: string;
       furnishingCleaning: string;
       finalCheck: string;
@@ -344,6 +345,7 @@ export interface Translations {
     summary: string;
     propertyStatus: string;
     renovationBudget: string;
+    comments: string;
   };
   
   // Property Sidebar
@@ -634,6 +636,7 @@ export const translations: Record<Language, Translations> = {
       renoBudgetClient: "Pendiente Presupuesto (Cliente)",
       renoBudgetStart: "Obra a Empezar",
       renoBudget: "Reno Budget", // Legacy
+      upcoming: "Próximas propiedades",
       renoInProgress: "Obras en proceso",
       furnishingCleaning: "Limpieza y amoblamiento",
       finalCheck: "Check final",
@@ -1299,6 +1302,7 @@ export const translations: Record<Language, Translations> = {
       summary: "Resumen",
       propertyStatus: "Estado de la propiedad",
       renovationBudget: "Presupuesto de reforma",
+      comments: "Comentarios y Recordatorios",
     },
     propertySidebar: {
       createdOn: "Creada el",
@@ -1541,6 +1545,7 @@ export const translations: Record<Language, Translations> = {
       renoBudgetClient: "Pending Budget (Client)",
       renoBudgetStart: "Reno to Start",
       renoBudget: "Reno Budget", // Legacy
+      upcoming: "Upcoming Properties",
       renoInProgress: "Reno in Progress",
       furnishingCleaning: "Furnishing/Cleaning",
       finalCheck: "Final Check",
@@ -2205,6 +2210,7 @@ export const translations: Record<Language, Translations> = {
       summary: "Summary",
       propertyStatus: "Property Status",
       renovationBudget: "Renovation Budget",
+      comments: "Comments & Reminders",
     },
     propertySidebar: {
       createdOn: "Created on",

@@ -230,6 +230,61 @@ input[type="range"].slider-blue::-moz-range-thumb {
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 14px; /* Base font size for mobile */
+  }
+  
+  /* Typography Hierarchy - Responsive */
+  h1 {
+    @apply text-xl md:text-2xl lg:text-3xl font-bold;
+  }
+  
+  h2 {
+    @apply text-lg md:text-xl lg:text-2xl font-semibold;
+  }
+  
+  h3 {
+    @apply text-base md:text-lg lg:text-xl font-semibold;
+  }
+  
+  h4 {
+    @apply text-sm md:text-base lg:text-lg font-semibold;
+  }
+  
+  /* Base text sizes - consistent across app */
+  .text-body {
+    @apply text-sm md:text-base;
+  }
+  
+  .text-small {
+    @apply text-xs md:text-sm;
+  }
+  
+  .text-caption {
+    @apply text-xs;
+  }
+  
+  /* Labels - consistent sizing */
+  label {
+    @apply text-sm font-medium;
+  }
+  
+  /* Inputs - consistent sizing for mobile */
+  input, textarea, select {
+    @apply text-sm md:text-base;
+  }
+  
+  /* Mobile-first responsive adjustments */
+  @media (max-width: 768px) {
+    /* Ensure inputs are readable on mobile */
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="date"],
+    input[type="tel"],
+    textarea,
+    select {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
   }
 }
 

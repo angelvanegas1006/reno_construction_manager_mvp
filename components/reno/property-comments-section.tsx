@@ -153,7 +153,7 @@ export function PropertyCommentsSection({
               "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors",
               isReminder
                 ? "bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/20 text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]"
-                : "bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] text-muted-foreground hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)]"
+                : "bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] text-muted-foreground hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[#262626]"
             )}
           >
             {isReminder ? (
@@ -293,14 +293,14 @@ function CommentItem({ comment, formatDate }: CommentItemProps) {
       "p-3 rounded-lg border transition-colors",
       isReminder
         ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20 border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]"
-        : "bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-800)] border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)]"
+        : "bg-[var(--prophero-gray-50)] dark:bg-[#1a1a1a] border-[var(--prophero-gray-200)] dark:border-[#333333]"
     )}>
       <div className="flex items-start gap-3">
         <div className={cn(
           "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
           isReminder
             ? "bg-[var(--prophero-blue-200)] dark:bg-[var(--prophero-blue-800)]"
-            : "bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]"
+            : "bg-[var(--prophero-gray-200)] dark:bg-[#262626]"
         )}>
           {isReminder ? (
             <Bell className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />

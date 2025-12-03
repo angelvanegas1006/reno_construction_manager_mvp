@@ -35,15 +35,17 @@ export function mapSetUpStatusToKanbanPhase(setUpStatus: string | null): RenoKan
     'pending budget from client': 'reno-budget-client', // Variación
     
     // 3. Obra a Empezar
-    'reno to start': 'reno-budget-start',
     'obra para empezar': 'reno-budget-start', // Español
     'obra a empezar': 'reno-budget-start', // Variación español
     
     // Legacy Reno Budget - mantener para compatibilidad (oculto)
     'pending to validate budget (client & renovator) & reno to start': 'reno-budget',
-    'pending to validate budget': 'reno-budget',
-    'pending to validate budget & reno to start': 'reno-budget',
-    'proximas propiedades': 'reno-budget',
+    
+    // Upcoming - Proximas propiedades (diferente de upcoming-settlements y reno-budget)
+    // Estas son propiedades esperando presupuesto de renovación (valores genéricos que no coinciden con las fases específicas)
+    'pending to validate budget': 'upcoming', // Genérico, sin especificar renovator/client
+    'pending to validate budget & reno to start': 'upcoming', // Genérico combinado
+    'proximas propiedades': 'upcoming', // Genérico en español
     
     // Obras en proceso → reno-in-progress
     'reno in progress': 'reno-in-progress',
@@ -97,6 +99,7 @@ export function getMappedKanbanPhases(): RenoKanbanPhase[] {
     'reno-budget-client',
     'reno-budget-start',
     'reno-budget', // Legacy - mantener para compatibilidad
+    'upcoming',
     'reno-in-progress',
     'furnishing-cleaning',
     'final-check',

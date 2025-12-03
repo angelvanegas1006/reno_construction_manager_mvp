@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, User, HardHat, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell } from "lucide-react";
+import { CheckCircle2, Clock, User, Building2, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -110,8 +110,8 @@ export function PropertyStatusSidebar({
   };
 
   return (
-    <div className="w-80 border-l bg-card flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    <div className="w-full lg:w-80 border-l-0 lg:border-l bg-card dark:bg-[var(--prophero-gray-900)] flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Status Section */}
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -130,7 +130,7 @@ export function PropertyStatusSidebar({
                 <span className="text-xs text-muted-foreground">{t.propertySidebar.dataCompleted}</span>
                 <span className="text-xs font-medium">{progress}%</span>
               </div>
-              <div className="w-full h-2 bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-800)] rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-[var(--prophero-gray-200)] dark:bg-[#1a1a1a] rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary transition-all duration-300"
                   style={{ width: `${progress}%` }}
@@ -143,7 +143,7 @@ export function PropertyStatusSidebar({
         {/* Pending Items */}
         {pendingItems.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-foreground">
+            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               {t.propertySidebar.pending}
             </h4>
@@ -173,8 +173,8 @@ export function PropertyStatusSidebar({
         <div className="space-y-4">
           {technicalConstructor && (
             <div>
-              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-foreground">
-                <HardHat className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
                 {t.propertySidebar.technicalConstructor}
               </h4>
               <p className="text-sm text-foreground">{technicalConstructor}</p>
@@ -183,7 +183,7 @@ export function PropertyStatusSidebar({
 
           {responsibleOwner && (
             <div>
-              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2 text-foreground">
+              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
                 {t.propertySidebar.siteManager}
               </h4>
@@ -197,7 +197,7 @@ export function PropertyStatusSidebar({
           <div className="border-t pt-4">
             <button
               onClick={() => setChecklistExpanded(!checklistExpanded)}
-              className="w-full flex items-center justify-between text-sm font-semibold mb-3 text-foreground hover:text-foreground transition-colors"
+              className="w-full flex items-center justify-between text-sm font-semibold mb-3 hover:text-foreground transition-colors"
             >
               <div className="flex items-center gap-2">
                 <ClipboardList className="h-4 w-4 text-muted-foreground" />
@@ -222,7 +222,7 @@ export function PropertyStatusSidebar({
                     <div className="text-xs text-muted-foreground mb-2">
                       {t.propertySidebar.checklistInProgress}
                     </div>
-                    <div className="w-full h-2 bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-800)] rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-[var(--prophero-gray-200)] dark:bg-[#1a1a1a] rounded-full overflow-hidden">
                       <div
                         className="h-full bg-green-500 transition-all duration-300"
                         style={{ width: `${checklistProgress}%` }}
@@ -264,7 +264,7 @@ export function PropertyStatusSidebar({
           <Collapsible open={true} onOpenChange={() => {}} className="space-y-3 pt-4 border-t">
             <CollapsibleTrigger asChild>
               <div className="flex items-center justify-between w-full cursor-pointer py-2">
-                <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
                   <Bell className="h-4 w-4 text-muted-foreground" />
                   {t.propertySidebar.reminders}
                 </h4>
@@ -283,7 +283,7 @@ export function PropertyStatusSidebar({
           <div className="border-t pt-4">
             <button
               onClick={() => setCommentsExpanded(!commentsExpanded)}
-              className="w-full flex items-center justify-between text-sm font-semibold mb-3 text-foreground hover:text-foreground transition-colors"
+              className="w-full flex items-center justify-between text-sm font-semibold mb-3 hover:text-foreground transition-colors"
             >
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />

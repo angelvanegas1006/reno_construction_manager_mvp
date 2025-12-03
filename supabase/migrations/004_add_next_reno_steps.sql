@@ -14,3 +14,8 @@ COMMENT ON COLUMN properties.next_reno_steps IS 'Next Reno Steps from Airtable (
 
 
 
+
+
+
+
+

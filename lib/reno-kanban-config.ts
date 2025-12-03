@@ -8,6 +8,7 @@ export type RenoKanbanPhase =
   | "reno-budget-client"
   | "reno-budget-start"
   | "reno-budget" // Legacy phase - hidden but kept for compatibility
+  | "upcoming" // Additional phase from upstream
   | "reno-in-progress"
   | "furnishing-cleaning"
   | "final-check"
@@ -24,6 +25,7 @@ export interface RenoKanbanColumn {
     renoBudgetRenovator: string;
     renoBudgetClient: string;
     renoBudgetStart: string;
+    upcoming: string;
     renoBudget: string;
     renoInProgress: string;
     furnishingCleaning: string;
@@ -40,6 +42,7 @@ export const renoKanbanColumns: RenoKanbanColumn[] = [
   { key: "reno-budget-client", stage: "reno-budget-client", translationKey: "renoBudgetClient" },
   { key: "reno-budget-start", stage: "reno-budget-start", translationKey: "renoBudgetStart" },
   { key: "reno-budget", stage: "reno-budget", translationKey: "renoBudget" }, // Legacy - hidden
+  { key: "upcoming", stage: "upcoming", translationKey: "upcoming" }, // Additional phase from upstream
   { key: "reno-in-progress", stage: "reno-in-progress", translationKey: "renoInProgress" },
   { key: "furnishing-cleaning", stage: "furnishing-cleaning", translationKey: "furnishingCleaning" },
   { key: "final-check", stage: "final-check", translationKey: "finalCheck" },

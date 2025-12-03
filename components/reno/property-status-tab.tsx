@@ -92,7 +92,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
 
   if (loading) {
     return (
-      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
         <p className="text-muted-foreground">{t.propertyStatusTab.loadingHistory}</p>
       </div>
     );
@@ -100,7 +100,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
 
   if (checklists.length === 0) {
     return (
-      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
         <p className="text-muted-foreground">{t.propertyStatusTab.noChecklistsYet}</p>
       </div>
     );

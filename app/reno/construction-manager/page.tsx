@@ -20,7 +20,7 @@ import { createClient } from "@/lib/supabase/client";
 export default function RenoConstructionManagerHomePage() {
   const { t } = useI18n();
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const supabase = createClient();
 
   // Load properties from Supabase
@@ -191,35 +191,25 @@ export default function RenoConstructionManagerHomePage() {
     toast.info("Añadir nueva visita - Próximamente");
   };
 
-  // Filter properties based on search query
-  const filteredProperties = useMemo(() => {
-    if (!searchQuery.trim()) return properties;
-    const query = searchQuery.toLowerCase();
-    return properties.filter((p) => 
-      p.id.toLowerCase().includes(query) ||
-      p.fullAddress.toLowerCase().includes(query) ||
-      (p.price && p.price.toString().includes(query))
-    );
-  }, [properties, searchQuery]);
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <RenoSidebar />
+      <RenoSidebar 
+        isMobileOpen={isMobileMenuOpen}
+        onMobileToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
       
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden w-full md:w-auto">
-        {/* Header with Search and Filter */}
-        <RenoHomeHeader 
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-        />
+        {/* Header */}
+        <RenoHomeHeader />
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 pt-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div className="flex-1 overflow-y-auto px-3 md:px-4 lg:px-6 py-3 md:py-4 lg:py-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
           {supabaseLoading ? (
             <RenoHomeLoader className="min-h-[400px]" />
           ) : (
-            <div className="max-w-7xl mx-auto space-y-6">
+            <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
               {/* KPIs */}
               <RenoHomeIndicators
                 obrasActivas={indicators.obrasActivas}
@@ -238,9 +228,9 @@ export default function RenoConstructionManagerHomePage() {
               />
 
               {/* Recent Properties and Portfolio Row */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <RenoHomeRecentProperties properties={filteredProperties} propertiesByPhase={propertiesByPhase} />
-                <RenoHomePortfolio properties={filteredProperties} propertiesByPhase={propertiesByPhase} />
+              <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
+                <RenoHomeRecentProperties properties={properties} propertiesByPhase={propertiesByPhase} />
+                <RenoHomePortfolio properties={properties} propertiesByPhase={propertiesByPhase} />
               </div>
             </div>
           )}

@@ -387,7 +387,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
 
   if (loading) {
     return (
-      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
         <p className="text-muted-foreground">Cargando categorías...</p>
       </div>
     );
@@ -396,7 +396,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
   // Show error state if there's an error
   if (error) {
     return (
-      <div className="bg-card bg-card rounded-lg border border-destructive/50 p-6 shadow-sm">
+      <div className="bg-card rounded-lg border border-destructive/50 p-6 shadow-sm">
         <p className="text-destructive">Error al cargar categorías: {error}</p>
         <Button
           onClick={() => refetch()}
@@ -411,7 +411,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
 
   return (
     <>
-      <div className="bg-card bg-card rounded-lg border p-6 shadow-sm space-y-6">
+      <div className="bg-card rounded-lg border p-6 shadow-sm space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Progreso de Obras</h2>
           {hasUnsavedChanges && (
@@ -636,7 +636,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                         </div>
                       </div>
                       {/* Slider with blue background and visible thumb */}
-                      <div className="relative h-3 overflow-hidden rounded-lg" onClick={(e) => e.stopPropagation()}>
+                      <div className="relative h-3 overflow-visible rounded-lg" onClick={(e) => e.stopPropagation()}>
                         {/* Background track (full width, blue) */}
                         <div className="absolute inset-0 h-3 rounded-lg bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]" />
                         {/* Progress fill (blue primary) */}
@@ -644,6 +644,15 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                           className={`absolute inset-y-0 left-0 bg-primary ${percentage >= 100 ? 'rounded-lg' : 'rounded-l-lg'}`}
                           style={{
                             width: `${Math.min(100, percentage)}%`,
+                          }}
+                        />
+                        {/* Circle indicator at the end of progress - always visible, pero no bloquea interacción */}
+                        <div 
+                          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white dark:border-[#000000] shadow-sm z-20 pointer-events-none"
+                          style={{
+                            left: percentage > 0 
+                              ? `calc(${Math.min(100, percentage)}% - 6px)` 
+                              : '-6px',
                           }}
                         />
                         {/* Slider input on top - transparent track, only thumb visible */}
@@ -658,7 +667,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                             const newValue = parseInt(e.target.value, 10);
                             handleSliderChange(category.id, newValue);
                           }}
-                          className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-10"
+                          className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-30"
                           title={`Mínimo permitido: ${minAllowedValue}%`}
                         />
                       </div>

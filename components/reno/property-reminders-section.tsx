@@ -186,7 +186,7 @@ export function PropertyRemindersSection({
             onClick={() => router.push(`/reno/construction-manager/property/${reminder.property_id}`)}
             className={cn(
               "w-full text-left p-3 rounded-lg border transition-colors",
-              "hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)]",
+              "hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a]",
               upcoming && "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20 border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]",
               overdue && "bg-[var(--prophero-red-50)] dark:bg-[var(--prophero-red-900)]/20 border-[var(--prophero-red-200)] dark:border-[var(--prophero-red-800)]"
             )}
@@ -198,7 +198,7 @@ export function PropertyRemindersSection({
                   ? "bg-[var(--prophero-blue-200)] dark:bg-[var(--prophero-blue-800)]"
                   : overdue
                   ? "bg-[var(--prophero-red-200)] dark:bg-[var(--prophero-red-800)]"
-                  : "bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]"
+                  : "bg-[var(--prophero-gray-200)] dark:bg-[#262626]"
               )}>
                 <Bell className={cn(
                   "h-4 w-4",
@@ -236,6 +236,11 @@ export function PropertyRemindersSection({
     </div>
   );
 }
+
+
+
+
+
 
 
 

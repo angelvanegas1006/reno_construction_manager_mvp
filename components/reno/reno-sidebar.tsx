@@ -79,12 +79,8 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
     ? extractNameFromEmail(appUser.email)
     : undefined;
   
-  // Check if we're on any property page (detail or checklist)
-  // Routes: /reno/construction-manager/property/[id] or /reno/construction-manager/property/[id]/checklist
-  const isPropertyPage = pathname?.includes('/reno/construction-manager/property/') && 
-                         pathname !== '/reno/construction-manager/property' &&
-                         pathname.split('/').length >= 5; // Has property ID segment (at least 5 segments)
-  const [collapsed, setCollapsed] = useState(isPropertyPage);
+  // Always start collapsed - user can expand by clicking
+  const [collapsed, setCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -99,17 +95,6 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  useEffect(() => {
-    if (!isMobile) {
-      // Check if we're on any property page (detail or checklist)
-      // Routes: /reno/construction-manager/property/[id] or /reno/construction-manager/property/[id]/checklist
-      const isPropertyPage = pathname?.includes('/reno/construction-manager/property/') && 
-                             pathname !== '/reno/construction-manager/property' &&
-                             pathname.split('/').length >= 5; // Has property ID segment (at least 5 segments)
-      setCollapsed(isPropertyPage);
-    }
-  }, [pathname, isMobile]);
-
   // On mobile, render as overlay drawer
   if (isMobile) {
     return (
@@ -117,7 +102,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
         {/* Mobile toggle button */}
         <button
           onClick={onMobileToggle}
-          className="fixed top-4 left-4 z-50 md:hidden p-2 rounded-md bg-card border shadow-lg"
+          className="fixed top-3 left-3 z-50 md:hidden p-2 rounded-md bg-card border shadow-lg hover:bg-accent transition-colors"
           aria-label="Toggle sidebar"
         >
           <Menu className="h-5 w-5" />

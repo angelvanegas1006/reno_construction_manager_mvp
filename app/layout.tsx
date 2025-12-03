@@ -9,6 +9,7 @@ import { AuthProvider } from "@/lib/auth";
 import { SupabaseAuthProvider } from "@/lib/auth/supabase-auth-context";
 import { AppAuthProvider } from "@/lib/auth/app-auth-context";
 import { Auth0ProviderWrapper } from "@/components/auth/auth0-provider";
+import { MixpanelProvider } from "@/components/providers/mixpanel-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,8 +52,10 @@ export default function RootLayout({
                 {/* Providers de Supabase para nueva funcionalidad */}
                 <SupabaseAuthProvider>
                   <AppAuthProvider>
-                    {children}
-                    <Toaster />
+                    <MixpanelProvider>
+                      {children}
+                      <Toaster />
+                    </MixpanelProvider>
                   </AppAuthProvider>
                 </SupabaseAuthProvider>
               </AuthProvider>

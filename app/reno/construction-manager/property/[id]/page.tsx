@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useCallback, useState, useRef } from "react";
-import { ArrowLeft, MapPin, AlertTriangle } from "lucide-react";
+import { ArrowLeft, MapPin, AlertTriangle, Info, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,7 @@ import { PropertySummaryTab } from "@/components/reno/property-summary-tab";
 import { PropertyStatusTab } from "@/components/reno/property-status-tab";
 import { PropertyActionTab } from "@/components/reno/property-action-tab";
 import { PropertyCommentsSection } from "@/components/reno/property-comments-section";
+import { PropertyRemindersSection } from "@/components/reno/property-reminders-section";
 import { PropertyStatusSidebar } from "@/components/reno/property-status-sidebar";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
 import { Property } from "@/lib/property-storage";
@@ -28,6 +29,7 @@ import { toast } from "sonner";
 import { appendSetUpNotesToAirtable } from "@/lib/airtable/initial-check-sync";
 import { updateAirtableWithRetry, findRecordByPropertyId } from "@/lib/airtable/client";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
+import { createClient } from "@/lib/supabase/client";
 
 type PropertyUpdate = Database['public']['Tables']['properties']['Update'];
 
@@ -35,8 +37,13 @@ export default function RenoPropertyDetailPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useI18n();
+  const supabase = createClient();
+  const { t, language } = useI18n();
+  
+  // Get viewMode from query params (kanban or list)
+  const viewMode = searchParams.get('viewMode') || 'kanban';
   const [reportProblemOpen, setReportProblemOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   // Leer el tab desde la URL si existe, sino usar "tareas" por defecto
   const tabFromUrl = searchParams?.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || "tareas"); // Tab por defecto: Tareas
@@ -53,9 +60,7 @@ export default function RenoPropertyDetailPage() {
   const [localEstimatedVisitDate, setLocalEstimatedVisitDate] = useState<string | undefined>(property?.estimatedVisitDate);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
-  // Debounce timer refs
-  const dateDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [isEditingDate, setIsEditingDate] = useState(false);
 
   // Determine phase using "Set Up Status" from Supabase
   const getPropertyRenoPhase = useCallback((): RenoKanbanPhase | null => {
@@ -65,11 +70,16 @@ export default function RenoPropertyDetailPage() {
 
   // Update local state when property changes
   useEffect(() => {
-    if (property) {
-      setLocalEstimatedVisitDate(property.estimatedVisitDate);
+    if (property || supabaseProperty) {
+      const dateFromProperty = property?.estimatedVisitDate;
+      const dateFromSupabase = (supabaseProperty as any)?.['Estimated Visit Date'];
+      const dateToUse = dateFromProperty || dateFromSupabase;
+      if (dateToUse) {
+        setLocalEstimatedVisitDate(dateToUse);
+      }
       setHasUnsavedChanges(false);
     }
-  }, [property?.estimatedVisitDate]);
+  }, [property?.estimatedVisitDate, supabaseProperty]);
 
   // Reset the check flag when propertyId changes (navigating to a different property)
   useEffect(() => {
@@ -116,15 +126,24 @@ export default function RenoPropertyDetailPage() {
       // Get current phase before updating
       const currentPhase = getPropertyRenoPhase();
       
+      // Get previous date to detect if it's a new date
+      const previousDate = (supabaseProperty as any)['Estimated Visit Date'] || property?.estimatedVisitDate;
+      const isNewDate = localEstimatedVisitDate && localEstimatedVisitDate !== previousDate;
+      
       const supabaseUpdates: PropertyUpdate & Record<string, any> = {
         'Estimated Visit Date': localEstimatedVisitDate || null,
         // Setup Status Notes ahora se maneja a través de comentarios
         updated_at: new Date().toISOString(),
       };
       
-      // If transitioning to initial-check (via "Enviar" button)
-      const phaseChanged = transitionToInitialCheck && currentPhase === 'upcoming-settlements' && localEstimatedVisitDate;
-      if (phaseChanged) {
+      // Auto-advance to initial-check if:
+      // 1. Explicitly requested via "Enviar" button (transitionToInitialCheck)
+      // 2. OR: Property is in upcoming-settlements AND a new date is being saved
+      const shouldAutoAdvance = 
+        (transitionToInitialCheck && currentPhase === 'upcoming-settlements' && localEstimatedVisitDate) ||
+        (currentPhase === 'upcoming-settlements' && isNewDate && localEstimatedVisitDate);
+      
+      if (shouldAutoAdvance) {
         // Update "Set Up Status" to move to initial-check phase
         supabaseUpdates['Set Up Status'] = 'initial check';
       }
@@ -132,106 +151,76 @@ export default function RenoPropertyDetailPage() {
       const success = await updateSupabaseProperty(supabaseUpdates);
       
       if (success) {
-        // Sync Estimated Visit Date to Airtable if:
-        // 1. We're in upcoming-settlements phase (first phase), OR
-        // 2. We're transitioning to initial-check phase
-        const shouldSyncToAirtable = 
-          (currentPhase === 'upcoming-settlements' && localEstimatedVisitDate) || 
-          phaseChanged;
+        // Update Airtable when:
+        // 1. Transitioning to initial-check (shouldAutoAdvance)
+        // 2. OR: Already in initial-check and date is being modified
+        const shouldUpdateAirtable = shouldAutoAdvance || (currentPhase === 'initial-check' && isNewDate && localEstimatedVisitDate);
         
-        if (shouldSyncToAirtable) {
+        if (shouldUpdateAirtable) {
           try {
-            // Usar la tabla Transactions (no Properties) ya que es donde están los registros principales
-            const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Transactions';
-            const airtablePropertyId = supabaseProperty.airtable_property_id || supabaseProperty['Unique ID From Engagements'];
+            const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
+            const airtablePropertyId = supabaseProperty?.airtable_property_id || (supabaseProperty as any)?.['Unique ID From Engagements'];
             
             if (airtablePropertyId && localEstimatedVisitDate) {
-              console.log(`[Airtable Sync] Syncing Estimated Visit Date to Airtable for property ${propertyId}`, {
-                tableName,
-                airtablePropertyId,
-                estimatedVisitDate: localEstimatedVisitDate,
-                phase: currentPhase
-              });
-              
-              // Si airtable_property_id empieza con "rec", es un record ID directo de Airtable
-              // Si no, es un Property ID y necesitamos buscarlo
-              let recordId: string | null = null;
-              
-              if (airtablePropertyId.startsWith('rec')) {
-                // Es un record ID directo, usarlo directamente
-                recordId = airtablePropertyId;
-                console.log(`[Airtable Sync] Using direct record ID:`, recordId);
-              } else {
-                // Es un Property ID, buscar el record ID
-                recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
-                console.log(`[Airtable Sync] Record ID found by search:`, recordId, {
-                  tableName,
-                  airtablePropertyId,
-                  propertyId
-                });
-              }
-              
+              const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
               if (recordId) {
-                // Intentar con el field ID primero, y también con nombres alternativos del campo
-                // El campo en Airtable puede llamarse "Est. Visit date" o "Estimated Visit Date"
-                // Usar solo el field ID primero, si falla intentar con nombres
-                const fieldsToUpdate: Record<string, any> = {
-                  'fldIhqPOAFL52MMBn': localEstimatedVisitDate, // Field ID (prioridad)
+                const airtableFields: Record<string, any> = {
+                  'fldIhqPOAFL52MMBn': localEstimatedVisitDate, // Estimated visit date field ID
                 };
                 
-                // También intentar con nombres alternativos (Airtable puede aceptar múltiples)
-                // Pero mejor usar solo el field ID que es más confiable
-                
-                console.log(`[Airtable Sync] Attempting to update with field ID fldIhqPOAFL52MMBn:`, localEstimatedVisitDate);
-                
-                const syncSuccess = await updateAirtableWithRetry(tableName, recordId, fieldsToUpdate);
-                
-                if (syncSuccess) {
-                  console.log(`✅ Synced Estimated Visit Date to Airtable for property ${propertyId}`);
-                  if (showToast && currentPhase === 'upcoming-settlements') {
-                    toast.success("Fecha sincronizada con Airtable", {
-                      description: "La fecha estimada de visita se ha actualizado en Airtable.",
-                    });
-                  }
-                } else {
-                  console.warn(`⚠️ Failed to sync Estimated Visit Date to Airtable for property ${propertyId}`);
+                // Only update Set Up Status when transitioning
+                if (shouldAutoAdvance) {
+                  airtableFields['Set Up Status'] = 'Initial Check';
                 }
-              } else {
-                console.warn(`⚠️ Airtable record not found for property ${propertyId} (${airtablePropertyId})`);
+                
+                await updateAirtableWithRetry(tableName, recordId, airtableFields);
               }
-            } else {
-              console.warn(`⚠️ Missing data for Airtable sync:`, {
-                hasAirtableId: !!airtablePropertyId,
-                hasEstimatedVisitDate: !!localEstimatedVisitDate
-              });
             }
           } catch (airtableError) {
-            console.error('Error updating Airtable with Estimated Visit Date:', airtableError);
+            console.error('Error updating Airtable:', airtableError);
             // Don't fail the whole operation if Airtable update fails
-            if (showToast) {
-              toast.error("Error al sincronizar con Airtable", {
-                description: "Los cambios se guardaron en Supabase, pero hubo un error al sincronizar con Airtable.",
-              });
-            }
           }
         }
         
-        // If transitioning to initial-check, also sync comments
-        if (phaseChanged) {
+        // Create visit in calendar if transitioning to initial-check
+        if (shouldAutoAdvance && localEstimatedVisitDate) {
           try {
-            // Sync comments to Airtable (replaces SetUpnotes)
-            // Los comentarios se sincronizan automáticamente cuando se agregan
-            // Aquí podríamos forzar una sincronización si es necesario
-          } catch (airtableError) {
-            console.error('Error syncing comments to Airtable during phase transition:', airtableError);
-            // Don't fail the whole operation if Airtable update fails
+            const visitDate = new Date(localEstimatedVisitDate);
+            visitDate.setHours(9, 0, 0, 0); // Set to 9 AM by default
+            
+            const { data: existingVisits } = await supabase
+              .from("property_visits")
+              .select("id")
+              .eq("property_id", propertyId)
+              .eq("visit_type", "initial-check")
+              .gte("visit_date", new Date(visitDate.getTime() - 24 * 60 * 60 * 1000).toISOString())
+              .lte("visit_date", new Date(visitDate.getTime() + 24 * 60 * 60 * 1000).toISOString())
+              .limit(1);
+            
+            if (!existingVisits || existingVisits.length === 0) {
+              const { error: visitError } = await supabase
+                .from("property_visits")
+                .insert({
+                  property_id: propertyId,
+                  visit_date: visitDate.toISOString(),
+                  visit_type: "initial-check",
+                  notes: t.upcomingSettlements.autoVisitNote,
+                });
+              
+              if (visitError) {
+                console.error('Error creating automatic visit:', visitError);
+              }
+            }
+          } catch (visitError) {
+            console.error('Error creating visit:', visitError);
+            // Don't fail the whole operation if visit creation fails
           }
         }
         
         setHasUnsavedChanges(false);
         
         if (showToast) {
-          if (phaseChanged) {
+          if (shouldAutoAdvance) {
             toast.success("Cambios guardados. La propiedad ha pasado a Check Inicial", {
               description: "La propiedad se ha movido automáticamente a la fase de Check Inicial.",
             });
@@ -244,7 +233,7 @@ export default function RenoPropertyDetailPage() {
         await refetch();
         
         // If phase changed, redirect to initial-check page (which will show checklist)
-        if (phaseChanged) {
+        if (shouldAutoAdvance) {
           // Small delay to let the toast show
           setTimeout(() => {
             router.push(`/reno/construction-manager/property/${propertyId}/checklist`);
@@ -265,46 +254,19 @@ export default function RenoPropertyDetailPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [propertyId, supabaseProperty, localEstimatedVisitDate, updateSupabaseProperty, refetch, getPropertyRenoPhase, router]);
+  }, [propertyId, supabaseProperty, localEstimatedVisitDate, updateSupabaseProperty, refetch, getPropertyRenoPhase, router, property]);
 
 
   // Handle date change
   const handleDateChange = useCallback((date: string | undefined) => {
     setLocalEstimatedVisitDate(date);
     setHasUnsavedChanges(true);
-    
-    // Only auto-save if NOT in upcoming-settlements phase
-    const currentPhase = getPropertyRenoPhase();
-    if (currentPhase !== 'upcoming-settlements') {
-      // Clear existing debounce timer
-      if (dateDebounceRef.current) {
-        clearTimeout(dateDebounceRef.current);
-      }
-      
-      // Auto-save after 2 seconds of inactivity (silent, no toast)
-      dateDebounceRef.current = setTimeout(async () => {
-        await saveToSupabase(false);
-      }, 2000);
-    }
-  }, [saveToSupabase, getPropertyRenoPhase]);
+  }, []);
 
   // Manual save handler
   const handleManualSave = useCallback(async () => {
-    // Clear any pending debounce timers
-    if (dateDebounceRef.current) {
-      clearTimeout(dateDebounceRef.current);
-      dateDebounceRef.current = null;
-    }
-    
     await saveToSupabase(true);
   }, [saveToSupabase]);
-
-  // Cleanup debounce timers on unmount
-  useEffect(() => {
-    return () => {
-      if (dateDebounceRef.current) clearTimeout(dateDebounceRef.current);
-    };
-  }, []);
 
   // Calculate progress (simplified - could be improved)
   const progress = 25; // TODO: Calculate from checklist completion
@@ -336,9 +298,10 @@ export default function RenoPropertyDetailPage() {
     return items;
   };
 
-  // Define tabs
+  // Define tabs - Comments tab is second for better mobile UX
   const tabs = [
     { id: "tareas", label: t.propertyTabs.tasks },
+    { id: "comentarios", label: t.propertyTabs.comments || "Comentarios" },
     { id: "resumen", label: t.propertyTabs.summary },
     { id: "estado-propiedad", label: t.propertyTabs.propertyStatus },
     { id: "presupuesto-reforma", label: t.propertyTabs.renovationBudget },
@@ -351,7 +314,7 @@ export default function RenoPropertyDetailPage() {
       // Early return if property is null
       if (!property) {
         return (
-          <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+          <div className="bg-card rounded-lg border p-6 shadow-sm">
             <p className="text-muted-foreground">{t.propertyPage.loadingProperty}</p>
           </div>
         );
@@ -362,6 +325,11 @@ export default function RenoPropertyDetailPage() {
         // For initial-check or final-check phases, show checklist CTA
         if (currentPhase === "initial-check" || currentPhase === "final-check") {
           const checklistType = currentPhase === "final-check" ? t.kanban.finalCheck : t.kanban.initialCheck;
+          // Check for date in both local state and supabase property
+          const estimatedDate = localEstimatedVisitDate || (supabaseProperty as any)?.['Estimated Visit Date'] || property?.estimatedVisitDate;
+          const hasEstimatedDate = !!estimatedDate;
+          const showDateSection = currentPhase === "initial-check";
+          
           return (
             <div className="space-y-6">
               <PropertyActionTab 
@@ -375,8 +343,74 @@ export default function RenoPropertyDetailPage() {
                 }}
               />
               
+              {/* Date section for initial-check (with or without date) */}
+              {showDateSection && (
+                <div className="bg-card rounded-lg border p-6 shadow-sm">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm font-semibold">
+                          {t.upcomingSettlements.estimatedVisitDate}
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {isEditingDate || !hasEstimatedDate
+                            ? t.upcomingSettlements.estimatedVisitDateDescription
+                            : `${t.propertyPage.currentDate}: ${estimatedDate ? new Date(estimatedDate).toLocaleDateString(language === "es" ? "es-ES" : "en-US") : ""}`
+                          }
+                        </p>
+                      </div>
+                      {hasEstimatedDate && !isEditingDate && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingDate(true)}
+                        >
+                          {t.propertyPage.modifyDate || "Modificar fecha"}
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {(isEditingDate || !hasEstimatedDate) && (
+                      <div className="space-y-4 pt-4 border-t">
+                        <FutureDatePicker
+                          value={localEstimatedVisitDate}
+                          onChange={handleDateChange}
+                          placeholder="DD/MM/YYYY"
+                          errorMessage={t.upcomingSettlements.dateMustBeFuture}
+                        />
+                        <div className="flex items-center justify-end gap-2">
+                          {hasEstimatedDate && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setIsEditingDate(false);
+                                setLocalEstimatedVisitDate(property?.estimatedVisitDate || (supabaseProperty as any)?.['Estimated Visit Date']);
+                                setHasUnsavedChanges(false);
+                              }}
+                            >
+                              {t.calendar.cancel || "Cancelar"}
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              await saveToSupabase(true);
+                              setIsEditingDate(false);
+                            }}
+                            disabled={isSaving || !hasUnsavedChanges || !localEstimatedVisitDate}
+                          >
+                            {isSaving ? t.propertyPage.saving || "Guardando..." : t.propertyPage.save || "Guardar"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               {/* Checklist CTA Card */}
-              <div className="bg-card bg-card rounded-lg border-2 border-primary/20 p-8 shadow-lg">
+              <div className="bg-card rounded-lg border-2 border-primary/20 p-8 shadow-lg">
                 <div className="text-center space-y-4">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
                     <svg
@@ -420,69 +454,124 @@ export default function RenoPropertyDetailPage() {
         
         // For upcoming-settlements, show editable fields
         if (currentPhase === "upcoming-settlements") {
+          const hasEstimatedDate = localEstimatedVisitDate;
+          
           return (
-            <div className="space-y-6">
-              {/* Editable Fields for Upcoming Settlements */}
-              <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
-                <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
+              {/* Editable Fields for Upcoming Reno */}
+              <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+                <div className="space-y-4 md:space-y-6">
                   {/* Estimated Visit Date */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">
-                      {t.upcomingSettlements.estimatedVisitDate}
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      {t.upcomingSettlements.estimatedVisitDateDescription}
-                    </p>
-                    <FutureDatePicker
-                      value={localEstimatedVisitDate}
-                      onChange={handleDateChange}
-                      placeholder="DD/MM/YYYY"
-                      errorMessage={t.upcomingSettlements.dateMustBeFuture}
-                    />
+                  <div className="space-y-3 md:space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <Label className="text-sm font-semibold">
+                          {t.upcomingSettlements.estimatedVisitDate}
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-1 break-words">
+                          {isEditingDate || !hasEstimatedDate
+                            ? t.upcomingSettlements.estimatedVisitDateDescription
+                            : `${t.propertyPage.currentDate}: ${localEstimatedVisitDate ? new Date(localEstimatedVisitDate).toLocaleDateString(language === "es" ? "es-ES" : "en-US") : ""}`
+                          }
+                        </p>
+                      </div>
+                      {hasEstimatedDate && !isEditingDate && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingDate(true)}
+                          className="flex-shrink-0 w-full sm:w-auto"
+                        >
+                          {t.propertyPage.modifyDate || "Modificar fecha"}
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {(!hasEstimatedDate || isEditingDate) && (
+                      <div className="space-y-3 md:space-y-4 pt-3 md:pt-4 border-t">
+                        <FutureDatePicker
+                          value={localEstimatedVisitDate}
+                          onChange={handleDateChange}
+                          placeholder="DD/MM/YYYY"
+                          errorMessage={t.upcomingSettlements.dateMustBeFuture}
+                        />
+                        {isEditingDate && (
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setIsEditingDate(false);
+                                setLocalEstimatedVisitDate(property?.estimatedVisitDate);
+                                setHasUnsavedChanges(false);
+                              }}
+                              className="w-full sm:w-auto"
+                            >
+                              {t.calendar.cancel || "Cancelar"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={async () => {
+                                await saveToSupabase(true);
+                                setIsEditingDate(false);
+                              }}
+                              disabled={isSaving || !hasUnsavedChanges}
+                              className="w-full sm:w-auto"
+                            >
+                              {isSaving ? t.propertyPage.saving || "Guardando..." : t.propertyPage.save || "Guardar"}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Comments moved to sidebar */}
 
                   {/* Action Buttons */}
-                  <div className="flex items-center justify-end pt-4 border-t">
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleManualSave}
-                        disabled={isSaving || !hasUnsavedChanges}
-                        variant="outline"
-                        className="min-w-[120px]"
-                      >
-                        {isSaving ? (
-                          <>
-                            <span className="mr-2">Guardando...</span>
-                            <span className="animate-spin">⏳</span>
-                          </>
-                        ) : (
-                          "Guardar cambios"
+                  {(!hasEstimatedDate || !isEditingDate) && (
+                    <div className="flex items-center justify-end pt-3 md:pt-4 border-t">
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        {hasEstimatedDate && (
+                          <Button
+                            onClick={handleManualSave}
+                            disabled={isSaving || !hasUnsavedChanges}
+                            variant="outline"
+                            className="w-full sm:min-w-[120px]"
+                          >
+                            {isSaving ? (
+                              <>
+                                <span className="mr-2">Guardando...</span>
+                                <span className="animate-spin">⏳</span>
+                              </>
+                            ) : (
+                              "Guardar cambios"
+                            )}
+                          </Button>
                         )}
-                      </Button>
-                      <Button
-                        onClick={async () => {
-                          if (!localEstimatedVisitDate) {
-                            toast.error("Debes ingresar una fecha estimada de visita antes de continuar");
-                            return;
-                          }
-                          await saveToSupabase(true, true);
-                        }}
-                        disabled={isSaving || !localEstimatedVisitDate}
-                        className="min-w-[200px]"
-                      >
-                        {isSaving ? (
-                          <>
-                            <span className="mr-2">Enviando...</span>
-                            <span className="animate-spin">⏳</span>
-                          </>
-                        ) : (
-                          "Enviar y pasar a Check Inicial"
-                        )}
-                      </Button>
+                        <Button
+                          onClick={async () => {
+                            if (!localEstimatedVisitDate) {
+                              toast.error("Debes ingresar una fecha estimada de visita antes de continuar");
+                              return;
+                            }
+                            await saveToSupabase(true, true);
+                          }}
+                          disabled={isSaving || !localEstimatedVisitDate}
+                          className="w-full sm:min-w-[200px]"
+                        >
+                          {isSaving ? (
+                            <>
+                              <span className="mr-2">Enviando...</span>
+                              <span className="animate-spin">⏳</span>
+                            </>
+                          ) : (
+                            "Enviar y pasar a Check Inicial"
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -529,8 +618,32 @@ export default function RenoPropertyDetailPage() {
         return propertyId ? <PropertyStatusTab propertyId={propertyId} /> : null;
       case "presupuesto-reforma":
         return (
-          <div className="bg-card bg-card rounded-lg border p-6 shadow-sm">
+          <div className="bg-card rounded-lg border p-6 shadow-sm">
             <p className="text-muted-foreground">{t.propertyPage.renovationBudget} - {t.propertyPage.comingSoon}</p>
+          </div>
+        );
+      case "comentarios":
+        return (
+          <div className="space-y-6">
+            {/* Comments Section */}
+            {propertyId && (
+              <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+                <h2 className="text-lg font-semibold mb-4">{t.propertySidebar.comments}</h2>
+                <PropertyCommentsSection 
+                  propertyId={propertyId} 
+                  property={property} 
+                  supabaseProperty={supabaseProperty} 
+                />
+              </div>
+            )}
+            
+            {/* Reminders Section */}
+            {propertyId && (
+              <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+                <h2 className="text-lg font-semibold mb-4">{t.propertySidebar.reminders}</h2>
+                <PropertyRemindersSection propertyId={propertyId} showAll={true} />
+              </div>
+            )}
           </div>
         );
       default:
@@ -556,7 +669,7 @@ export default function RenoPropertyDetailPage() {
             {t.propertyPage.propertyNotFound}
           </p>
           <button 
-            onClick={() => router.push("/reno/construction-manager/kanban")} 
+            onClick={() => router.push(`/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`)} 
             className="px-4 py-2 rounded-md border border-input bg-background hover:bg-accent"
           >
             {t.propertyPage.backToKanban}
@@ -572,7 +685,7 @@ export default function RenoPropertyDetailPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Navbar L2: Botón atrás + Acciones críticas */}
         <NavbarL2
-          onBack={() => router.push("/reno/construction-manager/kanban")}
+          onBack={() => router.push(`/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`)}
           classNameTitle={t.propertyPage.property}
           actions={[
             {
@@ -582,6 +695,7 @@ export default function RenoPropertyDetailPage() {
               icon: <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />,
             },
           ]}
+          onOpenSidebar={() => setIsSidebarOpen(true)}
         />
 
         {/* Header L2: Título extenso de la entidad */}
@@ -610,22 +724,57 @@ export default function RenoPropertyDetailPage() {
         {/* Content with Sidebar */}
         <div className="flex flex-1 overflow-hidden">
           {/* Main Content */}
-          <div className="flex-1 overflow-y-auto p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+          <div className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
             <div className="max-w-4xl mx-auto">
               {renderTabContent()}
             </div>
           </div>
 
-          {/* Right Sidebar - Status */}
-          <PropertyStatusSidebar
-            property={property}
-            supabaseProperty={supabaseProperty}
-            propertyId={propertyId}
-            progress={progress}
-            pendingItems={getPendingItems()}
-          />
+          {/* Right Sidebar - Status - Hidden on mobile */}
+          <div className="hidden lg:block">
+            <PropertyStatusSidebar
+              property={property}
+              supabaseProperty={supabaseProperty}
+              propertyId={propertyId}
+              progress={progress}
+              pendingItems={getPendingItems()}
+            />
+          </div>
         </div>
       </div>
+
+      {/* Mobile Sidebar Drawer */}
+      {isSidebarOpen && (
+        <>
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+          {/* Drawer from right */}
+          <div className="fixed right-0 top-0 h-full w-[85vw] max-w-sm bg-card dark:bg-[var(--prophero-gray-900)] border-l z-50 lg:hidden shadow-xl overflow-y-auto">
+            <div className="sticky top-0 bg-card dark:bg-[var(--prophero-gray-900)] border-b p-4 flex items-center justify-between z-10">
+              <h2 className="text-lg font-semibold">{t.propertyPage.property}</h2>
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-2 rounded-md hover:bg-accent transition-colors"
+                aria-label="Close sidebar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4">
+              <PropertyStatusSidebar
+                property={property}
+                supabaseProperty={supabaseProperty}
+                propertyId={propertyId}
+                progress={progress}
+                pendingItems={getPendingItems()}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Report Problem Modal */}
       {property && (
@@ -654,6 +803,7 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "reno-budget-client": t.kanban.renoBudgetClient,
     "reno-budget-start": t.kanban.renoBudgetStart,
     "reno-budget": t.kanban.renoBudget, // Legacy
+    "upcoming": t.kanban.upcoming,
     "reno-in-progress": t.kanban.renoInProgress,
     "furnishing-cleaning": t.kanban.furnishingCleaning,
     "final-check": t.kanban.finalCheck,
