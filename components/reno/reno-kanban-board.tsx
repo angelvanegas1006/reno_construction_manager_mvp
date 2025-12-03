@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect, startTransition, useRef, useCallback } fr
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { RenoKanbanColumn } from "./reno-kanban-column";
-import { ColumnSelectorDialog } from "./column-selector-dialog";
 import { RenoHomeLoader } from "./reno-home-loader";
 import { Property } from "@/lib/property-storage";
 import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
@@ -16,7 +15,7 @@ import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Settings, Hash, BarChart3, CheckCircle } from "lucide-react";
+import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Columns, Settings, AlertTriangle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,28 +39,30 @@ interface RenoKanbanBoardProps {
 
 // Dummy data and helper functions removed - now using Supabase
 
-type SortColumn = "id" | "address" | "region" | "renovador" | "renoType" | "estimatedVisit" | "proximaActualizacion" | "progress" | "status";
+type SortColumn = "id" | "address" | "region" | "renovador" | "renoType" | "estimatedVisit" | "proximaActualizacion" | "progress" | "status" | "daysToVisit" | "daysToStartRenoSinceRSD" | "renoDuration" | "daysToPropertyReady";
 type SortDirection = "asc" | "desc" | null;
 
 interface ColumnConfig {
   key: SortColumn;
   label: string;
   defaultVisible: boolean;
-  icon?: React.ComponentType<{ className?: string }>;
-  category?: "shown" | "popular" | "hidden";
 }
 
-// Column configuration with icons and categories
+// Column configuration
 const COLUMN_CONFIG: ColumnConfig[] = [
-  { key: "id", label: "ID", defaultVisible: true, icon: Hash, category: "shown" },
-  { key: "address", label: "Dirección", defaultVisible: true, icon: MapPin, category: "shown" },
-  { key: "region", label: "Región", defaultVisible: true, icon: MapPin, category: "shown" },
-  { key: "renovador", label: "Renovador", defaultVisible: true, icon: User, category: "shown" },
-  { key: "renoType", label: "Tipo Reno", defaultVisible: true, icon: Wrench, category: "shown" },
-  { key: "estimatedVisit", label: "Est. Visit", defaultVisible: true, icon: Calendar, category: "popular" },
-  { key: "proximaActualizacion", label: "Próxima Actualización", defaultVisible: true, icon: Clock, category: "popular" },
-  { key: "progress", label: "Progreso", defaultVisible: true, icon: BarChart3, category: "shown" },
-  { key: "status", label: "Estado", defaultVisible: true, icon: CheckCircle, category: "shown" },
+  { key: "id", label: "ID", defaultVisible: true },
+  { key: "address", label: "Dirección", defaultVisible: true },
+  { key: "region", label: "Región", defaultVisible: true },
+  { key: "renovador", label: "Renovador", defaultVisible: true },
+  { key: "renoType", label: "Tipo Reno", defaultVisible: true },
+  { key: "estimatedVisit", label: "Est. Visit", defaultVisible: true },
+  { key: "proximaActualizacion", label: "Próxima Actualización", defaultVisible: true },
+  { key: "daysToVisit", label: "Días para visitar", defaultVisible: false },
+  { key: "daysToStartRenoSinceRSD", label: "Días para empezar la reno desde la firma", defaultVisible: false },
+  { key: "renoDuration", label: "Duración de la obra", defaultVisible: false },
+  { key: "daysToPropertyReady", label: "Días para propiedad lista", defaultVisible: false },
+  { key: "progress", label: "Progreso", defaultVisible: true },
+  { key: "status", label: "Estado", defaultVisible: true },
 ];
 
 export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onViewModeChange }: RenoKanbanBoardProps) {
@@ -74,7 +75,6 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [selectedPhaseFilter, setSelectedPhaseFilter] = useState<RenoKanbanPhase | "all">("all");
-  const [columnSelectorOpen, setColumnSelectorOpen] = useState<{ phase: RenoKanbanPhase | null }>({ phase: null });
   
   // Column visibility state per phase - Map<phase, Set<columns>>
   const [visibleColumnsByPhase, setVisibleColumnsByPhase] = useState<Map<RenoKanbanPhase, Set<SortColumn>>>(() => {
@@ -593,6 +593,22 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           aValue = a.proximaActualizacion ? new Date(a.proximaActualizacion).getTime() : 0;
           bValue = b.proximaActualizacion ? new Date(b.proximaActualizacion).getTime() : 0;
           break;
+        case "daysToVisit":
+          aValue = a.daysToVisit ?? -1;
+          bValue = b.daysToVisit ?? -1;
+          break;
+        case "daysToStartRenoSinceRSD":
+          aValue = a.daysToStartRenoSinceRSD ?? -1;
+          bValue = b.daysToStartRenoSinceRSD ?? -1;
+          break;
+        case "renoDuration":
+          aValue = a.renoDuration ?? -1;
+          bValue = b.renoDuration ?? -1;
+          break;
+        case "daysToPropertyReady":
+          aValue = a.daysToPropertyReady ?? -1;
+          bValue = b.daysToPropertyReady ?? -1;
+          break;
         case "progress":
           aValue = calculateOverallProgress(a.data) ?? -1;
           bValue = calculateOverallProgress(b.data) ?? -1;
@@ -788,35 +804,18 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
             <button
               onClick={() => setSelectedPhaseFilter("all")}
               className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-2",
+                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0",
                 selectedPhaseFilter === "all"
                   ? "bg-[var(--prophero-blue-500)] text-white"
                   : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-accent"
               )}
             >
-              <span>All ({totalCount})</span>
-              {(() => {
-                const totalAlertCount = visibleRenoKanbanColumns.reduce((sum, col) => {
-                  const props = propertiesByPhaseForList[col.key] || [];
-                  return sum + props.filter((p: Property) => {
-                    return isDelayedWork(p, col.key) || isPropertyExpired(p);
-                  }).length;
-                }, 0);
-                return totalAlertCount > 0 ? (
-                  <span className="text-xs font-medium text-white bg-red-500 px-2 py-0.5 rounded-full">
-                    {totalAlertCount}
-                  </span>
-                ) : null;
-              })()}
+              All ({totalCount})
             </button>
             
             {/* Phase Buttons */}
             {visibleRenoKanbanColumns.map((column) => {
-              const properties = propertiesByPhaseForList[column.key] || [];
-              const count = properties.length;
-              const alertCount = properties.filter(p => {
-                return isDelayedWork(p, column.key) || isPropertyExpired(p);
-              }).length;
+              const count = (propertiesByPhaseForList[column.key] || []).length;
               const phaseLabel = t.kanban[column.translationKey];
               const isSelected = selectedPhaseFilter === column.key;
               
@@ -825,18 +824,13 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                   key={column.key}
                   onClick={() => setSelectedPhaseFilter(column.key)}
                   className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-2",
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0",
                     isSelected
                       ? "bg-[var(--prophero-blue-500)] text-white"
                       : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-accent"
                   )}
                 >
-                  <span>{phaseLabel} ({count})</span>
-                  {alertCount > 0 && (
-                    <span className="text-xs font-medium text-white bg-red-500 px-2 py-0.5 rounded-full">
-                      {alertCount}
-                    </span>
-                  )}
+                  {phaseLabel} ({count})
                 </button>
               );
             })}
@@ -887,35 +881,37 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                       <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform flex-shrink-0" />
                     )}
                     <h3 className="font-semibold text-foreground text-lg truncate">{phaseLabel}</h3>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <Badge variant="secondary" className="text-sm">
-                        {properties.length}
-                      </Badge>
-                      {(() => {
-                        const alertCount = properties.filter(p => {
-                          return isDelayedWork(p, column.key) || isPropertyExpired(p);
-                        }).length;
-                        return alertCount > 0 ? (
-                          <Badge className="text-xs bg-red-500 text-white border-0">
-                            {alertCount}
-                          </Badge>
-                        ) : null;
-                      })()}
-                    </div>
+                    <Badge variant="secondary" className="text-sm flex-shrink-0">
+                      {properties.length}
+                    </Badge>
                   </button>
                   
-                        {/* Column Visibility Toggle */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 flex-shrink-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setColumnSelectorOpen({ phase: column.key });
-                          }}
+                  {/* Column Visibility Toggle */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 flex-shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Columns className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel>Columnas visibles</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {COLUMN_CONFIG.map((colConfig) => (
+                        <DropdownMenuCheckboxItem
+                          key={colConfig.key}
+                          checked={getVisibleColumnsForPhase(column.key).has(colConfig.key)}
+                          onCheckedChange={() => toggleColumnVisibility(column.key, colConfig.key)}
                         >
-                          <Settings className="h-4 w-4" />
-                        </Button>
+                          {colConfig.label}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
@@ -1002,6 +998,50 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             </div>
                           </th>
                         )}
+                        {getVisibleColumnsForPhase(column.key).has("daysToVisit") && (
+                          <th 
+                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            onClick={() => handleSort("daysToVisit")}
+                          >
+                            <div className="flex items-center gap-2">
+                              Días para visitar
+                              {renderSortIcon("daysToVisit")}
+                            </div>
+                          </th>
+                        )}
+                        {getVisibleColumnsForPhase(column.key).has("daysToStartRenoSinceRSD") && (
+                          <th 
+                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            onClick={() => handleSort("daysToStartRenoSinceRSD")}
+                          >
+                            <div className="flex items-center gap-2">
+                              Días para empezar la reno desde la firma
+                              {renderSortIcon("daysToStartRenoSinceRSD")}
+                            </div>
+                          </th>
+                        )}
+                        {getVisibleColumnsForPhase(column.key).has("renoDuration") && (
+                          <th 
+                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            onClick={() => handleSort("renoDuration")}
+                          >
+                            <div className="flex items-center gap-2">
+                              Duración de la obra
+                              {renderSortIcon("renoDuration")}
+                            </div>
+                          </th>
+                        )}
+                        {getVisibleColumnsForPhase(column.key).has("daysToPropertyReady") && (
+                          <th 
+                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            onClick={() => handleSort("daysToPropertyReady")}
+                          >
+                            <div className="flex items-center gap-2">
+                              Días para propiedad lista
+                              {renderSortIcon("daysToPropertyReady")}
+                            </div>
+                          </th>
+                        )}
                         {getVisibleColumnsForPhase(column.key).has("progress") && (
                           <th 
                             className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
@@ -1035,11 +1075,17 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             key={property.id}
                             onClick={() => handleCardClick(property)}
                             className={cn(
-                              "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors",
+                              "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors relative",
                               expired && "border-l-4 border-l-red-100 dark:border-l-red-900/30 bg-red-50 dark:bg-red-950/10",
                               isDelayed && "border-l-4 border-l-red-500 bg-red-50 dark:bg-red-950/10"
                             )}
                           >
+                            {/* Alert icon in top right corner */}
+                            {isDelayed && (
+                              <div className="absolute top-2 right-2 z-10">
+                                <AlertTriangle className="h-4 w-4 text-red-500" />
+                              </div>
+                            )}
                             {getVisibleColumnsForPhase(column.key).has("id") && (
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
@@ -1114,6 +1160,42 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                       : "N/A"}
                                   </span>
                                 </div>
+                              </td>
+                            )}
+                            {getVisibleColumnsForPhase(column.key).has("daysToVisit") && (
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <span className="text-sm text-foreground">
+                                  {property.daysToVisit !== null && property.daysToVisit !== undefined 
+                                    ? `${property.daysToVisit} días`
+                                    : "N/A"}
+                                </span>
+                              </td>
+                            )}
+                            {getVisibleColumnsForPhase(column.key).has("daysToStartRenoSinceRSD") && (
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <span className="text-sm text-foreground">
+                                  {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined 
+                                    ? `${property.daysToStartRenoSinceRSD} días`
+                                    : "N/A"}
+                                </span>
+                              </td>
+                            )}
+                            {getVisibleColumnsForPhase(column.key).has("renoDuration") && (
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <span className="text-sm text-foreground">
+                                  {property.renoDuration !== null && property.renoDuration !== undefined 
+                                    ? `${property.renoDuration} días`
+                                    : "N/A"}
+                                </span>
+                              </td>
+                            )}
+                            {getVisibleColumnsForPhase(column.key).has("daysToPropertyReady") && (
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <span className="text-sm text-foreground">
+                                  {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined 
+                                    ? `${property.daysToPropertyReady} días`
+                                    : "N/A"}
+                                </span>
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("progress") && (
@@ -1219,56 +1301,6 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     </div>
   );
 
-  return (
-    <>
-      {viewMode === "list" ? renderListView() : renderKanbanView()}
-      
-      {/* Column Selector Dialog */}
-      {columnSelectorOpen.phase && (
-        <ColumnSelectorDialog
-          open={!!columnSelectorOpen.phase}
-          onOpenChange={(open) => {
-            if (!open) {
-              setColumnSelectorOpen({ phase: null });
-            }
-          }}
-          columns={COLUMN_CONFIG}
-          visibleColumns={getVisibleColumnsForPhase(columnSelectorOpen.phase)}
-          phase={columnSelectorOpen.phase}
-          phaseLabel={t.kanban[visibleRenoKanbanColumns.find(col => col.key === columnSelectorOpen.phase)?.translationKey || "upcomingSettlements"]}
-          onSave={async (visibleColumns, columnOrder) => {
-            // Update all columns at once
-            setVisibleColumnsByPhase(prev => {
-              const newMap = new Map(prev);
-              newMap.set(columnSelectorOpen.phase!, visibleColumns);
-              
-              // Save to Supabase
-              if (user?.id) {
-                supabase
-                  .from('user_column_preferences')
-                  .upsert({
-                    user_id: user.id,
-                    view_type: 'reno_kanban_list',
-                    phase: columnSelectorOpen.phase!,
-                    visible_columns: Array.from(visibleColumns),
-                    column_order: columnOrder ? Array.from(columnOrder) : null,
-                    updated_at: new Date().toISOString(),
-                  }, {
-                    onConflict: 'user_id,view_type,phase',
-                  })
-                  .then(({ error }) => {
-                    if (error) {
-                      console.warn('[RenoKanbanBoard] Error saving column preferences:', error);
-                    }
-                  });
-              }
-              
-              return newMap;
-            });
-          }}
-        />
-      )}
-    </>
-  );
+  return viewMode === "list" ? renderListView() : renderKanbanView();
 }
 

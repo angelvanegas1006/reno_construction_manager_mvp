@@ -337,6 +337,11 @@ export function RenoPropertyCard({
               <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
+          {property.renoDuration !== null && property.renoDuration !== undefined && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Duración de la obra:</span> {property.renoDuration} días
+            </div>
+          )}
           {showRenoDetails && property.proximaActualizacion && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3 flex-shrink-0" />
@@ -362,6 +367,11 @@ export function RenoPropertyCard({
               <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
+          {stage === "furnishing-cleaning" && property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Días para propiedad lista:</span> {property.daysToPropertyReady} días
+            </div>
+          )}
           <div className="text-xs text-muted-foreground">
             {stage === "furnishing-cleaning" && `${t.propertyCard.cleaningFurnishing} `}
             {stage === "reno-fixes" && `${t.propertyCard.repairs} `}
@@ -379,6 +389,11 @@ export function RenoPropertyCard({
                 </span>
               </div>
               <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
+            </div>
+          )}
+          {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Días para empezar la reno desde la firma:</span> {property.daysToStartRenoSinceRSD} días
             </div>
           )}
           {/* Ocultar timeInPhase para fases de budget */}
