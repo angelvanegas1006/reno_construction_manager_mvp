@@ -1202,7 +1202,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           visibleColumns={getVisibleColumnsForPhase(columnSelectorOpen.phase)}
           phase={columnSelectorOpen.phase}
           phaseLabel={t.kanban[visibleRenoKanbanColumns.find(col => col.key === columnSelectorOpen.phase)?.translationKey || "upcomingSettlements"]}
-          onSave={async (visibleColumns) => {
+          onSave={async (visibleColumns, columnOrder) => {
             // Update all columns at once
             setVisibleColumnsByPhase(prev => {
               const newMap = new Map(prev);
@@ -1217,6 +1217,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                     view_type: 'reno_kanban_list',
                     phase: columnSelectorOpen.phase!,
                     visible_columns: Array.from(visibleColumns),
+                    column_order: columnOrder ? Array.from(columnOrder) : null,
                     updated_at: new Date().toISOString(),
                   }, {
                     onConflict: 'user_id,view_type,phase',
