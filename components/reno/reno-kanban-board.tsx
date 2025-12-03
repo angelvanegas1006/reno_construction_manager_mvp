@@ -929,7 +929,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         className="h-8 w-8 p-0 flex-shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <Columns className="h-4 w-4" />
+                        <Settings className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56">
