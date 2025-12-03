@@ -141,7 +141,7 @@ export function PropertyCombobox({
       {open && filteredProperties.length > 0 && (
         <div
           ref={listRef}
-          className="absolute z-50 w-full mt-1 bg-card dark:bg-[#1a1a1a] border border-[var(--prophero-gray-200)] dark:border-[#333333] rounded-md shadow-md max-h-60 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-md max-h-60 overflow-y-auto"
         >
           {filteredProperties.map((property, index) => {
             const address = property.fullAddress || property.address || property.id;
@@ -155,7 +155,7 @@ export function PropertyCombobox({
                 onClick={() => handleSelect(property)}
                 className={cn(
                   "w-full text-left px-3 py-2 transition-colors",
-                  "hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#262626]",
+                  "hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]",
                   isHighlighted && "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20",
                   isSelected && "bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/30"
                 )}

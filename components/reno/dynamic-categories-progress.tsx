@@ -646,9 +646,9 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                             width: `${Math.min(100, percentage)}%`,
                           }}
                         />
-                        {/* Circle indicator at the end of progress - always visible */}
+                        {/* Circle indicator at the end of progress - always visible, pero no bloquea interacción */}
                         <div 
-                          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white dark:border-[#000000] shadow-sm z-20"
+                          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white dark:border-[#000000] shadow-sm z-20 pointer-events-none"
                           style={{
                             left: percentage > 0 
                               ? `calc(${Math.min(100, percentage)}% - 6px)` 
@@ -667,7 +667,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                             const newValue = parseInt(e.target.value, 10);
                             handleSliderChange(category.id, newValue);
                           }}
-                          className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-10"
+                          className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-30"
                           title={`Mínimo permitido: ${minAllowedValue}%`}
                         />
                       </div>

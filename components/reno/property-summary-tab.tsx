@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { PropertyMap } from "./property-map";
 
 interface PropertySummaryTabProps {
   property: Property;
@@ -60,12 +61,23 @@ export function PropertySummaryTab({
   const [modalImageIndex, setModalImageIndex] = useState(0);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [modalImageError, setModalImageError] = useState(false);
+  const [isImageVertical, setIsImageVertical] = useState(false);
+
+  // Detectar si la imagen es vertical
+  const handleImageLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = event.currentTarget;
+    // Detectar si la imagen es vertical (height > width)
+    const aspectRatio = img.naturalHeight / img.naturalWidth;
+    setIsImageVertical(aspectRatio > 1.2); // Más de 1.2:1 se considera vertical
+  };
 
   // Abrir modal con imagen específica
   const openModal = (index: number) => {
     setModalImageIndex(index);
     setModalImageError(false);
     setIsModalOpen(true);
+    // Reset vertical state when opening new image
+    setIsImageVertical(false);
   };
 
   // Navegación en el modal
@@ -88,13 +100,13 @@ export function PropertySummaryTab({
   return (
     <div className="space-y-6">
       {/* Image Gallery - Grid con imagen principal */}
-      <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
-        <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">{t.property.gallery || "Galería de imágenes"}</h3>
+      <div className="bg-card rounded-lg border p-6 shadow-sm">
+        <h3 className="text-lg font-semibold mb-4 text-foreground">{t.property.gallery || "Galería de imágenes"}</h3>
         {hasPics ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             {/* Imagen principal (izquierda) - ocupa 2 columnas */}
             <div 
-              className="md:col-span-2 aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] cursor-pointer group"
+              className="md:col-span-2 aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] cursor-pointer group"
               onClick={() => openModal(currentImageIndex)}
             >
               {imageErrors.has(currentImageIndex) ? (
@@ -129,7 +141,7 @@ export function PropertySummaryTab({
               {picsUrls.length > 1 && (
                 <div
                   className={cn(
-                    "aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] cursor-pointer group border-2 transition-all",
+                    "aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] cursor-pointer group border-2 transition-all",
                     currentImageIndex === 1
                       ? "border-[var(--prophero-blue-500)] ring-2 ring-[var(--prophero-blue-500)]"
                       : "border-transparent hover:border-[var(--prophero-gray-300)] dark:hover:border-[var(--prophero-gray-600)]"
@@ -140,7 +152,7 @@ export function PropertySummaryTab({
                   }}
                 >
                   {imageErrors.has(1) ? (
-                    <div className="w-full h-full flex items-center justify-center bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a]">
+                    <div className="w-full h-full flex items-center justify-center bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]">
                       <svg className="h-8 w-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -163,7 +175,7 @@ export function PropertySummaryTab({
               
               {/* Botón "Ver todas" (mismo tamaño que la miniatura) */}
               <button
-                className="aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-200)] dark:bg-[#262626] border-2 border-dashed border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-blue-500)] transition-all flex flex-col items-center justify-center group"
+                className="aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] border-2 border-dashed border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-blue-500)] transition-all flex flex-col items-center justify-center group"
                 onClick={() => {
                   // Abrir modal desde la imagen actual
                   openModal(currentImageIndex);
@@ -182,7 +194,7 @@ export function PropertySummaryTab({
             </div>
           </div>
         ) : (
-          <div className="aspect-video bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] rounded-lg flex items-center justify-center">
+          <div className="aspect-video bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] rounded-lg flex items-center justify-center">
             <div className="text-center">
               <Home className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm font-medium text-muted-foreground">{t.property.gallery || "Galería de imágenes"}</p>
@@ -194,16 +206,22 @@ export function PropertySummaryTab({
 
       {/* Modal para ver imagen en pantalla completa */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-7xl w-full h-[90vh] p-0 bg-black/95">
+        <DialogContent className={cn(
+          "p-0 bg-[var(--prophero-gray-50)] bg-card",
+          isImageVertical ? "max-w-2xl w-auto h-auto" : "max-w-7xl w-full h-[90vh]"
+        )}>
           <DialogTitle className="sr-only">
             {t.property.gallery || "Galería de imágenes"} - {modalImageIndex + 1} de {picsUrls.length}
           </DialogTitle>
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className={cn(
+            "relative flex items-center justify-center",
+            isImageVertical ? "w-auto h-auto p-4" : "w-full h-full"
+          )}>
             {/* Botón cerrar */}
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-4 right-4 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full"
+              className="absolute top-4 right-4 z-50 bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] hover:bg-[var(--prophero-gray-300)] dark:hover:bg-[var(--prophero-gray-600)] text-foreground rounded-full"
               onClick={() => setIsModalOpen(false)}
             >
               <X className="h-5 w-5" />
@@ -223,19 +241,37 @@ export function PropertySummaryTab({
                   </div>
                 </div>
               ) : (
-                <img
-                  key={modalImageIndex} // Forzar re-render cuando cambia el índice
-                  src={picsUrls[modalImageIndex]}
-                  alt={`Imagen ${modalImageIndex + 1} de ${picsUrls.length}`}
-                  className="max-w-full max-h-full object-contain"
-                  onError={() => {
-                    setModalImageError(true);
-                    setImageErrors((prev) => new Set(prev).add(modalImageIndex));
-                  }}
-                />
+                <div className={cn(
+                  "relative flex items-center justify-center",
+                  isImageVertical ? "w-full h-auto overflow-visible" : "w-full h-full overflow-auto p-4"
+                )}>
+                  <img
+                    key={modalImageIndex} // Forzar re-render cuando cambia el índice
+                    src={picsUrls[modalImageIndex]}
+                    alt={`Imagen ${modalImageIndex + 1} de ${picsUrls.length}`}
+                    className={cn(
+                      "object-contain",
+                      isImageVertical ? "w-full h-auto" : "max-w-full max-h-full"
+                    )}
+                    style={isImageVertical ? {
+                      width: '100%',
+                      height: 'auto',
+                    } : {
+                      width: 'auto',
+                      height: 'auto',
+                      maxWidth: '90%',
+                      maxHeight: '90%'
+                    }}
+                    onLoad={handleImageLoad}
+                    onError={() => {
+                      setModalImageError(true);
+                      setImageErrors((prev) => new Set(prev).add(modalImageIndex));
+                    }}
+                  />
+                </div>
               )
             ) : (
-              <div className="text-white text-center">
+              <div className="text-foreground text-center">
                 <Home className="h-16 w-16 mx-auto mb-4 opacity-50" />
                 <p className="text-lg">{t.property.couldNotLoadImage || "No se pudo cargar la imagen"}</p>
               </div>
@@ -244,25 +280,25 @@ export function PropertySummaryTab({
             {/* Botones de navegación en el modal (solo si hay más de una imagen) */}
             {picsUrls.length > 1 && (
               <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                <button
+                  type="button"
                   onClick={goToPreviousModal}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-[var(--prophero-blue-400)] hover:bg-[var(--prophero-blue-500)] text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
+                  aria-label="Imagen anterior"
                 >
-                  <ChevronLeft className="h-8 w-8" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  type="button"
                   onClick={goToNextModal}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-[var(--prophero-blue-400)] hover:bg-[var(--prophero-blue-500)] text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
+                  aria-label="Imagen siguiente"
                 >
-                  <ChevronRight className="h-8 w-8" />
-                </Button>
+                  <ChevronRight className="h-6 w-6" />
+                </button>
 
                 {/* Contador en el modal */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] text-foreground px-4 py-2 rounded-full text-sm z-50">
                   {modalImageIndex + 1} / {picsUrls.length}
                 </div>
               </>
@@ -273,7 +309,7 @@ export function PropertySummaryTab({
 
       {/* Amenities Grid */}
       <div className="bg-card rounded-lg border p-6 shadow-sm">
-        <h3 className="text-lg font-semibold mb-4">Amenities</h3>
+        <h3 className="text-lg font-semibold mb-4 text-foreground">Amenities</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {usableArea && (
             <div className="flex items-center gap-2">
@@ -352,7 +388,7 @@ export function PropertySummaryTab({
 
       {/* Property Information */}
       <div className="bg-card rounded-lg border p-6 shadow-sm">
-        <h3 className="text-lg font-semibold mb-4">Información de la propiedad</h3>
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Información de la propiedad</h3>
         <div className="space-y-4">
           {propertyType && (
             <div className="pt-2 border-t first:border-t-0 first:pt-0">
@@ -384,7 +420,7 @@ export function PropertySummaryTab({
       {/* Economic Information */}
       {(salePrice || annualIBI || communityFees) && (
         <div className="bg-card rounded-lg border p-6 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">Información económica</h3>
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Información económica</h3>
           <div className="space-y-4">
             {salePrice && (
               <div className="pt-2 border-t first:border-t-0 first:pt-0">
@@ -457,13 +493,10 @@ export function PropertySummaryTab({
       {/* Location Map */}
       <div className="bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4">Ubicación del inmueble</h3>
-        <div className="aspect-video bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] rounded-lg flex items-center justify-center">
-          <div className="text-center">
-            <Map className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm font-medium text-muted-foreground">{property.fullAddress}</p>
-            <p className="text-xs text-muted-foreground mt-1">Mapa - Coming soon</p>
-          </div>
-        </div>
+        <PropertyMap 
+          address={property.fullAddress} 
+          areaCluster={supabaseProperty?.area_cluster}
+        />
       </div>
     </div>
   );

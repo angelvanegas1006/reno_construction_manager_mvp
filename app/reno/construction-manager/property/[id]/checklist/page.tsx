@@ -917,7 +917,7 @@ export default function RenoChecklistPage() {
         />
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
           <div className="max-w-4xl mx-auto">
             {renderActiveSection()}
           </div>

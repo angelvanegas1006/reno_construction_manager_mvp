@@ -85,10 +85,13 @@ export function RenoPropertyCard({
       data-property-id={property.id}
       className={cn(
         "rounded-lg border-2 border-border bg-card p-4 shadow-sm w-full",
-        "transition-shadow duration-500 ease-out",
+        "transition-all duration-300 ease-out",
         disabled 
           ? "cursor-not-allowed opacity-60" 
-          : "cursor-pointer hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.15)]",
+          : cn(
+              "cursor-pointer hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.15)]",
+              "dark:hover:bg-[#1a1a1a] dark:hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.6)]"
+            ),
         isHighlighted 
           ? "ring-2 ring-[var(--prophero-blue-500)] shadow-lg border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30" 
           : "",
@@ -206,7 +209,7 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[#262626] overflow-hidden">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
                 <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
@@ -231,7 +234,7 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[#262626] overflow-hidden">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
                 <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
@@ -256,7 +259,7 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[#262626] overflow-hidden">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
                 <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
@@ -274,7 +277,7 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[#262626] overflow-hidden">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
                 <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>

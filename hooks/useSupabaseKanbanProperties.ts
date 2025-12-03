@@ -97,7 +97,9 @@ function convertSupabasePropertyToKanbanProperty(
     uniqueIdFromEngagements: supabaseProperty['Unique ID From Engagements'] || undefined,
     // Campo para la fase de renovación
     renoPhase: kanbanPhase,
-  };
+    // Incluir el supabaseProperty original para acceso a todos los campos
+    supabaseProperty: supabaseProperty as any,
+  } as Property & { supabaseProperty?: any };
 }
 
 export function useSupabaseKanbanProperties() {

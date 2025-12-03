@@ -277,7 +277,7 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
   // Si no hay API key, mostrar placeholder
   if (!apiKey) {
     return (
-      <div className="aspect-video bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] rounded-lg flex items-center justify-center">
+      <div className="aspect-video bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] rounded-lg flex items-center justify-center">
         <div className="text-center">
           <Map className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm font-medium text-muted-foreground">{address}</p>
@@ -292,7 +292,7 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
   // SIEMPRE renderizar el div con el ref, incluso cuando está cargando o hay error
   // Esto asegura que el ref esté disponible cuando el useEffect se ejecute
   return (
-    <div className="aspect-video rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] border border-[var(--prophero-gray-200)] dark:border-[#333333] relative">
+    <div className="aspect-video rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] relative">
       {/* Div del mapa - siempre presente en el DOM */}
       <div
         ref={mapRef}
@@ -302,7 +302,7 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
       
       {/* Overlay de loading */}
       {isLoading && (
-        <div className="absolute inset-0 bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] flex items-center justify-center z-10">
+        <div className="absolute inset-0 bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center z-10">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--prophero-blue-600)] mx-auto mb-2"></div>
             <p className="text-sm text-muted-foreground">Cargando mapa...</p>
@@ -312,7 +312,7 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
 
       {/* Overlay de error */}
       {error && !isLoading && (
-        <div className="absolute inset-0 bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] flex items-center justify-center z-10">
+        <div className="absolute inset-0 bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center z-10">
           <div className="text-center">
             <Map className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm font-medium text-muted-foreground">{address}</p>

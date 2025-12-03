@@ -143,7 +143,7 @@ export function RenoChecklistSidebar({
                           className={cn(
                             "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between",
                             activeSection === section.sectionId && !showSubItems
-                              ? "bg-[var(--prophero-blue-50)] dark:bg-[#1a1a1a] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium border border-[var(--prophero-blue-500)]/30"
+                              ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium"
                               : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] hover:text-foreground"
                           )}
                         >
@@ -167,7 +167,7 @@ export function RenoChecklistSidebar({
                                   className={cn(
                                     "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between",
                                     activeSection === subItemId
-                                      ? "bg-[var(--prophero-blue-50)] dark:bg-[#1a1a1a] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium border border-[var(--prophero-blue-500)]/30"
+                                      ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium"
                                       : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] hover:text-foreground"
                                   )}
                                 >
