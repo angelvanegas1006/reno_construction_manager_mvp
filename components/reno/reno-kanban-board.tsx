@@ -815,7 +815,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
             
             {/* Phase Buttons */}
             {visibleRenoKanbanColumns.map((column) => {
-              const count = (propertiesByPhaseForList[column.key] || []).length;
+              const properties = propertiesByPhaseForList[column.key] || [];
+              const count = properties.length;
+              const alertCount = properties.filter(p => {
+                return isDelayedWork(p, column.key) || isPropertyExpired(p);
+              }).length;
               const phaseLabel = t.kanban[column.translationKey];
               const isSelected = selectedPhaseFilter === column.key;
               
@@ -824,13 +828,18 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                   key={column.key}
                   onClick={() => setSelectedPhaseFilter(column.key)}
                   className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0",
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-2",
                     isSelected
                       ? "bg-[var(--prophero-blue-500)] text-white"
                       : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-accent"
                   )}
                 >
-                  {phaseLabel} ({count})
+                  <span>{phaseLabel} ({count})</span>
+                  {alertCount > 0 && (
+                    <span className="text-xs font-medium text-white bg-red-500 px-2 py-0.5 rounded-full">
+                      {alertCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -881,9 +890,21 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                       <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform flex-shrink-0" />
                     )}
                     <h3 className="font-semibold text-foreground text-lg truncate">{phaseLabel}</h3>
-                    <Badge variant="secondary" className="text-sm flex-shrink-0">
-                      {properties.length}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <Badge variant="secondary" className="text-sm">
+                        {properties.length}
+                      </Badge>
+                      {(() => {
+                        const alertCount = properties.filter(p => {
+                          return isDelayedWork(p, column.key) || isPropertyExpired(p);
+                        }).length;
+                        return alertCount > 0 ? (
+                          <Badge className="text-xs bg-red-500 text-white border-0">
+                            {alertCount}
+                          </Badge>
+                        ) : null;
+                      })()}
+                    </div>
                   </button>
                   
                   {/* Column Visibility Toggle */}

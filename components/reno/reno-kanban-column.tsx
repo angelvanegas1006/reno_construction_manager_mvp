@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { isDelayedWork, isPropertyExpired } from "@/lib/property-sorting";
 import { Property } from "@/lib/property-storage";
 import { RenoKanbanPhase } from "@/lib/reno-kanban-config";
+import { isDelayedWork, isPropertyExpired } from "@/lib/property-sorting";
 
 interface RenoKanbanColumnProps {
   title: string;
