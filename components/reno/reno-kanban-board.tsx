@@ -683,28 +683,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     return visibleRenoKanbanColumns.filter(col => col.key === selectedPhaseFilter);
   }, [selectedPhaseFilter]);
 
-  // Show error message if Supabase fails
-  if (supabaseError) {
-    return (
-      <div className="flex items-center justify-center h-full p-6">
-        <div className="text-center space-y-2">
-          <p className="text-red-600 dark:text-red-400 font-semibold">Error al cargar propiedades</p>
-          <p className="text-sm text-muted-foreground">{supabaseError}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading state
-  if (supabaseLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <RenoHomeLoader />
-      </div>
-    );
-  }
-
-  // Helper functions for sorting (used in list view)
+  // Helper functions for sorting (used in list view) - MUST be before early returns
   const sortRenoBudgetPhaseFiltered = useCallback((props: Property[]) => {
     const expiredFirst = sortPropertiesByExpired(props);
     return expiredFirst.sort((a, b) => {
@@ -743,6 +722,27 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       return bDays - aDays;
     });
   }, []);
+
+  // Show error message if Supabase fails
+  if (supabaseError) {
+    return (
+      <div className="flex items-center justify-center h-full p-6">
+        <div className="text-center space-y-2">
+          <p className="text-red-600 dark:text-red-400 font-semibold">Error al cargar propiedades</p>
+          <p className="text-sm text-muted-foreground">{supabaseError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (supabaseLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <RenoHomeLoader />
+      </div>
+    );
+  }
 
   // Render List View
   const renderListView = () => {
