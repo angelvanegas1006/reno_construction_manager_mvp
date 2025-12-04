@@ -299,7 +299,19 @@ async function cleanupPropertiesNotInViews(syncResults: SyncResult[]): Promise<v
     console.log(`📋 Found ${syncedAirtableIds.size} unique Airtable IDs synchronized in this run`);
 
     // Obtener todas las propiedades que tienen airtable_property_id y están en fases sincronizadas
-    const syncedPhases = ['upcoming-settlements', 'upcoming', 'reno-budget', 'initial-check', 'reno-in-progress', 'furnishing-cleaning', 'final-check'];
+    // Incluir las nuevas fases de presupuesto que se asignan automáticamente según Set Up Status
+    const syncedPhases = [
+      'upcoming-settlements', 
+      'upcoming', 
+      'reno-budget', // Legacy - se mapea a las nuevas fases según Set Up Status
+      'reno-budget-renovator', // Nueva fase
+      'reno-budget-client', // Nueva fase
+      'reno-budget-start', // Nueva fase
+      'initial-check', 
+      'reno-in-progress', 
+      'furnishing-cleaning', 
+      'final-check'
+    ];
     const { data: allProperties, error: fetchError } = await supabase
       .from('properties')
       .select('id, airtable_property_id, reno_phase, "Set Up Status"')

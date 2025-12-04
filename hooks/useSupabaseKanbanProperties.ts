@@ -27,28 +27,45 @@ function convertSupabasePropertyToKanbanProperty(
   // Preferir reno_phase si está disponible, sino usar el mapeo de Set Up Status
   let kanbanPhase: RenoKanbanPhase | null = null;
   
-  if (supabaseProperty.reno_phase) {
-    // Validar que reno_phase es un RenoKanbanPhase válido
-    const validPhases: RenoKanbanPhase[] = [
-      'upcoming-settlements',
-      'initial-check',
-      'reno-budget-renovator',
-      'reno-budget-client',
-      'reno-budget-start',
-      'reno-budget', // Legacy
-      'reno-in-progress',
-      'furnishing-cleaning',
-      'final-check',
-      'reno-fixes',
-      'done',
-    ];
-    if (validPhases.includes(supabaseProperty.reno_phase as RenoKanbanPhase)) {
-      kanbanPhase = supabaseProperty.reno_phase as RenoKanbanPhase;
-    }
-  }
+  const validPhases: RenoKanbanPhase[] = [
+    'upcoming-settlements',
+    'initial-check',
+    'reno-budget-renovator',
+    'reno-budget-client',
+    'reno-budget-start',
+    'reno-budget', // Legacy
+    'reno-in-progress',
+    'furnishing-cleaning',
+    'final-check',
+    'reno-fixes',
+    'done',
+  ];
   
-  // Si no hay reno_phase, usar el mapeo de Set Up Status
-  if (!kanbanPhase) {
+  if (supabaseProperty.reno_phase) {
+    // Si reno_phase está establecido y es válido
+    if (validPhases.includes(supabaseProperty.reno_phase as RenoKanbanPhase)) {
+      // Si es la fase legacy "reno-budget", usar el mapeo de Set Up Status para determinar la fase correcta
+      if (supabaseProperty.reno_phase === 'reno-budget') {
+        const mappedPhase = mapSetUpStatusToKanbanPhase(supabaseProperty['Set Up Status']);
+        // Si el mapeo indica una de las nuevas fases de presupuesto, usarla
+        if (mappedPhase && ['reno-budget-renovator', 'reno-budget-client', 'reno-budget-start'].includes(mappedPhase)) {
+          kanbanPhase = mappedPhase;
+        } else {
+          // Si no mapea a una fase específica, mantener reno-budget (legacy)
+          kanbanPhase = 'reno-budget';
+        }
+      } else {
+        // Para otras fases válidas, usar directamente reno_phase
+        kanbanPhase = supabaseProperty.reno_phase as RenoKanbanPhase;
+      }
+    } else {
+      // Si reno_phase está establecido pero no es válido (ej: "orphaned"),
+      // NO usar el mapeo de Set Up Status - retornar null para ignorar la propiedad
+      // Esto evita que propiedades en otras fases aparezcan incorrectamente en upcoming-settlements
+      return null;
+    }
+  } else {
+    // Si no hay reno_phase, usar el mapeo de Set Up Status
     kanbanPhase = mapSetUpStatusToKanbanPhase(supabaseProperty['Set Up Status']);
   }
   

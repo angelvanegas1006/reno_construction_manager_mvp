@@ -90,7 +90,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     const widgets: TodoWidget[] = [
       {
         id: 'estimated-visit',
-        title: 'Definir Visita Estimada',
+        title: 'Definir visita estimada',
         count: pendingEstimatedVisitProps.length,
         properties: pendingEstimatedVisitProps,
         phaseFilter: ['upcoming-settlements', 'initial-check'],
@@ -100,7 +100,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       },
       {
         id: 'initial-check',
-        title: 'Check Inicial',
+        title: 'Check inicial',
         count: pendingInitialCheckProps.length,
         properties: pendingInitialCheckProps,
         phaseFilter: ['initial-check'],
@@ -110,7 +110,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       },
       {
         id: 'renovator',
-        title: 'Rellenar Renovador',
+        title: 'Rellenar renovador',
         count: pendingRenovatorProps.length,
         properties: pendingRenovatorProps,
         phaseFilter: ['reno-budget-renovator', 'reno-budget-client'],
@@ -130,7 +130,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       },
       {
         id: 'final-check',
-        title: 'Check Final',
+        title: 'Check final',
         count: pendingFinalCheckProps.length,
         properties: pendingFinalCheckProps,
         phaseFilter: ['final-check'],
@@ -206,7 +206,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                   )}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground line-clamp-2">
+                    <div className="text-xs font-medium text-foreground line-clamp-2">
                       {property.address || property.fullAddress}
                     </div>
                   </div>
@@ -305,7 +305,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                             )}
                           >
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-foreground line-clamp-2">
+                              <div className="text-xs font-medium text-foreground line-clamp-2">
                                 {property.address || property.fullAddress}
                               </div>
                             </div>

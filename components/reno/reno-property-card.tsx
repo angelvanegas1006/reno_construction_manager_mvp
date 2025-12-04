@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, AlertTriangle } from "lucide-react";
+import { Calendar, Flag } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
@@ -162,10 +162,10 @@ export function RenoPropertyCard({
         onClick?.();
       }}
     >
-      {/* Alert icon in top right corner */}
+      {/* Red flag indicator in top right corner */}
       {isMarkedInRed && (
         <div className="absolute top-2 right-2 z-10">
-          <AlertTriangle className="h-5 w-5 text-red-500" />
+          <Flag className="h-4 w-4 text-red-500 stroke-black" fill="currentColor" strokeWidth={2} />
         </div>
       )}
       
@@ -393,7 +393,7 @@ export function RenoPropertyCard({
           )}
           {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
             <div className="text-xs text-muted-foreground">
-              <span className="font-medium">Días para empezar la reno desde la firma:</span> {property.daysToStartRenoSinceRSD} días
+              <span className="font-medium">Días a empezar la obra:</span> {property.daysToStartRenoSinceRSD} días
             </div>
           )}
           {/* Ocultar timeInPhase para fases de budget */}

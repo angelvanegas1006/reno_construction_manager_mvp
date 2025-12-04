@@ -15,7 +15,7 @@ import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Columns, Settings, AlertTriangle } from "lucide-react";
+import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Columns, Settings, AlertTriangle, Flag } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -171,6 +171,42 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
              prop.daysToPropertyReady > 25;
     };
     
+    // Helper function to check if property exceeds Reno Duration limit based on reno type
+    const exceedsRenoDurationLimit = (prop: Property): boolean => {
+      if (!prop.renoDuration || !prop.renoType) return false;
+      const renoTypeLower = prop.renoType.toLowerCase();
+      const duration = prop.renoDuration;
+      
+      if (renoTypeLower.includes('light')) {
+        return duration > 30;
+      } else if (renoTypeLower.includes('medium')) {
+        return duration > 60;
+      } else if (renoTypeLower.includes('major')) {
+        return duration > 120;
+      }
+      return false;
+    };
+    
+    // Sort reno-in-progress phase by renoDuration (descending, most days first)
+    // Red cards (exceeding limits based on reno type) first
+    const sortRenoInProgressPhase = (phase: RenoKanbanPhase) => {
+      const expiredFirst = sortPropertiesByExpired(transformProperties[phase] || []);
+      
+      return expiredFirst.sort((a, b) => {
+        const aExceeds = exceedsRenoDurationLimit(a);
+        const bExceeds = exceedsRenoDurationLimit(b);
+        
+        // Red cards (exceeding limits) first
+        if (aExceeds && !bExceeds) return -1;
+        if (!aExceeds && bExceeds) return 1;
+        
+        // Then sort by renoDuration descending (most days first)
+        const aDuration = a.renoDuration ?? -Infinity;
+        const bDuration = b.renoDuration ?? -Infinity;
+        return bDuration - aDuration; // Descending order (most days first)
+      });
+    };
+    
     // Sort reno-budget phases by Days to Start Reno (descending, most days first)
     // Red cards (exceeding 25 days) first
     const sortRenoBudgetPhase = (phase: RenoKanbanPhase) => {
@@ -239,7 +275,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-budget-client": sortRenoBudgetPhase("reno-budget-client"),
       "reno-budget-start": sortRenoBudgetPhase("reno-budget-start"),
       "reno-budget": sortRenoBudgetPhase("reno-budget"), // Legacy
-      "reno-in-progress": sortPropertiesByExpired(transformProperties["reno-in-progress"] || []),
+      "reno-in-progress": sortRenoInProgressPhase("reno-in-progress"),
       "furnishing-cleaning": sortFurnishingCleaningPhase("furnishing-cleaning"),
       "final-check": sortPropertiesByExpired(transformProperties["final-check"] || []),
       "reno-fixes": sortPropertiesByExpired(transformProperties["reno-fixes"] || []),
@@ -745,7 +781,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
 
   // Show error message if Supabase fails
   if (supabaseError) {
-    return (
+  return (
       <div className="flex items-center justify-center h-full p-6">
         <div className="text-center space-y-2">
           <p className="text-red-600 dark:text-red-400 font-semibold">Error al cargar propiedades</p>
@@ -1097,19 +1133,17 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             onClick={() => handleCardClick(property)}
                             className={cn(
                               "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors relative",
-                              expired && "border-l-4 border-l-red-100 dark:border-l-red-900/30 bg-red-50 dark:bg-red-950/10",
-                              isDelayed && "border-l-4 border-l-red-500 bg-red-50 dark:bg-red-950/10"
+                              expired && "bg-red-50 dark:bg-red-950/10",
+                              isDelayed && "bg-red-50 dark:bg-red-950/10"
                             )}
                           >
-                            {/* Alert icon in top right corner */}
-                            {isDelayed && (
-                              <div className="absolute top-2 right-2 z-10">
-                                <AlertTriangle className="h-4 w-4 text-red-500" />
-                              </div>
-                            )}
                             {getVisibleColumnsForPhase(column.key).has("id") && (
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
+                                  {/* Red flag indicator for delayed properties */}
+                                  {isDelayed && (
+                                    <Flag className="h-3.5 w-3.5 text-red-500 flex-shrink-0 stroke-black" fill="currentColor" strokeWidth={2} />
+                                  )}
                                   <span className="text-sm font-medium text-foreground">
                                     {property.uniqueIdFromEngagements || property.id}
                                   </span>
