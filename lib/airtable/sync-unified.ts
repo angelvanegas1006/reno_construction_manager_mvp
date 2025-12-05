@@ -342,7 +342,11 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
     phaseCounts: {
       'upcoming-settlements': 0,
       'initial-check': 0,
+      'reno-budget-renovator': 0,
+      'reno-budget-client': 0,
+      'reno-budget-start': 0,
       'reno-budget': 0,
+      'upcoming': 0,
       'reno-in-progress': 0,
       'furnishing-cleaning': 0,
       'final-check': 0,
@@ -516,7 +520,11 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       result.phaseCounts = {
         'upcoming-settlements': 0,
         'initial-check': 0,
+        'reno-budget-renovator': 0,
+        'reno-budget-client': 0,
+        'reno-budget-start': 0,
         'reno-budget': 0,
+        'upcoming': 0,
         'reno-in-progress': 0,
         'furnishing-cleaning': 0,
         'final-check': 0,

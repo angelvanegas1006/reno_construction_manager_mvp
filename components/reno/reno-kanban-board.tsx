@@ -146,6 +146,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "final-check": [],
       "reno-fixes": [],
       "done": [],
+      "orphaned": [],
     };
     }
 
@@ -422,6 +423,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "final-check": allProperties["final-check"].filter(matchesAll),
       "reno-fixes": allProperties["reno-fixes"].filter(matchesAll),
       "done": allProperties["done"].filter(matchesAll),
+      "orphaned": allProperties["orphaned"].filter(matchesAll),
     };
 
     // Sort each column: expired first (even after filtering)
@@ -496,6 +498,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "final-check": sortPropertiesByExpired(filtered["final-check"]),
       "reno-fixes": sortPropertiesByExpired(filtered["reno-fixes"]),
       "done": sortPropertiesByExpired(filtered["done"]),
+      "orphaned": sortPropertiesByExpired(filtered["orphaned"]),
     };
 
     return sorted;

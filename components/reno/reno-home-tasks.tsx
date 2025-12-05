@@ -55,7 +55,8 @@ export function RenoHomeTasks({ checks, visits, onPropertyClick }: RenoHomeTasks
   // Determine stage based on property renoPhase
   const getPropertyStage = (property: Property): RenoKanbanPhase => {
     // Use renoPhase if available, otherwise fallback to default
-    if (property.renoPhase && ["upcoming-settlements", "initial-check", "reno-budget-renovator", "reno-budget-client", "reno-budget-start", "reno-budget", "reno-in-progress", "furnishing-cleaning", "final-check", "reno-fixes", "done"].includes(property.renoPhase)) {
+    // Filter out "orphaned" phase - these properties shouldn't be shown in tasks
+    if (property.renoPhase && property.renoPhase !== "orphaned" && ["upcoming-settlements", "initial-check", "reno-budget-renovator", "reno-budget-client", "reno-budget-start", "reno-budget", "reno-in-progress", "furnishing-cleaning", "final-check", "reno-fixes", "done"].includes(property.renoPhase)) {
       return property.renoPhase as RenoKanbanPhase;
     }
     // Default fallback
