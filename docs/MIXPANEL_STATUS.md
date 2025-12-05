@@ -89,3 +89,4 @@ Mixpanel está completamente configurado y funcionando en:
 
 Los eventos comenzarán a aparecer en tu dashboard de Mixpanel inmediatamente.
 
+

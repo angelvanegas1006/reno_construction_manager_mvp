@@ -37,6 +37,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "final-check": 0,
       "reno-fixes": 0,
       "done": 0,
+      "orphaned": 0,
     };
 
     // Use propertiesByPhase directly from Supabase hook
@@ -73,6 +74,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "final-check": language === "es" ? "Check final" : "Final Check",
       "reno-fixes": language === "es" ? "Reparaciones reno" : "Reno Fixes",
       "done": language === "es" ? "Finalizadas" : "Done",
+      "orphaned": language === "es" ? "Orphaned" : "Orphaned",
     };
     return stageMap[stage];
   };

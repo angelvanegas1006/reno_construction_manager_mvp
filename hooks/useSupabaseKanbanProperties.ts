@@ -387,6 +387,7 @@ export function useSupabaseKanbanProperties() {
       'final-check': [],
       'reno-fixes': [],
       'done': [],
+      'orphaned': [],
     };
 
     let convertedCount = 0;

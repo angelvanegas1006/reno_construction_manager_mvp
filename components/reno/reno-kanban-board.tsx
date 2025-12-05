@@ -242,6 +242,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "final-check": sortPropertiesByExpired(transformProperties["final-check"] || []),
       "reno-fixes": sortPropertiesByExpired(transformProperties["reno-fixes"] || []),
       "done": sortPropertiesByExpired(transformProperties["done"] || []),
+      "orphaned": [],
     };
     
     return sorted;
@@ -624,6 +625,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'final-check': [],
       'reno-fixes': [],
       'done': [],
+      'orphaned': [],
     };
 
     visibleRenoKanbanColumns.forEach((column) => {

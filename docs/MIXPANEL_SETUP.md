@@ -249,3 +249,4 @@ Si no ves estos logs, verifica:
 - [Mixpanel JavaScript SDK](https://github.com/mixpanel/mixpanel-js)
 - [Best Practices](https://developer.mixpanel.com/docs/javascript-full-api-reference)
 
+

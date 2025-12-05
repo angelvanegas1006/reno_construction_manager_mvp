@@ -20,3 +20,4 @@ COMMENT ON COLUMN properties.pics_urls IS 'URLs de las fotos de la propiedad sin
 
 
 
+

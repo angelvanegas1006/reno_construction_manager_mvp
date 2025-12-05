@@ -187,3 +187,4 @@ Todos los cambios de la PR de Manu han sido integrados exitosamente manteniendo:
 - ✅ Mixpanel analytics integrado
 - ✅ Todas las funcionalidades existentes
 
+

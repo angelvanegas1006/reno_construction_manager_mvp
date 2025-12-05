@@ -19,3 +19,4 @@ COMMENT ON COLUMN properties.reno_phase IS 'Renovation phase for Reno Constructi
 
 
 
+

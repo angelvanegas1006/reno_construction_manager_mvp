@@ -833,6 +833,7 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "final-check": t.kanban.finalCheck,
     "reno-fixes": t.kanban.renoFixes,
     "done": t.kanban.done,
+    "orphaned": "Orphaned", // Properties without a valid phase
   };
   
   return phaseLabels[phase] || phase;

@@ -122,3 +122,4 @@ Después de configurar CORS correctamente:
 
 
 
+

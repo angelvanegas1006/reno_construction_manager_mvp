@@ -63,3 +63,4 @@
 - Todos los cambios están integrados manteniendo compatibilidad con cambios anteriores ✅
 - La fase legacy `reno-budget` se mantiene oculta pero presente para compatibilidad ✅
 
+
