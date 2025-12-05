@@ -43,6 +43,16 @@ export type EstadoSeguroAlquiler =
   | "En vigor"
   | "Caducado";
 
+// File upload interface (used by other interfaces)
+export interface FileUpload {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  data: string; // base64
+  uploadedAt: string;
+}
+
 // Datos del Vendedor
 export interface VendedorData {
   nombreCompleto?: string;
@@ -115,15 +125,6 @@ export interface PropertyData {
 
   // Datos del Inquilino
   inquilino?: InquilinoData;
-}
-
-export interface FileUpload {
-  id: string;
-  name: string;
-  size: number;
-  type: string;
-  data: string; // base64
-  uploadedAt: string;
 }
 
 export interface Property {
