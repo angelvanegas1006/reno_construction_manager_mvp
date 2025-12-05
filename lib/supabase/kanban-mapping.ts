@@ -41,9 +41,6 @@ export function mapSetUpStatusToKanbanPhase(setUpStatus: string | null): RenoKan
     
     // Legacy Reno Budget - mantener para compatibilidad (oculto)
     'pending to validate budget (client & renovator) & reno to start': 'reno-budget',
-    'pending to validate budget': 'reno-budget',
-    'pending to validate budget & reno to start': 'reno-budget',
-    'proximas propiedades': 'reno-budget',
     'upcoming': 'reno-budget', // Legacy
     
     // Upcoming - Proximas propiedades (diferente de upcoming-settlements y reno-budget)

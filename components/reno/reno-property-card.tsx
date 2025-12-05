@@ -393,11 +393,6 @@ export function RenoPropertyCard({
               <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
-          {stage === "furnishing-cleaning" && property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
-            <div className="text-xs text-muted-foreground">
-              <span className="font-medium">Días para propiedad lista:</span> {property.daysToPropertyReady} días
-            </div>
-          )}
           <div className="text-xs text-muted-foreground">
             {t.propertyCard.repairs} {timeInPhase}
           </div>

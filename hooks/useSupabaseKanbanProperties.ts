@@ -108,11 +108,6 @@ function convertSupabasePropertyToKanbanProperty(
     bedrooms: supabaseProperty.bedrooms || undefined,
     bathrooms: supabaseProperty.bathrooms || undefined,
     square_meters: supabaseProperty.square_meters || undefined,
-    // Days and duration fields
-    daysToStartRenoSinceRSD: (supabaseProperty as any)['Days to Start Reno (Since RSD)'] || undefined,
-    renoDuration: (supabaseProperty as any)['Reno Duration'] || undefined,
-    daysToPropertyReady: (supabaseProperty as any)['Days to Property Ready'] || undefined,
-    daysToVisit: (supabaseProperty as any)['days_to_visit'] || undefined,
     // Campo para mostrar el ID único de Engagements
     uniqueIdFromEngagements: supabaseProperty['Unique ID From Engagements'] || undefined,
     // Campo para la fase de renovación

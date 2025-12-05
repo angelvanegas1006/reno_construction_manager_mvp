@@ -26,9 +26,6 @@ export interface RenoKanbanColumn {
     renoBudgetClient: string;
     renoBudgetStart: string;
     upcoming: string;
-    renoBudgetRenovator: string;
-    renoBudgetClient: string;
-    renoBudgetStart: string;
     renoBudget: string;
     renoInProgress: string;
     furnishingCleaning: string;
