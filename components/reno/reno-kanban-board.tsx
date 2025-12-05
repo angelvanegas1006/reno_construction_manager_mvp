@@ -1196,8 +1196,9 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             key={property.id}
                             onClick={() => handleCardClick(property)}
                             className={cn(
-                              "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors",
-                              expired && "bg-red-50 dark:bg-red-950/10"
+                              "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors relative",
+                              expired && "bg-red-50 dark:bg-red-950/10",
+                              isRed && "bg-red-50 dark:bg-red-950/10"
                             )}
                           >
                             {getVisibleColumnsForPhase(column.key).has("id") && (
