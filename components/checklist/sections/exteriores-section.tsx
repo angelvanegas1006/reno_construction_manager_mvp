@@ -303,8 +303,8 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
                                       className={cn(
                                         "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                         isSelected
-                                          ? "border-[var(--prophero-blue-500)] dark:border-[var(--prophero-blue-400)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]"
-                                          : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card"
+                                          ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                                          : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
                                       )}
                                     >
                                       <option.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -367,8 +367,8 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
                                 className={cn(
                                   "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                   isSelected
-                                    ? "border-[var(--prophero-blue-500)] dark:border-[var(--prophero-blue-400)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]"
-                                    : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card"
+                                    ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                                    : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
                                 )}
                               >
                                 <option.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -425,15 +425,7 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
     };
 
     return (
-      <div ref={ref} className="bg-card dark:bg-card rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
-            {t.checklist.sections.exteriores.title}
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed break-words">
-            {t.checklist.sections.exteriores.description}
-          </p>
-        </div>
+      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
 
         {/* Fotos y vídeo del exterior */}
         <Card className="p-4 sm:p-6 space-y-4">

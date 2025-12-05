@@ -17,6 +17,7 @@ interface ChecklistUploadZoneProps {
   isRequired?: boolean;
   maxFiles?: number;
   maxSizeMB?: number;
+  hideTitle?: boolean; // Para ocultar el título cuando se muestra fuera del Card
 }
 
 const DEFAULT_MAX_SIZE = 5; // MB
@@ -31,6 +32,7 @@ export function ChecklistUploadZone({
   isRequired = false,
   maxFiles = 10,
   maxSizeMB = DEFAULT_MAX_SIZE,
+  hideTitle = false,
 }: ChecklistUploadZoneProps) {
   const handlePhotosChange = useCallback((files: FileUpload[]) => {
     onUpdate({
@@ -230,19 +232,28 @@ export function ChecklistUploadZone({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-semibold leading-tight">
-            {title} {isRequired && <span className="text-red-500">*</span>}
-          </Label>
+      {!hideTitle && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-semibold leading-tight">
+              {title} {isRequired && <span className="text-red-500">*</span>}
+            </Label>
+            <span className="text-xs text-muted-foreground leading-normal">
+              {uploadZone.photos.length} foto(s), {uploadZone.videos.length} video(s)
+            </span>
+          </div>
+          {description && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+          )}
+        </div>
+      )}
+      {hideTitle && (
+        <div className="flex items-center justify-end mb-2">
           <span className="text-xs text-muted-foreground leading-normal">
             {uploadZone.photos.length} foto(s), {uploadZone.videos.length} video(s)
           </span>
         </div>
-        {description && (
-          <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-        )}
-      </div>
+      )}
 
       {/* Drop Zone */}
       <div

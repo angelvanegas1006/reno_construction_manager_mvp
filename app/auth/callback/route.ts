@@ -95,7 +95,9 @@ export async function GET(request: NextRequest) {
 
     // Redirigir según el rol
     let redirectUrl = '/login';
-    if (role === 'foreman' || role === 'admin') {
+    if (role === 'foreman') {
+      redirectUrl = '/reno/construction-manager';
+    } else if (role === 'admin') {
       redirectUrl = '/reno/construction-manager/kanban';
     } else {
       // Usuario sin permisos

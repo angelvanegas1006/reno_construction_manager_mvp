@@ -72,18 +72,13 @@ export function RenoKanbanColumn({
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="md:pointer-events-none flex w-full md:w-auto items-center justify-between md:justify-start gap-3 bg-card dark:bg-[#000000] border border-border rounded-lg px-4 py-3 md:border-0 md:bg-transparent md:px-2 md:py-1 md:hover:bg-[var(--prophero-gray-100)] dark:md:hover:bg-[#1a1a1a] md:rounded-md md:-mx-2 md:mx-0 transition-colors min-w-0 shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] md:shadow-none"
         >
-          <h2 className="text-sm md:text-sm font-semibold text-foreground truncate flex-1 min-w-0 text-left">{title}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold text-foreground whitespace-nowrap">{title}</h2>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full flex-shrink-0">
+              {count}
+            </span>
+          </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-medium text-muted-foreground bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] px-2.5 py-1 rounded-full min-w-[24px] text-center">
-                {count}
-              </span>
-              {alertCount > 0 && (
-                <span className="text-xs font-medium text-white bg-red-500 px-2 py-1 rounded-full min-w-[20px] text-center">
-                  {alertCount}
-                </span>
-              )}
-            </div>
             {isCollapsed ? (
               <ChevronDown className="h-5 w-5 text-muted-foreground md:hidden" />
             ) : (

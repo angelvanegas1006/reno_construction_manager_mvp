@@ -37,6 +37,18 @@ export function PropertyActionTab({
     ? (getPropertyRenoPhaseFromSupabase(supabaseProperty) || supabaseProperty?.reno_phase || "upcoming-settlements")
     : "upcoming-settlements";
   
+  // Debug: Log para verificar la fase detectada
+  useEffect(() => {
+    if (supabaseProperty && propertyId) {
+      console.log('[PropertyActionTab] Debug info:', {
+        propertyId,
+        reno_phase: supabaseProperty?.reno_phase,
+        setUpStatus: supabaseProperty?.['Set Up Status'],
+        detectedPhase: renoPhase,
+        address: supabaseProperty?.address,
+      });
+    }
+  }, [supabaseProperty, propertyId, renoPhase]);
   const nextRenoSteps = supabaseProperty?.next_reno_steps;
   const estimatedVisitDate = supabaseProperty?.['Estimated Visit Date'];
   const technicalConstructor = supabaseProperty?.['Technical construction'] || supabaseProperty?.technical_construction;
@@ -48,7 +60,7 @@ export function PropertyActionTab({
   const estimatedEndDate = supabaseProperty?.estimated_end_date;
   const renoStartDate = supabaseProperty?.start_date;
 
-  // Estado local para el campo editable de Renovator name (solo para reno-budget-renovator y reno-budget-client)
+  // Estado local para el campo editable de Renovator name (solo para reno-budget-renovator)
   const [localRenovatorName, setLocalRenovatorName] = useState<string>(renovatorNameFromSupabase || "");
   const [isSavingRenovatorName, setIsSavingRenovatorName] = useState(false);
 
@@ -68,38 +80,31 @@ export function PropertyActionTab({
       
       if (success) {
         // Luego actualizar en Airtable
+        // Usar el nombre de tabla correcto (el mismo que se usa en otros lugares)
         const AIRTABLE_TABLE_NAME = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
-        const airtablePropertyId = supabaseProperty?.airtable_property_id || supabaseProperty?.['Unique ID From Engagements'];
+        const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, propertyId);
         
-        if (airtablePropertyId) {
-          const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, airtablePropertyId);
-          
-          if (recordId) {
-            const airtableSuccess = await updateAirtableWithRetry(
-              AIRTABLE_TABLE_NAME,
-              recordId,
-              {
-                'Renovator Name': newValue || null,
-              }
-            );
-            
-            if (airtableSuccess) {
-              toast.success("Renovador actualizado", {
-                description: "El nombre del renovador se ha actualizado correctamente.",
-              });
-            } else {
-              toast.warning("Actualizado parcialmente", {
-                description: "Se actualizó en Supabase pero hubo un problema al sincronizar con Airtable.",
-              });
+        if (recordId) {
+          const airtableSuccess = await updateAirtableWithRetry(
+            AIRTABLE_TABLE_NAME,
+            recordId,
+            {
+              'Renovator Name': newValue || null,
             }
+          );
+          
+          if (airtableSuccess) {
+            toast.success("Renovador actualizado", {
+              description: "El nombre del renovador se ha actualizado correctamente.",
+            });
           } else {
             toast.warning("Actualizado parcialmente", {
-              description: "Se actualizó en Supabase pero no se encontró el registro en Airtable.",
+              description: "Se actualizó en Supabase pero hubo un problema al sincronizar con Airtable.",
             });
           }
         } else {
           toast.warning("Actualizado parcialmente", {
-            description: "Se actualizó en Supabase pero no se encontró el ID de Airtable.",
+            description: "Se actualizó en Supabase pero no se encontró el registro en Airtable.",
           });
         }
       } else {
@@ -162,8 +167,8 @@ export function PropertyActionTab({
             </div>
           )}
 
-          {/* Renovator Name */}
-          {renovatorNameFromSupabase && (
+          {/* Renovator Name - Solo mostrar si no está en las fases de budget donde es editable */}
+          {renovatorNameFromSupabase && renoPhase !== "reno-budget-renovator" && renoPhase !== "reno-budget-client" && (
             <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
               <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
                 <User className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />

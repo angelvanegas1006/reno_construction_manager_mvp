@@ -81,6 +81,7 @@ export type Database = {
           notes: string | null
           quantity: number | null
           updated_at: string
+          video_urls: string[] | null
           zone_id: string
         }
         Insert: {
@@ -93,6 +94,7 @@ export type Database = {
           notes?: string | null
           quantity?: number | null
           updated_at?: string
+          video_urls?: string[] | null
           zone_id: string
         }
         Update: {
@@ -105,6 +107,7 @@ export type Database = {
           notes?: string | null
           quantity?: number | null
           updated_at?: string
+          video_urls?: string[] | null
           zone_id?: string
         }
         Relationships: [
@@ -240,6 +243,10 @@ export type Database = {
           stage?: string | null
           next_reno_steps?: string | null
           pics_urls?: string[] | null
+          "Days to Start Reno (Sice RSD)"?: number | null
+          "Reno Duration"?: number | null
+          "Days to Property Ready"?: number | null
+          days_to_visit?: number | null
         }
         Update: {
           address?: string | null
@@ -282,6 +289,10 @@ export type Database = {
           stage?: string | null
           next_reno_steps?: string | null
           pics_urls?: string[] | null
+          "Days to Start Reno (Sice RSD)"?: number | null
+          "Reno Duration"?: number | null
+          "Days to Property Ready"?: number | null
+          days_to_visit?: number | null
         }
         Relationships: []
       }

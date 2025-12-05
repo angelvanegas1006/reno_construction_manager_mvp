@@ -24,24 +24,20 @@ interface UseSupabaseKanbanPropertiesReturn {
 function convertSupabasePropertyToKanbanProperty(
   supabaseProperty: SupabaseProperty
 ): Property | null {
-  // Preferir reno_phase si está disponible, pero si es 'reno-budget' (legacy) o 'orphaned',
-  // intentar mapear desde Set Up Status a las nuevas fases específicas
+  // Preferir reno_phase si está disponible, pero si es 'reno-budget' (legacy),
+  // intentar mapear desde Set Up Status para determinar la fase específica
   let kanbanPhase: RenoKanbanPhase | null = null;
   
   if (supabaseProperty.reno_phase) {
     // Si es 'reno-budget' (legacy), intentar mapear desde Set Up Status primero
     if (supabaseProperty.reno_phase === 'reno-budget') {
       const mappedFromStatus = mapSetUpStatusToKanbanPhase(supabaseProperty['Set Up Status']);
-      // Si el mapeo da una de las nuevas fases específicas, usarla; sino mantener reno-budget
+      // Si el mapeo da una de las nuevas fases, usarla; sino mantener reno-budget
       if (mappedFromStatus && mappedFromStatus !== 'reno-budget') {
         kanbanPhase = mappedFromStatus;
       } else {
         kanbanPhase = 'reno-budget'; // Mantener legacy si no hay mapeo específico
       }
-    } else if (supabaseProperty.reno_phase === 'orphaned') {
-      // Las propiedades 'orphaned' no están en ninguna vista de Airtable
-      // y no deberían aparecer en el kanban, así que las ignoramos
-      return null;
     } else {
       // Para otras fases, validar que reno_phase es un RenoKanbanPhase válido
       const validPhases: RenoKanbanPhase[] = [
@@ -50,6 +46,7 @@ function convertSupabasePropertyToKanbanProperty(
         'reno-budget-renovator',
         'reno-budget-client',
         'reno-budget-start',
+        'reno-budget', // Legacy
         'reno-in-progress',
         'furnishing-cleaning',
         'final-check',
@@ -120,6 +117,19 @@ function convertSupabasePropertyToKanbanProperty(
     uniqueIdFromEngagements: supabaseProperty['Unique ID From Engagements'] || undefined,
     // Campo para la fase de renovación
     renoPhase: kanbanPhase,
+    // Days and duration fields from Supabase
+    daysToStartRenoSinceRSD: supabaseProperty['Days to Start Reno (Since RSD)'] !== null && supabaseProperty['Days to Start Reno (Since RSD)'] !== undefined 
+      ? supabaseProperty['Days to Start Reno (Since RSD)'] 
+      : undefined,
+    renoDuration: supabaseProperty['Reno Duration'] !== null && supabaseProperty['Reno Duration'] !== undefined 
+      ? supabaseProperty['Reno Duration'] 
+      : undefined,
+    daysToPropertyReady: supabaseProperty['Days to Property Ready'] !== null && supabaseProperty['Days to Property Ready'] !== undefined 
+      ? supabaseProperty['Days to Property Ready'] 
+      : undefined,
+    daysToVisit: supabaseProperty.days_to_visit !== null && supabaseProperty.days_to_visit !== undefined 
+      ? supabaseProperty.days_to_visit 
+      : undefined,
     // Incluir el supabaseProperty original para acceso a todos los campos
     supabaseProperty: supabaseProperty as any,
   } as Property & { supabaseProperty?: any };
@@ -175,9 +185,11 @@ export function useSupabaseKanbanProperties() {
         setError(null);
 
         // Build query based on user role
+        // Exclude orphaned properties (not visible in kanban)
         let query = supabase
           .from('properties')
-          .select('*');
+          .select('*')
+          .neq('reno_phase', 'orphaned');
 
         // Filter by role:
         // - Admin: see all properties
@@ -365,11 +377,11 @@ export function useSupabaseKanbanProperties() {
     const grouped: Record<RenoKanbanPhase, Property[]> = {
       'upcoming-settlements': [],
       'initial-check': [],
-      'upcoming': [],
       'reno-budget-renovator': [],
       'reno-budget-client': [],
       'reno-budget-start': [],
       'reno-budget': [], // Legacy
+      'upcoming': [],
       'reno-in-progress': [],
       'furnishing-cleaning': [],
       'final-check': [],

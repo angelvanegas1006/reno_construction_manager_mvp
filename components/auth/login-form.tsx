@@ -90,7 +90,7 @@ export function LoginForm() {
 
       // Redirect based on role
       if (role === 'foreman') {
-        router.push("/reno/construction-manager/kanban");
+        router.push("/reno/construction-manager");
         toast.success("¡Bienvenido!");
       } else if (role === 'admin') {
         // TODO: Add admin dashboard route

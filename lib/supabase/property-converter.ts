@@ -61,10 +61,26 @@ export function convertSupabasePropertyToProperty(
 
 /**
  * Gets the Kanban phase from a Supabase property using "Set Up Status"
+ * Si reno_phase es 'reno-budget' (legacy), intenta mapear desde Set Up Status primero
  */
 export function getPropertyRenoPhaseFromSupabase(
   supabaseProperty: SupabaseProperty
 ): ReturnType<typeof mapSetUpStatusToKanbanPhase> {
+  // Si reno_phase es 'reno-budget' (legacy), intentar mapear desde Set Up Status
+  if (supabaseProperty.reno_phase === 'reno-budget') {
+    const mappedFromStatus = mapSetUpStatusToKanbanPhase(supabaseProperty['Set Up Status']);
+    // Si el mapeo da una de las nuevas fases, usarla; sino mantener reno-budget
+    if (mappedFromStatus && mappedFromStatus !== 'reno-budget') {
+      return mappedFromStatus;
+    }
+  }
+  
+  // Si hay reno_phase y no es legacy, usarlo directamente
+  if (supabaseProperty.reno_phase && supabaseProperty.reno_phase !== 'reno-budget') {
+    return supabaseProperty.reno_phase as ReturnType<typeof mapSetUpStatusToKanbanPhase>;
+  }
+  
+  // Si no hay reno_phase o es legacy, mapear desde Set Up Status
   return mapSetUpStatusToKanbanPhase(supabaseProperty['Set Up Status']);
 }
 

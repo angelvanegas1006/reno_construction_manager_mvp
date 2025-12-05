@@ -4,7 +4,7 @@ import { useHelpConversations, type HelpConversation } from "@/hooks/useHelpConv
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, MessageSquare, Home, Clock } from "lucide-react";
+import { AlertCircle, MessageSquare, Home, Clock, ArrowLeft } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -17,9 +17,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
+import { useRouter } from "next/navigation";
 
 export default function NotificationsPage() {
   const { t, language } = useI18n();
+  const router = useRouter();
   const { conversations, loading, error, markAsRead } = useHelpConversations();
   const [selectedConversation, setSelectedConversation] = useState<HelpConversation | null>(null);
   
@@ -36,10 +38,25 @@ export default function NotificationsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--prophero-blue-600)] mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">{t.notifications.loadingConversations}</p>
+      <div className="container mx-auto py-6 px-4 max-w-4xl">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => router.back()}
+              className="flex items-center gap-2 hover:bg-muted hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden md:inline">{t.common.back}</span>
+            </Button>
+            <div className="h-6 w-px bg-border" />
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--prophero-blue-600)] mx-auto mb-2"></div>
+            <p className="text-sm text-muted-foreground">{t.notifications.loadingConversations}</p>
+          </div>
         </div>
       </div>
     );
@@ -47,31 +64,61 @@ export default function NotificationsPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Card className="max-w-md">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              <p className="text-sm">{error}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="container mx-auto py-6 px-4 max-w-4xl">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => router.back()}
+              className="flex items-center gap-2 hover:bg-muted hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden md:inline">{t.common.back}</span>
+            </Button>
+            <div className="h-6 w-px bg-border" />
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-full">
+          <Card className="max-w-md">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                <p className="text-sm">{error}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   if (conversations.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 text-center">
-            <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">{t.notifications.noConversations}</h3>
-            <p className="text-sm text-muted-foreground">
-              {t.notifications.noConversationsDescription}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="container mx-auto py-6 px-4 max-w-4xl">
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => router.back()}
+              className="flex items-center gap-2 hover:bg-muted hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden md:inline">{t.common.back}</span>
+            </Button>
+            <div className="h-6 w-px bg-border" />
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-full">
+          <Card className="max-w-md">
+            <CardContent className="pt-6 text-center">
+              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">{t.notifications.noConversations}</h3>
+              <p className="text-sm text-muted-foreground">
+                {t.notifications.noConversationsDescription}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -79,6 +126,17 @@ export default function NotificationsPage() {
   return (
     <div className="container mx-auto py-6 px-4 max-w-4xl">
       <div className="mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => router.back()}
+            className="flex items-center gap-2 hover:bg-muted hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden md:inline">{t.common.back}</span>
+          </Button>
+          <div className="h-6 w-px bg-border" />
+        </div>
         <h1 className="text-2xl font-bold mb-2">{t.notifications.title}</h1>
         <p className="text-sm text-muted-foreground">
           {t.notifications.description}

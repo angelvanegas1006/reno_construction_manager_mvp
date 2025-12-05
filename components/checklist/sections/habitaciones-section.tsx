@@ -771,7 +771,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentEffectiveClimatizationItems = currentHabitacion.climatizationItems || effectiveClimatizationItems;
       
       return (
-        <div ref={ref} className="bg-card dark:bg-card rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+        <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
           <div className="space-y-2">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
               {t.checklist.sections.habitaciones.title}
@@ -964,8 +964,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           className={cn(
                                             "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                             isSelected
-                                              ? "border-[var(--prophero-blue-500)] dark:border-[var(--prophero-blue-400)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]"
-                                              : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card"
+                                              ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                                              : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
                                           )}
                                         >
                                           <option.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -1105,8 +1105,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                     className={cn(
                                       "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                       isSelected
-                                        ? "border-[var(--prophero-blue-500)] dark:border-[var(--prophero-blue-400)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]"
-                                        : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card"
+                                        ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                                        : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
                                     )}
                                   >
                                     <option.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -1431,7 +1431,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const hasNextHabitacion = habitacionIndex < dynamicCount - 1;
       
       return (
-        <div ref={ref} className="bg-card dark:bg-card rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+        <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
           <div className="space-y-2">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
               {t.checklist.sections.habitaciones.bedroom} {habitacionIndex + 1}
@@ -1566,8 +1566,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           className={cn(
                                             "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                             isSelected
-                                              ? "border-[var(--prophero-blue-500)] dark:border-[var(--prophero-blue-400)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]"
-                                              : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card"
+                                              ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                                              : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
                                           )}
                                         >
                                           <option.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -1707,8 +1707,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                     className={cn(
                                       "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                       isSelected
-                                        ? "border-[var(--prophero-blue-500)] dark:border-[var(--prophero-blue-400)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]"
-                                        : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card"
+                                        ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                                        : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
                                     )}
                                   >
                                     <option.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -1897,36 +1897,186 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                   id: itemConfig.id,
                   cantidad: 0,
                 };
-                const cantidad = item.cantidad || 0;
+                const climatizationItem = item as ChecklistClimatizationItem;
+                const cantidad = climatizationItem.cantidad || 0;
+                const needsValidation = cantidad > 0;
+                const hasMultipleUnits = cantidad > 1;
+                const units = climatizationItem.units || [];
 
                 return (
-                  <div key={`${item.id}-${cantidad}-${habitacionIndex}-clim`} className="flex items-center justify-between gap-2">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words">
-                      {t.checklist.sections.habitaciones.climatizacion.items[itemConfig.translationKey]}
-                    </Label>
-                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleClimatizationQuantityChange(item.id, -1)}
-                        disabled={cantidad === 0}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                        aria-label="Decrementar cantidad"
-                      >
-                        <Minus className="h-4 w-4 text-foreground" />
-                      </button>
-                      <span className="text-base font-semibold text-foreground min-w-[24px] text-center">
-                        {cantidad}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleClimatizationQuantityChange(item.id, 1)}
-                        disabled={cantidad >= MAX_QUANTITY}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-                        aria-label="Incrementar cantidad"
-                      >
-                        <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
-                      </button>
+                  <div key={`${item.id}-${cantidad}-${habitacionIndex}-clim`} className="space-y-4">
+                    {/* Quantity Stepper */}
+                    <div className="flex items-center justify-between gap-2">
+                      <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words">
+                        {t.checklist.sections.habitaciones.climatizacion.items[itemConfig.translationKey]}
+                      </Label>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleClimatizationQuantityChange(item.id, -1)}
+                          disabled={cantidad === 0}
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          aria-label="Decrementar cantidad"
+                        >
+                          <Minus className="h-4 w-4 text-foreground" />
+                        </button>
+                        <span className="text-base font-semibold text-foreground min-w-[24px] text-center">
+                          {cantidad}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleClimatizationQuantityChange(item.id, 1)}
+                          disabled={cantidad >= MAX_QUANTITY}
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          aria-label="Incrementar cantidad"
+                        >
+                          <Plus className="h-4 w-4 text-foreground" />
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Status Options (only if cantidad > 0) */}
+                    {needsValidation && (
+                      <>
+                        {hasMultipleUnits ? (
+                          // Render individual units when cantidad > 1
+                          <div className="space-y-6">
+                            {Array.from({ length: cantidad }, (_, index) => {
+                              const unit = units[index] || { id: `${item.id}-${index + 1}` };
+                              const unitRequiresDetails = unit.estado === "necesita_reparacion" || unit.estado === "necesita_reemplazo";
+
+                              return (
+                                <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)]">
+                                  <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                                    {t.checklist.sections.habitaciones.climatizacion.items[itemConfig.translationKey]} {index + 1}
+                                  </Label>
+                                  
+                                  {/* Status Options for this unit */}
+                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
+                                    {STATUS_OPTIONS.map((option) => {
+                                      const isSelected = unit.estado === option.value;
+                                      return (
+                                        <button
+                                          key={option.value}
+                                          type="button"
+                                          onClick={() => handleClimatizationStatusChange(item.id, index, option.value)}
+                                          className={cn(
+                                            "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
+                                            isSelected
+                                              ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                                              : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                          )}
+                                        >
+                                          <option.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+                                          <span className="text-xs sm:text-sm font-medium whitespace-nowrap text-center text-muted-foreground">
+                                            {option.label}
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Details for this unit (if necesita reparación or necesita reemplazo) */}
+                                  {unitRequiresDetails && (
+                                    <div className="space-y-4 pt-2">
+                                      {/* Notes */}
+                                      <div className="space-y-2">
+                                        <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                                          {t.checklist.notes} <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Textarea
+                                          value={unit.notes || ""}
+                                          onChange={(e) => handleClimatizationNotesChange(item.id, index, e.target.value)}
+                                          placeholder={t.checklist.observationsPlaceholder}
+                                          className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                                          required={unitRequiresDetails}
+                                        />
+                                      </div>
+
+                                      {/* Photos */}
+                                      <div className="space-y-2">
+                                        <ChecklistUploadZoneComponent
+                                          title="Fotos"
+                                          description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
+                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                          onUpdate={(updates) => {
+                                            handleClimatizationPhotosChange(item.id, index, updates.photos);
+                                          }}
+                                          isRequired={unitRequiresDetails}
+                                          maxFiles={10}
+                                          maxSizeMB={5}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          // Render single estado when cantidad = 1
+                          <>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
+                              {STATUS_OPTIONS.map((option) => {
+                                const isSelected = climatizationItem.estado === option.value;
+                                return (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => handleClimatizationStatusChange(climatizationItem.id, null, option.value)}
+                                    className={cn(
+                                      "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
+                                      isSelected
+                                        ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                                        : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                    )}
+                                  >
+                                    <option.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+                                    <span className="text-xs sm:text-sm font-medium whitespace-nowrap text-center text-muted-foreground">
+                                      {option.label}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Notes (required when status is "necesita_reparacion" or "necesita_reemplazo") */}
+                            {(climatizationItem.estado === "necesita_reparacion" || climatizationItem.estado === "necesita_reemplazo") && (
+                              <div className="space-y-4 pt-2">
+                                {/* Notes */}
+                                <div className="space-y-2">
+                                  <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                                    {t.checklist.notes} <span className="text-red-500">*</span>
+                                  </Label>
+                                  <Textarea
+                                    value={climatizationItem.notes || ""}
+                                    onChange={(e) => handleClimatizationNotesChange(climatizationItem.id, null, e.target.value)}
+                                    placeholder={t.checklist.observationsPlaceholder}
+                                    className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                                    required={true}
+                                  />
+                                </div>
+
+                                {/* Photos */}
+                                <div className="space-y-2">
+                                  <ChecklistUploadZoneComponent
+                                    title="Fotos"
+                                    description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
+                                    uploadZone={{ id: `${climatizationItem.id}-photos`, photos: climatizationItem.photos || [], videos: [] }}
+                                    onUpdate={(updates) => {
+                                      handleClimatizationPhotosChange(climatizationItem.id, null, updates.photos);
+                                    }}
+                                    isRequired={true}
+                                    maxFiles={10}
+                                    maxSizeMB={5}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </>
+                    )}
                   </div>
                 );
               })}
@@ -2005,15 +2155,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
     // Main section: Show counter and list of bedrooms (when dynamicCount > 1)
     return (
-      <div ref={ref} className="bg-card dark:bg-card rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
-            {t.checklist.sections.habitaciones.title}
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            {t.checklist.sections.habitaciones.description}
-          </p>
-        </div>
+      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
 
         {/* Número de habitaciones */}
         <Card className="p-4 sm:p-6 space-y-4">
@@ -2072,7 +2214,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                         onNavigateToHabitacion(index);
                       }
                     }}
-                    className="w-full p-4 rounded-lg border-2 transition-colors text-left hover:border-[var(--prophero-blue-300)] dark:hover:border-[var(--prophero-blue-700)] bg-white dark:bg-card"
+                    className="w-full p-4 rounded-lg border-2 transition-colors text-left hover:border-[var(--prophero-blue-300)] dark:hover:border-[var(--prophero-blue-700)] bg-white dark:bg-[var(--prophero-gray-900)]"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">

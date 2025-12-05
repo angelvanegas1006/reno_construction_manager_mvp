@@ -588,13 +588,11 @@ export function useSupabaseChecklist({
     }
   }, [inspection, checklist, zones, upsertElement, propertyId]);
 
-  // Actualizar sección (guardar automáticamente al cambiar)
+  // Actualizar sección (solo actualiza estado local, NO guarda automáticamente)
   const updateSection = useCallback(
     async (sectionId: string, sectionData: Partial<ChecklistSection>) => {
-      // Guardar sección anterior si existe
-      if (currentSectionRef.current && currentSectionRef.current !== sectionId) {
-        await saveCurrentSection();
-      }
+      // NO guardar automáticamente aquí - solo actualizar estado local
+      // El guardado se hará al cambiar de sección o al finalizar
 
       // Actualizar estado local
       setChecklist((prevChecklist) => {
@@ -622,7 +620,7 @@ export function useSupabaseChecklist({
       currentSectionRef.current = sectionId;
       pendingSaveRef.current = { sectionId, sectionData };
     },
-    [saveCurrentSection]
+    []
   );
 
   // Guardar todo

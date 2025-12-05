@@ -41,21 +41,25 @@ export function NavbarL3({
   actions = [],
   statusText,
 }: NavbarL3Props) {
+  // Separar acciones: guardar (outline) y enviar (default/primary)
+  const saveAction = actions.find(a => a.variant === "outline");
+  const submitAction = actions.find(a => a.variant === "default" || !a.variant);
+
   return (
-    <nav className="border-b bg-card px-4 md:px-6 py-4">
+    <nav className="absolute top-0 left-0 right-0 z-20 border-b bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-3">
       <div className="flex items-center justify-between gap-4">
-        {/* Zona A: Botón de Retroceso */}
+        {/* Zona A: Botón de Retroceso + Título del Formulario */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <Button
             variant="ghost"
             onClick={onBack}
-            className="flex items-center gap-2 flex-shrink-0"
+            className="flex items-center gap-2 flex-shrink-0 hover:bg-muted hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden md:inline">{backLabel}</span>
           </Button>
 
-          {/* Zona B: Título del Formulario */}
+          {/* Título del Formulario */}
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-semibold text-foreground truncate">
               {formTitle}
@@ -68,26 +72,30 @@ export function NavbarL3({
           </div>
         </div>
 
-        {/* Zona C: Acciones */}
-        {actions.length > 0 && (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {actions.map((action, index) => (
-              <Button
-                key={index}
-                variant={action.variant || "default"}
-                onClick={action.onClick}
-                disabled={action.disabled}
-                className={cn(
-                  "flex items-center gap-2",
-                  action.variant === "outline" && "rounded-full"
-                )}
-              >
-                {action.icon}
-                {action.label}
-              </Button>
-            ))}
-          </div>
-        )}
+        {/* Zona C: Acciones - Guardar y Enviar */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {saveAction && (
+            <Button
+              variant="outline"
+              onClick={saveAction.onClick}
+              disabled={saveAction.disabled}
+              className="flex items-center gap-2 rounded-full"
+            >
+              {saveAction.icon}
+              {saveAction.label}
+            </Button>
+          )}
+          {submitAction && (
+            <Button
+              onClick={submitAction.onClick}
+              disabled={submitAction.disabled}
+              className="flex items-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white"
+            >
+              {submitAction.icon}
+              {submitAction.label}
+            </Button>
+          )}
+        </div>
       </div>
     </nav>
   );

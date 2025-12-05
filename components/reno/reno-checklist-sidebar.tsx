@@ -5,11 +5,17 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
+import { ChecklistData } from "@/lib/checklist-storage";
+import { calculateOverallChecklistProgress, getAllChecklistSectionsProgress } from "@/lib/checklist-progress";
 
 interface RenoChecklistSidebarProps {
   address: string;
+  addressDetails?: string; // Segunda línea de dirección (portal, escalera, etc.)
+  uniqueId?: string;
+  areaCluster?: string;
   activeSection: string;
   onSectionClick: (sectionId: string) => void;
+  checklist?: ChecklistData | null;
   // onSave, onSubmit, canSubmit, hasUnsavedChanges removidos - ahora están en NavbarL3
   habitacionesCount?: number;
   banosCount?: number;
@@ -20,8 +26,12 @@ interface RenoChecklistSidebarProps {
 
 export function RenoChecklistSidebar({
   address,
+  addressDetails,
+  uniqueId,
+  areaCluster,
   activeSection,
   onSectionClick,
+  checklist,
   habitacionesCount = 0,
   banosCount = 0,
   onCompleteInspection,
@@ -32,6 +42,12 @@ export function RenoChecklistSidebar({
   const [expandedGroups, setExpandedGroups] = useState<string[]>([
     "estado-caracteristicas",
   ]);
+
+  // Calculate overall progress
+  const overallProgress = calculateOverallChecklistProgress(checklist || null);
+  
+  // Calculate section progress
+  const sectionProgress = getAllChecklistSectionsProgress(checklist || null);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) =>
@@ -82,13 +98,66 @@ export function RenoChecklistSidebar({
     },
   ];
 
+  // Map section IDs to progress keys
+  const getSectionProgressKey = (sectionId: string): string => {
+    const mapping: Record<string, string> = {
+      "checklist-entorno-zonas-comunes": "entorno-zonas-comunes",
+      "checklist-estado-general": "estado-general",
+      "checklist-entrada-pasillos": "entrada-pasillos",
+      "checklist-habitaciones": "habitaciones",
+      "checklist-salon": "salon",
+      "checklist-banos": "banos",
+      "checklist-cocina": "cocina",
+      "checklist-exteriores": "exteriores",
+    };
+    return mapping[sectionId] || "";
+  };
+
   return (
-    <div className="hidden md:flex flex-col h-screen w-80 border-r bg-card">
+    <div className="hidden md:flex flex-col h-screen w-80 border-r bg-card pt-16">
       {/* Header */}
       <div className="p-4 border-b">
-        <div className="flex items-start justify-between gap-2 mb-4">
+        <div className="flex items-center gap-3 mb-4">
+          {/* Progress Circle */}
+          <div className="relative w-12 h-12 flex-shrink-0">
+            <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeDasharray={`${overallProgress} ${100 - overallProgress}`}
+                className="text-[var(--prophero-blue-500)] transition-all duration-300"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xs font-bold text-foreground">{overallProgress}%</span>
+            </div>
+          </div>
+          
+          {/* Address Info */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{address}</p>
+            {uniqueId && (
+              <p className="text-sm font-semibold text-foreground break-words mb-0.5">{uniqueId}</p>
+            )}
+            {areaCluster && (
+              <p className="text-xs text-muted-foreground break-words mb-1">{areaCluster}</p>
+            )}
+            <p className="text-sm font-medium text-foreground break-words">{address}</p>
+            {addressDetails && (
+              <p className="text-xs text-muted-foreground break-words mt-0.5">{addressDetails}</p>
+            )}
           </div>
         </div>
       </div>
@@ -135,6 +204,8 @@ export function RenoChecklistSidebar({
                     const isBanos = section.sectionId === "checklist-banos";
                     const dynamicCount = isHabitaciones ? habitacionesCount : isBanos ? banosCount : 0;
                     const showSubItems = dynamicCount > 1;
+                    const progressKey = getSectionProgressKey(section.sectionId);
+                    const progress = sectionProgress[progressKey] || 0;
                     
                     return (
                       <div key={section.sectionId}>
@@ -143,11 +214,12 @@ export function RenoChecklistSidebar({
                           className={cn(
                             "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between",
                             activeSection === section.sectionId && !showSubItems
-                              ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium"
+                              ? "bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] text-foreground font-medium"
                               : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] hover:text-foreground"
                           )}
                         >
                           <span>{section.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2">{progress}%</span>
                         </button>
                         {/* Show sub-items for habitaciones or banos when count > 1 */}
                         {showSubItems && (
@@ -160,6 +232,9 @@ export function RenoChecklistSidebar({
                                 ? `${t.checklist.sections.habitaciones.bedroom} ${i + 1}`
                                 : `${t.checklist.sections.banos.bathroom} ${i + 1}`;
                               
+                              // For sub-items, we use the parent section progress
+                              const subItemProgress = progress;
+                              
                               return (
                                 <button
                                   key={subItemId}
@@ -167,11 +242,14 @@ export function RenoChecklistSidebar({
                                   className={cn(
                                     "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between",
                                     activeSection === subItemId
-                                      ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium"
+                                      ? "bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] text-foreground font-medium"
                                       : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] hover:text-foreground"
                                   )}
                                 >
                                   <span>{subItemName}</span>
+                                  {subItemProgress !== undefined && (
+                                    <span className="text-xs text-muted-foreground ml-2">{subItemProgress}%</span>
+                                  )}
                                 </button>
                               );
                             })}

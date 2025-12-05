@@ -44,7 +44,10 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
     ];
 
     // Always use section.questions if available, otherwise use defaults
-    const questions = section.questions || defaultQuestions;
+    // But ensure we always have an array, even if empty
+    const questions = section.questions && section.questions.length > 0 
+      ? section.questions 
+      : defaultQuestions;
 
     // Initialize climatization items
     const climatizationItems = useMemo(() => {
@@ -72,11 +75,29 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
     }, [section.uploadZones, uploadZones, onUpdate]);
 
     const handleQuestionUpdate = useCallback((questionId: string, updates: Partial<ChecklistQuestion>) => {
-      // Always use the current section.questions, fallback to default if not present
-      const currentQuestions = section.questions || defaultQuestions;
-      const updatedQuestions = currentQuestions.map(q =>
-        q.id === questionId ? { ...q, ...updates } : q
-      );
+      // Always use section.questions if it exists and has items, otherwise start with defaults
+      // But merge with updates to preserve state
+      const currentQuestions = section.questions && section.questions.length > 0
+        ? section.questions
+        : defaultQuestions;
+      
+      // Find if question already exists
+      const existingQuestionIndex = currentQuestions.findIndex(q => q.id === questionId);
+      
+      let updatedQuestions: ChecklistQuestion[];
+      if (existingQuestionIndex >= 0) {
+        // Update existing question
+        updatedQuestions = currentQuestions.map(q =>
+          q.id === questionId ? { ...q, ...updates } : q
+        );
+      } else {
+        // Add new question with updates
+        updatedQuestions = [
+          ...currentQuestions,
+          { id: questionId, ...updates }
+        ];
+      }
+      
       onUpdate({ questions: updatedQuestions });
     }, [section.questions, defaultQuestions, onUpdate]);
 
@@ -193,16 +214,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
     ];
 
     return (
-      <div ref={ref} className="bg-card dark:bg-card rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
-            {t.checklist.sections.estadoGeneral.title}
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            {t.checklist.sections.estadoGeneral.description}
-          </p>
-        </div>
-
+      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
         {/* Fotos: perspectiva general */}
         <Card className="p-4 sm:p-6 space-y-4">
           <ChecklistUploadZoneComponent
@@ -219,7 +231,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
         {/* Acabados */}
         <Card className="p-4 sm:p-6 space-y-4">
           <ChecklistQuestionComponent
-            question={(section.questions || questions).find(q => q.id === "acabados") || { id: "acabados" }}
+            question={section.questions?.find(q => q.id === "acabados") || questions.find(q => q.id === "acabados") || { id: "acabados" }}
             questionId="acabados"
             label={t.checklist.sections.estadoGeneral.acabados.title}
             description={t.checklist.sections.estadoGeneral.acabados.description}
@@ -318,7 +330,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                                           "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                           isSelected
                                             ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                            : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card"
+                                            : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
                                         )}
                                       >
                                         <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -385,7 +397,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                                     "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                     isSelected
                                       ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                      : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card"
+                                      : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
                                   )}
                                 >
                                   <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -448,7 +460,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
         {/* Electricidad */}
         <Card className="p-4 sm:p-6 space-y-4">
           <ChecklistQuestionComponent
-            question={(section.questions || questions).find(q => q.id === "electricidad") || { id: "electricidad" }}
+            question={section.questions?.find(q => q.id === "electricidad") || questions.find(q => q.id === "electricidad") || { id: "electricidad" }}
             questionId="electricidad"
             label={t.checklist.sections.estadoGeneral.electricidad.title}
             description={t.checklist.sections.estadoGeneral.electricidad.description}

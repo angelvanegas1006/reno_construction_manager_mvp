@@ -19,7 +19,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (!supabaseLoading && !appLoading && user && role) {
       if (role === 'foreman') {
-        router.push("/reno/construction-manager/kanban");
+        router.push("/reno/construction-manager");
       } else if (role === 'admin') {
         router.push("/reno/construction-manager/kanban");
       }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDown, ArrowUp, Building2, Calendar, CheckCircle } from "lucide-react";
+import { ArrowDown, ArrowUp, Building2, Calendar, CheckCircle, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 
@@ -45,11 +45,16 @@ export function RenoHomeIndicators({
         </div>
         {delta && (
           <div className={cn(
-            "flex items-center gap-1 text-xs font-medium flex-shrink-0",
-            delta.isPositive ? "text-[var(--prophero-success)]" : "text-[var(--prophero-danger)]"
+            "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
+            delta.isPositive 
+              ? "bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400" 
+              : "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
           )}>
-            {delta.isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-            {delta.value}%
+            <TrendingUp className={cn(
+              "h-3 w-3",
+              !delta.isPositive && "rotate-180"
+            )} />
+            <span>{delta.isPositive ? '+' : ''}{delta.value}%</span>
           </div>
         )}
       </CardHeader>

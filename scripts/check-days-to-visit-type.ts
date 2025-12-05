@@ -17,6 +17,23 @@ async function main() {
   const supabase = createAdminClient();
 
   try {
+    // Consultar el tipo de columna desde information_schema
+    const { data, error } = await supabase.rpc('exec_sql', {
+      query: `
+        SELECT 
+          column_name, 
+          data_type,
+          is_nullable,
+          numeric_precision,
+          numeric_scale
+        FROM information_schema.columns 
+        WHERE table_schema = 'public'
+        AND table_name = 'properties'
+        AND column_name = 'days_to_visit';
+      `
+    });
+
+    // Alternativa: usar una consulta directa si RPC no está disponible
     // Intentar obtener información de la columna de otra manera
     const { data: sampleData, error: sampleError } = await supabase
       .from('properties')
@@ -103,4 +120,5 @@ main().catch((error) => {
   console.error('❌ Error fatal:', error);
   process.exit(1);
 });
+
 

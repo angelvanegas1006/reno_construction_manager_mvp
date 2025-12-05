@@ -26,6 +26,20 @@ async function main() {
       console.log(`   Total Created: ${result.totalCreated}`);
       console.log(`   Total Updated: ${result.totalUpdated}`);
       console.log(`   Total Errors: ${result.totalErrors}`);
+      
+      // Mostrar primeros errores para debugging
+      if (result.phases && result.phases.length > 0) {
+        console.log('\n📋 Phase details:');
+        result.phases.forEach(phase => {
+          if (phase.errors > 0 || phase.details.length > 0) {
+            console.log(`\n   ${phase.phase}:`);
+            phase.details.slice(0, 5).forEach(detail => console.log(`     - ${detail}`));
+            if (phase.details.length > 5) {
+              console.log(`     ... and ${phase.details.length - 5} more`);
+            }
+          }
+        });
+      }
     }
     
     process.exit(result.success ? 0 : 1);

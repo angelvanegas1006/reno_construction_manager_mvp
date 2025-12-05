@@ -141,14 +141,15 @@ export function convertUploadZonesToElements(
     // Crear elemento para videos
     if (uploadZone.videos && uploadZone.videos.length > 0) {
       const videoUrls = uploadZone.videos
-        .filter(video => video.data)
-        .map(video => video.data);
+        .filter(video => video.data) // Solo videos con data (ya subidos)
+        .map(video => video.data); // URLs de Supabase Storage
 
       elements.push({
         zone_id: zoneId,
         element_name: `videos-${uploadZone.id}`,
         condition: null,
         image_urls: null,
+        video_urls: videoUrls.length > 0 ? videoUrls : null,
         notes: null,
         quantity: null,
         exists: null,
@@ -405,11 +406,48 @@ export function convertDynamicItemToElements(
  * Convierte URLs a FileUpload
  */
 function urlToFileUpload(url: string, isVideo: boolean = false): FileUpload {
+  const fileName = url.split('/').pop() || '';
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  
+  // Detectar tipo MIME basado en extensión
+  let mimeType = 'image/jpeg'; // default
+  if (isVideo) {
+    switch (extension) {
+      case 'mp4':
+        mimeType = 'video/mp4';
+        break;
+      case 'webm':
+        mimeType = 'video/webm';
+        break;
+      case 'mov':
+      case 'quicktime':
+        mimeType = 'video/quicktime';
+        break;
+      default:
+        mimeType = 'video/mp4';
+    }
+  } else {
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        mimeType = 'image/jpeg';
+        break;
+      case 'png':
+        mimeType = 'image/png';
+        break;
+      case 'webp':
+        mimeType = 'image/webp';
+        break;
+      default:
+        mimeType = 'image/jpeg';
+    }
+  }
+  
   return {
     id: crypto.randomUUID(),
-    name: url.split('/').pop() || (isVideo ? 'video.mp4' : 'photo.jpg'),
+    name: fileName || (isVideo ? 'video.mp4' : 'photo.jpg'),
     size: 0, // No tenemos el tamaño desde la URL
-    type: isVideo ? 'video/mp4' : 'image/jpeg',
+    type: mimeType,
     data: url, // Guardamos la URL directamente
     uploadedAt: new Date().toISOString(),
   };
@@ -492,8 +530,8 @@ export function convertSupabaseToChecklist(
           } else if (element.element_name.startsWith('videos-')) {
             const uploadZoneId = element.element_name.replace('videos-', '');
             if (dynamicItem.uploadZone && dynamicItem.uploadZone.id === uploadZoneId) {
-              // Videos no están soportados en el esquema actual
-              dynamicItem.uploadZone.videos = [];
+              // Cargar videos desde video_urls
+              dynamicItem.uploadZone.videos = element.video_urls?.map(url => urlToFileUpload(url, true)) || [];
             }
           }
           // Questions
@@ -560,8 +598,8 @@ export function convertSupabaseToChecklist(
             if (!section.uploadZones) section.uploadZones = [];
             section.uploadZones.push(uploadZone);
           }
-          // Videos no están soportados en el esquema actual
-          uploadZone.videos = [];
+          // Cargar videos desde video_urls
+          uploadZone.videos = element.video_urls?.map(url => urlToFileUpload(url, true)) || [];
         }
         // Questions
         else if (!element.element_name.includes('-') &&

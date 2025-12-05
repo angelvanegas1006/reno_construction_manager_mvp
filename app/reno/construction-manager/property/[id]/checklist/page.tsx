@@ -3,7 +3,6 @@
 import { useParams, useRouter } from "next/navigation";
 import { useRef, startTransition, useEffect, useCallback, useMemo, useState } from "react";
 import { NavbarL3 } from "@/components/layout/navbar-l3";
-import { HeaderL3 } from "@/components/layout/header-l3";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
@@ -145,7 +144,7 @@ export default function RenoChecklistPage() {
 
   // Use Supabase checklist hook (for production)
   // Only initialize when we have a valid propertyId
-  const { checklist, updateSection, isLoading: checklistLoading, finalizeChecklist } = useSupabaseChecklist({
+  const { checklist, updateSection, isLoading: checklistLoading, finalizeChecklist, saveCurrentSection } = useSupabaseChecklist({
     propertyId: propertyId || "",
     checklistType,
   });
@@ -204,23 +203,39 @@ export default function RenoChecklistPage() {
     [updateSection]
   );
 
-  // Handle section click
-  const handleSectionClick = useCallback((sectionId: string) => {
+  // Handle section click - guardar sección anterior antes de cambiar
+  const handleSectionClick = useCallback(async (sectionId: string) => {
+    // Guardar sección anterior antes de cambiar
+    if (activeSection && activeSection !== sectionId && checklist) {
+      try {
+        await saveCurrentSection();
+        setHasUnsavedChanges(false);
+      } catch (error) {
+        console.error("Error al guardar sección anterior:", error);
+        toast.error("Error al guardar cambios");
+      }
+    }
+    
     setActiveSection(sectionId);
     // Scroll to section if it exists
     const sectionRef = sectionRefs.current[sectionId];
     if (sectionRef) {
       sectionRef.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, []);
+  }, [activeSection, checklist, saveCurrentSection]);
 
   // Handle save
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!checklist) return;
-    // Save is handled automatically by useChecklist hook
-    setHasUnsavedChanges(false);
-    toast.success(t.messages.saveSuccess);
-  }, [checklist, t]);
+    try {
+      await saveCurrentSection();
+      setHasUnsavedChanges(false);
+      toast.success(t.messages.saveSuccess);
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      toast.error("Error al guardar cambios");
+    }
+  }, [checklist, t, saveCurrentSection]);
 
   // Handle complete inspection
   const handleCompleteInspection = useCallback(async () => {
@@ -231,6 +246,9 @@ export default function RenoChecklistPage() {
 
     setIsCompleting(true);
     try {
+      // Guardar sección actual antes de completar
+      await saveCurrentSection();
+      
       const success = await completeInspection();
       if (success && inspection.public_link_id) {
         // Generate public URL
@@ -240,6 +258,7 @@ export default function RenoChecklistPage() {
         toast.success("Inspección completada exitosamente");
         // Refetch inspection to get updated status
         await refetchInspection();
+        setHasUnsavedChanges(false);
       } else {
         toast.error("Error al completar la inspección");
       }
@@ -249,19 +268,24 @@ export default function RenoChecklistPage() {
     } finally {
       setIsCompleting(false);
     }
-  }, [inspection, canComplete, completeInspection, refetchInspection]);
+  }, [inspection, canComplete, completeInspection, refetchInspection, saveCurrentSection]);
 
-  // Format address
+  // Format address (main line)
   const formatAddress = () => {
     if (!property) return "";
+    return property.fullAddress || "";
+  };
+
+  // Format address details (second line)
+  const formatAddressDetails = () => {
+    if (!property) return "";
     const parts = [
-      property.fullAddress,
-      property.planta && `Planta ${property.planta}`,
-      property.puerta && `Puerta ${property.puerta}`,
-      property.bloque && `Bloque ${property.bloque}`,
-      property.escalera && `Escalera ${property.escalera}`,
+      property.bloque && `Ptl. ${property.bloque}`,
+      property.escalera && `Es. ${property.escalera}`,
+      property.planta && property.planta,
+      property.puerta && property.puerta,
     ].filter(Boolean);
-    return parts.join(" · ");
+    return parts.length > 0 ? parts.join(" · ") : "";
   };
 
   // Render active section
@@ -865,12 +889,47 @@ export default function RenoChecklistPage() {
 
   // Original layout for initial-check
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden relative">
+      {/* Navbar L3: Header único sobrepuesto sobre todo (sidebar y contenido) */}
+      <NavbarL3
+        onBack={() => router.push("/reno/construction-manager/kanban")}
+        backLabel="Atrás"
+        formTitle={formTitle}
+        statusText={hasUnsavedChanges ? undefined : "Cambios guardados"}
+        actions={[
+          {
+            label: t.property.save,
+            onClick: handleSave,
+            variant: "outline",
+            disabled: !hasUnsavedChanges,
+          },
+          ...(getPropertyRenoPhase(property) === "initial-check" ? [{
+            label: t.checklist.submitChecklist,
+            onClick: async () => {
+              if (!property) return;
+              await finalizeChecklist({
+                estimatedVisitDate: property.estimatedVisitDate,
+                autoVisitDate: new Date().toISOString().split('T')[0],
+                nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
+              });
+              setTimeout(() => {
+                router.push("/reno/construction-manager/kanban");
+              }, 2000);
+            },
+            variant: "default" as const,
+          }] : []),
+        ]}
+      />
+
       {/* L3: Sidebar de contenido (navegación de pasos del formulario) */}
       <RenoChecklistSidebar
         address={formatAddress()}
+        addressDetails={formatAddressDetails()}
+        uniqueId={property?.uniqueIdFromEngagements}
+        areaCluster={property?.region}
         activeSection={activeSection}
         onSectionClick={handleSectionClick}
+        checklist={checklist}
         habitacionesCount={habitacionesCount}
         banosCount={banosCount}
         onCompleteInspection={handleCompleteInspection}
@@ -880,46 +939,26 @@ export default function RenoChecklistPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Navbar L3: Botón atrás + Título formulario + Acciones */}
-        <NavbarL3
-          onBack={() => router.push("/reno/construction-manager/kanban")}
-          formTitle={formTitle}
-          statusText={hasUnsavedChanges ? undefined : "Cambios guardados"}
-          actions={[
-            {
-              label: t.property.save,
-              onClick: handleSave,
-              variant: "outline",
-              disabled: !hasUnsavedChanges,
-            },
-            ...(getPropertyRenoPhase(property) === "initial-check" ? [{
-              label: t.checklist.submitChecklist,
-              onClick: async () => {
-                if (!property) return;
-                await finalizeChecklist({
-                  estimatedVisitDate: property.estimatedVisitDate,
-                  autoVisitDate: new Date().toISOString().split('T')[0],
-                  nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
-                });
-                setTimeout(() => {
-                  router.push("/reno/construction-manager/kanban");
-                }, 2000);
-              },
-              variant: "default" as const,
-            }] : []),
-          ]}
-        />
-
-        {/* Header L3: Título y subtítulo de sección actual */}
-        <HeaderL3
-          title={sectionInfo.title}
-          subtitle={sectionInfo.subtitle}
-        />
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
-          <div className="max-w-4xl mx-auto">
-            {renderActiveSection()}
+        {/* Content con padding-top para no quedar oculto bajo el header */}
+        {/* El header tiene aproximadamente 80-90px de altura (py-3 + contenido), así que necesitamos más espacio */}
+        <div className="flex-1 overflow-y-auto bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+          <div className="pt-32 px-4 md:px-6 pb-4 md:pb-6">
+            <div className="max-w-4xl mx-auto">
+              {/* Título y descripción fuera del contenedor */}
+              {sectionInfo.title && (
+                <div className="mb-6 space-y-2">
+                  <h1 className="text-2xl font-bold text-foreground leading-tight">
+                    {sectionInfo.title}
+                  </h1>
+                  {sectionInfo.subtitle && (
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {sectionInfo.subtitle}
+                    </p>
+                  )}
+                </div>
+              )}
+              {renderActiveSection()}
+            </div>
           </div>
         </div>
       </div>

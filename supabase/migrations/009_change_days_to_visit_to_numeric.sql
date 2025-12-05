@@ -45,3 +45,4 @@ EXCEPTION
         RAISE NOTICE 'Error al cambiar el tipo de columna: %', SQLERRM;
 END $$;
 
+

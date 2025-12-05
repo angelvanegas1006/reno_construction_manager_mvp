@@ -175,7 +175,6 @@ export interface Property {
   renoDuration?: number | null; // Reno duration
   daysToPropertyReady?: number | null; // Days to property ready
   daysToVisit?: number | null; // Days to visit
-}
 
 const STORAGE_KEY = "vistral_properties";
 

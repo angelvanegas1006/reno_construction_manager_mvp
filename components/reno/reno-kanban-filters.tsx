@@ -92,7 +92,7 @@ export function RenoKanbanFilters({
     filters.renovatorNames.length > 0 ||
     filters.technicalConstructors.length > 0 ||
     filters.areaClusters.length > 0 ||
-    filters.delayedWorks === true;
+    filters.delayedWorks;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -187,7 +187,7 @@ export function RenoKanbanFilters({
                 htmlFor="delayed-works"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
               >
-                Mostrar solo obras tardías (marcadas en rojo)
+                Mostrar solo propiedades marcadas en rojo
               </label>
             </div>
           </div>
