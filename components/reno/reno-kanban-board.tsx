@@ -1196,16 +1196,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             key={property.id}
                             onClick={() => handleCardClick(property)}
                             className={cn(
-                              "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors relative",
+                              "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors",
                               expired && "bg-red-50 dark:bg-red-950/10"
                             )}
                           >
-                            {/* Alert icon in top right corner */}
-                            {isRed && (
-                              <div className="absolute top-2 right-2 z-10 pointer-events-none">
-                                <AlertTriangle className="h-5 w-5 text-red-500" />
-                              </div>
-                            )}
                             {getVisibleColumnsForPhase(column.key).has("id") && (
                               <td 
                                 className={cn(
@@ -1215,6 +1209,12 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                   expired && !isRed && "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[4px] before:bg-red-100 before:dark:bg-red-900/30 before:z-0"
                                 )}
                               >
+                                {/* Alert icon in top right corner */}
+                                {isRed && (
+                                  <div className="absolute top-2 right-2 z-10 pointer-events-none">
+                                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                                  </div>
+                                )}
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-medium text-foreground">
                                     {property.uniqueIdFromEngagements || property.id}
