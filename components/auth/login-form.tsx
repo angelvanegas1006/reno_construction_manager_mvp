@@ -34,6 +34,11 @@ export function LoginForm() {
     setLoading(true);
 
     try {
+      // Verify Supabase client is properly configured
+      if (!supabase) {
+        throw new Error("Error de configuración: el cliente de Supabase no está disponible. Verifica las variables de entorno.");
+      }
+
       // Sign in with Supabase
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -97,7 +102,18 @@ export function LoginForm() {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      const errorMessage = err.message || "Error al iniciar sesión. Verifica tus credenciales.";
+      
+      // Handle specific error types
+      let errorMessage = "Error al iniciar sesión. Verifica tus credenciales.";
+      
+      if (err.message?.includes('Failed to fetch') || err.message?.includes('fetch')) {
+        errorMessage = "Error de conexión: No se pudo conectar con el servidor. Verifica tu conexión a internet y la configuración de Supabase.";
+      } else if (err.message?.includes('Missing Supabase') || err.message?.includes('environment variables')) {
+        errorMessage = "Error de configuración: Las variables de entorno de Supabase no están configuradas correctamente.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

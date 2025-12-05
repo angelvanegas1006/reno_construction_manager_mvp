@@ -14,21 +14,31 @@ import { config, getSupabaseProjectName } from '@/lib/config/environment';
 const supabaseUrl = config.supabase.url;
 const supabaseAnonKey = config.supabase.anonKey;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+// Validate environment variables
+if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
   const errorMessage = 
     'Missing Supabase environment variables. ' +
-    `Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env file.\n` +
+    `Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.\n` +
     `Current environment: ${config.environment}\n` +
-    `Expected Supabase project: ${getSupabaseProjectName()}`;
+    `Expected Supabase project: ${getSupabaseProjectName()}\n` +
+    `Supabase URL: ${supabaseUrl ? 'Set' : 'Missing'}\n` +
+    `Supabase Anon Key: ${supabaseAnonKey ? 'Set' : 'Missing'}`;
   
   if (config.isDevelopment) {
-    console.warn(`⚠️  ${errorMessage}`);
+    console.error(`❌ ${errorMessage}`);
+    // In development, throw error to prevent creating invalid client
+    throw new Error(errorMessage);
   } else {
     throw new Error(errorMessage);
   }
 }
 
 export function createClient() {
+  // Double check before creating client
+  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
+    throw new Error('Cannot create Supabase client: missing required environment variables');
+  }
+  
   return createBrowserClient<Database>(
     supabaseUrl,
     supabaseAnonKey,
