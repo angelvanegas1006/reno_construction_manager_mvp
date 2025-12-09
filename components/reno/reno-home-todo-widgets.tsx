@@ -3,13 +3,14 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight, ChevronDown, CheckCircle } from "lucide-react";
+import { ChevronRight, ChevronDown, CheckCircle2, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { Property } from "@/lib/property-storage";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { useRouter } from "next/navigation";
 import { TodoWidgetModal } from "./todo-widget-modal";
+import { Badge } from "@/components/ui/badge";
 
 interface RenoHomeTodoWidgetsProps {
   propertiesByPhase?: Record<RenoKanbanPhase, Property[]>;
@@ -41,7 +42,6 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     today.setHours(0, 0, 0, 0);
 
     // 1. Definir Visita Estimada
-    // Propiedades en fase 1 (upcoming-settlements) y fase 2 (initial-check) que no tengan estimated visit date
     const pendingEstimatedVisitProps = [
       ...(propertiesByPhase['upcoming-settlements'] || [])
         .filter(prop => !prop.estimatedVisitDate || prop.estimatedVisitDate.trim() === ''),
@@ -50,11 +50,9 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     ];
 
     // 2. Check Inicial
-    // Propiedades en la fase 2 (initial-check) del kanban
     const pendingInitialCheckProps = (propertiesByPhase['initial-check'] || []);
 
     // 3. Rellenar Renovador
-    // Propiedades en fase 3 (reno-budget-renovator) y fase 4 (reno-budget-client) que tengan renovator name vacío
     const pendingRenovatorProps = [
       ...(propertiesByPhase['reno-budget-renovator'] || [])
         .filter(prop => !prop.renovador || prop.renovador.trim() === ''),
@@ -63,10 +61,8 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     ];
 
     // 4. Actualizacion de obra
-    // Se definirá más adelante - por ahora mantener la lógica actual
     const pendingWorkUpdateProps = (propertiesByPhase['reno-in-progress'] || [])
       .filter(prop => {
-        // Si tiene próxima actualización y ya pasó la fecha
         if (prop.proximaActualizacion) {
           const nextUpdateDate = new Date(prop.proximaActualizacion);
           nextUpdateDate.setHours(0, 0, 0, 0);
@@ -74,7 +70,6 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
             return true;
           }
         }
-        // Si no tiene última actualización o es muy antigua (más de 7 días)
         if (!prop.ultimaActualizacion) {
           return true;
         }
@@ -84,7 +79,6 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       });
 
     // 5. Check Final
-    // Propiedades en la fase final-check del kanban
     const pendingFinalCheckProps = (propertiesByPhase['final-check'] || []);
 
     const widgets: TodoWidget[] = [
@@ -120,7 +114,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       },
       {
         id: 'work-update',
-        title: 'Actualizacion de obra',
+        title: 'Actualización de Obra',
         count: pendingWorkUpdateProps.length,
         properties: pendingWorkUpdateProps,
         phaseFilter: ['reno-in-progress'],
@@ -158,7 +152,6 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
   const handlePropertyClick = (e: React.MouseEvent, property: Property, widgetId: string) => {
     e.stopPropagation();
     
-    // Mapear widgetId a widgetType
     const widgetTypeMap: Record<string, 'estimated-visit' | 'initial-check' | 'renovator' | 'work-update' | 'final-check'> = {
       'estimated-visit': 'estimated-visit',
       'initial-check': 'initial-check',
@@ -173,58 +166,87 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     setIsModalOpen(true);
   };
 
-  // Componente para card individual (desktop)
+  // Componente para card individual (desktop) - Rediseñado con principios Apple/Revolut
   const WidgetCard = ({ widget }: { widget: TodoWidget }) => {
+    const hasItems = widget.count > 0;
+    
     return (
-      <Card className="bg-card hover:shadow-md transition-shadow h-full flex flex-col">
+      <Card 
+        className={cn(
+          "relative overflow-hidden border h-full flex flex-col",
+          hasItems 
+            ? "border-border" 
+            : "border-border/50 opacity-75"
+        )}
+      >
         <CardHeader 
-          className="flex flex-row items-start justify-between space-y-0 pb-3 cursor-pointer flex-shrink-0 min-h-[60px]"
+          className={cn(
+            "relative z-10 flex flex-row items-center justify-between space-y-0 pb-4 cursor-pointer flex-shrink-0",
+            "border-b border-border/50"
+          )}
           onClick={widget.onClick}
         >
-          <CardTitle className="text-sm md:text-base font-semibold text-foreground flex-1 leading-tight pt-1">
+          <CardTitle className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">
             {widget.title}
           </CardTitle>
+          
+          {/* Smaller number badge aligned with title */}
           <div className={cn(
-            "text-sm md:text-base font-medium ml-3 flex-shrink-0 px-2 py-1 rounded-md mt-0",
-            widget.count > 0 ? "bg-muted text-muted-foreground" : "text-muted-foreground"
+            "relative z-10 flex items-center justify-center min-w-[32px] h-7 rounded-md ml-3 flex-shrink-0",
+            "font-medium text-sm",
+            hasItems 
+              ? "bg-muted/50 text-foreground" 
+              : "bg-muted/30 text-muted-foreground"
           )}>
             {widget.count}
           </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col pt-0">
+        
+        <CardContent className="relative z-10 flex-1 flex flex-col pt-4 pb-4">
           {/* Lista de propiedades pendientes */}
-          {widget.count > 0 && widget.properties.length > 0 && (
+          {hasItems && widget.properties.length > 0 && (
             <div className="space-y-2 flex-1 overflow-y-auto">
-              {widget.properties.slice(0, 5).map((property) => (
+              {widget.properties.slice(0, 4).map((property, index) => (
                 <div
                   key={property.id}
                   onClick={(e) => handlePropertyClick(e, property, widget.id)}
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors",
-                    "hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a]",
-                    "border border-border"
+                    "flex items-center justify-between p-3 rounded-lg cursor-pointer",
+                    "hover:bg-muted/30",
+                    "border border-border/50"
                   )}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground line-clamp-2">
+                    <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
                       {property.address || property.fullAddress}
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-3" />
                 </div>
               ))}
-              {widget.properties.length > 5 && (
-                <div className="text-xs text-muted-foreground text-center pt-2">
-                  +{widget.properties.length - 5} más
-                </div>
+              
+              {widget.properties.length > 4 && (
+                <button
+                  onClick={widget.onClick}
+                  className="w-full text-xs font-medium text-muted-foreground hover:text-foreground py-2 rounded-lg hover:bg-muted/30 flex items-center justify-center gap-1"
+                >
+                  <span>Ver {widget.properties.length - 4} más</span>
+                  <ChevronRight className="h-3 w-3" />
+                </button>
               )}
             </div>
           )}
-          {widget.count === 0 && (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                <CheckCircle className="h-4 w-4" />
-                <span>Completado</span>
+          
+          {!hasItems && (
+            <div className="flex-1 flex items-center justify-center py-8">
+              <div className="text-center space-y-2">
+                <div className="flex justify-center">
+                  <div className="p-3 rounded-full bg-muted/30">
+                    <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">Todo completado</p>
+                <p className="text-xs text-muted-foreground/70">No hay tareas pendientes</p>
               </div>
             </div>
           )}
@@ -234,26 +256,35 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
   };
 
   return (
-    <div className="space-y-4">
-      {/* Título general */}
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Tareas Pendientes</h2>
+    <div className="space-y-6">
+      {/* Título mejorado */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground tracking-tight">Tareas Pendientes</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Gestiona tus tareas pendientes por fase
+          </p>
+        </div>
+        <Badge variant="secondary" className="text-xs">
+          {todoWidgets.reduce((sum, w) => sum + w.count, 0)} total
+        </Badge>
       </div>
       
-      {/* Desktop: Grid de cards en columnas */}
-      <div className="hidden md:grid md:grid-cols-5 gap-3 md:gap-4">
+      {/* Desktop: Grid de cards mejorado */}
+      <div className="hidden md:grid md:grid-cols-5 gap-4 lg:gap-5">
         {todoWidgets.map((widget) => (
           <WidgetCard key={widget.id} widget={widget} />
         ))}
       </div>
 
-      {/* Mobile: Card única con acordeón */}
-      <Card className="bg-card md:hidden">
+      {/* Mobile: Card única con acordeón mejorado */}
+      <Card className="bg-card md:hidden border-2">
         <CardContent className="p-0">
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-border/50">
             {todoWidgets.map((widget, index) => {
               const isOpen = openItems.has(widget.id);
               const isLast = index === todoWidgets.length - 1;
+              const hasItems = widget.count > 0;
               
               return (
                 <Collapsible
@@ -263,35 +294,37 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                 >
                   <CollapsibleTrigger
                     className={cn(
-                      "w-full flex items-start justify-between p-4 hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a] transition-colors min-h-[60px]",
-                      isOpen && "bg-[var(--prophero-gray-50)] dark:bg-[#1a1a1a]",
-                      !isLast && "border-b border-border"
+                      "w-full flex items-center justify-between p-4",
+                      "hover:bg-muted/30",
+                      isOpen && "bg-muted/30",
+                      !isLast && "border-b border-border/50"
                     )}
                   >
-                    <div className="flex items-start gap-3 flex-1 min-w-0 pt-1">
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="text-sm font-semibold text-foreground leading-tight">
+                        {widget.title}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 flex-shrink-0">
                       <div className={cn(
-                        "flex items-center justify-center w-6 h-6 rounded transition-transform mt-0.5",
+                        "flex items-center justify-center min-w-[32px] h-7 rounded-md font-medium text-sm",
+                        hasItems 
+                          ? "bg-muted/50 text-foreground" 
+                          : "bg-muted/30 text-muted-foreground"
+                      )}>
+                        {widget.count}
+                      </div>
+                      
+                      <div className={cn(
                         isOpen && "rotate-90"
                       )}>
-                        {isOpen ? (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        )}
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       </div>
-                      <span className="text-sm font-semibold text-foreground text-left leading-tight">
-                        {widget.title}
-                      </span>
-                    </div>
-                    <div className={cn(
-                      "text-sm font-medium ml-4 flex-shrink-0 px-2 py-1 rounded-md mt-0",
-                      widget.count > 0 ? "bg-muted text-muted-foreground" : "text-muted-foreground"
-                    )}>
-                      {widget.count}
                     </div>
                   </CollapsibleTrigger>
                   
-                  {widget.count > 0 && widget.properties.length > 0 && (
+                  {hasItems && widget.properties.length > 0 && (
                     <CollapsibleContent className="px-4 pb-4">
                       <div className="pt-3 space-y-2">
                         {widget.properties.map((property) => (
@@ -299,30 +332,32 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                             key={property.id}
                             onClick={(e) => handlePropertyClick(e, property, widget.id)}
                             className={cn(
-                              "flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors",
-                              "hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a]",
-                              "border border-border"
+                              "flex items-center justify-between p-3 rounded-lg cursor-pointer",
+                              "hover:bg-muted/30",
+                              "border border-border/50"
                             )}
                           >
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-foreground line-clamp-2">
+                              <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
                                 {property.address || property.fullAddress}
                               </div>
                             </div>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-2" />
+                            <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-3" />
                           </div>
                         ))}
                       </div>
                     </CollapsibleContent>
                   )}
                   
-                  {widget.count === 0 && (
+                  {!hasItems && (
                     <CollapsibleContent className="px-4 pb-4">
-                      <div className="pt-3 text-center py-4">
-                        <div className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                          <CheckCircle className="h-4 w-4" />
-                          <span>Completado</span>
+                      <div className="pt-3 text-center py-6">
+                        <div className="flex justify-center mb-2">
+                          <div className="p-3 rounded-full bg-muted/30">
+                            <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+                          </div>
                         </div>
+                        <p className="text-sm font-medium text-muted-foreground">Todo completado</p>
                       </div>
                     </CollapsibleContent>
                   )}
@@ -349,4 +384,3 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     </div>
   );
 }
-
