@@ -287,12 +287,13 @@ function mapAirtablePropertyToSupabase(airtableProperty: any): any {
     // Campos de duración y días (números enteros)
     'Days to Start Reno (Since RSD)': (() => {
       const value = getFieldValue('Days to start reno since real settlement date', [
-        'Days to start reno since real settlement date',
+        'Days to start reno since real settlement date', // Nombre exacto en Airtable
         'Days to start reno since settlement date',
-        'Days to Start Reno (Since RSD)',
-        'Days to Start Reno Since Settlement Date',
+        'Days to Start Reno (Since RSD)', // Nombre en Supabase
+        'Days to Start Reno (Sice RSD)', // Variante con typo
         'Days to start reno since RSD',
         'Days to Start Reno Since RSD',
+        'Days to Start Reno Since Settlement Date',
         'Days to Start Reno',
         'Days to start reno',
       ]);

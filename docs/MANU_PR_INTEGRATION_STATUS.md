@@ -64,3 +64,4 @@
 - La fase legacy `reno-budget` se mantiene oculta pero presente para compatibilidad ✅
 
 
+

@@ -250,3 +250,4 @@ Si no ves estos logs, verifica:
 - [Best Practices](https://developer.mixpanel.com/docs/javascript-full-api-reference)
 
 
+

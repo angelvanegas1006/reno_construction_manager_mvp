@@ -188,3 +188,4 @@ Todos los cambios de la PR de Manu han sido integrados exitosamente manteniendo:
 - ✅ Todas las funcionalidades existentes
 
 
+

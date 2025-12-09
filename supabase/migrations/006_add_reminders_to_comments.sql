@@ -57,3 +57,4 @@ COMMENT ON TABLE property_reminders IS 'Recordatorios creados desde comentarios.
 
 
 
+

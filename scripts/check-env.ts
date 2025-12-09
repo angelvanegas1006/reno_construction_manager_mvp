@@ -55,3 +55,4 @@ try {
 console.log('✅ Supabase URL format is valid');
 console.log('');
 
+

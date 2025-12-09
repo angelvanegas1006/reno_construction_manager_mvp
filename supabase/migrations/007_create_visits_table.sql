@@ -64,3 +64,4 @@ COMMENT ON COLUMN property_visits.visit_date IS 'Fecha y hora de la visita o rec
 
 
 
+

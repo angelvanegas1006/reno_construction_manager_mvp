@@ -474,3 +474,4 @@ Estos archivos fueron modificados solo por Manu y no los tocamos nosotros:
 **Próximos pasos:** Revisar este documento juntos y decidir cómo proceder con cada conflicto.
 
 
+

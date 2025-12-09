@@ -527,7 +527,17 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
     ]) || null,
     // Days and duration fields - convert to numbers
     'Days to Start Reno (Since RSD)': (() => {
-      const value = getFieldValue('Days to Start Reno (Since RSD)', ['Days to Start Reno (Since RSD)', 'Days to Start Reno (Sice RSD)']);
+      const value = getFieldValue('Days to start reno since real settlement date', [
+        'Days to start reno since real settlement date', // Nombre exacto en Airtable
+        'Days to start reno since settlement date',
+        'Days to Start Reno (Since RSD)', // Nombre en Supabase
+        'Days to Start Reno (Sice RSD)', // Variante con typo
+        'Days to start reno since RSD',
+        'Days to Start Reno Since RSD',
+        'Days to Start Reno Since Settlement Date',
+        'Days to Start Reno',
+        'Days to start reno',
+      ]);
       if (value === null || value === undefined) return null;
       const num = typeof value === 'number' ? value : parseInt(String(value), 10);
       return isNaN(num) ? null : num;
@@ -775,8 +785,21 @@ export async function syncPropertiesFromAirtable(
             delete updateData.pics_urls;
           }
           
+          // Expandir hasChanges para verificar TODOS los campos sincronizados
           const hasChanges =
             currentData?.address !== supabaseData.address ||
+            currentData?.type !== supabaseData.type ||
+            currentData?.keys_location !== supabaseData.keys_location ||
+            currentData?.stage !== supabaseData.stage ||
+            currentData?.['Client email'] !== supabaseData['Client email'] ||
+            currentData?.['Estimated Visit Date'] !== supabaseData['Estimated Visit Date'] ||
+            currentData?.estimated_end_date !== supabaseData.estimated_end_date ||
+            currentData?.start_date !== supabaseData.start_date ||
+            currentData?.['Days to Start Reno (Since RSD)'] !== supabaseData['Days to Start Reno (Since RSD)'] ||
+            currentData?.['Reno Duration'] !== supabaseData['Reno Duration'] ||
+            currentData?.['Days to Property Ready'] !== supabaseData['Days to Property Ready'] ||
+            currentData?.days_to_visit !== supabaseData.days_to_visit ||
+            currentData?.reno_phase !== supabaseData.reno_phase ||
             currentData?.['Set Up Status'] !== supabaseData['Set Up Status'] ||
             currentData?.notes !== supabaseData.notes ||
             currentData?.area_cluster !== supabaseData.area_cluster ||
