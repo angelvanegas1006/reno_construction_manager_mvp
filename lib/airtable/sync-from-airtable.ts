@@ -786,33 +786,36 @@ export async function syncPropertiesFromAirtable(
           }
           
           // Expandir hasChanges para verificar TODOS los campos sincronizados
+          // Usar 'as any' para campos con espacios que TypeScript no reconoce en el tipo
+          const currentDataAny = currentData as any;
+          const supabaseDataAny = supabaseData as any;
           const hasChanges =
             currentData?.address !== supabaseData.address ||
             currentData?.type !== supabaseData.type ||
             currentData?.keys_location !== supabaseData.keys_location ||
             currentData?.stage !== supabaseData.stage ||
-            currentData?.['Client email'] !== supabaseData['Client email'] ||
-            currentData?.['Estimated Visit Date'] !== supabaseData['Estimated Visit Date'] ||
+            currentDataAny?.['Client email'] !== supabaseDataAny['Client email'] ||
+            currentDataAny?.['Estimated Visit Date'] !== supabaseDataAny['Estimated Visit Date'] ||
             currentData?.estimated_end_date !== supabaseData.estimated_end_date ||
             currentData?.start_date !== supabaseData.start_date ||
-            currentData?.['Days to Start Reno (Since RSD)'] !== supabaseData['Days to Start Reno (Since RSD)'] ||
-            currentData?.['Reno Duration'] !== supabaseData['Reno Duration'] ||
-            currentData?.['Days to Property Ready'] !== supabaseData['Days to Property Ready'] ||
+            currentDataAny?.['Days to Start Reno (Since RSD)'] !== supabaseDataAny['Days to Start Reno (Since RSD)'] ||
+            currentDataAny?.['Reno Duration'] !== supabaseDataAny['Reno Duration'] ||
+            currentDataAny?.['Days to Property Ready'] !== supabaseDataAny['Days to Property Ready'] ||
             currentData?.days_to_visit !== supabaseData.days_to_visit ||
             currentData?.reno_phase !== supabaseData.reno_phase ||
-            currentData?.['Set Up Status'] !== supabaseData['Set Up Status'] ||
+            currentDataAny?.['Set Up Status'] !== supabaseDataAny['Set Up Status'] ||
             currentData?.notes !== supabaseData.notes ||
             currentData?.area_cluster !== supabaseData.area_cluster ||
-            currentData?.['Hubspot ID'] !== supabaseData['Hubspot ID'] ||
+            currentDataAny?.['Hubspot ID'] !== supabaseDataAny['Hubspot ID'] ||
             currentData?.property_unique_id !== supabaseData.property_unique_id ||
             currentData?.renovation_type !== supabaseData.renovation_type ||
             currentData?.responsible_owner !== supabaseData.responsible_owner ||
-            currentData?.['Technical construction'] !== supabaseData['Technical construction'] ||
+            currentDataAny?.['Technical construction'] !== supabaseDataAny['Technical construction'] ||
             currentData?.next_reno_steps !== supabaseData.next_reno_steps ||
-            currentData?.['Renovator name'] !== supabaseData['Renovator name'] ||
+            currentDataAny?.['Renovator name'] !== supabaseDataAny['Renovator name'] ||
             currentData?.budget_pdf_url !== supabaseData.budget_pdf_url ||
             shouldUpdatePicsUrls ||
-            (hasRelatedFields && (!currentData?.area_cluster && !currentData?.['Hubspot ID'] && !currentData?.property_unique_id));
+            (hasRelatedFields && (!currentData?.area_cluster && !currentDataAny?.['Hubspot ID'] && !currentData?.property_unique_id));
 
             if (hasChanges) {
               // Log para el primer registro para debugging
