@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight, ChevronDown, CheckCircle2, ArrowRight } from "lucide-react";
+import { ChevronRight, ChevronDown, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { Property } from "@/lib/property-storage";
@@ -81,6 +81,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     // 5. Check Final
     const pendingFinalCheckProps = (propertiesByPhase['final-check'] || []);
 
+    // Ordenar widgets según el orden del kanban: upcoming-settlements, initial-check, reno-budget-renovator, reno-budget-client, reno-budget-start, reno-in-progress, furnishing-cleaning, final-check
     const widgets: TodoWidget[] = [
       {
         id: 'estimated-visit',
@@ -166,6 +167,98 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     setIsModalOpen(true);
   };
 
+  // Helper para renderizar información relevante según el tipo de widget
+  const renderPropertyInfo = (property: Property, widgetId: string) => {
+    const address = property.address || property.fullAddress || '';
+    const supabaseProperty = (property as any)?.supabaseProperty;
+    
+    switch (widgetId) {
+      case 'estimated-visit':
+        return (
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+              {address}
+            </div>
+            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+              {property.daysToVisit !== null && property.daysToVisit !== undefined && (
+                <span>Días para visitar: {property.daysToVisit}</span>
+              )}
+              {property.region && <span>• {property.region}</span>}
+            </div>
+          </div>
+        );
+      
+      case 'initial-check':
+        return (
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+              {address}
+            </div>
+            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+              {property.daysToVisit !== null && property.daysToVisit !== undefined && (
+                <span>Días para visitar: {property.daysToVisit}</span>
+              )}
+              {property.renovador && <span>• {property.renovador}</span>}
+            </div>
+          </div>
+        );
+      
+      case 'renovator':
+        return (
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+              {address}
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
+              {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
+                <span className="whitespace-nowrap">Días para empezar: {property.daysToStartRenoSinceRSD}</span>
+              )}
+              {property.renoType && (
+                <span className="whitespace-nowrap">• {property.renoType}</span>
+              )}
+            </div>
+          </div>
+        );
+      
+      case 'work-update':
+        return (
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+              {address}
+            </div>
+            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+              {property.renovador && <span>{property.renovador}</span>}
+              {property.renoDuration !== null && property.renoDuration !== undefined && (
+                <span>• Días de obra: {property.renoDuration}</span>
+              )}
+            </div>
+          </div>
+        );
+      
+      case 'final-check':
+        return (
+          <div className="space-y-1">
+            <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+              {address}
+            </div>
+            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+              {property.renovador && <span>{property.renovador}</span>}
+              {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
+                <span>• Días para lista: {property.daysToPropertyReady}</span>
+              )}
+            </div>
+          </div>
+        );
+      
+      default:
+        return (
+          <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+            {address}
+          </div>
+        );
+    }
+  };
+
   // Componente para card individual (desktop) - Rediseñado con principios Apple/Revolut
   const WidgetCard = ({ widget }: { widget: TodoWidget }) => {
     const hasItems = widget.count > 0;
@@ -211,17 +304,12 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                   key={property.id}
                   onClick={(e) => handlePropertyClick(e, property, widget.id)}
                   className={cn(
-                    "flex items-center justify-between p-3 rounded-lg cursor-pointer",
+                    "p-2.5 rounded-lg cursor-pointer",
                     "hover:bg-muted/30",
                     "border border-border/50"
                   )}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
-                      {property.address || property.fullAddress}
-                    </div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-3" />
+                  {renderPropertyInfo(property, widget.id)}
                 </div>
               ))}
               
@@ -257,13 +345,10 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
 
   return (
     <div className="space-y-6">
-      {/* Título mejorado */}
+      {/* Título */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-foreground tracking-tight">Tareas Pendientes</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gestiona tus tareas pendientes por fase
-          </p>
+          <h2 className="text-lg font-semibold text-foreground">Tareas Pendientes</h2>
         </div>
         <Badge variant="secondary" className="text-xs">
           {todoWidgets.reduce((sum, w) => sum + w.count, 0)} total
@@ -332,17 +417,12 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                             key={property.id}
                             onClick={(e) => handlePropertyClick(e, property, widget.id)}
                             className={cn(
-                              "flex items-center justify-between p-3 rounded-lg cursor-pointer",
+                              "p-2.5 rounded-lg cursor-pointer",
                               "hover:bg-muted/30",
                               "border border-border/50"
                             )}
                           >
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
-                                {property.address || property.fullAddress}
-                              </div>
-                            </div>
-                            <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 ml-3" />
+                            {renderPropertyInfo(property, widget.id)}
                           </div>
                         ))}
                       </div>
