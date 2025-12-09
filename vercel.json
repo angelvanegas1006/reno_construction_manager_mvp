@@ -11,23 +11,7 @@
     },
     {
       "path": "/api/cron/sync-airtable",
-      "schedule": "30 10 * * *"
-    },
-    {
-      "path": "/api/cron/sync-airtable",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron/sync-airtable",
-      "schedule": "30 15 * * *"
-    },
-    {
-      "path": "/api/cron/sync-airtable",
       "schedule": "0 18 * * *"
-    },
-    {
-      "path": "/api/cron/sync-airtable",
-      "schedule": "30 20 * * *"
     }
   ]
 }
