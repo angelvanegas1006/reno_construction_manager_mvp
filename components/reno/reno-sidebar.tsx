@@ -98,7 +98,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
     }
   };
   const navigationItems = getNavigationItems(t);
-  const settingsItems = getSettingsItems(t, unreadCount, role);
+  const settingsItems = getSettingsItems(t, unreadCount, role || undefined);
   const pathname = usePathname();
   
   // Get user name from email

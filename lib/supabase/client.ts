@@ -163,23 +163,23 @@ export function createClient() {
     }
   );
 
-  // Wrap getUser to handle "Auth session missing!" errors gracefully
-  const originalGetUser = client.auth.getUser.bind(client.auth);
-  client.auth.getUser = async () => {
-    try {
-      return await originalGetUser();
-    } catch (error: any) {
-      // Si el error es "Auth session missing!", es normal cuando no hay sesión (ej: Auth0 users)
-      if (error?.message?.includes('Auth session missing') || 
-          error?.name === 'AuthSessionMissingError' ||
-          error?.message?.includes('session missing')) {
-        // Retornar null user en lugar de lanzar error
-        return { data: { user: null }, error: null };
-      }
-      // Para otros errores, lanzarlos normalmente
-      throw error;
-    }
-  };
+      // Wrap getUser to handle "Auth session missing!" errors gracefully
+      const originalGetUser = client.auth.getUser.bind(client.auth);
+      client.auth.getUser = async (jwt?: string) => {
+        try {
+          return await originalGetUser(jwt);
+        } catch (error: any) {
+          // Si el error es "Auth session missing!", es normal cuando no hay sesión (ej: Auth0 users)
+          if (error?.message?.includes('Auth session missing') || 
+              error?.name === 'AuthSessionMissingError' ||
+              error?.message?.includes('session missing')) {
+            // Retornar null user en lugar de lanzar error
+            return { data: { user: null }, error: null } as any;
+          }
+          // Para otros errores, lanzarlos normalmente
+          throw error;
+        }
+      };
 
   return client;
 }

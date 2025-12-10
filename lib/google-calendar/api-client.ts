@@ -5,7 +5,7 @@
  */
 
 import { GoogleCalendarConfig, GoogleCalendarApiEvent, GoogleCalendarEventData } from './types';
-import { decryptToken } from '@/lib/encryption/token-encryption';
+import { decryptToken, encryptToken } from '@/lib/encryption/token-encryption';
 import { createClient } from '@/lib/supabase/server';
 import { getGoogleCalendarConfig } from './config-check';
 
@@ -131,8 +131,8 @@ export class GoogleCalendarApiClient {
       // Token expired or expiring soon, refresh it
       const refreshed = await this.refreshAccessToken(refreshToken);
       
-      // Note: Encryption should be handled by the API route that calls this
-      // For now, we'll return the plain token and let the caller encrypt it
+      // Encrypt the refreshed token before storing
+      const encryptedRefreshedToken = encryptToken(refreshed.access_token);
       
       // Update stored token
       const newExpiresAt = new Date(Date.now() + refreshed.expires_in * 1000);
@@ -140,7 +140,7 @@ export class GoogleCalendarApiClient {
       const { error: updateError } = await (supabase as any)
         .from('google_calendar_tokens')
         .update({
-          access_token: encryptedAccessToken,
+          access_token: encryptedRefreshedToken,
           expires_at: newExpiresAt.toISOString(),
           updated_at: new Date().toISOString(),
         })

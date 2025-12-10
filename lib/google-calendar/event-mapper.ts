@@ -139,12 +139,12 @@ function buildEventDescription(
     parts.push(`Tipo de Renovación: ${property.renoType}`);
   }
 
-  if (options.includeClientEmail && property.data?.clientEmail) {
-    parts.push(`Email del Cliente: ${property.data.clientEmail}`);
+  if (options.includeClientEmail && (property.data as any)?.clientEmail) {
+    parts.push(`Email del Cliente: ${(property.data as any).clientEmail}`);
   }
 
-  if (property.data?.notes) {
-    parts.push(`Notas: ${property.data.notes}`);
+  if ((property.data as any)?.notes) {
+    parts.push(`Notas: ${(property.data as any).notes}`);
   }
 
   parts.push(`\nID de Propiedad: ${property.id}`);
@@ -203,8 +203,8 @@ export function getPropertyEvents(property: Property): PropertyEvent[] {
       date: property.estimatedVisitDate,
       additionalData: {
         region: property.region,
-        clientEmail: property.data?.clientEmail,
-        notes: property.data?.notes,
+        clientEmail: (property.data as any)?.clientEmail,
+        notes: (property.data as any)?.notes,
       },
     });
   }
