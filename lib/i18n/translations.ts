@@ -45,6 +45,37 @@ export interface Translations {
     theme: string;
     language: string;
     settings: string;
+    changePassword: {
+      title: string;
+      description: string;
+      menuItem: string;
+      currentPassword: string;
+      currentPasswordPlaceholder: string;
+      newPassword: string;
+      newPasswordPlaceholder: string;
+      confirmPassword: string;
+      confirmPasswordPlaceholder: string;
+      updateButton: string;
+      updating: string;
+      success: string;
+      errors: {
+        allFieldsRequired: string;
+        passwordTooShort: string;
+        passwordsDoNotMatch: string;
+        samePassword: string;
+        currentPasswordIncorrect: string;
+        userNotFound: string;
+        generic: string;
+      };
+    };
+  };
+  
+  // Roles
+  roles: {
+    admin: string;
+    construction_manager: string;
+    foreman: string;
+    user: string;
   };
   
   // Login
@@ -181,6 +212,7 @@ export interface Translations {
     exterior: string;
     soon: string;
     user: string;
+    users: string;
   };
   
   // Section messages
@@ -265,6 +297,31 @@ export interface Translations {
     noVisitsScheduled: string;
     checks: string;
     visits: string;
+    // Todo Widgets
+    todoWidgets: {
+      defineEstimatedVisit: string;
+      initialCheck: string;
+      fillRenovator: string;
+      workUpdate: string;
+      finalCheck: string;
+      daysToVisit: string;
+      daysToStart: string;
+      workDays: string;
+      daysToReady: string;
+      seeMore: string;
+      allCompleted: string;
+      noPendingTasks: string;
+      pendingTasks: string;
+      total: string;
+    };
+    // Foreman Filter
+    foremanFilter: {
+      filterByForeman: string;
+      filterByConstructionManager: string;
+      noForemenFound: string;
+    };
+    // Add Visit
+    addVisit: string;
   };
   
   // Calendar, Visits & Reminders
@@ -559,6 +616,35 @@ export const translations: Record<Language, Translations> = {
       theme: "Tema",
       language: "Idioma",
       settings: "Configuración",
+      changePassword: {
+        title: "Cambiar Contraseña",
+        description: "Ingresa tu contraseña actual y la nueva contraseña para actualizar tu cuenta.",
+        menuItem: "Cambiar Contraseña",
+        currentPassword: "Contraseña Actual",
+        currentPasswordPlaceholder: "Ingresa tu contraseña actual",
+        newPassword: "Nueva Contraseña",
+        newPasswordPlaceholder: "Ingresa tu nueva contraseña",
+        confirmPassword: "Confirmar Contraseña",
+        confirmPasswordPlaceholder: "Confirma tu nueva contraseña",
+        updateButton: "Actualizar Contraseña",
+        updating: "Actualizando...",
+        success: "Contraseña actualizada exitosamente",
+        errors: {
+          allFieldsRequired: "Todos los campos son requeridos",
+          passwordTooShort: "La contraseña debe tener al menos 6 caracteres",
+          passwordsDoNotMatch: "Las contraseñas no coinciden",
+          samePassword: "La nueva contraseña debe ser diferente a la actual",
+          currentPasswordIncorrect: "La contraseña actual es incorrecta",
+          userNotFound: "Usuario no encontrado",
+          generic: "Error al cambiar la contraseña. Intenta nuevamente.",
+        },
+      },
+    },
+    roles: {
+      admin: "Administrador",
+      construction_manager: "Gerente de Construcción",
+      foreman: "Jefe de Obra",
+      user: "Usuario",
     },
     login: {
       title: "Inicia sesión o crea una cuenta",
@@ -621,25 +707,25 @@ export const translations: Record<Language, Translations> = {
       filterProperties: "Filtrar propiedades",
       filters: "Filtros",
       filtersDescription: "Selecciona uno o más valores para filtrar las propiedades. Los filtros se combinan con OR (cualquiera de los seleccionados).",
-      renovatorName: "Renovator Name",
+      renovatorName: "Nombre del Renovador",
       searchRenovator: "Buscar renovador...",
       technicalConstructor: "Jefe de Obra",
-      areaCluster: "Area Cluster",
+      areaCluster: "Grupo de Área",
       searchAreaCluster: "Buscar área...",
       noValuesAvailable: "No hay valores disponibles",
       clearAll: "Limpiar todos",
       applyFilters: "Aplicar filtros",
       // Reno Construction Manager phases
-      upcomingSettlements: "Upcoming Reno",
-      initialCheck: "Check inicial",
+      upcomingSettlements: "Próximas Renovaciones",
+      initialCheck: "Revisión Inicial",
       renoBudgetRenovator: "Pendiente Presupuesto (Renovador)",
       renoBudgetClient: "Pendiente Presupuesto (Cliente)",
       renoBudgetStart: "Obra a Empezar",
-      renoBudget: "Reno Budget", // Legacy
+      renoBudget: "Presupuesto de Renovación", // Legacy
       upcoming: "Próximas propiedades",
       renoInProgress: "Obras en proceso",
       furnishingCleaning: "Limpieza y amoblamiento",
-      finalCheck: "Check final",
+      finalCheck: "Revisión Final",
       renoFixes: "Reparaciones reno",
       done: "Finalizadas",
     },
@@ -680,6 +766,7 @@ export const translations: Record<Language, Translations> = {
       exterior: "Exterior",
       soon: "Pronto",
       user: "Usuario",
+      users: "Usuarios",
     },
     sectionMessages: {
       tenantSectionUnavailable: "Esta sección solo está disponible cuando la propiedad está marcada como alquilada.",
@@ -1228,6 +1315,31 @@ export const translations: Record<Language, Translations> = {
       noVisitsScheduled: "No hay visitas programadas",
       checks: "Checks",
       visits: "Visitas",
+      // Todo Widgets
+      todoWidgets: {
+        defineEstimatedVisit: "Definir Visita Estimada",
+        initialCheck: "Revisión Inicial",
+        fillRenovator: "Rellenar Renovador",
+        workUpdate: "Actualización de Obra",
+        finalCheck: "Revisión Final",
+        daysToVisit: "Días para visitar",
+        daysToStart: "Días para empezar",
+        workDays: "Días de obra",
+        daysToReady: "Días para lista",
+        seeMore: "Ver {count} más",
+        allCompleted: "Todo completado",
+        noPendingTasks: "No hay tareas pendientes",
+        pendingTasks: "Tareas Pendientes",
+        total: "total",
+      },
+      // Foreman Filter
+      foremanFilter: {
+        filterByForeman: "Filtrar por jefe de obra...",
+        filterByConstructionManager: "Filtrar por Gerente de Construcción",
+        noForemenFound: "No se encontraron jefes de obra",
+      },
+      // Add Visit
+      addVisit: "Añadir nueva visita - Próximamente",
     },
     calendar: {
       title: "Calendario de Visitas",
@@ -1392,7 +1504,7 @@ export const translations: Record<Language, Translations> = {
       backToKanban: "Volver al kanban",
       loadingProperty: "Cargando propiedad...",
       renovationBudget: "Presupuesto de reforma",
-      comingSoon: "Coming soon",
+      comingSoon: "Próximamente",
       currentDate: "Fecha actual",
       modifyDate: "Modificar fecha",
       saving: "Guardando...",
@@ -1428,8 +1540,8 @@ export const translations: Record<Language, Translations> = {
       siteManager: "Jefe de Obra",
     },
     partner: {
-      management: "Property Selling",
-      navProperties: "Property Selling",
+      management: "Venta de Propiedades",
+      navProperties: "Venta de Propiedades",
     },
   },
   en: {
@@ -1468,6 +1580,35 @@ export const translations: Record<Language, Translations> = {
       theme: "Theme",
       language: "Language",
       settings: "Settings",
+      changePassword: {
+        title: "Change Password",
+        description: "Enter your current password and new password to update your account.",
+        menuItem: "Change Password",
+        currentPassword: "Current Password",
+        currentPasswordPlaceholder: "Enter your current password",
+        newPassword: "New Password",
+        newPasswordPlaceholder: "Enter your new password",
+        confirmPassword: "Confirm Password",
+        confirmPasswordPlaceholder: "Confirm your new password",
+        updateButton: "Update Password",
+        updating: "Updating...",
+        success: "Password updated successfully",
+        errors: {
+          allFieldsRequired: "All fields are required",
+          passwordTooShort: "Password must be at least 6 characters",
+          passwordsDoNotMatch: "Passwords do not match",
+          samePassword: "New password must be different from current password",
+          currentPasswordIncorrect: "Current password is incorrect",
+          userNotFound: "User not found",
+          generic: "Error changing password. Please try again.",
+        },
+      },
+    },
+    roles: {
+      admin: "Admin",
+      construction_manager: "Construction Manager",
+      foreman: "Site Manager",
+      user: "User",
     },
     login: {
       title: "Log in or create an account",
@@ -1589,6 +1730,7 @@ export const translations: Record<Language, Translations> = {
       exterior: "Exterior",
       soon: "Soon",
       user: "User",
+      users: "Users",
     },
     sectionMessages: {
       tenantSectionUnavailable: "This section is only available when the property is marked as rented.",
@@ -2136,6 +2278,31 @@ export const translations: Record<Language, Translations> = {
       noVisitsScheduled: "No visits scheduled",
       checks: "Checks",
       visits: "Visits",
+      // Todo Widgets
+      todoWidgets: {
+        defineEstimatedVisit: "Define Estimated Visit",
+        initialCheck: "Initial Check",
+        fillRenovator: "Fill Renovator",
+        workUpdate: "Work Update",
+        finalCheck: "Final Check",
+        daysToVisit: "Days to visit",
+        daysToStart: "Days to start",
+        workDays: "Work days",
+        daysToReady: "Days to ready",
+        seeMore: "See {count} more",
+        allCompleted: "All completed",
+        noPendingTasks: "No pending tasks",
+        pendingTasks: "Pending Tasks",
+        total: "total",
+      },
+      // Foreman Filter
+      foremanFilter: {
+        filterByForeman: "Filter by site manager...",
+        filterByConstructionManager: "Filter by Construction Manager",
+        noForemenFound: "No site managers found",
+      },
+      // Add Visit
+      addVisit: "Add new visit - Coming soon",
     },
     calendar: {
       title: "Visits Calendar",

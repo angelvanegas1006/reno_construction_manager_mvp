@@ -116,7 +116,28 @@ export function useAuth0Role(): Auth0RoleData {
 
     async function fetchRoleFromSupabase() {
       try {
-        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        // Primero intentar obtener la sesión (más seguro cuando no hay sesión)
+        let supabaseUser = null;
+        try {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (session?.user && !sessionError) {
+            supabaseUser = session.user;
+          } else {
+            // Intentar getUser como fallback (puede fallar si no hay sesión)
+            try {
+              const { data: { user }, error: userError } = await supabase.auth.getUser();
+              if (user && !userError) {
+                supabaseUser = user;
+              }
+            } catch (getUserError: any) {
+              // Es normal que falle si no hay sesión, especialmente cuando el usuario viene de Auth0
+              console.log('[useAuth0Role] ⚠️ No Supabase session found (this is normal for Auth0 users):', getUserError?.message || 'No session');
+            }
+          }
+        } catch (sessionError: any) {
+          // Es normal que no haya sesión cuando el usuario viene de Auth0
+          console.log('[useAuth0Role] ⚠️ No Supabase session found (this is normal for Auth0 users):', sessionError?.message || 'No session');
+        }
         
         if (!supabaseUser) {
           console.log('[useAuth0Role] ⚠️ No Supabase user found');
@@ -156,7 +177,28 @@ export function useAuth0Role(): Auth0RoleData {
 
     async function syncRoleToSupabase(auth0Role: AppRole) {
       try {
-        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        // Primero intentar obtener la sesión (más seguro cuando no hay sesión)
+        let supabaseUser = null;
+        try {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (session?.user && !sessionError) {
+            supabaseUser = session.user;
+          } else {
+            // Intentar getUser como fallback (puede fallar si no hay sesión)
+            try {
+              const { data: { user }, error: userError } = await supabase.auth.getUser();
+              if (user && !userError) {
+                supabaseUser = user;
+              }
+            } catch (getUserError: any) {
+              // Es normal que falle si no hay sesión, especialmente cuando el usuario viene de Auth0
+              console.log('[useAuth0Role] ⚠️ No Supabase session found when syncing role (this is normal for Auth0 users):', getUserError?.message || 'No session');
+            }
+          }
+        } catch (sessionError: any) {
+          // Es normal que no haya sesión cuando el usuario viene de Auth0
+          console.log('[useAuth0Role] ⚠️ No Supabase session found when syncing role (this is normal for Auth0 users):', sessionError?.message || 'No session');
+        }
         
         if (!supabaseUser) {
           console.warn('[useAuth0Role] ⚠️ Cannot sync role: No Supabase user');

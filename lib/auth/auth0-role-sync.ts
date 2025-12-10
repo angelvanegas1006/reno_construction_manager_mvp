@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -20,6 +21,7 @@ export async function syncAuth0RoleToSupabase(
   function mapAuth0RoleToAppRole(auth0Role: string): AppRole | null {
     const roleMap: Record<string, AppRole> = {
       'admin': 'admin',
+      'construction_manager': 'construction_manager',
       'foreman': 'foreman',
       'user': 'user',
       // Aliases comunes
@@ -74,6 +76,79 @@ export async function syncAuth0RoleToSupabase(
     }
   } catch (err) {
     console.error('[syncAuth0RoleToSupabase] ❌ Unexpected error:', err);
+  }
+
+  return finalRole;
+}
+
+/**
+ * Sincroniza el rol de Auth0 a Supabase usando un cliente admin
+ * Útil para operaciones server-side donde no hay contexto de cookies
+ */
+export async function syncRoleToSupabaseAdmin(
+  supabaseAdmin: SupabaseClient<Database>,
+  supabaseUserId: string,
+  auth0Roles: string[] | null,
+  auth0Metadata?: { role?: string }
+): Promise<AppRole> {
+  // Mapear rol de Auth0 a rol de la app
+  function mapAuth0RoleToAppRole(auth0Role: string): AppRole | null {
+    const roleMap: Record<string, AppRole> = {
+      'admin': 'admin',
+      'construction_manager': 'construction_manager',
+      'foreman': 'foreman',
+      'user': 'user',
+      // Aliases comunes
+      'jefe_de_obra': 'foreman',
+      'administrator': 'admin',
+      'usuario': 'user',
+    };
+
+    const normalizedRole = auth0Role.toLowerCase().trim();
+    return roleMap[normalizedRole] || null;
+  }
+
+  // Determinar el rol desde Auth0
+  let auth0Role: AppRole | null = null;
+
+  // Prioridad 1: Roles del array
+  if (auth0Roles && auth0Roles.length > 0) {
+    for (const role of auth0Roles) {
+      const mappedRole = mapAuth0RoleToAppRole(role);
+      if (mappedRole) {
+        auth0Role = mappedRole;
+        break; // Tomar el primer rol válido
+      }
+    }
+  }
+
+  // Prioridad 2: Rol de metadata
+  if (!auth0Role && auth0Metadata?.role) {
+    auth0Role = mapAuth0RoleToAppRole(auth0Metadata.role);
+  }
+
+  // Si no hay rol de Auth0, usar default
+  const finalRole: AppRole = auth0Role || 'user';
+
+  // Sincronizar a Supabase
+  try {
+    const { error: upsertError } = await supabaseAdmin
+      .from('user_roles')
+      .upsert({
+        user_id: supabaseUserId,
+        role: finalRole,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
+      });
+
+    if (upsertError) {
+      console.error('[syncRoleToSupabaseAdmin] ❌ Error syncing role:', upsertError);
+    } else {
+      console.log('[syncRoleToSupabaseAdmin] ✅ Role synced:', finalRole);
+    }
+  } catch (err) {
+    console.error('[syncRoleToSupabaseAdmin] ❌ Unexpected error:', err);
   }
 
   return finalRole;

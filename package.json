@@ -33,6 +33,7 @@
     "sync:final-check": "tsx scripts/sync-final-check.ts",
     "sync:all-pics-urls": "tsx scripts/sync-all-pics-urls.ts",
     "sync:roles-to-auth0": "tsx scripts/sync-roles-to-auth0.ts",
+    "create:users": "tsx scripts/create-initial-users.ts",
     "migrate:dynamic-categories": "tsx scripts/migrate-dynamic-categories-prod-to-dev.ts",
     "check:migrations": "tsx scripts/check-migrations-status.ts",
     "verify:initial-check": "tsx scripts/verify-initial-check-properties.ts",

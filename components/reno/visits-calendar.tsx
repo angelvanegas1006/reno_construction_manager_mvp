@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Plus, CheckCircle2, Wrench, Bell, Edit, Trash2 } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Plus, CheckCircle2, Wrench, Bell, Edit, Trash2, RefreshCw, CalendarCheck, X } from "lucide-react";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { useI18n } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -45,6 +46,7 @@ export function VisitsCalendar({
 }: VisitsCalendarProps) {
   const { t, language } = useI18n();
   const supabase = createClient();
+  const { isConnected, isSyncing, sync, connect, disconnect, canConnect, isConfigured } = useGoogleCalendar();
   const [visits, setVisits] = useState<CalendarVisit[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -332,15 +334,43 @@ export function VisitsCalendar({
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("property_visits").insert({
-        property_id: selectedPropertyId,
-        visit_date: visitDate,
-        visit_type: visitType,
-        notes: notes.trim() || null,
-      });
+      const { data: newVisit, error } = await supabase
+        .from("property_visits")
+        .insert({
+          property_id: selectedPropertyId,
+          visit_date: visitDate,
+          visit_type: visitType,
+          notes: notes.trim() || null,
+        })
+        .select()
+        .single();
 
       if (error) {
         throw error;
+      }
+
+      // Sync to Google Calendar if connected
+      if (isConnected && newVisit) {
+        try {
+          const response = await fetch('/api/google-calendar/sync-visit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              visitId: newVisit.id,
+              action: 'create',
+            }),
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            if (!error.skipped) {
+              console.error('Error syncing visit to Google Calendar:', error);
+            }
+          }
+        } catch (syncError) {
+          console.error('Error syncing visit to Google Calendar:', syncError);
+          // Don't fail the visit creation if sync fails
+        }
       }
 
       toast.success(
@@ -370,16 +400,42 @@ export function VisitsCalendar({
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
+      const { data: updatedVisit, error } = await supabase
         .from("property_visits")
         .update({
           visit_date: editVisitDate,
           notes: editNotes.trim() || null,
         })
-        .eq("id", selectedVisit.id);
+        .eq("id", selectedVisit.id)
+        .select()
+        .single();
 
       if (error) {
         throw error;
+      }
+
+      // Sync to Google Calendar if connected
+      if (isConnected && updatedVisit) {
+        try {
+          const response = await fetch('/api/google-calendar/sync-visit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              visitId: updatedVisit.id,
+              action: 'update',
+            }),
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            if (!error.skipped) {
+              console.error('Error syncing visit update to Google Calendar:', error);
+            }
+          }
+        } catch (syncError) {
+          console.error('Error syncing visit update to Google Calendar:', syncError);
+          // Don't fail the visit update if sync fails
+        }
       }
 
       toast.success(
@@ -410,13 +466,38 @@ export function VisitsCalendar({
 
     setIsSubmitting(true);
     try {
+      const visitId = selectedVisit.id;
       const { error } = await supabase
         .from("property_visits")
         .delete()
-        .eq("id", selectedVisit.id);
+        .eq("id", visitId);
 
       if (error) {
         throw error;
+      }
+
+      // Delete from Google Calendar if connected
+      if (isConnected) {
+        try {
+          const response = await fetch('/api/google-calendar/sync-visit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              visitId: visitId,
+              action: 'delete',
+            }),
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            if (!error.skipped) {
+              console.error('Error deleting visit from Google Calendar:', error);
+            }
+          }
+        } catch (syncError) {
+          console.error('Error deleting visit from Google Calendar:', syncError);
+          // Don't fail the visit deletion if sync fails
+        }
       }
 
       toast.success(
@@ -529,6 +610,55 @@ export function VisitsCalendar({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          {/* Google Calendar Connect/Disconnect Button */}
+          {canConnect && isConfigured && (
+            <>
+              {isConnected ? (
+                <>
+                  <Button
+                    onClick={sync}
+                    disabled={isSyncing}
+                    variant="outline"
+                    size="sm"
+                    title="Sincronizar con Google Calendar"
+                    className="flex-shrink-0"
+                  >
+                    {isSyncing ? (
+                      <>
+                        <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
+                        <span className="text-xs">Sync...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-3 w-3 mr-1.5" />
+                        <span className="text-xs">Sync</span>
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={disconnect}
+                    variant="ghost"
+                    size="sm"
+                    title="Desconectar Google Calendar"
+                    className="flex-shrink-0 h-8 px-2"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={connect}
+                  variant="outline"
+                  size="sm"
+                  title="Conectar Google Calendar"
+                  className="flex-shrink-0"
+                >
+                  <Calendar className="h-3 w-3 mr-1.5" />
+                  <span className="text-xs">Google Calendar</span>
+                </Button>
+              )}
+            </>
+          )}
           {/* Selector de vista */}
           <div className="flex gap-1 border rounded-md flex-shrink-0">
             <button

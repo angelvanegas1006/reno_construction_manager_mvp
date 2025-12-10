@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Bell, Plus, MapPin, Clock, Edit, Trash2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
+import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -45,6 +46,7 @@ export function VisitsAndRemindersSection({
 }: VisitsAndRemindersSectionProps) {
   const { t } = useI18n();
   const supabase = createClient();
+  const { user } = useAppAuth(); // Use AppAuthContext instead of direct Supabase call
   const [visits, setVisits] = useState<PropertyVisit[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -53,21 +55,10 @@ export function VisitsAndRemindersSection({
   const [visitDate, setVisitDate] = useState<string | undefined>(undefined);
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const currentUser = user?.email || user?.id || null; // Get from AppAuthContext
   const [editingVisit, setEditingVisit] = useState<PropertyVisit | null>(null);
   const [editVisitDate, setEditVisitDate] = useState<string | undefined>(undefined);
   const [editNotes, setEditNotes] = useState("");
-
-  // Obtener usuario actual
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setCurrentUser(user?.email || user?.id || null);
-    };
-    getUser();
-  }, [supabase]);
 
   // Cargar visitas y recordatorios
   useEffect(() => {

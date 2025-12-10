@@ -10,22 +10,55 @@ import { VisitsCalendar } from "@/components/reno/visits-calendar";
 import { RenoHomeRecentProperties } from "@/components/reno/reno-home-recent-properties";
 import { RenoHomePortfolio } from "@/components/reno/reno-home-portfolio";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
+import { ForemanFilterCombobox } from "@/components/reno/foreman-filter-combobox";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
+// import { GoogleCalendarConnect } from "@/components/auth/google-calendar-connect"; // Movido al calendario como botón pequeño
 import { sortPropertiesByExpired, isPropertyExpired } from "@/lib/property-sorting";
 import { toast } from "sonner";
 import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { createClient } from "@/lib/supabase/client";
+import { useAppAuth } from "@/lib/auth/app-auth-context";
+import { matchesTechnicalConstruction } from "@/lib/supabase/user-name-utils";
 
 export default function RenoConstructionManagerHomePage() {
   const { t } = useI18n();
   const router = useRouter();
+  const { user, role } = useAppAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [selectedForemanEmails, setSelectedForemanEmails] = useState<string[]>([]);
   const supabase = createClient();
 
   // Load properties from Supabase
-  const { propertiesByPhase, loading: supabaseLoading, error: supabaseError } = useSupabaseKanbanProperties();
+  const { propertiesByPhase: rawPropertiesByPhase, loading: supabaseLoading, error: supabaseError } = useSupabaseKanbanProperties();
+  
+  // Filtrar propertiesByPhase por foreman seleccionados (solo para construction_manager)
+  const propertiesByPhase = useMemo(() => {
+    if (!rawPropertiesByPhase) return undefined;
+    
+    // Si no hay filtro o no es construction_manager, devolver sin filtrar
+    if (role !== 'construction_manager' || selectedForemanEmails.length === 0 || !user?.email) {
+      return rawPropertiesByPhase;
+    }
+    
+    // Filtrar cada fase por foreman seleccionados
+    const filtered: Record<string, Property[]> = {};
+    
+    Object.entries(rawPropertiesByPhase).forEach(([phase, phaseProperties]) => {
+      filtered[phase] = phaseProperties.filter((property) => {
+        const technicalConstruction = (property as any).supabaseProperty?.["Technical construction"];
+        if (!technicalConstruction) return false;
+        
+        // Verificar si el foreman de la propiedad está en la lista seleccionada
+        return selectedForemanEmails.some(email => 
+          matchesTechnicalConstruction(technicalConstruction, email)
+        );
+      });
+    });
+    
+    return filtered;
+  }, [rawPropertiesByPhase, selectedForemanEmails, role, user?.email]);
   
   // Load visits for today
   const [visitsForToday, setVisitsForToday] = useState<number>(0);
@@ -82,6 +115,7 @@ export default function RenoConstructionManagerHomePage() {
     console.log('[RenoHomePage] 🔄 Computing properties...', {
       loading: supabaseLoading,
       hasPropertiesByPhase: !!propertiesByPhase,
+      selectedForemanEmails,
       timestamp: new Date().toISOString(),
     });
 
@@ -96,7 +130,7 @@ export default function RenoConstructionManagerHomePage() {
     }
     
     // Flatten all properties from all phases
-    // Properties are already converted to Property format by useSupabaseKanbanProperties
+    // Properties are already filtered by foreman in propertiesByPhase if needed
     const allProps: Property[] = [];
     Object.values(propertiesByPhase).forEach((phaseProperties, index) => {
       const phaseName = Object.keys(propertiesByPhase)[index];
@@ -113,7 +147,7 @@ export default function RenoConstructionManagerHomePage() {
     });
     
     return allProps;
-  }, [propertiesByPhase, supabaseLoading]);
+  }, [propertiesByPhase, supabaseLoading, selectedForemanEmails, role, user?.email]);
   
   // Log when properties change
   useEffect(() => {
@@ -190,7 +224,7 @@ export default function RenoConstructionManagerHomePage() {
 
   // Handle add visit
   const handleAddVisit = () => {
-    toast.info("Añadir nueva visita - Próximamente");
+    toast.info(t.dashboard.addVisit);
   };
 
 
@@ -212,6 +246,27 @@ export default function RenoConstructionManagerHomePage() {
             <RenoHomeLoader className="min-h-[400px]" />
           ) : (
             <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
+              {/* Foreman Filter - Solo para construction_manager */}
+              {role === 'construction_manager' && (
+                <div className="bg-card border rounded-lg p-4">
+                  <ForemanFilterCombobox
+                    properties={(() => {
+                      // Obtener todas las propiedades sin filtrar para el combobox
+                      if (!propertiesByPhase) return [];
+                      const allProps: Property[] = [];
+                      Object.values(propertiesByPhase).forEach((phaseProperties) => {
+                        allProps.push(...phaseProperties);
+                      });
+                      return allProps;
+                    })()}
+                    selectedForemanEmails={selectedForemanEmails}
+                    onSelectionChange={setSelectedForemanEmails}
+                    placeholder={t.dashboard.foremanFilter.filterByForeman}
+                    label={t.dashboard.foremanFilter.filterByConstructionManager}
+                  />
+                </div>
+              )}
+
               {/* KPIs */}
               <RenoHomeIndicators
                 obrasActivas={indicators.obrasActivas}

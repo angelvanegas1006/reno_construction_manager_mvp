@@ -96,18 +96,42 @@ export class Auth0ManagementClient {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Auth0 API error (${response.status}): ${error}`);
+      let errorText: string;
+      try {
+        errorText = await response.text();
+      } catch (e) {
+        errorText = `HTTP ${response.status} ${response.statusText}`;
+      }
+      throw new Error(`Auth0 API error (${response.status}): ${errorText}`);
     }
 
-    return response.json();
+    // Verificar si hay contenido antes de parsear JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      if (!text) {
+        // Respuesta vacía es válida para algunos endpoints (DELETE, etc.)
+        return {} as T;
+      }
+      throw new Error(`Expected JSON but got ${contentType}: ${text.substring(0, 100)}`);
+    }
+
+    try {
+      const text = await response.text();
+      if (!text) {
+        return {} as T;
+      }
+      return JSON.parse(text);
+    } catch (e: any) {
+      throw new Error(`Failed to parse JSON response: ${e.message}`);
+    }
   }
 
   /**
    * Crear roles en Auth0 desde los roles de Supabase
    */
   async syncRolesFromSupabase(): Promise<Auth0Role[]> {
-    const roles = ['admin', 'foreman', 'user'];
+    const roles = ['admin', 'construction_manager', 'foreman', 'user'];
     const createdRoles: Auth0Role[] = [];
 
     for (const roleName of roles) {
@@ -151,6 +175,7 @@ export class Auth0ManagementClient {
   private getRoleDescription(role: string): string {
     const descriptions: Record<string, string> = {
       admin: 'Administrador con acceso completo al sistema',
+      construction_manager: 'Construction Manager con acceso completo al sistema',
       foreman: 'Jefe de obra con acceso a construcción',
       user: 'Usuario básico con acceso de solo lectura',
     };
@@ -169,8 +194,15 @@ export class Auth0ManagementClient {
   }): Promise<Auth0User> {
     const connection = params.connection || 'Username-Password-Authentication';
 
+    // Generar username corto desde el email (parte antes del @, máximo 15 caracteres)
+    const emailUsername = params.email.split('@')[0];
+    const username = emailUsername.length <= 15 
+      ? emailUsername 
+      : emailUsername.substring(0, 15);
+
     const userData: any = {
       email: params.email,
+      username: username,
       name: params.name || params.email,
       connection,
       verify_email: false, // El usuario verificará su email después

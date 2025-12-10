@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getAuth0ManagementClient } from '@/lib/auth0/management-client';
 import { syncAuth0RoleToSupabase } from '@/lib/auth/auth0-role-sync';
 
@@ -26,21 +27,22 @@ export async function PATCH(
       .eq('user_id', user.id)
       .single();
 
-    if (roleData?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    if (roleData?.role !== 'admin' && roleData?.role !== 'construction_manager') {
+      return NextResponse.json({ error: 'Forbidden: Admin or Construction Manager access required' }, { status: 403 });
     }
 
     const body = await request.json();
     const { email, name, role } = body;
     const { userId } = await params;
 
-    // Actualizar en Supabase
+    // Actualizar en Supabase usando cliente admin
+    const adminSupabase = createAdminClient();
     const updates: any = {};
     if (email) updates.email = email;
     if (name) updates.user_metadata = { name };
 
     if (Object.keys(updates).length > 0) {
-      const { error: updateError } = await supabase.auth.admin.updateUserById(userId, updates);
+      const { error: updateError } = await adminSupabase.auth.admin.updateUserById(userId, updates);
       if (updateError) throw updateError;
     }
 
@@ -51,7 +53,7 @@ export async function PATCH(
 
       // Actualizar en Auth0 (si el usuario tiene auth0_user_id)
       try {
-        const { data: supabaseUser } = await supabase.auth.admin.getUserById(userId);
+        const { data: supabaseUser } = await adminSupabase.auth.admin.getUserById(userId);
         const auth0UserId = supabaseUser?.user?.app_metadata?.auth0_user_id;
         
         if (auth0UserId) {
@@ -107,8 +109,8 @@ export async function DELETE(
       .eq('user_id', user.id)
       .single();
 
-    if (roleData?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    if (roleData?.role !== 'admin' && roleData?.role !== 'construction_manager') {
+      return NextResponse.json({ error: 'Forbidden: Admin or Construction Manager access required' }, { status: 403 });
     }
 
     const { userId } = await params;
@@ -118,13 +120,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
     }
 
-    // Eliminar de Supabase (esto también elimina el rol por CASCADE)
-    const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+    // Eliminar de Supabase usando cliente admin (esto también elimina el rol por CASCADE)
+    const adminSupabase = createAdminClient();
+    const { error: deleteError } = await adminSupabase.auth.admin.deleteUser(userId);
     if (deleteError) throw deleteError;
 
     // Intentar eliminar de Auth0 (si existe)
     try {
-      const { data: supabaseUser } = await supabase.auth.admin.getUserById(userId);
+      const { data: supabaseUser } = await adminSupabase.auth.admin.getUserById(userId);
       const auth0UserId = supabaseUser?.user?.app_metadata?.auth0_user_id;
       
       if (auth0UserId) {

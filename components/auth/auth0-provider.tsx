@@ -35,13 +35,28 @@ export function Auth0ProviderWrapper({ children }: Auth0ProviderWrapperProps) {
     );
   }
 
+  // Construir redirect_uri de forma explícita
+  const redirectUri = typeof window !== "undefined" 
+    ? `${window.location.origin}/auth/callback`
+    : "";
+
+  console.log("[Auth0Provider] Config:", {
+    domain,
+    clientId: clientId?.substring(0, 10) + "...",
+    redirectUri,
+  });
+
   return (
     <Auth0Provider
       domain={domain}
       clientId={clientId}
       authorizationParams={{
-        redirect_uri: typeof window !== "undefined" ? window.location.origin : "",
+        redirect_uri: redirectUri,
+        scope: "openid profile email",
       }}
+      useRefreshTokens={true}
+      cacheLocation="localstorage"
+      skipRedirectCallback={false}
     >
       {children}
     </Auth0Provider>

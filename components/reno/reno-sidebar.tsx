@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X } from "lucide-react";
+import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -15,9 +16,11 @@ import {
 import { VistralLogo } from "@/components/vistral-logo";
 import { ThemeSelector } from "@/components/user/theme-selector";
 import { LanguageSelector } from "@/components/user/language-selector";
+import { ChangePasswordModal } from "@/components/user/change-password-modal";
 import { useI18n } from "@/lib/i18n";
 import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
+import { useAuth0 } from "@auth0/auth0-react";
 import { HelpModal } from "@/components/reno/help-modal";
 import { extractNameFromEmail } from "@/lib/supabase/user-name-utils";
 import { useHelpConversations } from "@/hooks/useHelpConversations";
@@ -36,21 +39,35 @@ const getNavigationItems = (t: any) => [
   },
 ];
 
-const getSettingsItems = (t: any, unreadCount: number = 0) => [
-  {
-    label: t.nav.notifications,
-    href: "/reno/construction-manager/notifications",
-    icon: Bell,
-    comingSoon: false,
-    badge: unreadCount > 0 ? unreadCount : undefined,
-  },
-  {
-    label: t.nav.help,
-    href: "/reno/construction-manager/help",
-    icon: HelpCircle,
-    comingSoon: true,
-  },
-];
+const getSettingsItems = (t: any, unreadCount: number = 0, role?: string) => {
+  const items = [
+    {
+      label: t.nav.notifications,
+      href: "/reno/construction-manager/notifications",
+      icon: Bell,
+      comingSoon: false,
+      badge: unreadCount > 0 ? unreadCount : undefined,
+    },
+    {
+      label: t.nav.help,
+      href: "/reno/construction-manager/help",
+      icon: HelpCircle,
+      comingSoon: true,
+    },
+  ];
+
+  // Agregar enlace de administración de usuarios solo para admin y construction_manager
+  if (role === "admin" || role === "construction_manager") {
+    items.push({
+      label: t.sidebar.users,
+      href: "/admin/users",
+      icon: Users,
+      comingSoon: false,
+    });
+  }
+
+  return items;
+};
 
 interface RenoSidebarProps {
   isMobileOpen?: boolean;
@@ -61,15 +78,27 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
   const { t } = useI18n();
   const { user: supabaseUser, signOut } = useSupabaseAuthContext();
   const { user: appUser, role } = useAppAuth();
+  const { isAuthenticated: isAuth0Authenticated, logout: auth0Logout } = useAuth0();
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const { unreadCount } = useHelpConversations();
   
-  // Use Supabase signOut, fallback to mock logout if needed
+  // Unified logout: handle both Auth0 and Supabase
   const handleLogout = async () => {
+    // Logout from Supabase
     await signOut();
+    
+    // Also logout from Auth0 if authenticated
+    if (isAuth0Authenticated && auth0Logout) {
+      auth0Logout({
+        logoutParams: {
+          returnTo: typeof window !== 'undefined' ? window.location.origin + '/login' : '/login',
+        },
+      });
+    }
   };
   const navigationItems = getNavigationItems(t);
-  const settingsItems = getSettingsItems(t, unreadCount);
+  const settingsItems = getSettingsItems(t, unreadCount, role);
   const pathname = usePathname();
   
   // Get user name from email
@@ -236,6 +265,11 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   <DropdownMenuSeparator />
                   <LanguageSelector />
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)}>
+                    <Lock className="mr-2 h-4 w-4" />
+                    {t.userMenu.changePassword.menuItem}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     {t.nav.logout}
@@ -258,34 +292,60 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        {!collapsed && (
+      <div className={cn(
+        "flex items-center border-b border-border transition-all duration-300",
+        collapsed ? "justify-center p-3" : "justify-between p-4"
+      )}>
+        {collapsed ? (
           <Link 
             href="/reno/construction-manager"
-            className="flex-shrink-0 transition-all duration-300 ease-in-out hover:opacity-80 flex items-center"
+            className="flex-shrink-0 transition-all duration-300 ease-in-out hover:opacity-80 flex items-center justify-center"
+            title="Vistral"
           >
-            <VistralLogo variant={null} className="h-8" />
+            {/* Solo mostrar el icono del logo cuando está comprimida */}
+            <div className="flex-shrink-0 relative" style={{ width: 32, height: 32 }}>
+              <Image
+                src="/vistral-logo.svg"
+                alt="Vistral Logo"
+                width={32}
+                height={32}
+                className="object-contain w-full h-full dark:hidden"
+                priority
+                unoptimized
+              />
+              <Image
+                src="/vistral-logo-dark.svg"
+                alt="Vistral Logo"
+                width={32}
+                height={32}
+                className="object-contain w-full h-full hidden dark:block"
+                priority
+                unoptimized
+              />
+            </div>
           </Link>
+        ) : (
+          <>
+            <Link 
+              href="/reno/construction-manager"
+              className="flex-shrink-0 transition-all duration-300 ease-in-out hover:opacity-80 flex items-center"
+            >
+              <VistralLogo variant={null} className="h-8" />
+            </Link>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCollapsed((prev) => !prev);
+              }}
+              className="p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] transition-colors flex-shrink-0"
+              aria-label="Collapse sidebar"
+              type="button"
+            >
+              <PanelLeftClose className="h-5 w-5 text-foreground" />
+            </button>
+          </>
         )}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setCollapsed((prev) => !prev);
-          }}
-          className={cn(
-            "p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] transition-colors flex-shrink-0",
-            collapsed ? "ml-auto" : ""
-          )}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          type="button"
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="h-5 w-5 text-foreground" />
-          ) : (
-            <PanelLeftClose className="h-5 w-5 text-foreground" />
-          )}
-        </button>
       </div>
 
       {/* Navigation - Plataforma */}
@@ -350,10 +410,63 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
         )}
 
         {/* Divider */}
-        {!collapsed && <div className="border-t border-border my-4" />}
+        <div className={cn("border-t border-border", collapsed ? "my-2" : "my-4")} />
 
         {/* Settings */}
-        {!collapsed && (
+        {collapsed ? (
+          <nav className="space-y-1">
+            {settingsItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              
+              // Special handling for help item - open modal instead of link
+              if (item.label === t.nav.help) {
+                return (
+                  <button
+                    key={item.href}
+                    onClick={() => setIsHelpModalOpen(true)}
+                    className={cn(
+                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors relative",
+                      isActive
+                        ? "bg-primary/20 text-primary dark:text-white"
+                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                    title={item.label}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-[10px] font-semibold text-white">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              }
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors relative",
+                    isActive
+                      ? "bg-primary/20 text-primary dark:text-white"
+                      : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                    item.comingSoon && "opacity-50 cursor-not-allowed"
+                  )}
+                  title={item.label}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-[10px] font-semibold text-white">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+        ) : (
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
               {t.sidebar.configuration}
@@ -411,40 +524,65 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
       </div>
 
       {/* Footer - User Menu */}
-      <div className="p-4 border-t border-border">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className={cn(
-              "flex items-center gap-3 w-full rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
-              collapsed && "justify-center"
-            )}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground flex-shrink-0">
-                <span className="text-xs font-semibold">
-                  {appUser?.email?.charAt(0).toUpperCase() || supabaseUser?.email?.charAt(0).toUpperCase() || "U"}
-                </span>
-              </div>
-              {!collapsed && (
-                <>
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-medium truncate">{appUser?.email || supabaseUser?.email || t.sidebar.user}</p>
-                    <p className="text-xs text-muted-foreground truncate">{role || ""}</p>
-                  </div>
-                  <ChevronDown className="h-4 w-4 flex-shrink-0" />
-                </>
-              )}
+      <div className="border-t border-border">
+        {/* Botón de toggle en el centro de la línea divisoria cuando está comprimida */}
+        {collapsed && (
+          <div className="flex justify-center py-2 border-b border-border">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCollapsed((prev) => !prev);
+              }}
+              className="p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] transition-colors"
+              aria-label="Expand sidebar"
+              type="button"
+            >
+              <PanelLeftOpen className="h-4 w-4 text-foreground" />
             </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <ThemeSelector />
-            <DropdownMenuSeparator />
-            <LanguageSelector />
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              {t.nav.logout}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </div>
+        )}
+        
+        <div className="p-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn(
+                "flex items-center gap-3 w-full rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
+                collapsed && "justify-center"
+              )}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground flex-shrink-0">
+                  <span className="text-xs font-semibold">
+                    {appUser?.email?.charAt(0).toUpperCase() || supabaseUser?.email?.charAt(0).toUpperCase() || "U"}
+                  </span>
+                </div>
+                {!collapsed && (
+                  <>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-medium truncate">{appUser?.email || supabaseUser?.email || t.sidebar.user}</p>
+                      <p className="text-xs text-muted-foreground truncate">{role || ""}</p>
+                    </div>
+                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                  </>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <ThemeSelector />
+              <DropdownMenuSeparator />
+              <LanguageSelector />
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)}>
+                <Lock className="mr-2 h-4 w-4" />
+                {t.userMenu.changePassword.menuItem}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                {t.nav.logout}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
       
       {/* Help Modal */}
@@ -453,6 +591,12 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
         onOpenChange={setIsHelpModalOpen}
         userName={userName}
         userRole={role || undefined}
+      />
+      
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        open={isChangePasswordModalOpen}
+        onOpenChange={setIsChangePasswordModalOpen}
       />
     </aside>
   );

@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { VistralLogo } from "@/components/vistral-logo";
 import { useI18n } from "@/lib/i18n";
-import { Auth0LoginButton } from "@/components/auth/auth0-login-button";
+// import { Auth0LoginButton } from "@/components/auth/auth0-login-button"; // Ocultado temporalmente
 
 export function LoginForm() {
   const { t } = useI18n();
@@ -92,10 +92,10 @@ export function LoginForm() {
       if (role === 'foreman') {
         router.push("/reno/construction-manager");
         toast.success("¡Bienvenido!");
-      } else if (role === 'admin') {
-        // TODO: Add admin dashboard route
+      } else if (role === 'admin' || role === 'construction_manager') {
+        // Admin y Construction Manager van al kanban
         router.push("/reno/construction-manager/kanban");
-        toast.success("¡Bienvenido Admin!");
+        toast.success(role === 'admin' ? "¡Bienvenido Admin!" : "¡Bienvenido!");
       } else {
         toast.error("No tienes permisos para acceder a esta aplicación");
         await supabase.auth.signOut();
@@ -106,7 +106,14 @@ export function LoginForm() {
       // Handle specific error types
       let errorMessage = "Error al iniciar sesión. Verifica tus credenciales.";
       
-      if (err.message?.includes('Failed to fetch') || err.message?.includes('fetch')) {
+      // Verificar si el error es de credenciales inválidas
+      if (err.message?.includes('Invalid login credentials') || 
+          err.message?.includes('invalid_credentials') ||
+          err.status === 400 ||
+          err.code === 'invalid_credentials') {
+        // Mensaje más útil que sugiere usar Auth0 si la cuenta fue creada con ese método
+        errorMessage = "Credenciales incorrectas. Si tu cuenta fue creada con Auth0, usa el botón 'Continuar con Auth0' para iniciar sesión. De lo contrario, verifica tu email y contraseña.";
+      } else if (err.message?.includes('Failed to fetch') || err.message?.includes('fetch')) {
         errorMessage = "Error de conexión: No se pudo conectar con el servidor. Verifica tu conexión a internet y la configuración de Supabase.";
       } else if (err.message?.includes('Missing Supabase') || err.message?.includes('environment variables')) {
         errorMessage = "Error de configuración: Las variables de entorno de Supabase no están configuradas correctamente.";
@@ -150,10 +157,10 @@ export function LoginForm() {
             {t.login.secureLoginButton}
           </Button>
           
-          {/* Auth0 Login Button (SDK) */}
-          <div className="w-full">
+          {/* Auth0 Login Button (SDK) - Ocultado temporalmente */}
+          {/* <div className="w-full">
             <Auth0LoginButton />
-          </div>
+          </div> */}
         </div>
 
         {/* Secondary Link */}
@@ -215,8 +222,13 @@ export function LoginForm() {
           </div>
 
           {error && (
-            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 p-3 rounded-md">
-              {error}
+            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 p-3 rounded-md space-y-2">
+              <div>{error}</div>
+              {error.includes('Auth0') && (
+                <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-red-200 dark:border-red-800">
+                  💡 Tip: Si tu cuenta fue creada con Auth0, no puedes usar email/password. Usa el botón "Continuar con Auth0" debajo.
+                </div>
+              )}
             </div>
           )}
 
@@ -235,18 +247,18 @@ export function LoginForm() {
             )}
           </Button>
 
-          {/* Divider */}
-          <div className="relative">
+          {/* Divider - Ocultado temporalmente */}
+          {/* <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-card px-2 text-muted-foreground">O</span>
             </div>
-          </div>
+          </div> */}
 
-          {/* Auth0 Login Button (SDK) */}
-          <Auth0LoginButton />
+          {/* Auth0 Login Button (SDK) - Ocultado temporalmente */}
+          {/* <Auth0LoginButton /> */}
 
           <div className="text-center text-sm text-muted-foreground">
             <button

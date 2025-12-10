@@ -187,7 +187,7 @@ export function useSupabaseKanbanProperties() {
           .neq('reno_phase', 'orphaned');
 
         // Filter by role:
-        // - Admin: see all properties
+        // - Admin/Construction Manager: see all properties
         // - Foreman: only see properties where "Technical construction" matches their name/email
         if (role === 'foreman' && user?.email) {
           // For foreman, we need to filter by "Technical construction"
@@ -195,7 +195,7 @@ export function useSupabaseKanbanProperties() {
           // This is not ideal for large datasets, but works for now
           query = query.select('*');
         }
-        // Admin and other roles: no filter needed (fetch all)
+        // Admin, construction_manager and other roles: no filter needed (fetch all)
 
         console.log('[useSupabaseKanbanProperties] 📡 Executing query...', {
           role,
