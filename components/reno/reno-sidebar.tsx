@@ -267,7 +267,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)}>
                     <Lock className="mr-2 h-4 w-4" />
-                    {t.userMenu.changePassword.menuItem}
+                    {t.userMenu?.changePassword?.menuItem || "Cambiar Contraseña"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
@@ -573,7 +573,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)}>
                 <Lock className="mr-2 h-4 w-4" />
-                {t.userMenu.changePassword.menuItem}
+                {t.userMenu?.changePassword?.menuItem || "Cambiar Contraseña"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
