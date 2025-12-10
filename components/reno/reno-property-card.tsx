@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Flag } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
@@ -162,12 +162,6 @@ export function RenoPropertyCard({
         onClick?.();
       }}
     >
-      {/* Red flag indicator in top right corner */}
-      {(exceedsDurationLimit && stage === "reno-in-progress") || exceedsDaysToStartLimit || exceedsDaysToVisitLimit || exceedsDaysToPropertyReadyLimit ? (
-        <div className="absolute top-2 right-2">
-          <Flag className="h-4 w-4 text-red-500 flex-shrink-0 stroke-black" fill="currentColor" strokeWidth={2} />
-        </div>
-      ) : null}
       {/* ID and Expired tag aligned at top */}
       <div className="flex items-center justify-between mb-2 gap-2 min-w-0">
         <div className="text-xs font-semibold text-muted-foreground truncate min-w-0">

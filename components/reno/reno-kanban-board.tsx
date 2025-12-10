@@ -16,7 +16,7 @@ import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Columns, Settings, AlertTriangle, Flag } from "lucide-react";
+import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Columns, Settings, AlertTriangle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1209,10 +1209,6 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             {getVisibleColumnsForPhase(column.key).has("id") && (
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
-                                  {/* Red flag indicator for delayed properties */}
-                                  {isRed && (
-                                    <Flag className="h-3.5 w-3.5 text-red-500 flex-shrink-0 stroke-black" fill="currentColor" strokeWidth={2} />
-                                  )}
                                   <span className="text-sm font-medium text-foreground">
                                     {property.uniqueIdFromEngagements || property.id}
                                   </span>
