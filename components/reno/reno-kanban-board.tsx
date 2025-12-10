@@ -16,7 +16,7 @@ import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Columns, Settings, AlertTriangle } from "lucide-react";
+import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Columns, Settings, AlertTriangle, Flag } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1207,15 +1207,12 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             )}
                           >
                             {getVisibleColumnsForPhase(column.key).has("id") && (
-                              <td 
-                                className={cn(
-                                  "px-4 py-3 whitespace-nowrap relative",
-                                  // Apply red border using pseudo-element on first cell
-                                  isRed && "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[4px] before:bg-red-500 before:z-0",
-                                  expired && !isRed && "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[4px] before:bg-red-100 before:dark:bg-red-900/30 before:z-0"
-                                )}
-                              >
+                              <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center gap-2">
+                                  {/* Red flag indicator for delayed properties */}
+                                  {isRed && (
+                                    <Flag className="h-3.5 w-3.5 text-red-500 flex-shrink-0 stroke-black" fill="currentColor" strokeWidth={2} />
+                                  )}
                                   <span className="text-sm font-medium text-foreground">
                                     {property.uniqueIdFromEngagements || property.id}
                                   </span>
