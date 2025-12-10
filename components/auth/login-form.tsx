@@ -88,13 +88,9 @@ export function LoginForm() {
         role = 'user';
       }
 
-      // Redirect based on role
-      if (role === 'foreman') {
+      // Redirect based on role - todos van a la home
+      if (role === 'foreman' || role === 'admin' || role === 'construction_manager') {
         router.push("/reno/construction-manager");
-        toast.success("¡Bienvenido!");
-      } else if (role === 'admin' || role === 'construction_manager') {
-        // Admin y Construction Manager van al kanban
-        router.push("/reno/construction-manager/kanban");
         toast.success(role === 'admin' ? "¡Bienvenido Admin!" : "¡Bienvenido!");
       } else {
         toast.error("No tienes permisos para acceder a esta aplicación");

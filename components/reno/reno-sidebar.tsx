@@ -195,10 +195,10 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                         )}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <Icon className="h-4 w-4 flex-shrink-0" />
+                          <Icon className="h-5 w-5 flex-shrink-0" />
                           <span className="whitespace-nowrap truncate">{item.label}</span>
                         </div>
-                        <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </Link>
@@ -231,7 +231,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                           item.comingSoon && "opacity-50 cursor-not-allowed"
                         )}
                       >
-                        <Icon className="h-4 w-4 flex-shrink-0" />
+                        <Icon className="h-5 w-5 flex-shrink-0" />
                         <span className="whitespace-nowrap truncate">{item.label}</span>
                         {item.comingSoon && (
                           <span className="ml-auto text-xs text-muted-foreground">{t.sidebar.soon}</span>
@@ -257,7 +257,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                     <p className="text-sm font-medium truncate">{appUser?.email || supabaseUser?.email || t.sidebar.user}</p>
                     <p className="text-xs text-muted-foreground truncate">{role || ""}</p>
                   </div>
-                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                    <ChevronDown className="h-5 w-5 flex-shrink-0" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
@@ -266,12 +266,12 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   <LanguageSelector />
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)}>
-                    <Lock className="mr-2 h-4 w-4" />
+                    <Lock className="mr-2 h-5 w-5" />
                     {t.userMenu?.changePassword?.menuItem || "Cambiar Contraseña"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="mr-2 h-5 w-5" />
                     {t.nav.logout}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -372,10 +372,10 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      <Icon className="h-5 w-5 flex-shrink-0" />
                       <span className="whitespace-nowrap truncate">{item.label}</span>
                     </div>
-                    <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </Link>
@@ -487,7 +487,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                         "text-foreground hover:bg-accent hover:text-accent-foreground"
                       )}
                     >
-                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      <Icon className="h-5 w-5 flex-shrink-0" />
                       <span className="whitespace-nowrap truncate">{item.label}</span>
                     </button>
                   );
@@ -505,7 +505,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                       item.comingSoon && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <Icon className="h-5 w-5 flex-shrink-0" />
                     <span className="whitespace-nowrap truncate">{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
                       <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-xs font-semibold text-white">
@@ -538,7 +538,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
               aria-label="Expand sidebar"
               type="button"
             >
-              <PanelLeftOpen className="h-4 w-4 text-foreground" />
+              <PanelLeftOpen className="h-5 w-5 text-foreground" />
             </button>
           </div>
         )}
@@ -561,7 +561,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                       <p className="text-sm font-medium truncate">{appUser?.email || supabaseUser?.email || t.sidebar.user}</p>
                       <p className="text-xs text-muted-foreground truncate">{role || ""}</p>
                     </div>
-                    <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                    <ChevronDown className="h-5 w-5 flex-shrink-0" />
                   </>
                 )}
               </button>
