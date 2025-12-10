@@ -37,22 +37,22 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
 
     // Validaciones
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setError(t.userMenu.changePassword.errors.allFieldsRequired);
+      setError(t.userMenu?.changePassword?.errors?.allFieldsRequired || "Todos los campos son requeridos");
       return;
     }
 
     if (newPassword.length < 6) {
-      setError(t.userMenu.changePassword.errors.passwordTooShort);
+      setError(t.userMenu?.changePassword?.errors?.passwordTooShort || "La contraseña debe tener al menos 6 caracteres");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError(t.userMenu.changePassword.errors.passwordsDoNotMatch);
+      setError(t.userMenu?.changePassword?.errors?.passwordsDoNotMatch || "Las contraseñas no coinciden");
       return;
     }
 
     if (currentPassword === newPassword) {
-      setError(t.userMenu.changePassword.errors.samePassword);
+      setError(t.userMenu?.changePassword?.errors?.samePassword || "La nueva contraseña debe ser diferente a la actual");
       return;
     }
 
@@ -63,7 +63,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user?.email) {
-        throw new Error(t.userMenu.changePassword.errors.userNotFound);
+        throw new Error(t.userMenu?.changePassword?.errors?.userNotFound || "Usuario no encontrado");
       }
 
       // Intentar iniciar sesión con la contraseña actual para verificarla
@@ -73,7 +73,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
       });
 
       if (signInError) {
-        throw new Error(t.userMenu.changePassword.errors.currentPasswordIncorrect);
+        throw new Error(t.userMenu?.changePassword?.errors?.currentPasswordIncorrect || "La contraseña actual es incorrecta");
       }
 
       // Si la verificación es exitosa, actualizar la contraseña
@@ -85,7 +85,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
         throw updateError;
       }
 
-      toast.success(t.userMenu.changePassword.success);
+      toast.success(t.userMenu?.changePassword?.success || "Contraseña actualizada exitosamente");
       
       // Limpiar el formulario y cerrar el modal
       setCurrentPassword("");
@@ -95,7 +95,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
       onOpenChange(false);
     } catch (err: any) {
       console.error("Error changing password:", err);
-      const errorMessage = err.message || t.userMenu.changePassword.errors.generic;
+      const errorMessage = err.message || t.userMenu?.changePassword?.errors?.generic || "Error al cambiar la contraseña. Intenta nuevamente.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -119,22 +119,22 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />
-            {t.userMenu.changePassword.title}
+            {t.userMenu?.changePassword?.title || "Cambiar Contraseña"}
           </DialogTitle>
           <DialogDescription>
-            {t.userMenu.changePassword.description}
+            {t.userMenu?.changePassword?.description || "Ingresa tu contraseña actual y la nueva contraseña para actualizar tu cuenta."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="currentPassword">
-              {t.userMenu.changePassword.currentPassword}
+              {t.userMenu?.changePassword?.currentPassword || "Contraseña Actual"}
             </Label>
             <Input
               id="currentPassword"
               type="password"
-              placeholder={t.userMenu.changePassword.currentPasswordPlaceholder}
+              placeholder={t.userMenu?.changePassword?.currentPasswordPlaceholder || "Ingresa tu contraseña actual"}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               disabled={loading}
@@ -145,12 +145,12 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
 
           <div className="space-y-2">
             <Label htmlFor="newPassword">
-              {t.userMenu.changePassword.newPassword}
+              {t.userMenu?.changePassword?.newPassword || "Nueva Contraseña"}
             </Label>
             <Input
               id="newPassword"
               type="password"
-              placeholder={t.userMenu.changePassword.newPasswordPlaceholder}
+              placeholder={t.userMenu?.changePassword?.newPasswordPlaceholder || "Ingresa tu nueva contraseña"}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               disabled={loading}
@@ -160,12 +160,12 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
 
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">
-              {t.userMenu.changePassword.confirmPassword}
+              {t.userMenu?.changePassword?.confirmPassword || "Confirmar Contraseña"}
             </Label>
             <Input
               id="confirmPassword"
               type="password"
-              placeholder={t.userMenu.changePassword.confirmPasswordPlaceholder}
+              placeholder={t.userMenu?.changePassword?.confirmPasswordPlaceholder || "Confirma tu nueva contraseña"}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               disabled={loading}
@@ -192,10 +192,10 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t.userMenu.changePassword.updating}
+                  {t.userMenu?.changePassword?.updating || "Actualizando..."}
                 </>
               ) : (
-                t.userMenu.changePassword.updateButton
+                t.userMenu?.changePassword?.updateButton || "Actualizar Contraseña"
               )}
             </Button>
           </DialogFooter>
