@@ -11,6 +11,8 @@ import { findRecordByPropertyId, updateAirtableWithRetry } from "@/lib/airtable/
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Combobox } from "@/components/ui/combobox";
+import { useRenovators } from "@/hooks/useRenovators";
 
 interface TodoWidgetModalProps {
   open: boolean;
@@ -25,6 +27,14 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
   const [isSaving, setIsSaving] = useState(false);
   const [estimatedVisitDate, setEstimatedVisitDate] = useState<string>("");
   const [renovatorName, setRenovatorName] = useState<string>("");
+  const { renovators, isLoading: isLoadingRenovators } = useRenovators();
+  
+  // Debug: Log renovadores cuando cambian
+  useEffect(() => {
+    if (widgetType === 'renovator') {
+      console.log('[TodoWidgetModal] Renovadores disponibles:', renovators.length, renovators);
+    }
+  }, [renovators, widgetType]);
 
   // Inicializar valores cuando se abre el modal
   useEffect(() => {
@@ -256,18 +266,18 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
 
           {widgetType === 'renovator' && (
             <div className="space-y-2">
-              <Label htmlFor="renovator-name">Nombre del Renovador</Label>
-              <Input
-                id="renovator-name"
-                type="text"
+              <Combobox
+                options={renovators}
                 value={renovatorName}
-                onChange={(e) => setRenovatorName(e.target.value)}
-                placeholder="Ingrese el nombre del renovador"
-                disabled={isSaving}
+                onValueChange={setRenovatorName}
+                placeholder="Buscar o crear renovador..."
+                disabled={isSaving || isLoadingRenovators}
+                label="Nombre del Renovador"
+                allowCreate={true}
               />
               <Button
                 onClick={handleSaveRenovatorName}
-                disabled={isSaving}
+                disabled={isSaving || !renovatorName.trim()}
                 className="w-full"
               >
                 {isSaving ? "Guardando..." : "Guardar"}

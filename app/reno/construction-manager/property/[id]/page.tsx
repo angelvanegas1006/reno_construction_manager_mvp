@@ -312,7 +312,7 @@ export default function RenoPropertyDetailPage() {
         onClick: () => router.push(`/reno/construction-manager/property/${propertyId}/checklist`),
       });
     }
-    if (phase === "final-check") {
+    if (phase === "final-check" || phase === "furnishing-cleaning") {
       items.push({
         label: t.propertySidebar.completeFinalChecklist,
         onClick: () => router.push(`/reno/construction-manager/property/${propertyId}/checklist`),
@@ -346,9 +346,11 @@ export default function RenoPropertyDetailPage() {
     
     switch (activeTab) {
       case "tareas":
-        // For initial-check or final-check phases, show checklist CTA
-        if (currentPhase === "initial-check" || currentPhase === "final-check") {
-          const checklistType = currentPhase === "final-check" ? t.kanban.finalCheck : t.kanban.initialCheck;
+        // For initial-check, final-check, or furnishing-cleaning phases, show checklist CTA
+        if (currentPhase === "initial-check" || currentPhase === "final-check" || currentPhase === "furnishing-cleaning") {
+          const checklistType = (currentPhase === "final-check" || currentPhase === "furnishing-cleaning") 
+            ? t.kanban.finalCheck 
+            : t.kanban.initialCheck;
           // Check for date in both local state and supabase property
           const estimatedDate = localEstimatedVisitDate || (supabaseProperty as any)?.['Estimated Visit Date'] || property?.estimatedVisitDate;
           const hasEstimatedDate = !!estimatedDate;

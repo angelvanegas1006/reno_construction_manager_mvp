@@ -4,6 +4,11 @@
  * Uso: npm run test:sync-airtable
  */
 
+// Cargar variables de entorno desde .env.local
+import { config } from 'dotenv';
+import { resolve } from 'path';
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { syncPropertiesFromAirtable } from '../lib/airtable/sync-from-airtable';
 
 const AIRTABLE_TABLE_ID = 'tblmX19OTsj3cTHmA';

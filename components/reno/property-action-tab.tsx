@@ -10,6 +10,8 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { findRecordByPropertyId, updateAirtableWithRetry } from "@/lib/airtable/client";
 import { getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
+import { Combobox } from "@/components/ui/combobox";
+import { useRenovators } from "@/hooks/useRenovators";
 
 interface PropertyActionTabProps {
   property: Property;
@@ -31,6 +33,12 @@ export function PropertyActionTab({
   onUpdateRenovatorName,
 }: PropertyActionTabProps) {
   const { t, language } = useI18n();
+  const { renovators, isLoading: isLoadingRenovators } = useRenovators();
+  
+  // Debug: Log renovadores cuando cambian
+  useEffect(() => {
+    console.log('[PropertyActionTab] Renovadores disponibles:', renovators.length, renovators);
+  }, [renovators]);
 
   // Determinar la fase correctamente usando el mapeo de Set Up Status si es necesario
   const renoPhase = supabaseProperty 
@@ -211,24 +219,20 @@ export function PropertyActionTab({
             <User className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
             <span className="break-words">{t.propertyAction.renovator || "Renovador"}</span>
           </h3>
-          <Input
-            type="text"
+          <Combobox
+            options={renovators}
             value={localRenovatorName}
-            onChange={(e) => setLocalRenovatorName(e.target.value)}
-            onBlur={(e) => {
-              const newValue = e.target.value.trim();
-              if (newValue !== (renovatorNameFromSupabase || "")) {
-                handleRenovatorNameChange(newValue);
+            onValueChange={(newValue) => {
+              setLocalRenovatorName(newValue);
+              // Guardar automáticamente cuando se selecciona o crea un renovador
+              const trimmedValue = newValue.trim();
+              if (trimmedValue && trimmedValue !== (renovatorNameFromSupabase || "")) {
+                handleRenovatorNameChange(trimmedValue);
               }
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.currentTarget.blur();
-              }
-            }}
-            placeholder="Nombre del renovador"
-            disabled={isSavingRenovatorName}
-            className="w-full"
+            placeholder="Buscar o crear renovador..."
+            disabled={isSavingRenovatorName || isLoadingRenovators}
+            allowCreate={true}
           />
           {isSavingRenovatorName && (
             <p className="text-xs text-muted-foreground mt-2">Guardando...</p>

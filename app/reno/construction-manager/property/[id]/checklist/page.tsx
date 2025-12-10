@@ -86,16 +86,16 @@ export default function RenoChecklistPage() {
   const checklistType: ChecklistType = useMemo(() => {
     if (!property || !supabaseProperty) return "reno_initial";
     const phase = getPropertyRenoPhase(property);
-    return phase === "final-check" ? "reno_final" : "reno_initial";
+    return (phase === "final-check" || phase === "furnishing-cleaning") ? "reno_final" : "reno_initial";
   }, [property, supabaseProperty, getPropertyRenoPhase]);
 
-  // Redirect back if trying to access final-check but not in final-check phase
+  // Redirect back if trying to access final-check but not in final-check or furnishing-cleaning phase
   // Initial-check remains accessible from all phases
   useEffect(() => {
     if (!isLoading && property && supabaseProperty) {
       const phase = getPropertyRenoPhase(property);
-      // Only redirect if trying to access final-check but not in final-check phase
-      if (checklistType === "reno_final" && phase && phase !== "final-check") {
+      // Only redirect if trying to access final-check but not in final-check or furnishing-cleaning phase
+      if (checklistType === "reno_final" && phase && phase !== "final-check" && phase !== "furnishing-cleaning") {
         router.replace(`/reno/construction-manager/property/${property.id}`);
       }
     }
@@ -177,7 +177,7 @@ export default function RenoChecklistPage() {
 
   // Calculate phase and counts before any conditional returns
   const phase = property ? (getPropertyRenoPhase(property) || "initial-check") : null;
-  const isFinalCheck = phase === "final-check";
+  const isFinalCheck = phase === "final-check" || phase === "furnishing-cleaning";
   const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
 
@@ -310,7 +310,7 @@ export default function RenoChecklistPage() {
     }
 
     const phase = getPropertyRenoPhase(property) || "initial-check";
-    const isFinalCheck = phase === "final-check";
+    const isFinalCheck = phase === "final-check" || phase === "furnishing-cleaning";
 
     switch (activeSection) {
       case "property-info":
@@ -802,7 +802,7 @@ export default function RenoChecklistPage() {
   // Determinar el título del formulario basado en la fase, pero permitir todas las fases
   const getFormTitle = () => {
     const currentPhase = getPropertyRenoPhase(property);
-    if (currentPhase === "final-check") return t.kanban.finalCheck;
+    if (currentPhase === "final-check" || currentPhase === "furnishing-cleaning") return t.kanban.finalCheck;
     if (currentPhase === "initial-check") return t.kanban.initialCheck;
     return t.checklist.title; // Fallback para otras fases
   };

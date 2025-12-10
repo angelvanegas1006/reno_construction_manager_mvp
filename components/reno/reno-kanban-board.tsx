@@ -66,6 +66,47 @@ const COLUMN_CONFIG: ColumnConfig[] = [
   { key: "status", label: "Estado", defaultVisible: true },
 ];
 
+// Función helper para obtener los estilos del badge según el tipo de renovación
+const getRenoTypeBadgeStyles = (renoType?: string) => {
+  if (!renoType) return null;
+  
+  const typeLower = renoType.toLowerCase();
+  
+  // Light Reno: Verde Fuerte (sin borde, sin hover)
+  if (typeLower.includes('light')) {
+    return {
+      bg: 'bg-green-600 dark:bg-green-700 hover:bg-green-600 dark:hover:bg-green-700',
+      text: 'text-white dark:text-green-100',
+      border: 'border-0'
+    };
+  }
+  
+  // Medium Reno: Verde Claro (sin hover)
+  if (typeLower.includes('medium')) {
+    return {
+      bg: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30',
+      text: 'text-green-700 dark:text-green-300',
+      border: 'border-green-300 dark:border-green-700/50'
+    };
+  }
+  
+  // Major Reno: Amarillo-Naranja claro (sin hover)
+  if (typeLower.includes('major')) {
+    return {
+      bg: 'bg-yellow-200 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/30',
+      text: 'text-orange-700 dark:text-yellow-300',
+      border: 'border-orange-300 dark:border-yellow-700/50'
+    };
+  }
+  
+  // Default: Verde Claro (por si acaso, sin hover)
+  return {
+    bg: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30',
+    text: 'text-green-700 dark:text-green-300',
+    border: 'border-green-300 dark:border-green-700/50'
+  };
+};
+
 export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onViewModeChange }: RenoKanbanBoardProps) {
   const { t, language } = useI18n();
   const { user } = useSupabaseAuth();
@@ -1256,11 +1297,21 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             )}
                             {getVisibleColumnsForPhase(column.key).has("renoType") && (
                               <td className="px-4 py-3 whitespace-nowrap">
-                                {property.renoType ? (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {property.renoType}
-                                  </Badge>
-                                ) : (
+                                {property.renoType ? (() => {
+                                  const badgeStyles = getRenoTypeBadgeStyles(property.renoType);
+                                  return badgeStyles ? (
+                                    <Badge 
+                                      variant="secondary" 
+                                      className={`text-xs ${badgeStyles.bg} ${badgeStyles.text} ${badgeStyles.border === 'border-0' ? 'border-0' : `border ${badgeStyles.border}`} font-medium`}
+                                    >
+                                      {property.renoType}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {property.renoType}
+                                    </Badge>
+                                  );
+                                })() : (
                                   <span className="text-sm text-muted-foreground">N/A</span>
                                 )}
                               </td>

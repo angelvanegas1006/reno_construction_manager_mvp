@@ -193,47 +193,46 @@ export function RenoPropertyCard({
       {/* Tags */}
       {showRenoDetails && property.renoType && (() => {
         // Función para obtener los estilos del badge según el tipo de renovación
-        // Todos usan la paleta de azules de Vistral con diferentes tonos:
-        // - Light Reno: azul más clarito (blue-50)
-        // - Medium Reno: azul medio (blue-100)
-        // - Major Reno: azul más oscuro (blue-200)
+        // - Light Reno: Verde Fuerte
+        // - Medium Reno: Verde Claro
+        // - Major Reno: Amarillo-Naranja claro
         const getRenoTypeBadgeStyles = (renoType?: string) => {
           if (!renoType) return null;
           
           const typeLower = renoType.toLowerCase();
           
-          // Light Reno: azul más clarito
+          // Light Reno: Verde Fuerte (sin borde, sin hover)
           if (typeLower.includes('light')) {
             return {
-              bg: 'bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20',
-              text: 'text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-300)]',
-              border: 'border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]/30'
+              bg: 'bg-green-600 dark:bg-green-700 hover:bg-green-600 dark:hover:bg-green-700',
+              text: 'text-white dark:text-green-100',
+              border: 'border-0'
             };
           }
           
-          // Medium Reno: azul medio
+          // Medium Reno: Verde Claro (sin hover)
           if (typeLower.includes('medium')) {
             return {
-              bg: 'bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/20',
-              text: 'text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]',
-              border: 'border-[var(--prophero-blue-300)] dark:border-[var(--prophero-blue-700)]/30'
+              bg: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30',
+              text: 'text-green-700 dark:text-green-300',
+              border: 'border-green-300 dark:border-green-700/50'
             };
           }
           
-          // Major Reno: azul más oscuro
+          // Major Reno: Amarillo-Naranja claro (sin hover)
           if (typeLower.includes('major')) {
             return {
-              bg: 'bg-[var(--prophero-blue-200)] dark:bg-[var(--prophero-blue-800)]/20',
-              text: 'text-[var(--prophero-blue-800)] dark:text-[var(--prophero-blue-200)]',
-              border: 'border-[var(--prophero-blue-400)] dark:border-[var(--prophero-blue-600)]/30'
+              bg: 'bg-yellow-200 dark:bg-yellow-900/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/30',
+              text: 'text-orange-700 dark:text-yellow-300',
+              border: 'border-orange-300 dark:border-yellow-700/50'
             };
           }
           
-          // Default: azul medio (por si acaso)
+          // Default: Verde Claro (por si acaso, sin hover)
           return {
-            bg: 'bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/20',
-            text: 'text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]',
-            border: 'border-[var(--prophero-blue-300)] dark:border-[var(--prophero-blue-700)]/30'
+            bg: 'bg-green-100 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/30',
+            text: 'text-green-700 dark:text-green-300',
+            border: 'border-green-300 dark:border-green-700/50'
           };
         };
 
@@ -244,7 +243,7 @@ export function RenoPropertyCard({
           <div className="flex flex-wrap gap-2 mb-3">
             <Badge 
               variant="secondary" 
-              className={`${badgeStyles.bg} ${badgeStyles.text} border ${badgeStyles.border} font-medium`}
+              className={`${badgeStyles.bg} ${badgeStyles.text} ${badgeStyles.border === 'border-0' ? 'border-0' : `border ${badgeStyles.border}`} font-medium`}
             >
               {property.renoType}
             </Badge>
@@ -352,12 +351,6 @@ export function RenoPropertyCard({
                   <span className="ml-1 text-[var(--prophero-blue-600)] font-medium">({t.propertyCard.today})</span>
                 )}
               </span>
-            </div>
-          )}
-          {/* Duración de la Obra - only show if filled */}
-          {property.renoDuration !== null && property.renoDuration !== undefined && (
-            <div className="text-xs text-muted-foreground">
-              <span className="font-medium">Duración de la Obra:</span> {property.renoDuration} días
             </div>
           )}
         </div>
