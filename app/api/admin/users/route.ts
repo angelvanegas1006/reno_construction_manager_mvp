@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       .from('google_calendar_tokens')
       .select('user_id');
 
-    const googleCalendarUsers = new Set(googleCalendarTokens?.map(t => t.user_id) || []);
+    const googleCalendarUsers = new Set(googleCalendarTokens?.map((t: any) => t.user_id) || []);
 
     // Combinar usuarios con sus roles y estado de Google Calendar
     const users = supabaseUsers.users.map(u => ({

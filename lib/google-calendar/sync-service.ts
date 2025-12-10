@@ -61,7 +61,7 @@ export class GoogleCalendarSyncService {
         .eq('user_id', userId);
 
       const existingEventsMap = new Map<string, string>();
-      existingEvents?.forEach((event) => {
+      existingEvents?.forEach((event: any) => {
         const key = `${event.property_id}_${event.event_type}`;
         existingEventsMap.set(key, event.google_event_id);
       });
