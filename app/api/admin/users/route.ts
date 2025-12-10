@@ -176,8 +176,9 @@ export async function POST(request: NextRequest) {
       
       if (existingUser) {
         supabaseUserId = existingUser.id;
-        // Si el usuario existe pero no tiene contraseña y se proporciona una, actualizarla
-        if (password && !existingUser.encrypted_password) {
+        // Si el usuario existe y se proporciona una contraseña, actualizarla
+        // encrypted_password no está en los tipos de TypeScript, pero existe en runtime
+        if (password) {
           const { error: updateError } = await adminSupabase.auth.admin.updateUserById(
             existingUser.id,
             {
