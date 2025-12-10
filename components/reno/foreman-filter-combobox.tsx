@@ -151,7 +151,7 @@ export function ForemanFilterCombobox({
                 setOpen(true);
               }
             }}
-            placeholder={placeholder || t.dashboard.foremanFilter.filterByForeman}
+            placeholder={placeholder || t.dashboard?.foremanFilter?.filterByForeman || "Filtrar por jefe de obra..."}
             disabled={disabled}
             className="pl-10 pr-10 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
@@ -215,7 +215,7 @@ export function ForemanFilterCombobox({
         {/* Empty state */}
         {open && searchQuery && filteredOptions.length === 0 && (
           <div className="absolute z-50 w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-border rounded-md shadow-lg p-4 text-center text-sm text-muted-foreground">
-            {t.dashboard.foremanFilter.noForemenFound}
+            {t.dashboard?.foremanFilter?.noForemenFound || "No se encontraron jefes de obra"}
           </div>
         )}
       </div>

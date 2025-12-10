@@ -85,7 +85,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     const widgets: TodoWidget[] = [
       {
         id: 'estimated-visit',
-        title: t.dashboard.todoWidgets.defineEstimatedVisit,
+        title: t.dashboard?.todoWidgets?.defineEstimatedVisit || "Definir Visita Estimada",
         count: pendingEstimatedVisitProps.length,
         properties: pendingEstimatedVisitProps,
         phaseFilter: ['upcoming-settlements', 'initial-check'],
@@ -95,7 +95,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       },
       {
         id: 'initial-check',
-        title: t.dashboard.todoWidgets.initialCheck,
+        title: t.dashboard?.todoWidgets?.initialCheck || "Revisión Inicial",
         count: pendingInitialCheckProps.length,
         properties: pendingInitialCheckProps,
         phaseFilter: ['initial-check'],
@@ -105,7 +105,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       },
       {
         id: 'renovator',
-        title: t.dashboard.todoWidgets.fillRenovator,
+        title: t.dashboard?.todoWidgets?.fillRenovator || "Rellenar Renovador",
         count: pendingRenovatorProps.length,
         properties: pendingRenovatorProps,
         phaseFilter: ['reno-budget-renovator', 'reno-budget-client'],
@@ -115,7 +115,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       },
       {
         id: 'work-update',
-        title: t.dashboard.todoWidgets.workUpdate,
+        title: t.dashboard?.todoWidgets?.workUpdate || "Actualización de Obra",
         count: pendingWorkUpdateProps.length,
         properties: pendingWorkUpdateProps,
         phaseFilter: ['reno-in-progress'],
@@ -125,7 +125,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       },
       {
         id: 'final-check',
-        title: t.dashboard.todoWidgets.finalCheck,
+        title: t.dashboard?.todoWidgets?.finalCheck || "Revisión Final",
         count: pendingFinalCheckProps.length,
         properties: pendingFinalCheckProps,
         phaseFilter: ['final-check'],
@@ -181,7 +181,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
             </div>
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
               {property.daysToVisit !== null && property.daysToVisit !== undefined && (
-                <span>{t.dashboard.todoWidgets.daysToVisit}: {property.daysToVisit}</span>
+                <span>{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
               )}
               {property.region && <span>• {property.region}</span>}
             </div>
@@ -196,7 +196,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
             </div>
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
               {property.daysToVisit !== null && property.daysToVisit !== undefined && (
-                <span>{t.dashboard.todoWidgets.daysToVisit}: {property.daysToVisit}</span>
+                <span>{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
               )}
               {property.renovador && <span>• {property.renovador}</span>}
             </div>
@@ -211,7 +211,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
             </div>
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
               {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
-                <span className="whitespace-nowrap">{t.dashboard.todoWidgets.daysToStart}: {property.daysToStartRenoSinceRSD}</span>
+                <span className="whitespace-nowrap">{t.dashboard?.todoWidgets?.daysToStart || "Días para empezar"}: {property.daysToStartRenoSinceRSD}</span>
               )}
               {property.renoType && (
                 <span className="whitespace-nowrap">• {property.renoType}</span>
@@ -229,7 +229,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
               {property.renovador && <span>{property.renovador}</span>}
               {property.renoDuration !== null && property.renoDuration !== undefined && (
-                <span>• {t.dashboard.todoWidgets.workDays}: {property.renoDuration}</span>
+                <span>• {t.dashboard?.todoWidgets?.workDays || "Días de obra"}: {property.renoDuration}</span>
               )}
             </div>
           </div>
@@ -244,7 +244,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
               {property.renovador && <span>{property.renovador}</span>}
               {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
-                <span>• {t.dashboard.todoWidgets.daysToReady}: {property.daysToPropertyReady}</span>
+                <span>• {t.dashboard?.todoWidgets?.daysToReady || "Días para lista"}: {property.daysToPropertyReady}</span>
               )}
             </div>
           </div>
@@ -318,7 +318,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                   onClick={widget.onClick}
                   className="w-full text-xs font-medium text-muted-foreground hover:text-foreground py-2 rounded-lg hover:bg-muted/30 flex items-center justify-center gap-1"
                 >
-                  <span>{t.dashboard.todoWidgets.seeMore.replace('{count}', String(widget.properties.length - 4))}</span>
+                  <span>{(t.dashboard?.todoWidgets?.seeMore || "Ver {count} más").replace('{count}', String(widget.properties.length - 4))}</span>
                   <ChevronRight className="h-3 w-3" />
                 </button>
               )}
@@ -333,8 +333,8 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                     <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
                   </div>
                 </div>
-                <p className="text-sm font-medium text-muted-foreground">{t.dashboard.todoWidgets.allCompleted}</p>
-                <p className="text-xs text-muted-foreground/70">{t.dashboard.todoWidgets.noPendingTasks}</p>
+                <p className="text-sm font-medium text-muted-foreground">{t.dashboard?.todoWidgets?.allCompleted || "Todo completado"}</p>
+                <p className="text-xs text-muted-foreground/70">{t.dashboard?.todoWidgets?.noPendingTasks || "No hay tareas pendientes"}</p>
               </div>
             </div>
           )}
@@ -348,10 +348,10 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       {/* Título */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">{t.dashboard.todoWidgets.pendingTasks}</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t.dashboard?.todoWidgets?.pendingTasks || "Tareas Pendientes"}</h2>
         </div>
         <Badge variant="secondary" className="text-xs">
-          {todoWidgets.reduce((sum, w) => sum + w.count, 0)} {t.dashboard.todoWidgets.total}
+          {todoWidgets.reduce((sum, w) => sum + w.count, 0)} {t.dashboard?.todoWidgets?.total || "total"}
         </Badge>
       </div>
       
