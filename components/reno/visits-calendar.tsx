@@ -611,7 +611,7 @@ export function VisitsCalendar({
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {/* Google Calendar Connect/Disconnect Button */}
-          {canConnect && isConfigured && (
+          {canConnect ? (
             <>
               {isConnected ? (
                 <>
@@ -648,9 +648,10 @@ export function VisitsCalendar({
               ) : (
                 <Button
                   onClick={connect}
+                  disabled={!isConfigured}
                   variant="outline"
                   size="sm"
-                  title="Conectar Google Calendar"
+                  title={isConfigured ? "Conectar Google Calendar" : "Google Calendar no está configurado"}
                   className="flex-shrink-0"
                 >
                   <Calendar className="h-3 w-3 mr-1.5" />
@@ -658,7 +659,7 @@ export function VisitsCalendar({
                 </Button>
               )}
             </>
-          )}
+          ) : null}
           {/* Selector de vista */}
           <div className="flex gap-1 border rounded-md flex-shrink-0">
             <button
