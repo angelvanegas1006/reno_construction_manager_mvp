@@ -1253,11 +1253,33 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             )}
                             {getVisibleColumnsForPhase(column.key).has("renoType") && (
                               <td className="px-4 py-3 whitespace-nowrap">
-                                {property.renoType ? (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {property.renoType}
-                                  </Badge>
-                                ) : (
+                                {property.renoType ? (() => {
+                                  const typeLower = property.renoType.toLowerCase();
+                                  let badgeClass = '';
+                                  
+                                  // Light Reno: Verde fuerte sin borde ni hover
+                                  if (typeLower.includes('light')) {
+                                    badgeClass = 'bg-green-600 dark:bg-green-600 text-white dark:text-white border-0';
+                                  }
+                                  // Medium Reno: Verde claro
+                                  else if (typeLower.includes('medium')) {
+                                    badgeClass = 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/30';
+                                  }
+                                  // Major Reno: Amarillo-naranja claro
+                                  else if (typeLower.includes('major')) {
+                                    badgeClass = 'bg-yellow-200 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-200 border border-yellow-300 dark:border-yellow-800/30';
+                                  }
+                                  // Default: verde claro
+                                  else {
+                                    badgeClass = 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/30';
+                                  }
+                                  
+                                  return (
+                                    <Badge className={cn(badgeClass, "text-xs font-medium px-2 py-1")}>
+                                      {property.renoType}
+                                    </Badge>
+                                  );
+                                })() : (
                                   <span className="text-sm text-muted-foreground">N/A</span>
                                 )}
                               </td>

@@ -193,47 +193,50 @@ export function RenoPropertyCard({
       {/* Tags */}
       {showRenoDetails && property.renoType && (() => {
         // Función para obtener los estilos del badge según el tipo de renovación
-        // Todos usan la paleta de azules de Vistral con diferentes tonos:
-        // - Light Reno: azul más clarito (blue-50)
-        // - Medium Reno: azul medio (blue-100)
-        // - Major Reno: azul más oscuro (blue-200)
+        // - Light Reno: Verde fuerte (bg-green-600) sin borde ni hover
+        // - Medium Reno: Verde claro (bg-green-100)
+        // - Major Reno: Amarillo-naranja claro (bg-yellow-200)
         const getRenoTypeBadgeStyles = (renoType?: string) => {
           if (!renoType) return null;
           
           const typeLower = renoType.toLowerCase();
           
-          // Light Reno: azul más clarito
+          // Light Reno: Verde fuerte sin borde ni hover
           if (typeLower.includes('light')) {
             return {
-              bg: 'bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20',
-              text: 'text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-300)]',
-              border: 'border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]/30'
+              bg: 'bg-green-600 dark:bg-green-600',
+              text: 'text-white dark:text-white',
+              border: 'border-0',
+              hover: ''
             };
           }
           
-          // Medium Reno: azul medio
+          // Medium Reno: Verde claro
           if (typeLower.includes('medium')) {
             return {
-              bg: 'bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/20',
-              text: 'text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]',
-              border: 'border-[var(--prophero-blue-300)] dark:border-[var(--prophero-blue-700)]/30'
+              bg: 'bg-green-100 dark:bg-green-900/30',
+              text: 'text-green-800 dark:text-green-300',
+              border: 'border border-green-200 dark:border-green-800/30',
+              hover: ''
             };
           }
           
-          // Major Reno: azul más oscuro
+          // Major Reno: Amarillo-naranja claro
           if (typeLower.includes('major')) {
             return {
-              bg: 'bg-[var(--prophero-blue-200)] dark:bg-[var(--prophero-blue-800)]/20',
-              text: 'text-[var(--prophero-blue-800)] dark:text-[var(--prophero-blue-200)]',
-              border: 'border-[var(--prophero-blue-400)] dark:border-[var(--prophero-blue-600)]/30'
+              bg: 'bg-yellow-200 dark:bg-yellow-900/30',
+              text: 'text-yellow-900 dark:text-yellow-200',
+              border: 'border border-yellow-300 dark:border-yellow-800/30',
+              hover: ''
             };
           }
           
-          // Default: azul medio (por si acaso)
+          // Default: verde claro (por si acaso)
           return {
-            bg: 'bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/20',
-            text: 'text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]',
-            border: 'border-[var(--prophero-blue-300)] dark:border-[var(--prophero-blue-700)]/30'
+            bg: 'bg-green-100 dark:bg-green-900/30',
+            text: 'text-green-800 dark:text-green-300',
+            border: 'border border-green-200 dark:border-green-800/30',
+            hover: ''
           };
         };
 
@@ -243,8 +246,13 @@ export function RenoPropertyCard({
         return (
           <div className="flex flex-wrap gap-2 mb-3">
             <Badge 
-              variant="secondary" 
-              className={`${badgeStyles.bg} ${badgeStyles.text} border ${badgeStyles.border} font-medium`}
+              className={cn(
+                badgeStyles.bg,
+                badgeStyles.text,
+                badgeStyles.border,
+                badgeStyles.hover,
+                "text-xs font-medium px-2 py-1"
+              )}
             >
               {property.renoType}
             </Badge>
