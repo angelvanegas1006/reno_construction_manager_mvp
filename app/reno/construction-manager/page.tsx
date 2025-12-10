@@ -224,7 +224,7 @@ export default function RenoConstructionManagerHomePage() {
 
   // Handle add visit
   const handleAddVisit = () => {
-    toast.info(t.dashboard.addVisit);
+    toast.info(t.dashboard?.addVisit || "Añadir nueva visita - Próximamente");
   };
 
 
@@ -261,8 +261,8 @@ export default function RenoConstructionManagerHomePage() {
                     })()}
                     selectedForemanEmails={selectedForemanEmails}
                     onSelectionChange={setSelectedForemanEmails}
-                    placeholder={t.dashboard.foremanFilter.filterByForeman}
-                    label={t.dashboard.foremanFilter.filterByConstructionManager}
+                    placeholder={t.dashboard?.foremanFilter?.filterByForeman || "Filtrar por jefe de obra..."}
+                    label={t.dashboard?.foremanFilter?.filterByConstructionManager || "Filtrar por Gerente de Construcción"}
                   />
                 </div>
               )}
