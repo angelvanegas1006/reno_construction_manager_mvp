@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
     // Allow all authenticated users to sync their Google Calendar
 
     // Check if Google Calendar is connected
-    const { data: tokenData } = await supabase
+    // google_calendar_tokens table not in types yet - using cast
+    const { data: tokenData } = await (supabase as any)
       .from('google_calendar_tokens')
       .select('id')
       .eq('user_id', user.id)

@@ -107,7 +107,8 @@ export class GoogleCalendarApiClient {
   async getAccessToken(userId: string, supabaseClient?: any): Promise<string> {
     const supabase = supabaseClient || await createClient();
     
-    const { data: tokenData, error } = await supabase
+    // google_calendar_tokens table not in types yet - using cast
+    const { data: tokenData, error } = await (supabase as any)
       .from('google_calendar_tokens')
       .select('access_token, refresh_token, expires_at')
       .eq('user_id', userId)
@@ -135,7 +136,8 @@ export class GoogleCalendarApiClient {
       
       // Update stored token
       const newExpiresAt = new Date(Date.now() + refreshed.expires_in * 1000);
-      const { error: updateError } = await supabase
+      // google_calendar_tokens table not in types yet - using cast
+      const { error: updateError } = await (supabase as any)
         .from('google_calendar_tokens')
         .update({
           access_token: encryptedAccessToken,

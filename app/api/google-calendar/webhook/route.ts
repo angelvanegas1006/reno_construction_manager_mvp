@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
     
     // Find user by channel token (you'd store this when creating the watch)
     // This is simplified - in production, maintain a channels table
-    const { data: tokenData } = await supabase
+    // google_calendar_tokens table not in types yet - using cast
+    const { data: tokenData } = await (supabase as any)
       .from('google_calendar_tokens')
       .select('user_id, calendar_id')
       .limit(1)

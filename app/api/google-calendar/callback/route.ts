@@ -62,7 +62,8 @@ export async function GET(request: NextRequest) {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
     // Store tokens in database
-    const { error: insertError } = await supabase
+    // google_calendar_tokens table not in types yet - using cast
+    const { error: insertError } = await (supabase as any)
       .from('google_calendar_tokens')
       .upsert({
         user_id: user.id,

@@ -30,7 +30,8 @@ export async function syncVisitToGoogleCalendar(
     const apiClient = getGoogleCalendarApiClient();
 
     // Check if user has Google Calendar connected
-    const { data: tokenData } = await supabase
+    // google_calendar_tokens table not in types yet - using cast
+    const { data: tokenData } = await (supabase as any)
       .from('google_calendar_tokens')
       .select('calendar_id')
       .eq('user_id', userId)
@@ -80,7 +81,8 @@ export async function syncVisitToGoogleCalendar(
     const timeStr = visitDate.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
 
     // Check if this visit is already synced
-    const { data: existingSync } = await supabase
+    // google_calendar_events table not in types yet - using cast
+    const { data: existingSync } = await (supabase as any)
       .from('google_calendar_events')
       .select('google_event_id')
       .eq('user_id', userId)
@@ -126,7 +128,8 @@ export async function syncVisitToGoogleCalendar(
       );
 
       // Update sync record
-      await supabase
+      // google_calendar_events table not in types yet - using cast
+      await (supabase as any)
         .from('google_calendar_events')
         .update({
           synced_at: new Date().toISOString(),
@@ -147,7 +150,8 @@ export async function syncVisitToGoogleCalendar(
       );
 
       // Create sync record
-      await supabase.from('google_calendar_events').insert({
+      // google_calendar_events table not in types yet - using cast
+      await (supabase as any).from('google_calendar_events').insert({
         user_id: userId,
         property_id: visit.property_id,
         event_type: visit.visit_type === 'reminder' ? 'reminder' : 'manual_visit',
@@ -189,7 +193,8 @@ export async function deleteVisitFromGoogleCalendar(
 
     // Find sync record using property_id and event_type
     const eventType = visit.visit_type === 'reminder' ? 'reminder' : 'manual_visit';
-    const { data: syncRecord } = await supabase
+    // google_calendar_events table not in types yet - using cast
+    const { data: syncRecord } = await (supabase as any)
       .from('google_calendar_events')
       .select('google_event_id, calendar_id')
       .eq('user_id', userId)
@@ -211,7 +216,8 @@ export async function deleteVisitFromGoogleCalendar(
     );
 
     // Delete sync record
-    await supabase
+    // google_calendar_events table not in types yet - using cast
+    await (supabase as any)
       .from('google_calendar_events')
       .delete()
       .eq('user_id', userId)

@@ -28,14 +28,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Check connection status
-    const { data: tokenData } = await supabase
+    // google_calendar_tokens table not in types yet - using cast
+    const { data: tokenData } = await (supabase as any)
       .from('google_calendar_tokens')
       .select('connected_at, updated_at')
       .eq('user_id', user.id)
       .single();
 
     // Get last sync time from events
-    const { data: lastEvent } = await supabase
+    // google_calendar_events table not in types yet - using cast
+    const { data: lastEvent } = await (supabase as any)
       .from('google_calendar_events')
       .select('synced_at')
       .eq('user_id', user.id)

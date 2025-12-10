@@ -32,7 +32,8 @@ export class GoogleCalendarSyncService {
 
     try {
       // Get user's calendar ID
-      const { data: tokenData } = await supabase
+      // google_calendar_tokens table not in types yet - using cast
+      const { data: tokenData } = await (supabase as any)
         .from('google_calendar_tokens')
         .select('calendar_id')
         .eq('user_id', userId)
@@ -42,7 +43,8 @@ export class GoogleCalendarSyncService {
         // Get primary calendar ID
         const calendarId = await apiClient.getPrimaryCalendarId(userId, supabase);
         // Update token with calendar ID
-        await supabase
+        // google_calendar_tokens table not in types yet - using cast
+        await (supabase as any)
           .from('google_calendar_tokens')
           .update({ calendar_id: calendarId })
           .eq('user_id', userId);
@@ -52,7 +54,8 @@ export class GoogleCalendarSyncService {
       const calendarId = tokenData.calendar_id;
 
       // Get existing synced events
-      const { data: existingEvents } = await supabase
+      // google_calendar_events table not in types yet - using cast
+      const { data: existingEvents } = await (supabase as any)
         .from('google_calendar_events')
         .select('property_id, event_type, google_event_id')
         .eq('user_id', userId);
@@ -92,7 +95,8 @@ export class GoogleCalendarSyncService {
               );
 
               // Update sync record
-              await supabase
+              // google_calendar_events table not in types yet - using cast
+              await (supabase as any)
                 .from('google_calendar_events')
                 .update({
                   synced_at: new Date().toISOString(),
@@ -113,7 +117,8 @@ export class GoogleCalendarSyncService {
               );
 
               // Create sync record
-              await supabase.from('google_calendar_events').insert({
+              // google_calendar_events table not in types yet - using cast
+              await (supabase as any).from('google_calendar_events').insert({
                 user_id: userId,
                 property_id: propertyEvent.propertyId,
                 event_type: propertyEvent.eventType,
@@ -153,7 +158,8 @@ export class GoogleCalendarSyncService {
 
             if (event) {
               await apiClient.deleteEvent(userId, calendarId, googleEventId, supabase);
-              await supabase
+              // google_calendar_events table not in types yet - using cast
+              await (supabase as any)
                 .from('google_calendar_events')
                 .delete()
                 .eq('user_id', userId)
@@ -214,7 +220,8 @@ export class GoogleCalendarSyncService {
           }
 
           // Check if we have a sync record
-          const { data: syncRecord } = await supabase
+          // google_calendar_events table not in types yet - using cast
+          const { data: syncRecord } = await (supabase as any)
             .from('google_calendar_events')
             .select('*')
             .eq('user_id', userId)
@@ -224,7 +231,8 @@ export class GoogleCalendarSyncService {
 
           if (syncRecord) {
             // Update sync record timestamp
-            await supabase
+            // google_calendar_events table not in types yet - using cast
+            await (supabase as any)
               .from('google_calendar_events')
               .update({
                 synced_at: new Date().toISOString(),
@@ -235,13 +243,15 @@ export class GoogleCalendarSyncService {
             result.updated++;
           } else {
             // Create new sync record (event was created in Google Calendar)
-            const { data: tokenData } = await supabase
+            // google_calendar_tokens table not in types yet - using cast
+            const { data: tokenData } = await (supabase as any)
               .from('google_calendar_tokens')
               .select('calendar_id')
               .eq('user_id', userId)
               .single();
 
-            await supabase.from('google_calendar_events').insert({
+            // google_calendar_events table not in types yet - using cast
+            await (supabase as any).from('google_calendar_events').insert({
               user_id: userId,
               property_id: extracted.propertyId,
               event_type: extracted.eventType,
@@ -284,7 +294,8 @@ export class GoogleCalendarSyncService {
       const apiClient = getGoogleCalendarApiClient();
       const supabase = await createClient();
 
-      const { data: tokenData } = await supabase
+      // google_calendar_tokens table not in types yet - using cast
+      const { data: tokenData } = await (supabase as any)
         .from('google_calendar_tokens')
         .select('calendar_id')
         .eq('user_id', userId)

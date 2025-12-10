@@ -17,7 +17,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Delete tokens
-    const { error: deleteError } = await supabase
+    // google_calendar_tokens table not in types yet - using cast
+    const { error: deleteError } = await (supabase as any)
       .from('google_calendar_tokens')
       .delete()
       .eq('user_id', user.id);
@@ -27,7 +28,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Delete synced events
-    await supabase
+    // google_calendar_events table not in types yet - using cast
+    await (supabase as any)
       .from('google_calendar_events')
       .delete()
       .eq('user_id', user.id);

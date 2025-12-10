@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has Google Calendar connected
-    const { data: tokenData } = await supabase
+    // google_calendar_tokens table not in types yet - using cast
+    const { data: tokenData } = await (supabase as any)
       .from('google_calendar_tokens')
       .select('calendar_id')
       .eq('user_id', user.id)
@@ -119,7 +120,8 @@ export async function POST(request: NextRequest) {
 
     if (action === 'delete') {
       // Find sync record
-      const { data: syncRecord } = await supabase
+      // google_calendar_events table not in types yet - using cast
+      const { data: syncRecord } = await (supabase as any)
         .from('google_calendar_events')
         .select('google_event_id')
         .eq('user_id', user.id)
@@ -135,7 +137,8 @@ export async function POST(request: NextRequest) {
           supabase
         );
 
-        await supabase
+        // google_calendar_events table not in types yet - using cast
+        await (supabase as any)
           .from('google_calendar_events')
           .delete()
           .eq('user_id', user.id)
@@ -146,7 +149,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if this visit is already synced
-    const { data: existingSync } = await supabase
+    // google_calendar_events table not in types yet - using cast
+    const { data: existingSync } = await (supabase as any)
       .from('google_calendar_events')
       .select('google_event_id')
       .eq('user_id', user.id)
@@ -165,7 +169,8 @@ export async function POST(request: NextRequest) {
       );
 
       // Update sync record
-      await supabase
+      // google_calendar_events table not in types yet - using cast
+      await (supabase as any)
         .from('google_calendar_events')
         .update({
           synced_at: new Date().toISOString(),
@@ -190,7 +195,8 @@ export async function POST(request: NextRequest) {
       );
 
       // Create sync record
-      await supabase.from('google_calendar_events').insert({
+      // google_calendar_events table not in types yet - using cast
+      await (supabase as any).from('google_calendar_events').insert({
         user_id: user.id,
         property_id: visit.property_id,
         event_type: eventType,

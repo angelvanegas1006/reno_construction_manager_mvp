@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
     const syncService = getGoogleCalendarSyncService();
 
     // Get all users with Google Calendar connected
-    const { data: connectedUsers, error: usersError } = await supabaseAdmin
+    // google_calendar_tokens table not in types yet - using cast
+    const { data: connectedUsers, error: usersError } = await (supabaseAdmin as any)
       .from('google_calendar_tokens')
       .select('user_id');
 
