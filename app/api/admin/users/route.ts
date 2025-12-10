@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
     const rolesMap = new Map(userRoles?.map(ur => [ur.user_id, ur.role]) || []);
 
     // Obtener estado de Google Calendar
+    // @ts-expect-error - google_calendar_tokens table not in types yet
     const { data: googleCalendarTokens } = await adminSupabase
       .from('google_calendar_tokens')
       .select('user_id');
