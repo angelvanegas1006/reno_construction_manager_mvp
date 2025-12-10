@@ -153,7 +153,7 @@ export class GoogleCalendarSyncService {
           try {
             const [propertyId, eventType] = key.split('_');
             const event = existingEvents?.find(
-              (e) => e.property_id === propertyId && e.event_type === eventType
+              (e: any) => e.property_id === propertyId && e.event_type === eventType
             );
 
             if (event) {
