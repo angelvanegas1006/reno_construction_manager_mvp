@@ -437,7 +437,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                             <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
                           </div>
                         </div>
-                        <p className="text-sm font-medium text-muted-foreground">{t.dashboard.todoWidgets.allCompleted}</p>
+                        <p className="text-sm font-medium text-muted-foreground">{t.dashboard?.todoWidgets?.allCompleted || "Todo completado"}</p>
                       </div>
                     </CollapsibleContent>
                   )}
