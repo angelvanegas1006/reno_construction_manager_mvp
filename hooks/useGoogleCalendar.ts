@@ -149,7 +149,7 @@ export function useGoogleCalendar() {
     disconnect,
     sync,
     refresh: checkConnection,
-    canConnect: !!user && status.isConfigured, // Only if user is authenticated AND Google Calendar is configured
+    canConnect: !!user, // Show button if user is authenticated (button will be disabled if not configured)
   };
 }
 
