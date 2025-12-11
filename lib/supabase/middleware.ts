@@ -38,17 +38,50 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // TODO: When migrating to Supabase Auth, uncomment this to protect routes:
-  // if (
-  //   !user &&
-  //   !request.nextUrl.pathname.startsWith('/login') &&
-  //   !request.nextUrl.pathname.startsWith('/auth') &&
-  //   !request.nextUrl.pathname.startsWith('/test-supabase')
-  // ) {
-  //   const url = request.nextUrl.clone();
-  //   url.pathname = '/login';
-  //   return NextResponse.redirect(url);
-  // }
+  // Proteger rutas de rent - verificar que el usuario tenga rol de rent
+  // NOTA: Solo protegemos /rent/*, dejamos /reno/* sin protección para no romper el proyecto de Ángel
+  if (request.nextUrl.pathname.startsWith('/rent') && !request.nextUrl.pathname.startsWith('/rent/api')) {
+    // Rutas públicas de rent (si las hay)
+    const publicRentRoutes = ['/rent/login'];
+    const isPublicRoute = publicRentRoutes.some(route => request.nextUrl.pathname === route);
+    
+    if (!isPublicRoute && user) {
+      // Verificar que el usuario tenga un rol de rent
+      try {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
+        const userRole = roleData?.role;
+        const rentRoles = ['rent_manager', 'rent_agent', 'tenant', 'admin'];
+        
+        if (!userRole || !rentRoles.includes(userRole)) {
+          // Usuario no tiene permisos para acceder a rent
+          const url = request.nextUrl.clone();
+          url.pathname = '/login';
+          url.searchParams.set('error', 'no_permission');
+          url.searchParams.set('message', 'No tienes permisos para acceder a la sección de alquileres');
+          return NextResponse.redirect(url);
+        }
+      } catch (error) {
+        // Error al verificar rol, redirigir a login
+        console.error('[Middleware] Error checking rent role:', error);
+        const url = request.nextUrl.clone();
+        url.pathname = '/login';
+        return NextResponse.redirect(url);
+      }
+    } else if (!isPublicRoute && !user) {
+      // Usuario no autenticado, redirigir a login
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // NOTA: No protegemos rutas /reno/* para mantener compatibilidad con el proyecto de Ángel
+  // Las rutas /reno/* funcionan como antes (sin bloqueo de acceso)
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:

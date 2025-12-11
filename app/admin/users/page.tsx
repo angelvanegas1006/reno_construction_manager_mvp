@@ -86,6 +86,7 @@ export default function AdminUsersPage() {
       
       const data = await response.json();
       console.log('[AdminUsersPage] Users loaded:', data.users?.length || 0);
+      console.log('[AdminUsersPage] Users data:', data.users);
       setUsers(data.users || []);
     } catch (error: any) {
       console.error('[AdminUsersPage] Error loading users:', error);
@@ -185,6 +186,7 @@ export default function AdminUsersPage() {
     if (!selectedUser) return;
 
     try {
+      console.log('[AdminUsersPage] Updating user:', selectedUser.id, 'with data:', formData);
       const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -193,15 +195,28 @@ export default function AdminUsersPage() {
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('[AdminUsersPage] Error response:', error);
         throw new Error(error.error || "Failed to update user");
       }
 
-      toast.success("Usuario actualizado exitosamente");
+      const result = await response.json();
+      console.log('[AdminUsersPage] Update successful:', result);
+      
+      // Si se cambió el rol del usuario actual, mostrar mensaje especial
+      if (selectedUser.id === user?.id && formData.role !== selectedUser.role) {
+        toast.success("Rol actualizado exitosamente. Por favor, cierra sesión y vuelve a iniciar sesión para que los cambios surtan efecto.", {
+          duration: 5000,
+        });
+      } else {
+        toast.success("Usuario actualizado exitosamente");
+      }
+      
       setEditDialogOpen(false);
       setSelectedUser(null);
       setFormData({ email: "", password: "", name: "", role: "user" });
       loadUsers();
     } catch (error: any) {
+      console.error('[AdminUsersPage] Error updating user:', error);
       toast.error("Error actualizando usuario: " + error.message);
     }
   };
@@ -387,6 +402,9 @@ export default function AdminUsersPage() {
               <SelectItem value="construction_manager">Construction Manager</SelectItem>
               <SelectItem value="foreman">Foreman</SelectItem>
               <SelectItem value="user">User</SelectItem>
+              <SelectItem value="rent_manager">Gestor de Alquileres</SelectItem>
+              <SelectItem value="rent_agent">Agente de Alquileres</SelectItem>
+              <SelectItem value="tenant">Inquilino</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -556,6 +574,9 @@ export default function AdminUsersPage() {
                   <SelectItem value="construction_manager">Construction Manager</SelectItem>
                   <SelectItem value="foreman">Foreman</SelectItem>
                   <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="rent_manager">Gestor de Alquileres</SelectItem>
+                  <SelectItem value="rent_agent">Agente de Alquileres</SelectItem>
+                  <SelectItem value="tenant">Inquilino</SelectItem>
                 </SelectContent>
               </Select>
             </div>

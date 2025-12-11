@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock } from "lucide-react";
+import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -62,6 +62,16 @@ const getSettingsItems = (t: any, unreadCount: number = 0, role?: string) => {
       label: t.sidebar.users,
       href: "/admin/users",
       icon: Users,
+      comingSoon: false,
+    });
+  }
+
+  // Agregar enlace a Alquileres solo para admin
+  if (role === "admin") {
+    items.push({
+      label: "Alquileres",
+      href: "/rent",
+      icon: Building2,
       comingSoon: false,
     });
   }

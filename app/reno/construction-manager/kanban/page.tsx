@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { NavbarL1 } from "@/components/layout/navbar-l1";
 import { RenoKanbanBoard } from "@/components/reno/reno-kanban-board";
@@ -10,14 +10,24 @@ import { useI18n } from "@/lib/i18n";
 import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
 import { Property } from "@/lib/property-storage";
 import { cn } from "@/lib/utils";
+import { useAppAuth } from "@/lib/auth/app-auth-context";
 
 type ViewMode = "kanban" | "list";
 
 export default function RenoConstructionManagerKanbanPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { role } = useAppAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
+
+  // Redirigir usuarios con rol de rent a /rent
+  useEffect(() => {
+    if (role && ['rent_manager', 'rent_agent', 'tenant'].includes(role)) {
+      router.push('/rent');
+    }
+  }, [role, router]);
   
   // Restore viewMode from query params when navigating back
   useEffect(() => {

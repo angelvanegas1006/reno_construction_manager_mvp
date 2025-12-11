@@ -30,6 +30,13 @@ export default function RenoConstructionManagerHomePage() {
   const [selectedForemanEmails, setSelectedForemanEmails] = useState<string[]>([]);
   const supabase = createClient();
 
+  // Redirigir usuarios con rol de rent a /rent
+  useEffect(() => {
+    if (role && ['rent_manager', 'rent_agent', 'tenant'].includes(role)) {
+      router.push('/rent');
+    }
+  }, [role, router]);
+
   // Load properties from Supabase
   const { propertiesByPhase: rawPropertiesByPhase, loading: supabaseLoading, error: supabaseError } = useSupabaseKanbanProperties();
   

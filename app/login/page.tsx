@@ -20,8 +20,10 @@ export default function LoginPage() {
     if (!supabaseLoading && !appLoading && user && role) {
       if (role === 'foreman') {
         router.push("/reno/construction-manager");
-      } else if (role === 'admin') {
+      } else if (role === 'admin' || role === 'construction_manager') {
         router.push("/reno/construction-manager/kanban");
+      } else if (role === 'rent_manager' || role === 'rent_agent' || role === 'tenant') {
+        router.push("/rent");
       }
     }
   }, [user, role, supabaseLoading, appLoading, router]);

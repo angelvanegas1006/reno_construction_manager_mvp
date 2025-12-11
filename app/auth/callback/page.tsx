@@ -6,7 +6,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
-type AppRole = "admin" | "foreman" | "construction_manager" | "user";
+type AppRole = "admin" | "foreman" | "construction_manager" | "user" | "rent_manager" | "rent_agent" | "tenant";
 
 /**
  * Mapea rol de Auth0 a rol de la app
@@ -17,10 +17,16 @@ function mapAuth0RoleToAppRole(auth0Role: string): AppRole | null {
     "construction_manager": "construction_manager",
     "foreman": "foreman",
     "user": "user",
+    "rent_manager": "rent_manager",
+    "rent_agent": "rent_agent",
+    "tenant": "tenant",
     // Aliases comunes
     "jefe_de_obra": "foreman",
     "administrator": "admin",
     "usuario": "user",
+    "gestor_alquileres": "rent_manager",
+    "agente_alquileres": "rent_agent",
+    "inquilino": "tenant",
   };
 
   const normalizedRole = auth0Role.toLowerCase().trim();
@@ -289,8 +295,15 @@ export default function Auth0CallbackPage() {
         let redirectUrl = "/login";
         if (role === "foreman") {
           redirectUrl = "/reno/construction-manager";
-        } else if (role === "admin" || role === "construction_manager") {
+        } else if (role === "admin") {
+          // Admin puede elegir, por defecto redirigir a renovaciones (puede cambiar a rent desde el sidebar)
           redirectUrl = "/reno/construction-manager/kanban";
+        } else if (role === "construction_manager") {
+          redirectUrl = "/reno/construction-manager/kanban";
+        } else if (role === "rent_manager" || role === "rent_agent") {
+          redirectUrl = "/rent";
+        } else if (role === "tenant") {
+          redirectUrl = "/rent"; // Los inquilinos también van a rent pero con permisos limitados
         } else {
           // Usuario sin permisos - pero para angel.vanegas@prophero.com debería ser construction_manager
           console.warn("[Auth0 Callback] ⚠️ User has role 'user', but email is:", user.email);

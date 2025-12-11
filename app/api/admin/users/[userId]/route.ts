@@ -48,8 +48,31 @@ export async function PATCH(
 
     // Actualizar rol si se especificó
     if (role) {
-      // Actualizar en Supabase
-      await syncAuth0RoleToSupabase(userId, [role], { role });
+      console.log('[PATCH /api/admin/users] Updating role to:', role, 'for user:', userId);
+      
+      // Validar que el rol sea válido
+      const validRoles = ['admin', 'construction_manager', 'foreman', 'user'];
+      if (!validRoles.includes(role)) {
+        return NextResponse.json({ error: `Invalid role: ${role}` }, { status: 400 });
+      }
+
+      // Actualizar directamente en Supabase usando cliente admin
+      const { error: roleUpdateError } = await adminSupabase
+        .from('user_roles')
+        .upsert({
+          user_id: userId,
+          role: role,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (roleUpdateError) {
+        console.error('[PATCH /api/admin/users] Error updating role in Supabase:', roleUpdateError);
+        throw new Error(`Failed to update role in Supabase: ${roleUpdateError.message}`);
+      }
+
+      console.log('[PATCH /api/admin/users] ✅ Role updated successfully in Supabase');
 
       // Actualizar en Auth0 (si el usuario tiene auth0_user_id)
       try {
@@ -57,10 +80,12 @@ export async function PATCH(
         const auth0UserId = supabaseUser?.user?.app_metadata?.auth0_user_id;
         
         if (auth0UserId) {
+          console.log('[PATCH /api/admin/users] Updating role in Auth0 for user:', auth0UserId);
           const auth0Client = getAuth0ManagementClient();
           
           // Obtener roles actuales
           const currentRoles = await auth0Client.getUserRoles(auth0UserId);
+          console.log('[PATCH /api/admin/users] Current Auth0 roles:', currentRoles.map(r => r.name));
           
           // Remover todos los roles actuales
           for (const currentRole of currentRoles) {
@@ -69,6 +94,9 @@ export async function PATCH(
           
           // Asignar nuevo rol
           await auth0Client.assignRoleToUser(auth0UserId, role);
+          console.log('[PATCH /api/admin/users] ✅ Role updated successfully in Auth0');
+        } else {
+          console.log('[PATCH /api/admin/users] ⚠️ User does not have auth0_user_id, skipping Auth0 update');
         }
       } catch (auth0Error) {
         console.warn('[PATCH /api/admin/users] Auth0 update failed:', auth0Error);
