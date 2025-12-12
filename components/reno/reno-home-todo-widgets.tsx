@@ -290,19 +290,19 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       >
         <CardHeader 
           className={cn(
-            "relative z-10 flex flex-row items-center justify-between space-y-0 pb-4 cursor-pointer flex-shrink-0",
+            "relative z-10 flex flex-row items-center gap-3 pb-4 cursor-pointer flex-shrink-0",
             "border-b border-border/50"
           )}
           onClick={widget.onClick}
         >
-          <CardTitle className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0">
+          <CardTitle className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0 truncate">
             {widget.title}
           </CardTitle>
           
           {/* Smaller number badge aligned with title */}
           <div className={cn(
-            "relative z-10 flex items-center justify-center min-w-[32px] h-7 rounded-md ml-3 flex-shrink-0",
-            "font-medium text-sm",
+            "relative z-10 flex items-center justify-center min-w-[32px] h-7 px-2 rounded-md flex-shrink-0",
+            "font-medium text-sm whitespace-nowrap",
             hasItems 
               ? "bg-muted/50 text-foreground" 
               : "bg-muted/30 text-muted-foreground"
