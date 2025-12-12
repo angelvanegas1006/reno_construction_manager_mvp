@@ -11,6 +11,8 @@ import { findRecordByPropertyId, updateAirtableWithRetry } from "@/lib/airtable/
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { mapSetUpStatusToKanbanPhase } from "@/lib/supabase/kanban-mapping";
+import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 
 interface TodoWidgetModalProps {
   open: boolean;
@@ -66,13 +68,34 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
       // Formatear fecha para Supabase (YYYY-MM-DD)
       const supabaseDate = estimatedVisitDate || null;
       
+      // Obtener la fase actual de la propiedad
+      const { data: currentProperty } = await supabase
+        .from('properties')
+        .select('reno_phase, "Set Up Status"')
+        .eq('id', propertyId)
+        .single();
+      
+      const currentPhase = currentProperty?.reno_phase as RenoKanbanPhase | null;
+      const currentSetUpStatus = currentProperty?.['Set Up Status'] as string | null;
+      
+      // Preparar actualizaciones
+      const supabaseUpdates: Record<string, any> = {
+        'Estimated Visit Date': supabaseDate,
+        updated_at: new Date().toISOString(),
+      };
+      
+      // Si la propiedad está en upcoming-settlements y se está guardando una fecha nueva,
+      // moverla a initial-check
+      if (currentPhase === 'upcoming-settlements' && supabaseDate) {
+        supabaseUpdates['Set Up Status'] = 'initial check';
+        // También actualizar reno_phase para mantener consistencia
+        supabaseUpdates['reno_phase'] = 'initial-check';
+      }
+      
       // Actualizar en Supabase
       const { error: supabaseError } = await supabase
         .from('properties')
-        .update({
-          'Estimated Visit Date': supabaseDate,
-          updated_at: new Date().toISOString(),
-        })
+        .update(supabaseUpdates)
         .eq('id', propertyId);
 
       if (supabaseError) {
@@ -87,19 +110,30 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         // Formatear fecha para Airtable (YYYY-MM-DD)
         const airtableDate = estimatedVisitDate || null;
         
+        const airtableUpdates: Record<string, any> = {
+          'Est. visit date': airtableDate,
+        };
+        
+        // Si se cambió el Set Up Status, también actualizarlo en Airtable
+        if (supabaseUpdates['Set Up Status']) {
+          airtableUpdates['Set Up Status'] = 'initial check';
+        }
+        
         const airtableSuccess = await updateAirtableWithRetry(
           AIRTABLE_TABLE_NAME,
           recordId,
-          {
-            'Est. visit date': airtableDate,
-          }
+          airtableUpdates
         );
 
         if (airtableSuccess) {
           toast.success("Visita estimada guardada", {
-            description: "La fecha de visita estimada se ha guardado correctamente.",
+            description: currentPhase === 'upcoming-settlements' 
+              ? "La fecha de visita estimada se ha guardado y la propiedad se ha movido a Revisión Inicial."
+              : "La fecha de visita estimada se ha guardado correctamente.",
           });
           onOpenChange(false);
+          // Recargar la página para reflejar los cambios
+          window.location.reload();
         } else {
           toast.warning("Guardado parcialmente", {
             description: "Se guardó en Supabase pero hubo un problema al sincronizar con Airtable.",
@@ -126,13 +160,33 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
 
     setIsSaving(true);
     try {
+      // Obtener la fase actual de la propiedad
+      const { data: currentProperty } = await supabase
+        .from('properties')
+        .select('reno_phase, "Set Up Status"')
+        .eq('id', propertyId)
+        .single();
+      
+      const currentPhase = currentProperty?.reno_phase as RenoKanbanPhase | null;
+      const currentSetUpStatus = currentProperty?.['Set Up Status'] as string | null;
+      
+      // Preparar actualizaciones
+      const supabaseUpdates: Record<string, any> = {
+        'Renovator name': renovatorName || null,
+        updated_at: new Date().toISOString(),
+      };
+      
+      // Si la propiedad está en reno-budget-renovator o reno-budget-client y se está guardando un renovador,
+      // moverla a la siguiente fase apropiada
+      // Si está en reno-budget-renovator sin renovador, al agregar uno debería quedarse ahí
+      // Si está en reno-budget-client sin renovador, al agregar uno podría moverse a reno-budget-start
+      // Por ahora, solo actualizamos el renovador sin cambiar la fase automáticamente
+      // La fase se cambiará cuando se complete el presupuesto o se avance manualmente
+      
       // Actualizar en Supabase
       const { error: supabaseError } = await supabase
         .from('properties')
-        .update({
-          'Renovator name': renovatorName || null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(supabaseUpdates)
         .eq('id', propertyId);
 
       if (supabaseError) {
@@ -157,6 +211,8 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
             description: "El nombre del renovador se ha guardado correctamente.",
           });
           onOpenChange(false);
+          // Recargar la página para reflejar los cambios
+          window.location.reload();
         } else {
           toast.warning("Guardado parcialmente", {
             description: "Se guardó en Supabase pero hubo un problema al sincronizar con Airtable.",

@@ -23,6 +23,7 @@
     "migrate:dev": "node scripts/migrate-simple.js",
     "setup:airtable-webhook": "tsx scripts/setup-airtable-webhook.ts",
     "test:sync-airtable": "tsx scripts/test-airtable-sync.ts",
+    "test:phase-transitions": "tsx scripts/test-phase-transitions-simple.ts",
     "sync:all-phases": "tsx scripts/sync-all-phases.ts",
     "sync:initial-check": "tsx scripts/sync-initial-check.ts",
     "sync:upcoming-settlements": "tsx scripts/sync-upcoming-settlements.ts",

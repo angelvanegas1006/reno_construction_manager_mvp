@@ -2,6 +2,7 @@
 
 import { updateAirtableWithRetry, findRecordByPropertyId } from './client';
 import { createClient } from '@/lib/supabase/client';
+import { mapSetUpStatusToKanbanPhase } from '@/lib/supabase/kanban-mapping';
 
 /**
  * Actualiza SetUpnotes en Airtable agregando una nueva línea con timestamp
@@ -307,14 +308,22 @@ export async function finalizeInitialCheckInAirtable(
     if (success) {
       console.log(`✅ Finalized initial check in Airtable for property ${propertyId}`);
       
-      // También actualizar fase en Supabase
-      await supabase
-        .from('properties')
-        .update({
-          'Set Up Status': 'Pending to budget (from Renovator)',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', propertyId);
+      // También actualizar fase en Supabase usando helper
+      const { updatePropertyPhaseConsistent } = await import('@/lib/supabase/phase-update-helper');
+      
+      if (checklistType === 'reno_initial') {
+        // Checklist inicial: mover a reno-budget-renovator
+        await updatePropertyPhaseConsistent(propertyId, {
+          setUpStatus: 'Pending to budget (from Renovator)',
+          renoPhase: 'reno-budget-renovator',
+        });
+      } else if (checklistType === 'reno_final') {
+        // Checklist final: mover a done (o la fase que corresponda)
+        // Por ahora, dejamos que el Set Up Status determine la fase
+        await updatePropertyPhaseConsistent(propertyId, {
+          setUpStatus: 'Final Check Complete',
+        });
+      }
     }
 
     return success;

@@ -266,7 +266,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     return (
       <Card 
         className={cn(
-          "relative overflow-hidden border h-full flex flex-col",
+          "relative overflow-hidden border h-full flex flex-col min-h-[400px] max-h-[600px]",
           hasItems 
             ? "border-border" 
             : "border-border/50 opacity-75"
@@ -295,11 +295,11 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
           </div>
         </CardHeader>
         
-        <CardContent className="relative z-10 flex-1 flex flex-col pt-4 pb-4">
+        <CardContent className="relative z-10 flex-1 flex flex-col pt-4 pb-4 min-h-0">
           {/* Lista de propiedades pendientes */}
           {hasItems && widget.properties.length > 0 && (
-            <div className="space-y-2 flex-1 overflow-y-auto">
-              {widget.properties.slice(0, 4).map((property, index) => (
+            <div className="space-y-2 flex-1 overflow-y-auto max-h-[500px] pr-1 scrollbar-overlay">
+              {widget.properties.map((property, index) => (
                 <div
                   key={property.id}
                   onClick={(e) => handlePropertyClick(e, property, widget.id)}
@@ -312,16 +312,6 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                   {renderPropertyInfo(property, widget.id)}
                 </div>
               ))}
-              
-              {widget.properties.length > 4 && (
-                <button
-                  onClick={widget.onClick}
-                  className="w-full text-xs font-medium text-muted-foreground hover:text-foreground py-2 rounded-lg hover:bg-muted/30 flex items-center justify-center gap-1"
-                >
-                  <span>{(t.dashboard?.todoWidgets?.seeMore || "Ver {count} más").replace('{count}', String(widget.properties.length - 4))}</span>
-                  <ChevronRight className="h-3 w-3" />
-                </button>
-              )}
             </div>
           )}
           
@@ -356,7 +346,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       </div>
       
       {/* Desktop: Grid de cards mejorado */}
-      <div className="hidden md:grid md:grid-cols-5 gap-4 lg:gap-5">
+      <div className="hidden md:grid md:grid-cols-5 gap-4 lg:gap-5 min-h-[400px]">
         {todoWidgets.map((widget) => (
           <WidgetCard key={widget.id} widget={widget} />
         ))}

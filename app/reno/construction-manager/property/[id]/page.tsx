@@ -146,6 +146,8 @@ export default function RenoPropertyDetailPage() {
       if (shouldAutoAdvance) {
         // Update "Set Up Status" to move to initial-check phase
         supabaseUpdates['Set Up Status'] = 'initial check';
+        // Also update reno_phase for consistency
+        supabaseUpdates['reno_phase'] = 'initial-check';
       }
       
       const success = await updateSupabaseProperty(supabaseUpdates);

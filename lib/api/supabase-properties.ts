@@ -72,10 +72,15 @@ export class SupabasePropertiesService {
     position?: number
   ): Promise<Property> {
     try {
+      // Import helper function
+      const { getSetUpStatusForPhase } = await import('@/lib/supabase/phase-update-helper');
+      const setUpStatus = getSetUpStatusForPhase(phase);
+      
       const { data, error } = await supabase
         .from('properties')
         .update({
           reno_phase: phase,
+          'Set Up Status': setUpStatus,
           updated_at: new Date().toISOString(),
         })
         .eq('id', propertyId)

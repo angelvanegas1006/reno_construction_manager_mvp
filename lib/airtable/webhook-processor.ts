@@ -185,6 +185,9 @@ async function handlePhaseChange(
   supabase: Awaited<ReturnType<typeof createClient>>
 ) {
   try {
+    // Import helper function
+    const { updatePropertyPhaseConsistent } = await import('@/lib/supabase/phase-update-helper');
+    
     // Mapear fase de Airtable a fase interna
     const phaseMapping: Record<string, string> = {
       'Upcoming Settlements': 'upcoming-settlements',
@@ -197,14 +200,14 @@ async function handlePhaseChange(
 
     const internalPhase = phaseMapping[newPhase] || newPhase.toLowerCase().replace(/\s+/g, '-');
 
-    // Actualizar el campo "Set Up Status" en Supabase
-    const { error } = await supabase
-      .from('properties')
-      .update({ 'Set Up Status': internalPhase })
-      .eq('id', propertyId);
+    // Actualizar ambos campos usando la función helper
+    const result = await updatePropertyPhaseConsistent(propertyId, {
+      setUpStatus: internalPhase,
+      renoPhase: internalPhase as any, // Type assertion needed
+    });
 
-    if (error) {
-      console.error(`[Airtable Webhook] Error updating phase for ${propertyId}:`, error);
+    if (!result.success) {
+      console.error(`[Airtable Webhook] Error updating phase for ${propertyId}:`, result.error);
       return;
     }
 
