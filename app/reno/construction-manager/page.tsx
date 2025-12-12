@@ -36,13 +36,33 @@ export default function RenoConstructionManagerHomePage() {
     const foremanParam = searchParams.get('foreman');
     if (foremanParam) {
       const emails = foremanParam.split(',').filter(Boolean);
-      setSelectedForemanEmails(emails);
+      // Solo actualizar si es diferente para evitar loops
+      setSelectedForemanEmails(prev => {
+        const prevStr = prev.sort().join(',');
+        const newStr = emails.sort().join(',');
+        return prevStr === newStr ? prev : emails;
+      });
+    } else {
+      // Si no hay parámetro en URL y tenemos emails seleccionados, limpiar
+      setSelectedForemanEmails(prev => prev.length > 0 ? [] : prev);
     }
   }, [searchParams]);
 
-  // Guardar filtro en URL params cuando cambia
+  // Guardar filtro en URL params cuando cambia (solo si es diferente)
   useEffect(() => {
     if (role !== 'construction_manager') return;
+    
+    const currentForemanParam = searchParams.get('foreman');
+    const currentForemanEmails = currentForemanParam 
+      ? currentForemanParam.split(',').filter(Boolean).sort()
+      : [];
+    const newForemanEmails = selectedForemanEmails.sort();
+    
+    // Comparar arrays ordenados para evitar actualizaciones innecesarias
+    const isEqual = currentForemanEmails.length === newForemanEmails.length &&
+      currentForemanEmails.every((email, index) => email === newForemanEmails[index]);
+    
+    if (isEqual) return; // No actualizar si ya está sincronizado
     
     const params = new URLSearchParams(searchParams.toString());
     

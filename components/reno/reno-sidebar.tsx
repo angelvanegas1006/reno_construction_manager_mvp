@@ -310,7 +310,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
       {/* Header */}
       <div className={cn(
         "flex items-center border-b border-border transition-all duration-300",
-        collapsed ? "justify-center p-3 h-[64px] min-h-[64px]" : "justify-between p-4 h-[64px] min-h-[64px]"
+        collapsed ? "justify-center px-3 py-3 h-[64px] min-h-[64px]" : "justify-between p-4 h-[64px] min-h-[64px]"
       )}>
         {collapsed ? (
           <Link 
@@ -319,7 +319,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
             title="Vistral"
           >
             {/* Solo mostrar el icono del logo cuando está comprimida */}
-            <VistralLogo variant={null} className="h-8" />
+            <VistralLogo variant={null} iconOnly className="h-8 w-8" />
           </Link>
         ) : (
           <>
@@ -392,14 +392,14 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   key={item.href}
                   href={item.href}
                     className={cn(
-                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors",
+                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full",
                       isActive
                         ? "bg-primary/20 text-primary dark:text-white"
                         : "text-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   title={item.label}
                 >
-                  <Icon className="h-5 w-5 text-current" />
+                  <Icon className="h-5 w-5 flex-shrink-0 text-current" />
                 </Link>
               );
             })}
@@ -423,14 +423,14 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                     key={item.href}
                     onClick={() => setIsHelpModalOpen(true)}
                     className={cn(
-                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors relative",
+                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors relative w-full",
                       isActive
                         ? "bg-primary/20 text-primary dark:text-white"
                         : "text-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                     title={item.label}
                   >
-                    <Icon className="h-5 w-5 text-current" />
+                    <Icon className="h-5 w-5 flex-shrink-0 text-current" />
                     {item.badge !== undefined && item.badge > 0 && (
                       <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-[10px] font-semibold text-white">
                         {item.badge}
@@ -445,7 +445,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors relative",
+                    "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors relative w-full",
                     isActive
                       ? "bg-primary/20 text-primary dark:text-white"
                       : "text-foreground hover:bg-accent hover:text-accent-foreground",
@@ -453,7 +453,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   )}
                   title={item.label}
                 >
-                  <Icon className="h-5 w-5 text-current" />
+                  <Icon className="h-5 w-5 flex-shrink-0 text-current" />
                   {item.badge !== undefined && item.badge > 0 && (
                     <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-[10px] font-semibold text-white">
                       {item.badge}
