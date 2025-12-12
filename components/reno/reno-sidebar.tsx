@@ -310,7 +310,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
       {/* Header */}
       <div className={cn(
         "flex items-center border-b border-border transition-all duration-300",
-        collapsed ? "justify-center p-3" : "justify-between p-4"
+        collapsed ? "justify-center p-3 h-[64px]" : "justify-between p-4 h-[64px]"
       )}>
         {collapsed ? (
           <Link 
@@ -388,7 +388,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <Icon className="h-5 w-5 flex-shrink-0" />
+                      <Icon className="h-5 w-5 flex-shrink-0 text-current" />
                       <span className="whitespace-nowrap truncate">{item.label}</span>
                     </div>
                     <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -418,7 +418,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                     )}
                   title={item.label}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5 text-current" />
                 </Link>
               );
             })}
@@ -449,7 +449,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                     )}
                     title={item.label}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-5 w-5 text-current" />
                     {item.badge !== undefined && item.badge > 0 && (
                       <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-[10px] font-semibold text-white">
                         {item.badge}
@@ -472,7 +472,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   )}
                   title={item.label}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5 text-current" />
                   {item.badge !== undefined && item.badge > 0 && (
                     <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-[10px] font-semibold text-white">
                       {item.badge}

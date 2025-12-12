@@ -151,6 +151,8 @@ export interface Translations {
     searchAreaCluster: string;
     noValuesAvailable: string;
     clearAll: string;
+    noPropertiesInState: string;
+    noPropertiesFound: string;
     applyFilters: string;
       // Reno Construction Manager phases
       upcomingSettlements: string;
@@ -714,6 +716,8 @@ export const translations: Record<Language, Translations> = {
       searchAreaCluster: "Buscar área...",
       noValuesAvailable: "No hay valores disponibles",
       clearAll: "Limpiar todos",
+      noPropertiesInState: "No hay propiedades en este estado",
+      noPropertiesFound: "No se encontraron propiedades",
       applyFilters: "Aplicar filtros",
       // Reno Construction Manager phases
       upcomingSettlements: "Próximas Renovaciones",
@@ -1678,6 +1682,8 @@ export const translations: Record<Language, Translations> = {
       searchAreaCluster: "Search area...",
       noValuesAvailable: "No values available",
       clearAll: "Clear All",
+      noPropertiesInState: "No properties in this state",
+      noPropertiesFound: "No properties found",
       applyFilters: "Apply Filters",
       // Reno Construction Manager phases
       upcomingSettlements: "Upcoming Reno",

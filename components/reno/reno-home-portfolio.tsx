@@ -113,7 +113,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
                     <div
                       className="w-full rounded-t-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-lg relative overflow-hidden group-hover:opacity-90"
                       style={{ 
-                        height: `${height}px`, 
+                        height: `${Math.max(height, count > 0 ? 6 : 0)}px`, 
                         minHeight: count > 0 ? "6px" : "0",
                         backgroundColor: count > 0 ? "var(--prophero-blue-400)" : "transparent"
                       }}

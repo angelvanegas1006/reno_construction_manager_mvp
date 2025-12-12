@@ -221,9 +221,23 @@ export function VisitsCalendar({
         return;
       }
 
+      // Filtrar visitas por propiedades que el usuario puede ver (propertiesByPhase)
+      // Crear un Set de IDs de propiedades visibles para filtrado rápido
+      const visiblePropertyIds = new Set<string>();
+      if (propertiesByPhase) {
+        Object.values(propertiesByPhase).forEach((phaseProperties) => {
+          phaseProperties.forEach(prop => visiblePropertyIds.add(prop.id));
+        });
+      }
+
+      // Filtrar visitas solo para propiedades visibles
+      const filteredVisits = (data || []).filter((visit: any) => 
+        visiblePropertyIds.has(visit.property_id)
+      );
+
       // Obtener último comentario para cada propiedad
       const visitsWithComments = await Promise.all(
-        (data || []).map(async (visit: any) => {
+        filteredVisits.map(async (visit: any) => {
           const { data: comments } = await supabase
             .from("property_comments")
             .select("comment_text, created_at")
