@@ -8,9 +8,10 @@ import { useEffect, useState } from "react";
 interface VistralLogoProps {
   className?: string;
   variant?: "light" | "dark" | null;
+  iconOnly?: boolean;
 }
 
-export function VistralLogo({ className, variant }: VistralLogoProps) {
+export function VistralLogo({ className, variant, iconOnly = false }: VistralLogoProps) {
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -73,9 +74,13 @@ export function VistralLogo({ className, variant }: VistralLogoProps) {
       : "#1e293b";
 
   return (
-    <div className={cn("flex items-center gap-2 min-w-0", className)}>
+    <div className={cn(
+      "flex items-center min-w-0",
+      iconOnly ? "justify-center" : "gap-2",
+      className
+    )}>
       {/* SVG Logo from public folder */}
-      <div className="flex-shrink-0 relative" style={{ width: 32, height: 32 }}>
+      <div className="flex-shrink-0 relative flex items-center justify-center w-8 h-8">
         <Image
           src={logoSrc}
           alt="Vistral Logo"
@@ -87,20 +92,22 @@ export function VistralLogo({ className, variant }: VistralLogoProps) {
         />
       </div>
       
-      <div className="flex flex-col min-w-0">
-        <span 
-          className={cn("text-sm font-bold leading-tight whitespace-nowrap", !useThemeAware && "text-foreground")} 
-          style={textColor ? { color: textColor } : undefined}
-        >
-          VISTRAL
-        </span>
-        <span 
-          className={cn("text-xs font-light leading-tight whitespace-nowrap", !useThemeAware && "text-foreground")} 
-          style={textColor ? { color: textColor } : undefined}
-        >
-          by PropHero
-        </span>
-      </div>
+      {!iconOnly && (
+        <div className="flex flex-col min-w-0">
+          <span 
+            className={cn("text-sm font-bold leading-tight whitespace-nowrap", !useThemeAware && "text-foreground")} 
+            style={textColor ? { color: textColor } : undefined}
+          >
+            VISTRAL
+          </span>
+          <span 
+            className={cn("text-xs font-light leading-tight whitespace-nowrap", !useThemeAware && "text-foreground")} 
+            style={textColor ? { color: textColor } : undefined}
+          >
+            by PropHero
+          </span>
+        </div>
+      )}
     </div>
   );
 }
