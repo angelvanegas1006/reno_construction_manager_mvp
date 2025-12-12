@@ -211,7 +211,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                         )}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <Icon className="h-5 w-5 flex-shrink-0" />
+                          <Icon className="h-5 w-5 flex-shrink-0 text-current" />
                           <span className="whitespace-nowrap truncate">{item.label}</span>
                         </div>
                         <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -247,7 +247,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                           item.comingSoon && "opacity-50 cursor-not-allowed"
                         )}
                       >
-                        <Icon className="h-5 w-5 flex-shrink-0" />
+                        <Icon className="h-5 w-5 flex-shrink-0 text-current" />
                         <span className="whitespace-nowrap truncate">{item.label}</span>
                         {item.comingSoon && (
                           <span className="ml-auto text-xs text-muted-foreground">{t.sidebar.soon}</span>
@@ -310,7 +310,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
       {/* Header */}
       <div className={cn(
         "flex items-center border-b border-border transition-all duration-300",
-        collapsed ? "justify-center p-3 h-[64px]" : "justify-between p-4 h-[64px]"
+        collapsed ? "justify-center p-3 h-[64px] min-h-[64px]" : "justify-between p-4 h-[64px] min-h-[64px]"
       )}>
         {collapsed ? (
           <Link 
@@ -319,26 +319,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
             title="Vistral"
           >
             {/* Solo mostrar el icono del logo cuando está comprimida */}
-            <div className="flex-shrink-0 relative" style={{ width: 32, height: 32 }}>
-              <Image
-                src="/vistral-logo.svg"
-                alt="Vistral Logo"
-                width={32}
-                height={32}
-                className="object-contain w-full h-full dark:hidden"
-                priority
-                unoptimized
-              />
-              <Image
-                src="/vistral-logo-dark.svg"
-                alt="Vistral Logo"
-                width={32}
-                height={32}
-                className="object-contain w-full h-full hidden dark:block"
-                priority
-                unoptimized
-              />
-            </div>
+            <VistralLogo variant={null} className="h-8" />
           </Link>
         ) : (
           <>
@@ -503,7 +484,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                         "text-foreground hover:bg-accent hover:text-accent-foreground"
                       )}
                     >
-                      <Icon className="h-5 w-5 flex-shrink-0" />
+                      <Icon className="h-5 w-5 flex-shrink-0 text-current" />
                       <span className="whitespace-nowrap truncate">{item.label}</span>
                     </button>
                   );
@@ -521,7 +502,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                       item.comingSoon && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <Icon className="h-5 w-5 flex-shrink-0 text-current" />
                     <span className="whitespace-nowrap truncate">{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
                       <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-xs font-semibold text-white">
