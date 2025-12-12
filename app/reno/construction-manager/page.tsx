@@ -137,68 +137,25 @@ export default function RenoConstructionManagerHomePage() {
     fetchVisitsForToday();
   }, [supabase]);
   
-  // Log when propertiesByPhase changes
-  useEffect(() => {
-    console.log('[RenoHomePage] 📊 propertiesByPhase changed:', {
-      loading: supabaseLoading,
-      error: supabaseError,
-      hasPropertiesByPhase: !!propertiesByPhase,
-      phaseCounts: propertiesByPhase ? Object.entries(propertiesByPhase).reduce((acc, [phase, props]) => {
-        acc[phase] = props.length;
-        return acc;
-      }, {} as Record<string, number>) : null,
-      timestamp: new Date().toISOString(),
-    });
-  }, [propertiesByPhase, supabaseLoading, supabaseError]);
-  
-
   // Convert Supabase properties to Property format for home page
   const properties = useMemo(() => {
-    console.log('[RenoHomePage] 🔄 Computing properties...', {
-      loading: supabaseLoading,
-      hasPropertiesByPhase: !!propertiesByPhase,
-      selectedForemanEmails,
-      timestamp: new Date().toISOString(),
-    });
-
     if (supabaseLoading) {
-      console.log('[RenoHomePage] ⏳ Still loading, returning empty array');
       return [];
     }
     
     if (!propertiesByPhase) {
-      console.log('[RenoHomePage] ⚠️ No propertiesByPhase, returning empty array');
       return [];
     }
     
     // Flatten all properties from all phases
     // Properties are already filtered by foreman in propertiesByPhase if needed
     const allProps: Property[] = [];
-    Object.values(propertiesByPhase).forEach((phaseProperties, index) => {
-      const phaseName = Object.keys(propertiesByPhase)[index];
-      console.log('[RenoHomePage] 📦 Processing phase:', {
-        phase: phaseName,
-        count: phaseProperties.length,
-      });
+    Object.values(propertiesByPhase).forEach((phaseProperties) => {
       allProps.push(...phaseProperties);
-    });
-    
-    console.log('[RenoHomePage] ✅ Properties computed:', {
-      total: allProps.length,
-      timestamp: new Date().toISOString(),
     });
     
     return allProps;
   }, [propertiesByPhase, supabaseLoading, selectedForemanEmails, role, user?.email]);
-  
-  // Log when properties change
-  useEffect(() => {
-    console.log('[RenoHomePage] 📋 Properties state changed:', {
-      count: properties.length,
-      sampleIds: properties.slice(0, 3).map(p => p.id),
-      timestamp: new Date().toISOString(),
-    });
-  }, [properties]);
   
   // Show error if Supabase fetch failed
   useEffect(() => {

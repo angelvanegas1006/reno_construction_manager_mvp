@@ -897,7 +897,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                 "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-2",
                 selectedPhaseFilter === "all"
                   ? "bg-[var(--prophero-blue-500)] text-white"
-                  : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-accent"
+                  : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-muted/50 dark:hover:bg-[var(--prophero-gray-800)]"
               )}
             >
               <span>All ({totalCount})</span>
@@ -934,7 +934,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                     "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-2",
                     isSelected
                       ? "bg-[var(--prophero-blue-500)] text-white"
-                      : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-accent"
+                      : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-muted/50 dark:hover:bg-[var(--prophero-gray-800)]"
                   )}
                 >
                   <span>{phaseLabel} ({count})</span>
