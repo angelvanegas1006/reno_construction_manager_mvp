@@ -864,7 +864,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       return (
         <div className="flex items-center justify-center h-full p-6">
           <div className="text-center space-y-2">
-            <p className="text-muted-foreground">No properties found</p>
+            <p className="text-muted-foreground">{t.kanban.noPropertiesFound}</p>
           </div>
         </div>
       );
@@ -997,7 +997,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           return (
             <div key={column.key} className="bg-card rounded-lg border border-border overflow-hidden">
               {/* Phase Header - Collapsible */}
-              <div className="bg-accent dark:bg-[var(--prophero-gray-800)] px-4 py-3 border-b border-border">
+              <div className="bg-muted/50 dark:bg-[var(--prophero-gray-900)] px-4 py-3 border-b border-border">
                 <div className="flex items-center justify-between gap-2">
                   <button
                     onClick={() => togglePhaseCollapse(column.key)}
@@ -1045,7 +1045,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               {!isCollapsed && (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-accent dark:bg-[var(--prophero-gray-800)] border-b border-border">
+                    <thead className="bg-muted/50 dark:bg-[var(--prophero-gray-900)] border-b border-border">
                       <tr>
                         {getVisibleColumnsForPhase(column.key).has("id") && (
                           <th 
@@ -1271,7 +1271,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                   }
                                   
                                   return (
-                                    <Badge className={cn(badgeClass, "text-xs font-medium px-2 py-1")}>
+                                    <Badge className={cn(badgeClass, "text-xs font-medium px-2 py-1 hover:opacity-100")}>
                                       {property.renoType}
                                     </Badge>
                                   );
@@ -1365,7 +1365,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                   </Badge>
                                 ) : (
                                   <Badge variant="outline" className="text-xs">
-                                    {t.propertyCard.workInProgress || "Active"}
+                                    {(property as any)?.supabaseProperty?.['Set Up Status'] || 
+                                     property.status || 
+                                     t.propertyCard.workInProgress || 
+                                     "Active"}
                                   </Badge>
                                 )}
                               </td>

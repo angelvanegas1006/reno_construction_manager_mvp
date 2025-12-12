@@ -41,26 +41,36 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 1. Definir Visita Estimada
-    const pendingEstimatedVisitProps = [
+    // Helper para ordenar por fecha (días para visitar/empezar)
+    const sortByDays = (props: Property[], field: 'daysToVisit' | 'daysToStartRenoSinceRSD' | 'renoDuration' | 'daysToPropertyReady') => {
+      return [...props].sort((a, b) => {
+        const aValue = a[field] ?? Infinity;
+        const bValue = b[field] ?? Infinity;
+        // Ordenar por valor ascendente (menos días primero, luego los que no tienen fecha)
+        return aValue - bValue;
+      });
+    };
+
+    // 1. Definir Visita Estimada - ordenar por daysToVisit
+    const pendingEstimatedVisitProps = sortByDays([
       ...(propertiesByPhase['upcoming-settlements'] || [])
         .filter(prop => !prop.estimatedVisitDate || prop.estimatedVisitDate.trim() === ''),
       ...(propertiesByPhase['initial-check'] || [])
         .filter(prop => !prop.estimatedVisitDate || prop.estimatedVisitDate.trim() === '')
-    ];
+    ], 'daysToVisit');
 
-    // 2. Check Inicial
-    const pendingInitialCheckProps = (propertiesByPhase['initial-check'] || []);
+    // 2. Check Inicial - ordenar por daysToVisit
+    const pendingInitialCheckProps = sortByDays((propertiesByPhase['initial-check'] || []), 'daysToVisit');
 
-    // 3. Rellenar Renovador
-    const pendingRenovatorProps = [
+    // 3. Rellenar Renovador - ordenar por daysToStartRenoSinceRSD
+    const pendingRenovatorProps = sortByDays([
       ...(propertiesByPhase['reno-budget-renovator'] || [])
         .filter(prop => !prop.renovador || prop.renovador.trim() === ''),
       ...(propertiesByPhase['reno-budget-client'] || [])
         .filter(prop => !prop.renovador || prop.renovador.trim() === '')
-    ];
+    ], 'daysToStartRenoSinceRSD');
 
-    // 4. Actualizacion de obra
+    // 4. Actualizacion de obra - ordenar por proximaActualizacion o ultimaActualizacion
     const pendingWorkUpdateProps = (propertiesByPhase['reno-in-progress'] || [])
       .filter(prop => {
         if (prop.proximaActualizacion) {
@@ -76,10 +86,16 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         const lastUpdateDate = new Date(prop.ultimaActualizacion);
         const daysSinceUpdate = Math.floor((today.getTime() - lastUpdateDate.getTime()) / (1000 * 60 * 60 * 24));
         return daysSinceUpdate > 7;
+      })
+      .sort((a, b) => {
+        // Ordenar por proximaActualizacion o ultimaActualizacion (más antiguas primero)
+        const aDate = a.proximaActualizacion ? new Date(a.proximaActualizacion) : (a.ultimaActualizacion ? new Date(a.ultimaActualizacion) : new Date(0));
+        const bDate = b.proximaActualizacion ? new Date(b.proximaActualizacion) : (b.ultimaActualizacion ? new Date(b.ultimaActualizacion) : new Date(0));
+        return aDate.getTime() - bDate.getTime();
       });
 
-    // 5. Check Final
-    const pendingFinalCheckProps = (propertiesByPhase['final-check'] || []);
+    // 5. Check Final - ordenar por daysToPropertyReady
+    const pendingFinalCheckProps = sortByDays((propertiesByPhase['final-check'] || []), 'daysToPropertyReady');
 
     // Ordenar widgets según el orden del kanban: upcoming-settlements, initial-check, reno-budget-renovator, reno-budget-client, reno-budget-start, reno-in-progress, furnishing-cleaning, final-check
     const widgets: TodoWidget[] = [

@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { isDelayedWork, isPropertyExpired } from "@/lib/property-sorting";
 import { Property } from "@/lib/property-storage";
 import { RenoKanbanPhase } from "@/lib/reno-kanban-config";
+import { useI18n } from "@/lib/i18n";
 
 interface RenoKanbanColumnProps {
   title: string;
@@ -27,6 +28,7 @@ export function RenoKanbanColumn({
   highlightedPropertyId, 
   onColumnRef 
 }: RenoKanbanColumnProps) {
+  const { t } = useI18n();
   const [isHovered, setIsHovered] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [needsScroll, setNeedsScroll] = useState(false);
@@ -103,7 +105,7 @@ export function RenoKanbanColumn({
         >
           {properties.length === 0 ? (
             <div className="text-sm text-muted-foreground py-8 text-center bg-card dark:bg-[#000000] border border-border rounded-lg md:border-0 md:bg-transparent">
-              No properties in this state
+              {t.kanban.noPropertiesInState}
             </div>
           ) : (
             properties.map((property) => (
