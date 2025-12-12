@@ -261,10 +261,10 @@ export default function AdminUsersPage() {
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-3 md:px-4 lg:px-6 py-3 md:py-4 lg:py-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
           <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
               <div>
-                <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
-                <p className="text-muted-foreground mt-1">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold">Gestión de Usuarios</h1>
+                <p className="text-sm md:text-base text-muted-foreground mt-1">
                   Administra usuarios y roles del sistema
                 </p>
               </div>
@@ -288,16 +288,16 @@ export default function AdminUsersPage() {
                 Crear Usuario
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[95vw] max-w-[425px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
               <DialogHeader>
-                <DialogTitle>Crear Nuevo Usuario</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-lg sm:text-xl">Crear Nuevo Usuario</DialogTitle>
+                <DialogDescription className="text-sm sm:text-base">
                   Crea un nuevo usuario en Auth0 y Supabase
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
+              <div className="space-y-4 mt-4">
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                   <Input
                     id="email"
                     type="email"
@@ -306,10 +306,11 @@ export default function AdminUsersPage() {
                       setFormData({ ...formData, email: e.target.value })
                     }
                     placeholder="usuario@example.com"
+                    className="text-base sm:text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="name">Nombre</Label>
+                  <Label htmlFor="name" className="text-sm font-medium">Nombre</Label>
                   <Input
                     id="name"
                     value={formData.name}
@@ -317,10 +318,11 @@ export default function AdminUsersPage() {
                       setFormData({ ...formData, name: e.target.value })
                     }
                     placeholder="Nombre del usuario"
+                    className="text-base sm:text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="password" className="text-sm font-medium">Contraseña</Label>
                   <Input
                     id="password"
                     type="password"
@@ -329,17 +331,18 @@ export default function AdminUsersPage() {
                       setFormData({ ...formData, password: e.target.value })
                     }
                     placeholder="Dejar vacío para generar automática"
+                    className="text-base sm:text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="role">Rol</Label>
+                  <Label htmlFor="role" className="text-sm font-medium">Rol</Label>
                   <Select
                     value={formData.role}
                     onValueChange={(value) =>
                       setFormData({ ...formData, role: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -351,14 +354,17 @@ export default function AdminUsersPage() {
                   </Select>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 pt-4">
                 <Button
                   variant="outline"
                   onClick={() => setCreateDialogOpen(false)}
+                  className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateUser}>Crear</Button>
+                <Button onClick={handleCreateUser} className="w-full sm:w-auto order-1 sm:order-2">
+                  Crear
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -367,18 +373,18 @@ export default function AdminUsersPage() {
 
       {/* Search and Filters */}
       <div className="mb-6 space-y-4">
-        <div className="flex gap-4 items-center">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por email o nombre..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 text-base sm:text-sm"
             />
           </div>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filtrar por rol" />
             </SelectTrigger>
             <SelectContent>
@@ -390,7 +396,7 @@ export default function AdminUsersPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-xs sm:text-sm text-muted-foreground">
           Mostrando {paginatedUsers.length} de {filteredUsers.length} usuarios
         </div>
       </div>
@@ -400,12 +406,13 @@ export default function AdminUsersPage() {
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : filteredUsers.length === 0 ? (
-        <div className="border rounded-lg p-12 text-center">
-          <p className="text-muted-foreground">No se encontraron usuarios</p>
+        <div className="border rounded-lg p-8 sm:p-12 text-center">
+          <p className="text-sm sm:text-base text-muted-foreground">No se encontraron usuarios</p>
         </div>
       ) : (
         <>
-          <div className="border rounded-lg">
+          {/* Desktop Table View */}
+          <div className="hidden md:block border rounded-lg overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted">
                 <tr>
@@ -420,8 +427,8 @@ export default function AdminUsersPage() {
               <tbody>
                 {paginatedUsers.map((user) => (
                   <tr key={user.id} className="border-t hover:bg-muted/50 transition-colors">
-                    <td className="px-4 py-3">{user.email}</td>
-                    <td className="px-4 py-3">{user.name}</td>
+                    <td className="px-4 py-3 text-sm">{user.email}</td>
+                    <td className="px-4 py-3 text-sm">{user.name}</td>
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${
@@ -480,18 +487,83 @@ export default function AdminUsersPage() {
             </table>
           </div>
 
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {paginatedUsers.map((user) => (
+              <div key={user.id} className="border rounded-lg p-4 bg-card space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold truncate">{user.name || user.email}</h3>
+                    <p className="text-xs text-muted-foreground truncate mt-1">{user.email}</p>
+                  </div>
+                  <div className="flex gap-2 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditDialog(user)}
+                      title="Editar usuario"
+                      className="h-8 w-8 p-0"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteUser(user.id)}
+                      disabled={user.id === user?.id}
+                      title="Eliminar usuario"
+                      className="h-8 w-8 p-0"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      user.role === "admin"
+                        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                        : user.role === "foreman"
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                        : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
+                    }`}
+                  >
+                    {t.roles[user.role as keyof typeof t.roles] || user.role}
+                  </span>
+                  {user.google_calendar_connected ? (
+                    <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                      <CalendarCheck className="h-3.5 w-3.5" />
+                      <span>Conectado</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" />
+                      <span>No conectado</span>
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground pt-2 border-t">
+                  Último acceso: {user.last_sign_in_at
+                    ? new Date(user.last_sign_in_at).toLocaleDateString()
+                    : "Nunca"}
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4">
+              <div className="text-xs sm:text-sm text-muted-foreground">
                 Página {currentPage} de {totalPages}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  className="flex-1 sm:flex-none"
                 >
                   Anterior
                 </Button>
@@ -500,6 +572,7 @@ export default function AdminUsersPage() {
                   size="sm"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
+                  className="flex-1 sm:flex-none"
                 >
                   Siguiente
                 </Button>
@@ -511,16 +584,16 @@ export default function AdminUsersPage() {
 
       {/* Dialog de edición */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-[425px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Editar Usuario</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Editar Usuario</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
               Actualiza la información del usuario
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 mt-4">
             <div>
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-email" className="text-sm font-medium">Email</Label>
               <Input
                 id="edit-email"
                 type="email"
@@ -528,27 +601,29 @@ export default function AdminUsersPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
+                className="text-base sm:text-sm mt-1"
               />
             </div>
             <div>
-              <Label htmlFor="edit-name">Nombre</Label>
+              <Label htmlFor="edit-name" className="text-sm font-medium">Nombre</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
+                className="text-base sm:text-sm mt-1"
               />
             </div>
             <div>
-              <Label htmlFor="edit-role">Rol</Label>
+              <Label htmlFor="edit-role" className="text-sm font-medium">Rol</Label>
               <Select
                 value={formData.role}
                 onValueChange={(value) =>
                   setFormData({ ...formData, role: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -560,14 +635,17 @@ export default function AdminUsersPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 pt-4">
             <Button
               variant="outline"
               onClick={() => setEditDialogOpen(false)}
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancelar
             </Button>
-            <Button onClick={handleUpdateUser}>Guardar</Button>
+            <Button onClick={handleUpdateUser} className="w-full sm:w-auto order-1 sm:order-2">
+              Guardar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
