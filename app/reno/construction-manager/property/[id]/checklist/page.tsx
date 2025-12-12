@@ -7,7 +7,7 @@ import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
 import { PropertyInfoSection } from "@/components/reno/property-info-section";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileSidebarMenu } from "@/components/property/mobile-sidebar-menu";
 import { CompleteInspectionDialog } from "@/components/reno/complete-inspection-dialog";
@@ -23,6 +23,7 @@ import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } f
 import { fetchInitialCheckFieldsFromAirtable } from "@/lib/airtable/initial-check-sync";
 import { useSupabaseInspection } from "@/hooks/useSupabaseInspection";
 import { areAllActivitiesReported } from "@/lib/checklist-validation";
+import { calculateOverallChecklistProgress, getAllChecklistSectionsProgress } from "@/lib/checklist-progress";
 
 // Checklist section components
 import { EntornoZonasComunesSection } from "@/components/checklist/sections/entorno-zonas-comunes-section";
@@ -52,6 +53,7 @@ export default function RenoChecklistPage() {
   const { t } = useI18n();
   const [activeSection, setActiveSection] = useState("checklist-entorno-zonas-comunes");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Get property ID from params
   const propertyId = params.id && typeof params.id === "string" ? params.id : null;
@@ -181,6 +183,10 @@ export default function RenoChecklistPage() {
   const isFinalCheck = phase === "final-check" || phase === "furnishing-cleaning";
   const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
+  
+  // Calculate overall progress
+  const overallProgress = calculateOverallChecklistProgress(checklist || null);
+  const sectionProgress = getAllChecklistSectionsProgress(checklist || null);
 
   // Set initial section: property-info for final-check, checklist for initial-check
   // This hook must be called before any conditional returns
@@ -862,17 +868,17 @@ export default function RenoChecklistPage() {
         {/* Mobile Sidebar Menu */}
         <MobileSidebarMenu
           address={formatAddress()}
-          overallProgress={0}
+          overallProgress={overallProgress}
           sections={[
             { sectionId: "property-info", name: t.sidebar.propertyInformation, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-salon", name: t.checklist.sections.salon.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-banos", name: t.checklist.sections.banos.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-cocina", name: t.checklist.sections.cocina.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-exteriores", name: t.checklist.sections.exteriores.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title, progress: sectionProgress["entorno-zonas-comunes"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title, progress: sectionProgress["estado-general"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title, progress: sectionProgress["entrada-pasillos"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title, progress: sectionProgress["habitaciones"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-salon", name: t.checklist.sections.salon.title, progress: sectionProgress["salon"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-banos", name: t.checklist.sections.banos.title, progress: sectionProgress["banos"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-cocina", name: t.checklist.sections.cocina.title, progress: sectionProgress["cocina"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+            { sectionId: "checklist-exteriores", name: t.checklist.sections.exteriores.title, progress: sectionProgress["exteriores"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
           ]}
           activeSection={activeSection}
           onSectionClick={handleSectionClick}
@@ -883,6 +889,8 @@ export default function RenoChecklistPage() {
           hasUnsavedChanges={hasUnsavedChanges}
           habitacionesCount={habitacionesCount}
           banosCount={banosCount}
+          isOpen={isMobileSidebarOpen}
+          onOpenChange={setIsMobileSidebarOpen}
         />
       </div>
     );
@@ -897,6 +905,7 @@ export default function RenoChecklistPage() {
         backLabel="Atrás"
         formTitle={formTitle}
         statusText={hasUnsavedChanges ? undefined : "Cambios guardados"}
+        onMenuClick={() => setIsMobileSidebarOpen(true)}
         actions={[
           {
             label: t.property.save,
@@ -967,16 +976,16 @@ export default function RenoChecklistPage() {
       {/* Mobile Sidebar Menu - Botones removidos, ahora están en NavbarL3 */}
       <MobileSidebarMenu
         address={formatAddress()}
-        overallProgress={0}
+        overallProgress={overallProgress}
         sections={[
-          { sectionId: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-salon", name: t.checklist.sections.salon.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-banos", name: t.checklist.sections.banos.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-cocina", name: t.checklist.sections.cocina.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          { sectionId: "checklist-exteriores", name: t.checklist.sections.exteriores.title, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+          { sectionId: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title, progress: sectionProgress["entorno-zonas-comunes"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+          { sectionId: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title, progress: sectionProgress["estado-general"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+          { sectionId: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title, progress: sectionProgress["entrada-pasillos"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+          { sectionId: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title, progress: sectionProgress["habitaciones"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+          { sectionId: "checklist-salon", name: t.checklist.sections.salon.title, progress: sectionProgress["salon"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+          { sectionId: "checklist-banos", name: t.checklist.sections.banos.title, progress: sectionProgress["banos"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+          { sectionId: "checklist-cocina", name: t.checklist.sections.cocina.title, progress: sectionProgress["cocina"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
+          { sectionId: "checklist-exteriores", name: t.checklist.sections.exteriores.title, progress: sectionProgress["exteriores"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
         ]}
         activeSection={activeSection}
         onSectionClick={handleSectionClick}
@@ -987,6 +996,8 @@ export default function RenoChecklistPage() {
         hasUnsavedChanges={hasUnsavedChanges}
         habitacionesCount={habitacionesCount}
         banosCount={banosCount}
+        isOpen={isMobileSidebarOpen}
+        onOpenChange={setIsMobileSidebarOpen}
       />
 
       {/* Complete Inspection Dialog */}
