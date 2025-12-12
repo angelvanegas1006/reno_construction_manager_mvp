@@ -527,9 +527,13 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
     ]) || null,
     // Days and duration fields - convert to numbers
     'Days to Start Reno (Since RSD)': (() => {
+      // Campo en Airtable: "Days to start reno since real settlement date"
+      // Campo en Supabase: "Days to Start Reno (Since RSD)"
+      // Combinar todas las variantes de ambos cambios para máxima compatibilidad
       const value = getFieldValue('Days to start reno since real settlement date', [
         'Days to start reno since real settlement date', // Nombre exacto en Airtable
         'Days to start reno since settlement date',
+        'Days to start reno since (RSD)',
         'Days to Start Reno (Since RSD)', // Nombre en Supabase
         'Days to Start Reno (Sice RSD)', // Variante con typo
         'Days to start reno since RSD',
@@ -787,24 +791,24 @@ export async function syncPropertiesFromAirtable(
           
           // Expandir hasChanges para verificar TODOS los campos sincronizados
           // Usar 'as any' para campos con espacios que TypeScript no reconoce en el tipo
+          // Combinar verificación de ambos cambios (nuestros y de Manu) para máxima cobertura
           const currentDataAny = currentData as any;
           const supabaseDataAny = supabaseData as any;
           const hasChanges =
+            // Campos básicos
             currentData?.address !== supabaseData.address ||
             currentData?.type !== supabaseData.type ||
+            currentData?.notes !== supabaseData.notes ||
             currentData?.keys_location !== supabaseData.keys_location ||
             currentData?.stage !== supabaseData.stage ||
+            // Campos con espacios (usar as any)
             currentDataAny?.['Client email'] !== supabaseDataAny['Client email'] ||
+            currentDataAny?.['Set Up Status'] !== supabaseDataAny['Set Up Status'] ||
             currentDataAny?.['Estimated Visit Date'] !== supabaseDataAny['Estimated Visit Date'] ||
+            // Campos de fechas
             currentData?.estimated_end_date !== supabaseData.estimated_end_date ||
             currentData?.start_date !== supabaseData.start_date ||
-            currentDataAny?.['Days to Start Reno (Since RSD)'] !== supabaseDataAny['Days to Start Reno (Since RSD)'] ||
-            currentDataAny?.['Reno Duration'] !== supabaseDataAny['Reno Duration'] ||
-            currentDataAny?.['Days to Property Ready'] !== supabaseDataAny['Days to Property Ready'] ||
-            currentData?.days_to_visit !== supabaseData.days_to_visit ||
-            currentData?.reno_phase !== supabaseData.reno_phase ||
-            currentDataAny?.['Set Up Status'] !== supabaseDataAny['Set Up Status'] ||
-            currentData?.notes !== supabaseData.notes ||
+            // Campos relacionados
             currentData?.area_cluster !== supabaseData.area_cluster ||
             currentDataAny?.['Hubspot ID'] !== supabaseDataAny['Hubspot ID'] ||
             currentData?.property_unique_id !== supabaseData.property_unique_id ||
@@ -813,6 +817,13 @@ export async function syncPropertiesFromAirtable(
             currentDataAny?.['Technical construction'] !== supabaseDataAny['Technical construction'] ||
             currentData?.next_reno_steps !== supabaseData.next_reno_steps ||
             currentDataAny?.['Renovator name'] !== supabaseDataAny['Renovator name'] ||
+            // Campos de días y duración (usar as any para campos con espacios)
+            currentDataAny?.['Days to Start Reno (Since RSD)'] !== supabaseDataAny['Days to Start Reno (Since RSD)'] ||
+            currentDataAny?.['Reno Duration'] !== supabaseDataAny['Reno Duration'] ||
+            currentDataAny?.['Days to Property Ready'] !== supabaseDataAny['Days to Property Ready'] ||
+            currentData?.days_to_visit !== supabaseData.days_to_visit ||
+            // Fase y otros
+            currentData?.reno_phase !== supabaseData.reno_phase ||
             currentData?.budget_pdf_url !== supabaseData.budget_pdf_url ||
             shouldUpdatePicsUrls ||
             (hasRelatedFields && (!currentData?.area_cluster && !currentDataAny?.['Hubspot ID'] && !currentData?.property_unique_id));
