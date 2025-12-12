@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoHomeHeader } from "@/components/reno/reno-home-header";
 import { RenoHomeIndicators } from "@/components/reno/reno-home-indicators";
@@ -25,10 +25,36 @@ import { matchesTechnicalConstruction } from "@/lib/supabase/user-name-utils";
 export default function RenoConstructionManagerHomePage() {
   const { t } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, role, isLoading } = useAppAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedForemanEmails, setSelectedForemanEmails] = useState<string[]>([]);
   const supabase = createClient();
+
+  // Leer filtro de foreman desde URL params al cargar
+  useEffect(() => {
+    const foremanParam = searchParams.get('foreman');
+    if (foremanParam) {
+      const emails = foremanParam.split(',').filter(Boolean);
+      setSelectedForemanEmails(emails);
+    }
+  }, [searchParams]);
+
+  // Guardar filtro en URL params cuando cambia
+  useEffect(() => {
+    if (role !== 'construction_manager') return;
+    
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (selectedForemanEmails.length > 0) {
+      params.set('foreman', selectedForemanEmails.join(','));
+    } else {
+      params.delete('foreman');
+    }
+    
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    router.replace(newUrl, { scroll: false });
+  }, [selectedForemanEmails, role, router, searchParams]);
 
   // Protect route: redirect if user doesn't have required role
   useEffect(() => {
