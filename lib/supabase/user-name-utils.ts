@@ -122,3 +122,31 @@ export function matchesTechnicalConstruction(
   return false;
 }
 
+/**
+ * Convierte un email de foreman a nombres posibles de Technical construction
+ * Usa el mapeo inverso de FOREMAN_NAME_TO_EMAIL
+ */
+export function getTechnicalConstructionNamesFromForemanEmail(foremanEmail: string): string[] {
+  if (!foremanEmail) return [];
+  
+  const normalizedEmail = foremanEmail.trim().toLowerCase();
+  const names: string[] = [];
+  
+  // Buscar todos los nombres que mapean a este email
+  for (const [name, email] of Object.entries(FOREMAN_NAME_TO_EMAIL)) {
+    if (email.toLowerCase() === normalizedEmail) {
+      names.push(name);
+    }
+  }
+  
+  // Si no se encontró ningún nombre, usar el nombre extraído del email como fallback
+  if (names.length === 0) {
+    const extractedName = extractNameFromEmail(foremanEmail);
+    if (extractedName) {
+      names.push(extractedName);
+    }
+  }
+  
+  return names;
+}
+

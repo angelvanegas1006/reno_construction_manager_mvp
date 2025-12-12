@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -82,6 +82,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const { unreadCount } = useHelpConversations();
+  const searchParams = useSearchParams();
   
   // Unified logout: handle both Auth0 and Supabase
   const handleLogout = async () => {
@@ -97,7 +98,22 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
       });
     }
   };
-  const navigationItems = getNavigationItems(t);
+  
+  // Construir link al kanban con filtro de foreman si existe
+  const getKanbanHref = () => {
+    const foremanParam = searchParams.get('foreman');
+    if (foremanParam) {
+      return `/reno/construction-manager/kanban?foreman=${encodeURIComponent(foremanParam)}`;
+    }
+    return '/reno/construction-manager/kanban';
+  };
+  
+  const navigationItems = getNavigationItems(t).map(item => {
+    if (item.href === '/reno/construction-manager/kanban') {
+      return { ...item, href: getKanbanHref() };
+    }
+    return item;
+  });
   const settingsItems = getSettingsItems(t, unreadCount, role || undefined);
   const pathname = usePathname();
   

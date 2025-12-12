@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n";
 import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
 import { Property } from "@/lib/property-storage";
 import { cn } from "@/lib/utils";
+import { getTechnicalConstructionNamesFromForemanEmail } from "@/lib/supabase/user-name-utils";
 
 type ViewMode = "kanban" | "list";
 
@@ -26,12 +27,36 @@ export default function RenoConstructionManagerKanbanPage() {
       setViewMode(viewModeParam);
     }
   }, [searchParams]);
+  
+  // Leer filtro de foreman desde URL params y convertirlo a technicalConstructors
   const [filters, setFilters] = useState<KanbanFilters>({
     renovatorNames: [],
     technicalConstructors: [],
     areaClusters: [],
     delayedWorks: false,
   });
+  
+  // Aplicar filtro de foreman desde URL params al cargar
+  useEffect(() => {
+    const foremanParam = searchParams.get('foreman');
+    if (foremanParam) {
+      const foremanEmails = foremanParam.split(',').filter(Boolean);
+      // Convertir emails de foreman a nombres de Technical construction
+      const technicalConstructorNames = new Set<string>();
+      foremanEmails.forEach(email => {
+        const names = getTechnicalConstructionNamesFromForemanEmail(email);
+        names.forEach(name => technicalConstructorNames.add(name));
+      });
+      
+      if (technicalConstructorNames.size > 0) {
+        setFilters(prev => ({
+          ...prev,
+          technicalConstructors: Array.from(technicalConstructorNames),
+        }));
+      }
+    }
+  }, [searchParams]);
+  
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const { t } = useI18n();
   
