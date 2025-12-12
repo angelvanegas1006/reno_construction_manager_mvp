@@ -115,20 +115,20 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[95vw] max-w-[425px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
-            {t.userMenu?.changePassword?.title || "Cambiar Contraseña"}
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Lock className="h-5 w-5 flex-shrink-0" />
+            <span>{t.userMenu?.changePassword?.title || "Cambiar Contraseña"}</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm sm:text-base mt-2">
             {t.userMenu?.changePassword?.description || "Ingresa tu contraseña actual y la nueva contraseña para actualizar tu cuenta."}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">
+            <Label htmlFor="currentPassword" className="text-sm font-medium">
               {t.userMenu?.changePassword?.currentPassword || "Contraseña Actual"}
             </Label>
             <Input
@@ -140,11 +140,12 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               disabled={loading}
               autoComplete="current-password"
               autoFocus
+              className="text-base sm:text-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="newPassword">
+            <Label htmlFor="newPassword" className="text-sm font-medium">
               {t.userMenu?.changePassword?.newPassword || "Nueva Contraseña"}
             </Label>
             <Input
@@ -155,11 +156,12 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               onChange={(e) => setNewPassword(e.target.value)}
               disabled={loading}
               autoComplete="new-password"
+              className="text-base sm:text-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">
+            <Label htmlFor="confirmPassword" className="text-sm font-medium">
               {t.userMenu?.changePassword?.confirmPassword || "Confirmar Contraseña"}
             </Label>
             <Input
@@ -170,6 +172,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               onChange={(e) => setConfirmPassword(e.target.value)}
               disabled={loading}
               autoComplete="new-password"
+              className="text-base sm:text-sm"
             />
           </div>
 
@@ -179,23 +182,24 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={handleClose}
               disabled={loading}
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               {t.common.cancel}
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto order-1 sm:order-2">
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t.userMenu?.changePassword?.updating || "Actualizando..."}
+                  <span className="text-sm sm:text-base">{t.userMenu?.changePassword?.updating || "Actualizando..."}</span>
                 </>
               ) : (
-                t.userMenu?.changePassword?.updateButton || "Actualizar Contraseña"
+                <span className="text-sm sm:text-base">{t.userMenu?.changePassword?.updateButton || "Actualizar Contraseña"}</span>
               )}
             </Button>
           </DialogFooter>
