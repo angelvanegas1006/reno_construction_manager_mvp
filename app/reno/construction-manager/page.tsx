@@ -25,10 +25,26 @@ import { matchesTechnicalConstruction } from "@/lib/supabase/user-name-utils";
 export default function RenoConstructionManagerHomePage() {
   const { t } = useI18n();
   const router = useRouter();
-  const { user, role } = useAppAuth();
+  const { user, role, isLoading } = useAppAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedForemanEmails, setSelectedForemanEmails] = useState<string[]>([]);
   const supabase = createClient();
+
+  // Protect route: redirect if user doesn't have required role
+  useEffect(() => {
+    if (isLoading) return;
+    
+    if (!user || !role) {
+      router.push("/login");
+      return;
+    }
+
+    // Only allow foreman, admin, and construction_manager roles
+    if (role !== 'foreman' && role !== 'admin' && role !== 'construction_manager') {
+      router.push("/login");
+      toast.error("No tienes permisos para acceder a esta página");
+    }
+  }, [user, role, isLoading, router]);
 
   // Load properties from Supabase
   const { propertiesByPhase: rawPropertiesByPhase, loading: supabaseLoading, error: supabaseError } = useSupabaseKanbanProperties();
