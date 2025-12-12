@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,8 @@ interface NavbarL3Props {
   }>;
   /** Información adicional (ej: "Cambios guardados hace X minutos") */
   statusText?: string;
+  /** Botón de menú móvil para abrir sidebar */
+  onMenuClick?: () => void;
 }
 
 /**
@@ -40,6 +42,7 @@ export function NavbarL3({
   formTitle,
   actions = [],
   statusText,
+  onMenuClick,
 }: NavbarL3Props) {
   // Separar acciones: guardar (outline) y enviar (default/primary)
   const saveAction = actions.find(a => a.variant === "outline");
@@ -58,6 +61,17 @@ export function NavbarL3({
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden md:inline">{backLabel}</span>
           </Button>
+          {/* Mobile menu button */}
+          {onMenuClick && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden flex-shrink-0"
+              onClick={onMenuClick}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
 
           {/* Título del Formulario */}
           <div className="flex-1 min-w-0">
