@@ -37,10 +37,21 @@ export function ChecklistUploadZone({
   const handlePhotosChange = useCallback((files: FileUpload[]) => {
     // Use ref to get latest uploadZone value to avoid stale closure
     const currentUploadZone = uploadZoneRef.current;
-    onUpdate({
+    console.log('[ChecklistUploadZone] 📝 handlePhotosChange called:', {
+      filesCount: files.length,
+      files: files.map(f => ({ id: f.id, name: f.name, hasData: !!f.data, dataLength: f.data?.length || 0 })),
+      currentUploadZonePhotos: currentUploadZone.photos.length
+    });
+    const updatedZone = {
       ...currentUploadZone,
       photos: files,
+    };
+    console.log('[ChecklistUploadZone] 📤 Calling onUpdate with:', {
+      zoneId: updatedZone.id,
+      photosCount: updatedZone.photos.length,
+      photos: updatedZone.photos.map(p => ({ id: p.id, name: p.name, hasData: !!p.data }))
     });
+    onUpdate(updatedZone);
   }, [onUpdate]);
 
   const handleVideosChange = useCallback((files: FileUpload[]) => {
@@ -99,9 +110,18 @@ export function ChecklistUploadZone({
         console.log('[ChecklistUploadZone] 📸 Adding new photos:', {
           newCount: newPhotos.length,
           totalCount: updatedPhotos.length,
-          newPhotos: newPhotos.map(p => ({ id: p.id, name: p.name, hasData: !!p.data, dataPreview: p.data?.substring(0, 50) })),
+          newPhotos: newPhotos.map(p => ({ 
+            id: p.id, 
+            name: p.name, 
+            hasData: !!p.data, 
+            dataLength: p.data?.length || 0,
+            dataPreview: p.data?.substring(0, 100),
+            type: p.type,
+            size: p.size
+          })),
           currentPhotos: currentUploadZone.photos.map(p => ({ id: p.id, name: p.name, hasData: !!p.data }))
         });
+        console.log('[ChecklistUploadZone] 🔄 Calling handlePhotosChange with', updatedPhotos.length, 'photos');
         handlePhotosChange(updatedPhotos);
       } else if (photos.length === 0 && currentUploadZone.photos.length > 0) {
         // Don't overwrite existing photos if hook returns empty array
@@ -367,47 +387,56 @@ export function ChecklistUploadZone({
       </div>
 
       {/* File Grid */}
-      {(uploadZone.photos.length > 0 || uploadZone.videos.length > 0) && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
-          {/* Photos */}
-          {uploadZone.photos.map((file, index) => {
-            // Debug: Log file data
-            if (!file.data) {
-              console.log('[ChecklistUploadZone] ⚠️ Photo without data:', { id: file.id, name: file.name, index });
-            }
-            return (
-              <div
-                key={file.id || `photo-${index}`}
-                className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-              >
-                {file.data ? (
-                  <img
-                    src={file.data}
-                    alt={file.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error('[ChecklistUploadZone] ❌ Error loading image:', { id: file.id, name: file.name, data: file.data?.substring(0, 50) });
-                    }}
-                    onLoad={() => {
-                      console.log('[ChecklistUploadZone] ✅ Image loaded:', { id: file.id, name: file.name });
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <ImageIcon className="h-8 w-8 text-[var(--prophero-gray-400)]" />
-                    <span className="text-xs text-[var(--prophero-gray-400)] ml-2">{file.name}</span>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleRemovePhoto(index)}
-                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+      {(() => {
+        console.log('[ChecklistUploadZone] 🖼️ Rendering file grid:', {
+          photosCount: uploadZone.photos.length,
+          videosCount: uploadZone.videos.length,
+          photos: uploadZone.photos.map(p => ({ id: p.id, name: p.name, hasData: !!p.data, dataLength: p.data?.length || 0 }))
+        });
+        return (uploadZone.photos.length > 0 || uploadZone.videos.length > 0) && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+            {/* Photos */}
+            {uploadZone.photos.map((file, index) => {
+              // Debug: Log file data
+              if (!file.data) {
+                console.log('[ChecklistUploadZone] ⚠️ Photo without data:', { id: file.id, name: file.name, index, file });
+              } else {
+                console.log('[ChecklistUploadZone] ✅ Photo with data:', { id: file.id, name: file.name, index, dataLength: file.data.length, dataPreview: file.data.substring(0, 50) });
+              }
+              return (
+                <div
+                  key={file.id || `photo-${index}`}
+                  className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            );
-          })}
+                  {file.data ? (
+                    <img
+                      src={file.data}
+                      alt={file.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('[ChecklistUploadZone] ❌ Error loading image:', { id: file.id, name: file.name, data: file.data?.substring(0, 50) });
+                      }}
+                      onLoad={() => {
+                        console.log('[ChecklistUploadZone] ✅ Image loaded:', { id: file.id, name: file.name });
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center flex-col">
+                      <ImageIcon className="h-8 w-8 text-[var(--prophero-gray-400)]" />
+                      <span className="text-xs text-[var(--prophero-gray-400)] mt-2 text-center px-2">{file.name}</span>
+                      <span className="text-xs text-red-500 mt-1">No data</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(index)}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
           
           {/* Videos */}
           {uploadZone.videos.map((file, index) => (
