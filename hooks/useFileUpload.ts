@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { FileUpload } from "@/lib/property-storage";
 
 interface UseFileUploadProps {
@@ -45,6 +45,21 @@ export function useFileUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const onFilesChangeRef = useRef(onFilesChange);
+  
+  // Keep ref updated with latest callback
+  useEffect(() => {
+    onFilesChangeRef.current = onFilesChange;
+  }, [onFilesChange]);
+  
+  // Call onFilesChange after files state updates (deferred to avoid render-time updates)
+  useEffect(() => {
+    // Use setTimeout to defer to next tick, preventing render-time updates
+    const timeoutId = setTimeout(() => {
+      onFilesChangeRef.current(files);
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [files]);
 
   const validateFile = useCallback((file: File): string | null => {
     if (file.size > maxFileSize * 1024 * 1024) {
@@ -173,10 +188,9 @@ export function useFileUpload({
   }, []);
 
   const removeFile = useCallback((index: number) => {
-    const newFiles = files.filter((_, i) => i !== index);
-    setFiles(newFiles);
-    onFilesChange(newFiles);
-  }, [files, onFilesChange]);
+    // onFilesChange will be called automatically via useEffect when files state updates
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
   const clearFiles = useCallback(() => {
     // onFilesChange will be called automatically via useEffect when files state updates
