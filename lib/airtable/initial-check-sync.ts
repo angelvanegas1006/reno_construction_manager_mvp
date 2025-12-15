@@ -204,12 +204,20 @@ export async function syncChecklistToAirtable(
       // Si es un Record ID (empieza con "rec"), validarlo primero
       if (property.airtable_property_id.startsWith('rec')) {
         console.log('[syncChecklistToAirtable] Validating Record ID:', property.airtable_property_id);
+        // findRecordByPropertyId ya valida Record IDs, pero si no existe, buscará por Property ID
         const validatedRecordId = await findRecordByPropertyId(tableName, property.airtable_property_id);
-        // Solo usar el Record ID si es válido (no null)
-        if (validatedRecordId) {
+        // Solo usar el Record ID si es válido (no null y es el mismo Record ID)
+        if (validatedRecordId && validatedRecordId === property.airtable_property_id) {
           recordId = validatedRecordId;
         } else {
-          console.warn('[syncChecklistToAirtable] Record ID is invalid, skipping:', property.airtable_property_id);
+          console.warn('[syncChecklistToAirtable] Record ID is invalid or not found, will search by Property ID instead:', {
+            invalidRecordId: property.airtable_property_id,
+            foundRecordId: validatedRecordId,
+          });
+          // Si findRecordByPropertyId encontró un registro diferente, usarlo
+          if (validatedRecordId && validatedRecordId !== property.airtable_property_id) {
+            recordId = validatedRecordId;
+          }
         }
       } else {
         // Si no es un Record ID, buscar por ese valor como Property ID
@@ -219,12 +227,13 @@ export async function syncChecklistToAirtable(
     }
     
     if (!recordId) {
-      console.warn('Airtable record not found, skipping sync:', {
+      console.warn('[syncChecklistToAirtable] ⚠️ Airtable record not found, skipping sync:', {
         propertyId,
         uniqueIdFromEngagements: property['Unique ID From Engagements'],
         airtablePropertyId: property.airtable_property_id,
       });
-      return false;
+      // No retornar false aquí - permitir que el checklist se guarde en Supabase aunque no se sincronice con Airtable
+      return true; // Retornar true para no bloquear el guardado en Supabase
     }
 
     // Actualizar campos de checklist en Airtable

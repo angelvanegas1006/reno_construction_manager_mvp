@@ -597,6 +597,14 @@ export function convertSupabaseToChecklist(
             section.uploadZones.push(uploadZone);
           }
           const photoUrls = element.image_urls || [];
+          console.log(`[convertSupabaseToChecklist] Loading photos for upload zone "${uploadZoneId}" in section "${sectionId}":`, {
+            elementName: element.element_name,
+            elementId: element.id,
+            photoUrlsCount: photoUrls.length,
+            photoUrls: photoUrls,
+            uploadZoneId: uploadZoneId,
+            sectionId: sectionId,
+          });
           console.log(`[convertSupabaseToChecklist] Loading photos for zone ${uploadZoneId}:`, {
             zoneId: uploadZoneId,
             elementName: element.element_name,
