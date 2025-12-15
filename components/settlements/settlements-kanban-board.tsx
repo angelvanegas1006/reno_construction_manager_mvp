@@ -58,13 +58,12 @@ export function SettlementsKanbanBoard({ searchQuery }: SettlementsKanbanBoardPr
   // Group settlements by phase
   const settlementsByPhase = useMemo(() => {
     const grouped: Record<SettlementKanbanPhase, SettlementProperty[]> = {
-      "pending-documents": [],
-      "document-review": [],
-      "notary-appointment": [],
-      "signing": [],
-      "post-signing": [],
-      "completed": [],
-      "on-hold": [],
+      "verificacion-documentacion": [],
+      "aprobacion-hipoteca": [],
+      "coordinacion-firma-escritura": [],
+      "aguardando-firma-compraventa": [],
+      "finalizadas": [],
+      "canceladas": [],
     };
 
     filteredSettlements.forEach(settlement => {
@@ -130,7 +129,7 @@ export function SettlementsKanbanBoard({ searchQuery }: SettlementsKanbanBoardPr
                         {columnSettlements.length}
                       </Badge>
                     </div>
-                    {column.id === "pending-documents" && (
+                    {column.id === "verificacion-documentacion" && (
                       <Button
                         size="sm"
                         variant="ghost"

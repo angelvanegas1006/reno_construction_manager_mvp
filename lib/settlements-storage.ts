@@ -1,13 +1,12 @@
 // Settlements storage - temporary frontend storage similar to partners
 
 export type SettlementStage = 
-  | "pending-documents"
-  | "document-review"
-  | "notary-appointment"
-  | "signing"
-  | "post-signing"
-  | "completed"
-  | "on-hold";
+  | "verificacion-documentacion"
+  | "aprobacion-hipoteca"
+  | "coordinacion-firma-escritura"
+  | "aguardando-firma-compraventa"
+  | "finalizadas"
+  | "canceladas";
 
 export interface SettlementProperty {
   id: string;
@@ -127,7 +126,7 @@ export function createSettlementProperty(
     propertyId,
     fullAddress,
     address: address || fullAddress,
-    currentStage: "pending-documents",
+    currentStage: "verificacion-documentacion",
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
     timeInStage: "0 días",

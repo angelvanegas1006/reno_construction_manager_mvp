@@ -41,17 +41,21 @@ export default function SettlementsHomePage() {
   // Calculate KPIs
   const kpis = useMemo(() => {
     const total = settlements.length;
-    const pendingDocuments = settlements.filter(s => s.currentStage === "pending-documents").length;
-    const inReview = settlements.filter(s => s.currentStage === "document-review").length;
-    const signing = settlements.filter(s => s.currentStage === "signing").length;
-    const completed = settlements.filter(s => s.currentStage === "completed").length;
+    const verificacionDocumentacion = settlements.filter(s => s.currentStage === "verificacion-documentacion").length;
+    const aprobacionHipoteca = settlements.filter(s => s.currentStage === "aprobacion-hipoteca").length;
+    const coordinacionFirma = settlements.filter(s => s.currentStage === "coordinacion-firma-escritura").length;
+    const aguardandoFirma = settlements.filter(s => s.currentStage === "aguardando-firma-compraventa").length;
+    const finalizadas = settlements.filter(s => s.currentStage === "finalizadas").length;
+    const canceladas = settlements.filter(s => s.currentStage === "canceladas").length;
 
     return {
       total,
-      pendingDocuments,
-      inReview,
-      signing,
-      completed,
+      verificacionDocumentacion,
+      aprobacionHipoteca,
+      coordinacionFirma,
+      aguardandoFirma,
+      finalizadas,
+      canceladas,
     };
   }, [settlements]);
 
@@ -105,7 +109,7 @@ export default function SettlementsHomePage() {
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -119,41 +123,61 @@ export default function SettlementsHomePage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Documentos Pendientes
+                    Verificación de documentación
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{kpis.pendingDocuments}</div>
+                  <div className="text-2xl font-bold">{kpis.verificacionDocumentacion}</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    En Revisión
+                    Aprobación de hipoteca
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{kpis.inReview}</div>
+                  <div className="text-2xl font-bold">{kpis.aprobacionHipoteca}</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    En Firma
+                    Coordinación de firma
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{kpis.signing}</div>
+                  <div className="text-2xl font-bold">{kpis.coordinacionFirma}</div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Completados
+                    Aguardando firma
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{kpis.completed}</div>
+                  <div className="text-2xl font-bold">{kpis.aguardandoFirma}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Finalizadas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{kpis.finalizadas}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Canceladas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{kpis.canceladas}</div>
                 </CardContent>
               </Card>
             </div>
