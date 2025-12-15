@@ -784,8 +784,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'reno-budget-start': [],
       'reno-budget': [], // Legacy
       'reno-in-progress': [],
-      'furnishing-cleaning': [],
+      'furnishing': [],
       'final-check': [],
+      'cleaning': [],
+      'furnishing-cleaning': [], // Legacy
       'reno-fixes': [],
       'done': [],
       'orphaned': [],
