@@ -541,13 +541,24 @@ export function useSupabaseChecklist({
       let uploadedUrls: string[] = [];
       if (filesToUpload.length > 0) {
         console.log(`[useSupabaseChecklist] 📤 Uploading ${filesToUpload.length} files to storage...`);
-        uploadedUrls = await uploadFilesToStorage(
-          filesToUpload,
-          propertyId,
-          inspection.id,
-          zone.id
-        );
-        console.log(`[useSupabaseChecklist] ✅ Uploaded ${uploadedUrls.length} files successfully`);
+        try {
+          uploadedUrls = await uploadFilesToStorage(
+            filesToUpload,
+            propertyId,
+            inspection.id,
+            zone.id
+          );
+          console.log(`[useSupabaseChecklist] ✅ Uploaded ${uploadedUrls.length} files successfully`);
+        } catch (error: any) {
+          // Si el bucket no existe, continuar con base64 en lugar de fallar
+          if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
+            console.warn(`[useSupabaseChecklist] ⚠️ Bucket no encontrado. Las fotos se guardarán como base64 hasta que crees el bucket.`);
+            // Usar los datos base64 como URLs temporales
+            uploadedUrls = filesToUpload.map(f => f.data || '').filter(Boolean);
+          } else {
+            throw error;
+          }
+        }
       }
 
       // Crear mapa de archivos originales a URLs subidas
