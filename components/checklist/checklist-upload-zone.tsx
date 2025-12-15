@@ -438,27 +438,28 @@ export function ChecklistUploadZone({
               );
             })}
           
-          {/* Videos */}
-          {uploadZone.videos.map((file, index) => (
-            <div
-              key={file.id || `video-${index}`}
-              className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center"
-            >
-              <Video className="h-8 w-8 text-[var(--prophero-gray-400)]" />
-              <div className="absolute bottom-2 left-2 right-2">
-                <p className="text-xs text-foreground truncate bg-black/50 text-white px-1 py-0.5 rounded">{file.name}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleRemoveVideo(index)}
-                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            {/* Videos */}
+            {uploadZone.videos.map((file, index) => (
+              <div
+                key={file.id || `video-${index}`}
+                className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center"
               >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+                <Video className="h-8 w-8 text-[var(--prophero-gray-400)]" />
+                <div className="absolute bottom-2 left-2 right-2">
+                  <p className="text-xs text-foreground truncate bg-black/50 text-white px-1 py-0.5 rounded">{file.name}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveVideo(index)}
+                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {localError && (
         <p className="text-sm text-red-500 mt-2">{localError}</p>
