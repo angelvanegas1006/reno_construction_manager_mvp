@@ -356,12 +356,6 @@ export function RenoPropertyCard({
               </span>
             </div>
           )}
-          {/* Duración de la Obra - only show if filled */}
-          {property.renoDuration !== null && property.renoDuration !== undefined && (
-            <div className="text-xs text-muted-foreground">
-              <span className="font-medium">Duración de la Obra:</span> {property.renoDuration} días
-            </div>
-          )}
         </div>
       ) : stage === "furnishing-cleaning" ? (
         <div className="space-y-2">
