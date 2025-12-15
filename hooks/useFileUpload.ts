@@ -46,6 +46,7 @@ export function useFileUpload({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const onFilesChangeRef = useRef(onFilesChange);
+  const isInitialMountRef = useRef(true);
   
   // Keep ref updated with latest callback
   useEffect(() => {
@@ -53,7 +54,14 @@ export function useFileUpload({
   }, [onFilesChange]);
   
   // Call onFilesChange after files state updates (deferred to avoid render-time updates)
+  // Skip the initial mount to avoid calling with empty array
   useEffect(() => {
+    // Skip initial mount
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    
     // Use setTimeout to defer to next tick, preventing render-time updates
     const timeoutId = setTimeout(() => {
       onFilesChangeRef.current(files);
