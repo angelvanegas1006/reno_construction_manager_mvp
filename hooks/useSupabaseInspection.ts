@@ -124,14 +124,36 @@ export function useSupabaseInspection(
       if (zonesError) throw zonesError;
       setZones(zonesData || []);
 
+      console.log('[useSupabaseInspection] 📍 Loaded zones:', {
+        inspectionId: inspectionData.id,
+        inspectionType: inspectionData.inspection_type,
+        zonesCount: zonesData?.length || 0,
+        zoneIds: zonesData?.map(z => ({ id: z.id, zone_type: z.zone_type, zone_name: z.zone_name })) || [],
+      });
+
       // Cargar elementos
+      const zoneIds = zonesData?.map(z => z.id) || [];
       const { data: elementsData, error: elementsError } = await supabase
         .from('inspection_elements')
         .select('*')
-        .in('zone_id', zonesData?.map(z => z.id) || [])
+        .in('zone_id', zoneIds)
         .order('created_at', { ascending: true });
 
       if (elementsError) throw elementsError;
+      
+      // También buscar elementos que puedan estar asociados a esta inspección pero con zone_id incorrecto
+      // Esto puede pasar si los elementos se guardaron con un zone_id de otra inspección
+      const photoElements = elementsData?.filter(e => e.element_name?.startsWith('fotos-') || e.element_name?.startsWith('videos-')) || [];
+      console.log('[useSupabaseInspection] 📸 Loaded elements:', {
+        inspectionId: inspectionData.id,
+        inspectionType: inspectionData.inspection_type,
+        totalElementsCount: elementsData?.length || 0,
+        photoElementsCount: photoElements.length,
+        photoElementZoneIds: photoElements.map(e => e.zone_id),
+        zoneIds: zoneIds,
+        missingZones: photoElements.filter(e => !zoneIds.includes(e.zone_id)).map(e => e.zone_id),
+      });
+      
       setElements(elementsData || []);
     } catch (err) {
       // Mejorar el manejo de errores para mostrar información útil
