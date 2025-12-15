@@ -272,7 +272,7 @@ export function RenoPropertyCard({
                 badgeStyles.text,
                 badgeStyles.border,
                 badgeStyles.hover,
-                "text-xs font-medium px-2 py-1 hover:opacity-100"
+                "text-xs font-medium px-2 py-1"
               )}
             >
               {property.renoType}
