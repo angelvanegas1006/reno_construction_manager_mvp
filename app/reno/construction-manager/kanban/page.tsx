@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { use } from "react";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { NavbarL1 } from "@/components/layout/navbar-l1";
 import { RenoKanbanBoard } from "@/components/reno/reno-kanban-board";
@@ -20,13 +21,16 @@ export default function RenoConstructionManagerKanbanPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   
+  // Unwrap searchParams if it's a Promise (Next.js 16+)
+  const unwrappedSearchParams = searchParams instanceof Promise ? use(searchParams) : searchParams;
+  
   // Restore viewMode from query params when navigating back
   useEffect(() => {
-    const viewModeParam = searchParams.get('viewMode');
+    const viewModeParam = unwrappedSearchParams.get('viewMode');
     if (viewModeParam === 'list' || viewModeParam === 'kanban') {
       setViewMode(viewModeParam);
     }
-  }, [searchParams]);
+  }, [unwrappedSearchParams]);
   
   // Leer filtro de foreman desde URL params y convertirlo a technicalConstructors
   const [filters, setFilters] = useState<KanbanFilters>({
@@ -38,7 +42,7 @@ export default function RenoConstructionManagerKanbanPage() {
   
   // Aplicar filtro de foreman desde URL params al cargar
   useEffect(() => {
-    const foremanParam = searchParams.get('foreman');
+    const foremanParam = unwrappedSearchParams.get('foreman');
     if (foremanParam) {
       const foremanEmails = foremanParam.split(',').filter(Boolean);
       // Convertir emails de foreman a nombres de Technical construction

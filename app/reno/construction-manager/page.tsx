@@ -31,9 +31,12 @@ export default function RenoConstructionManagerHomePage() {
   const [selectedForemanEmails, setSelectedForemanEmails] = useState<string[]>([]);
   const supabase = createClient();
 
+  // Unwrap searchParams if it's a Promise (Next.js 16+)
+  const unwrappedSearchParams = searchParams instanceof Promise ? use(searchParams) : searchParams;
+
   // Leer filtro de foreman desde URL params al cargar
   useEffect(() => {
-    const foremanParam = searchParams.get('foreman');
+    const foremanParam = unwrappedSearchParams.get('foreman');
     if (foremanParam) {
       const emails = foremanParam.split(',').filter(Boolean);
       // Solo actualizar si es diferente para evitar loops

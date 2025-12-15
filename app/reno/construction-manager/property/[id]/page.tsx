@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useCallback, useState, useRef } from "react";
+import { useEffect, useCallback, useState, useRef, use } from "react";
 import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -54,14 +54,18 @@ export default function RenoPropertyDetailPage() {
   const supabase = createClient();
   const { t, language } = useI18n();
   
+  // Unwrap params and searchParams if they're Promises (Next.js 16+)
+  const unwrappedParams = params instanceof Promise ? use(params) : params;
+  const unwrappedSearchParams = searchParams instanceof Promise ? use(searchParams) : searchParams;
+  
   // Get viewMode from query params (kanban or list)
-  const viewMode = searchParams.get('viewMode') || 'kanban';
+  const viewMode = unwrappedSearchParams.get('viewMode') || 'kanban';
   const [reportProblemOpen, setReportProblemOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   // Leer el tab desde la URL si existe, sino usar "tareas" por defecto
-  const tabFromUrl = searchParams?.get('tab');
+  const tabFromUrl = unwrappedSearchParams?.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || "tareas"); // Tab por defecto: Tareas
-  const propertyId = params.id && typeof params.id === "string" ? params.id : null;
+  const propertyId = unwrappedParams.id && typeof unwrappedParams.id === "string" ? unwrappedParams.id : null;
   const { property: supabaseProperty, loading: supabaseLoading, updateProperty: updateSupabaseProperty, refetch } = useSupabaseProperty(propertyId);
   const { categories: dynamicCategories, loading: categoriesLoading } = useDynamicCategories(propertyId);
   const hasCheckedInitialTab = useRef(false); // Track if we've already checked and set the initial tab
