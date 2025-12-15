@@ -182,6 +182,8 @@ export function useSupabaseChecklist({
       hasSupabaseProperty: !!supabaseProperty,
       hasInspection: !!inspection,
       inspectionId: inspection?.id,
+      inspectionType: inspection?.inspection_type,
+      expectedInspectionType: inspectionType,
       zonesCount: zones.length,
       elementsCount: elements.length,
       checklistType,
@@ -203,6 +205,18 @@ export function useSupabaseChecklist({
         hasPropertyId: !!propertyId,
         inspectionLoading,
         hasSupabaseProperty: !!supabaseProperty,
+      });
+      setIsLoading(true);
+      return;
+    }
+
+    // Verificar que la inspección corresponde al tipo correcto
+    // Si tenemos una inspección pero es del tipo incorrecto, esperar a que se cargue la correcta
+    if (inspection && inspection.inspection_type !== inspectionType) {
+      console.log('[useSupabaseChecklist] ⏳ Waiting for correct inspection type...', {
+        currentInspectionType: inspection.inspection_type,
+        expectedInspectionType: inspectionType,
+        inspectionId: inspection.id,
       });
       setIsLoading(true);
       return;
