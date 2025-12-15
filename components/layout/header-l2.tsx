@@ -12,6 +12,8 @@ interface HeaderL2Props {
     label: string;
     variant?: "default" | "destructive" | "secondary";
   };
+  /** Porcentaje de progreso para mostrar como badge circular (opcional) */
+  progress?: number;
   className?: string;
 }
 
@@ -23,11 +25,13 @@ interface HeaderL2Props {
  * Contenido:
  * - Título extenso de la entidad (ej: dirección completa)
  * - Subtítulo con información adicional
+ * - Badge circular de progreso (si se proporciona progress)
  */
 export function HeaderL2({
   title,
   subtitle,
   badge,
+  progress,
   className,
 }: HeaderL2Props) {
   return (
@@ -35,6 +39,35 @@ export function HeaderL2({
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
+            {/* Progress Badge Circular (si se proporciona) */}
+            {progress !== undefined && (
+              <div className="relative w-12 h-12 flex-shrink-0">
+                <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeDasharray={`${progress} ${100 - progress}`}
+                    className="text-[var(--prophero-blue-500)] transition-all duration-300"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xs font-bold text-foreground">{progress}%</span>
+                </div>
+              </div>
+            )}
             <h1 className="text-2xl font-bold text-foreground truncate">
               {title}
             </h1>
