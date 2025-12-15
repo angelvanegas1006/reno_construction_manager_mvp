@@ -679,16 +679,64 @@ export function convertSupabaseToChecklist(
       });
     } else {
       // Sección fija (no dinámica)
-      // Para secciones fijas, buscar elementos por zone_id directamente en lugar de usar zonesOfType[0]
-      // Esto es necesario porque los elementos pueden tener zone_id diferentes dentro del mismo tipo de zona
+      // Para secciones fijas, buscar elementos por zone_id directamente
+      // Primero, obtener todos los IDs de zonas del tipo correcto
+      const zoneIdsOfType = zones
+        .filter(z => z.zone_type === zoneType)
+        .map(z => z.id);
+      
+      console.log(`[convertSupabaseToChecklist] 🔍 Processing fixed section "${sectionId}":`, {
+        zoneType,
+        zoneIdsOfType,
+        zoneIdsOfTypeCount: zoneIdsOfType.length,
+        allZoneIds: zones.map(z => ({ id: z.id, zone_type: z.zone_type })),
+        elementsByZoneKeys: Array.from(elementsByZone.keys()),
+      });
+      
+      // Buscar elementos que pertenecen a zonas del tipo correcto
       const allZoneElements = Array.from(elementsByZone.entries())
         .filter(([zoneId, _]) => {
+          // Si la zona está en zoneIdsOfType, incluirla
+          if (zoneIdsOfType.includes(zoneId)) {
+            return true;
+          }
+          // Si la zona no está en el array pero tiene elementos, verificar si debería pertenecer a este tipo
           const zone = zones.find(z => z.id === zoneId);
-          return zone && zone.zone_type === zoneType;
+          if (zone && zone.zone_type === zoneType) {
+            return true;
+          }
+          // Si no encontramos la zona pero tenemos elementos con este zone_id, incluirlos de todos modos
+          // Esto puede pasar si las zonas se cargaron en diferentes momentos
+          return false;
         })
         .flatMap(([_, elements]) => elements);
+      
+      // También buscar elementos directamente por zone_id si no se encontraron en el filtro anterior
+      // Esto es necesario porque los elementos pueden tener zone_id que no está en zonesOfType
+      const directElements = elements.filter(element => {
+        const zone = zones.find(z => z.id === element.zone_id);
+        return zone && zone.zone_type === zoneType;
+      });
+      
+      // Combinar ambos conjuntos de elementos, evitando duplicados
+      const combinedElements = [...allZoneElements];
+      directElements.forEach(element => {
+        if (!combinedElements.find(e => e.id === element.id)) {
+          combinedElements.push(element);
+        }
+      });
+      
+      console.log(`[convertSupabaseToChecklist] 📦 Elements for section "${sectionId}":`, {
+        allZoneElementsCount: allZoneElements.length,
+        directElementsCount: directElements.length,
+        combinedElementsCount: combinedElements.length,
+        elementNames: combinedElements.map(e => e.element_name),
+      });
+      
+      // Usar combinedElements en lugar de allZoneElements
+      const finalElements = combinedElements;
 
-      allZoneElements.forEach(element => {
+      finalElements.forEach(element => {
         // Upload zones
         if (element.element_name.startsWith('fotos-')) {
           const uploadZoneId = element.element_name.replace('fotos-', '');
