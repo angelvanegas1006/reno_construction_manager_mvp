@@ -431,6 +431,9 @@ export function useSupabaseChecklist({
   const hasInspection = !!inspection;
   
   // Efecto separado para manejar cambios en zones cuando están completamente cargadas
+  // Usar un ref para rastrear el último zones.length procesado
+  const lastProcessedZonesLengthRef = useRef(0);
+  
   useEffect(() => {
     // Solo procesar si no hay inicialización en progreso, tenemos datos básicos, y no estamos cargando
     if (initializationInProgressRef.current || !propertyId || !hasSupabaseProperty || !hasInspection || inspectionLoading) {
@@ -442,9 +445,15 @@ export function useSupabaseChecklist({
       return;
     }
 
+    // Si ya procesamos este número de zones, no hacer nada
+    if (zones.length === lastProcessedZonesLengthRef.current) {
+      return;
+    }
+
     // Si ya tenemos checklist con el mismo número de zones, no recargar
     const key = `${propertyId}-${checklistType}-${inspectionId || ''}`;
     if (initializationRef.current === key && checklist && zones.length === lastZonesCountRef.current) {
+      lastProcessedZonesLengthRef.current = zones.length;
       return;
     }
 
@@ -463,6 +472,7 @@ export function useSupabaseChecklist({
       initializationInProgressRef.current = true;
       
       lastZonesCountRef.current = zones.length;
+      lastProcessedZonesLengthRef.current = zones.length;
       
       // Recargar checklist con nuevas zonas
       const supabaseData = convertSupabaseToChecklist(

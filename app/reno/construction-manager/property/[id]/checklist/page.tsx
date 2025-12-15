@@ -301,6 +301,43 @@ export default function RenoChecklistPage() {
     return parts.length > 0 ? parts.join(" · ") : "";
   };
 
+  // Memoizar entornoSection para evitar re-renders innecesarios
+  // Usar el checklist completo como dependencia para estabilidad
+  const entornoSection = useMemo(() => {
+    if (!checklist) return null;
+    const section = checklist.sections["entorno-zonas-comunes"];
+    if (section) {
+      return section;
+    }
+    // Solo crear objeto por defecto si no existe la sección
+    return {
+      id: "entorno-zonas-comunes",
+      uploadZones: [
+        { id: "portal", photos: [], videos: [] },
+        { id: "fachada", photos: [], videos: [] },
+        { id: "entorno", photos: [], videos: [] },
+      ],
+      questions: [
+        { id: "acceso-principal" },
+        { id: "acabados" },
+        { id: "comunicaciones" },
+        { id: "electricidad" },
+        { id: "carpinteria" },
+      ],
+    };
+  }, [checklist]);
+
+  // Memoizar callback de update para evitar re-renders
+  const handleEntornoUpdate = useCallback((updates: any) => {
+    console.log('[RenoChecklistPage] 📝 onUpdate called for entorno-zonas-comunes:', {
+      updates,
+      uploadZones: updates.uploadZones?.map((z: any) => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+      uploadZonesLength: updates.uploadZones?.length || 0,
+      updatesKeys: Object.keys(updates)
+    });
+    updateChecklistSection("entorno-zonas-comunes", updates);
+  }, [updateChecklistSection]);
+
   // Render active section
   const renderActiveSection = () => {
     // Esta función solo se llama cuando isFullyLoading es false,
@@ -327,21 +364,13 @@ export default function RenoChecklistPage() {
 
     switch (activeSection) {
       case "checklist-entorno-zonas-comunes":
-        const entornoSection = checklist.sections["entorno-zonas-comunes"] || {
-          id: "entorno-zonas-comunes",
-          uploadZones: [
-            { id: "portal", photos: [], videos: [] },
-            { id: "fachada", photos: [], videos: [] },
-            { id: "entorno", photos: [], videos: [] },
-          ],
-          questions: [
-            { id: "acceso-principal" },
-            { id: "acabados" },
-            { id: "comunicaciones" },
-            { id: "electricidad" },
-            { id: "carpinteria" },
-          ],
-        };
+        if (!entornoSection) {
+          return (
+            <div className="bg-card rounded-lg border p-6 shadow-sm">
+              <p className="text-muted-foreground">Cargando sección...</p>
+            </div>
+          );
+        }
         console.log('[RenoChecklistPage] 🖼️ Rendering EntornoZonasComunesSection:', {
           sectionId: "entorno-zonas-comunes",
           uploadZones: entornoSection.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
@@ -351,15 +380,7 @@ export default function RenoChecklistPage() {
         return (
           <EntornoZonasComunesSection
             section={entornoSection}
-            onUpdate={(updates) => {
-              console.log('[RenoChecklistPage] 📝 onUpdate called for entorno-zonas-comunes:', {
-                updates,
-                uploadZones: updates.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
-                uploadZonesLength: updates.uploadZones?.length || 0,
-                updatesKeys: Object.keys(updates)
-              });
-              updateChecklistSection("entorno-zonas-comunes", updates);
-            }}
+            onUpdate={handleEntornoUpdate}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-entorno-zonas-comunes"] = el;
             }}
