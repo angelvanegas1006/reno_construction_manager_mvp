@@ -342,6 +342,19 @@ export function useSupabaseChecklist({
             elementsCount: elements.length,
             bedrooms: supabaseProperty.bedrooms,
             bathrooms: supabaseProperty.bathrooms,
+            elementsWithPhotos: elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).map(e => ({
+              id: e.id,
+              element_name: e.element_name,
+              zone_id: e.zone_id,
+              image_urls_count: e.image_urls?.length || 0,
+            })),
+            allElements: elements.map(e => ({
+              id: e.id,
+              element_name: e.element_name,
+              zone_id: e.zone_id,
+              has_image_urls: !!e.image_urls,
+              image_urls_count: e.image_urls?.length || 0,
+            })),
           });
           
           const supabaseData = convertSupabaseToChecklist(

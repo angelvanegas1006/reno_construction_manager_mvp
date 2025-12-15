@@ -132,8 +132,10 @@ export async function findRecordByPropertyId(
 
     // Intentar buscar por diferentes campos posibles
     // Priorizar "UNIQUEID (from Engagements)" como especificado
+    // Nota: Airtable puede tener problemas con espacios y paréntesis en filterByFormula
+    // Intentamos diferentes variaciones del nombre del campo
     const possibleFields = [
-      'UNIQUEID (from Engagements)',
+      'UNIQUEID (from Engagements)', // Nombre exacto según usuario
       'Unique ID (From Engagements)',
       'Unique ID From Engagements',
       'Property ID',
@@ -143,17 +145,47 @@ export async function findRecordByPropertyId(
     for (const fieldName of possibleFields) {
       try {
         console.log(`[findRecordByPropertyId] Trying field "${fieldName}" with value "${propertyId}"`);
-        const records = await base(tableName)
-          .select({
-            filterByFormula: `{${fieldName}} = "${propertyId}"`,
-            maxRecords: 1,
-          })
-          .firstPage();
         
-        console.log(`[findRecordByPropertyId] Field "${fieldName}" returned ${records.length} records`);
-        if (records.length > 0) {
-          console.log(`[findRecordByPropertyId] ✅ Found record with ID: ${records[0].id}`);
-          return records[0].id;
+        // Escapar comillas dobles en el valor para evitar problemas con filterByFormula
+        const escapedValue = propertyId.replace(/"/g, '\\"');
+        
+        // Intentar con diferentes formatos de fórmula
+        const formulaVariations = [
+          `{${fieldName}} = "${escapedValue}"`, // Formato estándar
+          `{${fieldName}}="${escapedValue}"`, // Sin espacios
+          `FIND("${escapedValue}", {${fieldName}})`, // Usar FIND para campos que pueden ser arrays
+        ];
+        
+        for (const formula of formulaVariations) {
+          try {
+            const records = await base(tableName)
+              .select({
+                filterByFormula: formula,
+                maxRecords: 1,
+              })
+              .firstPage();
+            
+            console.log(`[findRecordByPropertyId] Field "${fieldName}" with formula "${formula}" returned ${records.length} records`);
+            if (records.length > 0) {
+              // Verificar que el valor realmente coincide (por si FIND devuelve coincidencias parciales)
+              const record = records[0];
+              const fieldValue = record.fields[fieldName];
+              const matches = Array.isArray(fieldValue) 
+                ? fieldValue.includes(propertyId) || fieldValue[0] === propertyId
+                : fieldValue === propertyId;
+              
+              if (matches) {
+                console.log(`[findRecordByPropertyId] ✅ Found record with ID: ${record.id}`);
+                return record.id;
+              }
+            }
+          } catch (formulaError: any) {
+            // Si esta fórmula falla, intentar la siguiente
+            if (formulaError?.status === 422 || formulaError?.statusCode === 422) {
+              continue; // Intentar siguiente fórmula
+            }
+            throw formulaError; // Si es otro error, propagarlo
+          }
         }
       } catch (fieldError: any) {
         // Si el campo no existe o hay un error de sintaxis (422), continuar con el siguiente

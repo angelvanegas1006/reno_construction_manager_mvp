@@ -600,10 +600,14 @@ export function convertSupabaseToChecklist(
           console.log(`[convertSupabaseToChecklist] Loading photos for zone ${uploadZoneId}:`, {
             zoneId: uploadZoneId,
             elementName: element.element_name,
+            elementId: element.id,
             photoUrlsCount: photoUrls.length,
             photoUrls: photoUrls,
+            hasImageUrls: !!element.image_urls,
+            imageUrlsType: Array.isArray(element.image_urls) ? 'array' : typeof element.image_urls,
           });
-          uploadZone.photos = photoUrls.map(url => urlToFileUpload(url)) || [];
+          uploadZone.photos = photoUrls.length > 0 ? photoUrls.map(url => urlToFileUpload(url)) : [];
+          console.log(`[convertSupabaseToChecklist] ✅ Loaded ${uploadZone.photos.length} photos for zone ${uploadZoneId}`);
         } else if (element.element_name.startsWith('videos-')) {
           const uploadZoneId = element.element_name.replace('videos-', '');
           let uploadZone = section.uploadZones?.find(uz => uz.id === uploadZoneId);
