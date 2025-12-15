@@ -22,13 +22,9 @@ export default function LoginPage() {
         router.push("/reno/construction-manager");
       } else if (role === 'admin') {
         router.push("/reno/construction-manager/kanban");
-      } else if (role === 'settlements_analyst') {
-        // Check localStorage for settlements_analyst role (temporary frontend auth)
-        const storedRole = localStorage.getItem("userRole");
-        if (storedRole === "settlements_analyst") {
-          router.push("/settlements");
-        }
       }
+      // Note: settlements_analyst is handled via localStorage in login-form.tsx
+      // and doesn't come from Supabase AppRole enum
     }
   }, [user, role, supabaseLoading, appLoading, router]);
 
