@@ -47,14 +47,31 @@ export async function updateAirtableRecord(
     console.log(`✅ Updated Airtable record ${recordId} in ${tableName}`, { fields });
     return true;
   } catch (error: any) {
-    console.error('Error updating Airtable:', {
-      error: error?.message || error,
-      statusCode: error?.statusCode,
-      errorType: error?.errorType,
+    // Extraer información detallada del error
+    const errorInfo = {
+      message: error?.message || String(error),
+      statusCode: error?.statusCode || error?.status,
+      errorType: error?.errorType || error?.type,
+      errorCode: error?.error || error?.code,
+      details: error?.details || error?.errorDetails,
       tableName,
       recordId,
       fields,
-    });
+      // Información adicional del error de Airtable
+      airtableError: error?.error || null,
+    };
+
+    // Si el error tiene información útil, mostrarla
+    if (error?.message || error?.statusCode || error?.error) {
+      console.error('[Airtable] ❌ Error updating record:', errorInfo);
+    } else {
+      // Si el error está vacío, intentar serializar el objeto completo
+      console.error('[Airtable] ❌ Error updating record (empty error object):', {
+        ...errorInfo,
+        rawError: error,
+        errorKeys: error ? Object.keys(error) : [],
+      });
+    }
     return false;
   }
 }
