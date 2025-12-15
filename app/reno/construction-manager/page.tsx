@@ -49,13 +49,13 @@ export default function RenoConstructionManagerHomePage() {
       // Si no hay parámetro en URL y tenemos emails seleccionados, limpiar
       setSelectedForemanEmails(prev => prev.length > 0 ? [] : prev);
     }
-  }, [searchParams]);
+  }, [unwrappedSearchParams]);
 
   // Guardar filtro en URL params cuando cambia (solo si es diferente)
   useEffect(() => {
     if (role !== 'construction_manager') return;
     
-    const currentForemanParam = searchParams.get('foreman');
+    const currentForemanParam = unwrappedSearchParams.get('foreman');
     const currentForemanEmails = currentForemanParam 
       ? currentForemanParam.split(',').filter(Boolean).sort()
       : [];
