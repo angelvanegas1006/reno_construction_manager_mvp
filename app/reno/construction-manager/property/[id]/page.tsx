@@ -66,6 +66,13 @@ export default function RenoPropertyDetailPage() {
   const { categories: dynamicCategories, loading: categoriesLoading } = useDynamicCategories(propertyId);
   const hasCheckedInitialTab = useRef(false); // Track if we've already checked and set the initial tab
   
+  // Calculate average progress from dynamic categories (for reno-in-progress phase)
+  const averageCategoriesProgress = dynamicCategories.length > 0
+    ? Math.round(
+        dynamicCategories.reduce((sum, cat) => sum + (cat.percentage || 0), 0) / dynamicCategories.length
+      )
+    : undefined;
+  
   // Convert Supabase property to Property format
   const property: Property | null = supabaseProperty ? convertSupabasePropertyToProperty(supabaseProperty) : null;
   const isLoading = supabaseLoading;
@@ -907,6 +914,7 @@ export default function RenoPropertyDetailPage() {
             label: getRenoPhaseLabel(getPropertyRenoPhase(), t),
             variant: getPropertyRenoPhase() === "upcoming-settlements" ? "default" : "secondary",
           }}
+          progress={getPropertyRenoPhase() === "reno-in-progress" ? averageCategoriesProgress : undefined}
         />
 
         {/* Tabs Navigation */}
