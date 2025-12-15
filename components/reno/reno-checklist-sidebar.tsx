@@ -166,21 +166,6 @@ export function RenoChecklistSidebar({
 
       {/* Sections List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
-        {/* Property Info Section - Only for final-check */}
-        {isFinalCheck && (
-          <button
-            onClick={() => onSectionClick("property-info")}
-            className={cn(
-              "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between mb-2",
-              activeSection === "property-info"
-                ? "bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] text-foreground font-medium"
-                : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] hover:text-foreground"
-            )}
-          >
-            <span>{t.sidebar.propertyInformation}</span>
-          </button>
-        )}
-        
         {grupos.map((grupo) => {
           const isExpanded = expandedGroups.includes(grupo.id);
           

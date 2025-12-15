@@ -188,25 +188,10 @@ export default function RenoChecklistPage() {
   const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
   
-  // Initialize activeSection based on checklist type
+  // Initialize activeSection - always start with first checklist section
   const [activeSection, setActiveSection] = useState<string>(() => {
-    // Default to checklist section, will be updated when property loads
     return "checklist-entorno-zonas-comunes";
   });
-
-  // Update activeSection when phase is determined (only once on mount)
-  useEffect(() => {
-    if (property && !isLoading && phase && !checklistLoading) {
-      const shouldBePropertyInfo = isFinalCheck;
-      // Only update if we're still on the default section
-      if (shouldBePropertyInfo && activeSection === "checklist-entorno-zonas-comunes") {
-        setActiveSection("property-info");
-      } else if (!shouldBePropertyInfo && activeSection === "property-info") {
-        setActiveSection("checklist-entorno-zonas-comunes");
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [property, phase, isLoading, checklistLoading]); // Only run when property/phase changes
   
   // Calculate overall progress
   // For reno-in-progress phase, use average of dynamic categories
@@ -339,18 +324,6 @@ export default function RenoChecklistPage() {
     const isFinalCheck = phase === "final-check" || phase === "furnishing" || phase === "cleaning";
 
     switch (activeSection) {
-      case "property-info":
-        // Only show property-info section for final-check (including from furnishing and cleaning)
-        if (isFinalCheck) {
-          return (
-            <PropertyInfoSection
-              property={property}
-              phase={phase}
-              onStartChecklist={() => handleSectionClick("checklist-entorno-zonas-comunes")}
-            />
-          );
-        }
-        // Fall through to checklist if not final-check
       case "checklist-entorno-zonas-comunes":
         return (
           <EntornoZonasComunesSection
@@ -834,98 +807,7 @@ export default function RenoChecklistPage() {
   };
   const formTitle = property ? getFormTitle() : t.checklist.title;
 
-  // Use RenoSidebar layout for final-check, NavbarL3/HeaderL3 for initial-check
-  if (isFinalCheck && property) {
-    return (
-      <div className="flex h-screen overflow-hidden">
-        <RenoSidebar />
-
-        {/* Desktop Sidebar */}
-        <RenoChecklistSidebar
-          address={formatAddress()}
-          activeSection={activeSection}
-          onSectionClick={handleSectionClick}
-          habitacionesCount={habitacionesCount}
-          banosCount={banosCount}
-          isFinalCheck={true}
-          checklist={checklist}
-        />
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
-          <header className="border-b bg-card px-6 py-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  // Use browser history to go back to previous page (property detail, home, or kanban)
-                  if (window.history.length > 1) {
-                    router.back();
-                  } else {
-                    // Fallback to property detail page if no history
-                    router.push(`/reno/construction-manager/property/${property.id}`);
-                  }
-                }}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex-1">
-                <h1 className="text-lg font-semibold">{formTitle}</h1>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleSave}
-                  disabled={!hasUnsavedChanges}
-                >
-                  {t.property.save}
-                </Button>
-              </div>
-            </div>
-          </header>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
-            <div className="max-w-4xl mx-auto">
-              {renderActiveSection()}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Sidebar Menu */}
-        <MobileSidebarMenu
-          address={formatAddress()}
-          overallProgress={overallProgress}
-          sections={[
-            { sectionId: "property-info", name: t.sidebar.propertyInformation, progress: 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title, progress: sectionProgress["entorno-zonas-comunes"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title, progress: sectionProgress["estado-general"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title, progress: sectionProgress["entrada-pasillos"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title, progress: sectionProgress["habitaciones"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-salon", name: t.checklist.sections.salon.title, progress: sectionProgress["salon"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-banos", name: t.checklist.sections.banos.title, progress: sectionProgress["banos"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-cocina", name: t.checklist.sections.cocina.title, progress: sectionProgress["cocina"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-            { sectionId: "checklist-exteriores", name: t.checklist.sections.exteriores.title, progress: sectionProgress["exteriores"] || 0, requiredFieldsCount: 0, completedRequiredFieldsCount: 0, optionalFieldsCount: 0, completedOptionalFieldsCount: 0 },
-          ]}
-          activeSection={activeSection}
-          onSectionClick={handleSectionClick}
-          onSave={() => {}}
-          onSubmit={() => {}}
-          onDelete={() => {}}
-          canSubmit={false}
-          hasUnsavedChanges={hasUnsavedChanges}
-          habitacionesCount={habitacionesCount}
-          banosCount={banosCount}
-          isOpen={isMobileSidebarOpen}
-          onOpenChange={setIsMobileSidebarOpen}
-        />
-      </div>
-    );
-  }
-
-  // Original layout for initial-check
+  // Use same layout for both initial-check and final-check
   return (
     <div className="flex h-screen overflow-hidden relative">
       {/* Navbar L3: Header único sobrepuesto sobre todo (sidebar y contenido) */}
