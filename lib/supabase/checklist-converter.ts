@@ -122,12 +122,22 @@ export function convertUploadZonesToElements(
 
   uploadZones.forEach((uploadZone) => {
     // Crear elemento para fotos (siempre crear el elemento, incluso si está vacío)
-    const imageUrls = uploadZone.photos
-      ?.filter(photo => photo.data && photo.data.startsWith('http')) // Solo URLs ya subidas (no base64)
-      .map(photo => photo.data) || [];
+    const allPhotos = uploadZone.photos || [];
+    const photosWithHttp = allPhotos.filter(photo => photo.data && photo.data.startsWith('http'));
+    const imageUrls = photosWithHttp.map(photo => photo.data);
+    
+    console.log(`[convertUploadZonesToElements] Processing upload zone "${uploadZone.id}":`, {
+      zoneId,
+      uploadZoneId: uploadZone.id,
+      totalPhotos: allPhotos.length,
+      photosWithHttp: photosWithHttp.length,
+      photosWithBase64: allPhotos.filter(p => p.data?.startsWith('data:')).length,
+      imageUrls: imageUrls,
+      imageUrlsCount: imageUrls.length,
+    });
 
     // Crear elemento siempre, incluso si no hay fotos todavía (para mantener la estructura)
-    elements.push({
+    const photoElement = {
       zone_id: zoneId,
       element_name: `fotos-${uploadZone.id}`,
       condition: null,
@@ -135,7 +145,16 @@ export function convertUploadZonesToElements(
       notes: null,
       quantity: null,
       exists: null,
+    };
+    
+    console.log(`[convertUploadZonesToElements] Created photo element:`, {
+      element_name: photoElement.element_name,
+      zone_id: photoElement.zone_id,
+      image_urls: photoElement.image_urls,
+      image_urls_count: photoElement.image_urls?.length || 0,
     });
+    
+    elements.push(photoElement);
 
     // Crear elemento para videos (siempre crear el elemento, incluso si está vacío)
     const videoUrls = uploadZone.videos
