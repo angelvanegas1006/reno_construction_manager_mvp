@@ -357,6 +357,25 @@ export function RenoPropertyCard({
             </div>
           )}
         </div>
+      ) : stage === "furnishing" || stage === "cleaning" ? (
+        <div className="space-y-2">
+          {showRenoDetails && property.renovador && (
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+                <span className="text-xs font-semibold text-foreground leading-none">
+                  {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
+            </div>
+          )}
+          {/* Días para propiedad lista - only show if filled */}
+          {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Días:</span> {property.daysToPropertyReady} días
+            </div>
+          )}
+        </div>
       ) : stage === "furnishing-cleaning" ? (
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
