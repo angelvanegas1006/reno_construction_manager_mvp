@@ -68,6 +68,12 @@ export async function findRecordByPropertyId(
   propertyId: string
 ): Promise<string | null> {
   try {
+    // Si el propertyId ya es un Record ID de Airtable (empieza con "rec"), retornarlo directamente
+    if (propertyId && propertyId.startsWith('rec')) {
+      console.debug('[findRecordByPropertyId] Property ID is already an Airtable Record ID:', propertyId);
+      return propertyId;
+    }
+
     const base = getBase();
     if (!base) {
       return null;
@@ -95,8 +101,11 @@ export async function findRecordByPropertyId(
           return records[0].id;
         }
       } catch (fieldError: any) {
-        // Si el campo no existe, continuar con el siguiente
-        if (fieldError?.message?.includes('Unknown field') || fieldError?.message?.includes('does not exist')) {
+        // Si el campo no existe o hay un error de sintaxis (422), continuar con el siguiente
+        if (fieldError?.message?.includes('Unknown field') || 
+            fieldError?.message?.includes('does not exist') ||
+            fieldError?.status === 422 ||
+            fieldError?.statusCode === 422) {
           continue;
         }
         // Si es otro error, loguearlo pero continuar
