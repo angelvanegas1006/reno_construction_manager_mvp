@@ -72,7 +72,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         .filter(prop => !prop.renovador || prop.renovador.trim() === '')
     ], 'daysToStartRenoSinceRSD');
 
-    // 4. Actualizacion de obra - propiedades que necesitan update esta semana o deberían haberse actualizado antes
+    // 4. Actualizacion de obra - solo propiedades que necesitan update esta semana (lunes a domingo)
     // Todas las actualizaciones se calculan desde la fecha base (viernes 11 de diciembre de 2024)
     const pendingWorkUpdateProps = (propertiesByPhase['reno-in-progress'] || [])
       .map(prop => {
@@ -85,7 +85,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
           proximaActualizacion = calculated || undefined;
         }
         
-        // Verificar si debería haberse actualizado la semana pasada o antes
+        // Verificar si debería haberse actualizado la semana pasada o antes (para resaltar en rojo)
         const isOverdue = needsUpdate(proximaActualizacion, prop.renoType) && !needsUpdateThisWeek(proximaActualizacion);
         
         return {
@@ -95,8 +95,8 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         };
       })
       .filter(prop => {
-        // Mostrar propiedades que necesitan update esta semana O que deberían haberse actualizado antes
-        return needsUpdateThisWeek(prop.proximaActualizacion) || prop.isOverdue;
+        // Solo mostrar propiedades que necesitan update esta semana (lunes a domingo)
+        return needsUpdateThisWeek(prop.proximaActualizacion);
       })
       .sort((a, b) => {
         // Función helper para obtener prioridad del tipo de renovación
