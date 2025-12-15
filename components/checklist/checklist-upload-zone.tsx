@@ -35,18 +35,22 @@ export function ChecklistUploadZone({
   hideTitle = false,
 }: ChecklistUploadZoneProps) {
   const handlePhotosChange = useCallback((files: FileUpload[]) => {
+    // Use ref to get latest uploadZone value to avoid stale closure
+    const currentUploadZone = uploadZoneRef.current;
     onUpdate({
-      ...uploadZone,
+      ...currentUploadZone,
       photos: files,
     });
-  }, [uploadZone, onUpdate]);
+  }, [onUpdate]);
 
   const handleVideosChange = useCallback((files: FileUpload[]) => {
+    // Use ref to get latest uploadZone value to avoid stale closure
+    const currentUploadZone = uploadZoneRef.current;
     onUpdate({
-      ...uploadZone,
+      ...currentUploadZone,
       videos: files,
     });
-  }, [uploadZone, onUpdate]);
+  }, [onUpdate]);
 
   // Track processed file IDs to avoid duplicates
   const processedPhotoIdsRef = React.useRef<Set<string>>(new Set());
