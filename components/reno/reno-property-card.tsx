@@ -8,6 +8,7 @@ import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
 import { useMixpanel } from "@/hooks/useMixpanel";
+import { needsUpdate } from "@/lib/reno/update-calculator";
 
 type RenoStage = "upcoming-settlements" | "initial-check" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "upcoming" | "reno-in-progress" | "furnishing" | "final-check" | "cleaning" | "furnishing-cleaning" | "reno-fixes" | "done" | "orphaned";
 
@@ -35,6 +36,9 @@ export function RenoPropertyCard({
   const needsUpdateToday = property.proximaActualizacion
     ? new Date(property.proximaActualizacion).toDateString() === new Date().toDateString()
     : false;
+
+  // Check if property needs an update (for reno-in-progress phase)
+  const needsUpdateBadge = stage === "reno-in-progress" && needsUpdate(property.proximaActualizacion);
 
   // Check if property exceeds duration limit based on reno type (for reno-in-progress)
   const exceedsDurationLimit = (() => {
@@ -167,11 +171,18 @@ export function RenoPropertyCard({
         <div className="text-xs font-semibold text-muted-foreground truncate min-w-0">
           ID {property.uniqueIdFromEngagements || property.id}
         </div>
-        {isExpired && (
-          <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 flex-shrink-0 whitespace-nowrap">
-            {t.propertyCard.expired}
-          </span>
-        )}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {needsUpdateBadge && (
+            <Badge variant="outline" className="text-xs border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">
+              {language === "es" ? "Necesita actualización" : "Need Update"}
+            </Badge>
+          )}
+          {isExpired && (
+            <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 flex-shrink-0 whitespace-nowrap">
+              {t.propertyCard.expired}
+            </span>
+          )}
+        </div>
       </div>
       
       {/* Address with region integrated */}

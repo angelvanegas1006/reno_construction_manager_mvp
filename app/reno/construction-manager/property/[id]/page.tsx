@@ -805,7 +805,7 @@ export default function RenoPropertyDetailPage() {
                 )}
               </div>
             ) : (
-              <p className="text-muted-foreground">{t.propertyPage.renovationBudget} - {t.propertyPage.comingSoon}</p>
+            <p className="text-muted-foreground">{t.propertyPage.renovationBudget} - {t.propertyPage.comingSoon}</p>
             )}
           </div>
         );

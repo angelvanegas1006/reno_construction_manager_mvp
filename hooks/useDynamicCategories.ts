@@ -102,12 +102,33 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
 
   const updatePropertyLastUpdate = useCallback(async (propertyId: string): Promise<boolean> => {
     try {
+      // First, get the property to get renovation_type
+      const { data: property, error: fetchError } = await supabase
+        .from('properties')
+        .select('renovation_type')
+        .eq('id', propertyId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const lastUpdateDate = new Date().toISOString();
+      
+      // Calculate next_update based on renovation_type
+      const { calculateNextUpdateDate } = await import('@/lib/reno/update-calculator');
+      const nextUpdateDate = calculateNextUpdateDate(lastUpdateDate, property?.renovation_type);
+
+      const updateData: any = {
+        last_update: lastUpdateDate,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (nextUpdateDate) {
+        updateData.next_update = nextUpdateDate;
+      }
+
       const { error: updateError } = await supabase
         .from('properties')
-        .update({
-          last_update: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', propertyId);
 
       if (updateError) throw updateError;

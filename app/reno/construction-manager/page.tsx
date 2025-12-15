@@ -159,7 +159,7 @@ export default function RenoConstructionManagerHomePage() {
     
     fetchVisitsForThisWeek();
   }, [supabase]);
-  
+
   // Convert Supabase properties to Property format for home page
   const properties = useMemo(() => {
     if (supabaseLoading) {

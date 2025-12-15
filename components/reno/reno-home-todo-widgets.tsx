@@ -11,6 +11,7 @@ import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { useRouter } from "next/navigation";
 import { TodoWidgetModal } from "./todo-widget-modal";
 import { Badge } from "@/components/ui/badge";
+import { needsUpdateThisWeek } from "@/lib/reno/update-calculator";
 
 interface RenoHomeTodoWidgetsProps {
   propertiesByPhase?: Record<RenoKanbanPhase, Property[]>;
@@ -71,27 +72,16 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         .filter(prop => !prop.renovador || prop.renovador.trim() === '')
     ], 'daysToStartRenoSinceRSD');
 
-    // 4. Actualizacion de obra - ordenar por proximaActualizacion o ultimaActualizacion
+    // 4. Actualizacion de obra - solo propiedades que necesitan update esta semana (lunes a domingo)
     const pendingWorkUpdateProps = (propertiesByPhase['reno-in-progress'] || [])
       .filter(prop => {
-        if (prop.proximaActualizacion) {
-          const nextUpdateDate = new Date(prop.proximaActualizacion);
-          nextUpdateDate.setHours(0, 0, 0, 0);
-          if (nextUpdateDate <= today) {
-            return true;
-          }
-        }
-        if (!prop.ultimaActualizacion) {
-          return true;
-        }
-        const lastUpdateDate = new Date(prop.ultimaActualizacion);
-        const daysSinceUpdate = Math.floor((today.getTime() - lastUpdateDate.getTime()) / (1000 * 60 * 60 * 24));
-        return daysSinceUpdate > 7;
+        // Solo mostrar propiedades que necesitan update esta semana
+        return needsUpdateThisWeek(prop.proximaActualizacion);
       })
       .sort((a, b) => {
-        // Ordenar por proximaActualizacion o ultimaActualizacion (más antiguas primero)
-        const aDate = a.proximaActualizacion ? new Date(a.proximaActualizacion) : (a.ultimaActualizacion ? new Date(a.ultimaActualizacion) : new Date(0));
-        const bDate = b.proximaActualizacion ? new Date(b.proximaActualizacion) : (b.ultimaActualizacion ? new Date(b.ultimaActualizacion) : new Date(0));
+        // Ordenar por proximaActualizacion (más antiguas primero)
+        const aDate = a.proximaActualizacion ? new Date(a.proximaActualizacion) : new Date(0);
+        const bDate = b.proximaActualizacion ? new Date(b.proximaActualizacion) : new Date(0);
         return aDate.getTime() - bDate.getTime();
       });
 
