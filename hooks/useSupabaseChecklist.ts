@@ -488,8 +488,6 @@ export function useSupabaseChecklist({
       if (!section) {
         return;
       }
-
-    try {
       // Encontrar zona correspondiente
       const zone = zones.find(z => {
         const zoneType = sectionId === "habitaciones" ? "dormitorio" :
