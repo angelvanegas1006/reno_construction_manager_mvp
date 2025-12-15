@@ -42,7 +42,7 @@ export function RenoPropertyCard({
     : false;
 
   // Check if property needs an update (for reno-in-progress phase)
-  const needsUpdateBadge = stage === "reno-in-progress" && needsUpdate(proximaActualizacionCalculada);
+  const needsUpdateBadge = stage === "reno-in-progress" && needsUpdate(proximaActualizacionCalculada, property.renoType);
 
   // Check if property exceeds duration limit based on reno type (for reno-in-progress)
   const exceedsDurationLimit = (() => {

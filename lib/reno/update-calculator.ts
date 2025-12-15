@@ -37,7 +37,7 @@ const BASE_UPDATE_DATE = new Date('2024-12-11T00:00:00.000Z'); // Friday, Decemb
  * All updates are calculated from the base date (Friday, December 11, 2024) forward
  * @param lastUpdateDate ISO date string of the last update (or null/undefined) - used for fallback only
  * @param renoType Type of renovation (Light Reno, Medium Reno, Major Reno)
- * @returns ISO date string of the next update date
+ * @returns ISO date string of the next update date that should occur (or has occurred)
  */
 export function calculateNextUpdateDate(
   lastUpdateDate: string | null | undefined,
@@ -45,21 +45,27 @@ export function calculateNextUpdateDate(
 ): string | null {
   const intervalDays = getUpdateIntervalDays(renoType);
   
-  // Calculate next update from base date
-  // Find the next update date that is >= today
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
   // Start from base date
-  let nextUpdate = new Date(BASE_UPDATE_DATE);
-  nextUpdate.setHours(0, 0, 0, 0);
+  let updateDate = new Date(BASE_UPDATE_DATE);
+  updateDate.setHours(0, 0, 0, 0);
   
-  // Keep adding interval days until we get a date >= today
-  while (nextUpdate < today) {
-    nextUpdate.setDate(nextUpdate.getDate() + intervalDays);
+  // Find the last update date that should have happened (<= today)
+  // This is the date that determines if we need an update
+  let lastUpdateThatShouldHaveHappened = new Date(BASE_UPDATE_DATE);
+  lastUpdateThatShouldHaveHappened.setHours(0, 0, 0, 0);
+  
+  // Keep adding interval days until we exceed today
+  while (updateDate <= today) {
+    lastUpdateThatShouldHaveHappened = new Date(updateDate);
+    updateDate.setDate(updateDate.getDate() + intervalDays);
   }
   
-  return nextUpdate.toISOString();
+  // Return the next update date (the one after the last that should have happened)
+  // This is what we show as "próxima actualización"
+  return updateDate.toISOString();
 }
 
 /**
@@ -84,18 +90,28 @@ export function calculateNextUpdateDateFromLastUpdate(
 
 /**
  * Check if a property needs an update based on next update date
- * @param nextUpdateDate ISO date string of the next update date
- * @returns true if the next update date is today or in the past
+ * A property needs update if the last update date that should have happened is in the past
+ * @param nextUpdateDate ISO date string of the next update date (from calculateNextUpdateDate)
+ * @param renoType Type of renovation (Light Reno, Medium Reno, Major Reno) - used to calculate the last update date
+ * @returns true if the property needs an update (last update date that should have happened is <= today)
  */
-export function needsUpdate(nextUpdateDate: string | null | undefined): boolean {
+export function needsUpdate(nextUpdateDate: string | null | undefined, renoType?: string | null): boolean {
   if (!nextUpdateDate) return false;
   
+  const intervalDays = getUpdateIntervalDays(renoType);
   const nextUpdate = new Date(nextUpdateDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
   nextUpdate.setHours(0, 0, 0, 0);
   
-  return nextUpdate <= today;
+  // Calculate the last update date that should have happened (nextUpdate - intervalDays)
+  const lastUpdateThatShouldHaveHappened = new Date(nextUpdate);
+  lastUpdateThatShouldHaveHappened.setDate(nextUpdate.getDate() - intervalDays);
+  lastUpdateThatShouldHaveHappened.setHours(0, 0, 0, 0);
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Need update if the last update date that should have happened is <= today
+  return lastUpdateThatShouldHaveHappened <= today;
 }
 
 /**
