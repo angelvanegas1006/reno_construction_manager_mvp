@@ -602,10 +602,12 @@ export function convertSupabaseToChecklist(
           uploadZone.videos = element.video_urls?.map(url => urlToFileUpload(url, true)) || [];
         }
         // Questions
-        else if (!element.element_name.includes('-') &&
-                 !element.element_name.startsWith('fotos-') &&
+        // Questions are elements that don't start with 'fotos-', 'videos-', or item type prefixes
+        // and are not 'mobiliario'. Note: question IDs can contain hyphens (e.g., 'acceso-principal')
+        else if (!element.element_name.startsWith('fotos-') &&
                  !element.element_name.startsWith('videos-') &&
                  element.element_name !== 'mobiliario' &&
+                 element.element_name !== 'mobiliario-detalle' &&
                  !element.element_name.startsWith('carpentry-') &&
                  !element.element_name.startsWith('climatization-') &&
                  !element.element_name.startsWith('storage-') &&
