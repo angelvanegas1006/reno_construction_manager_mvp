@@ -235,22 +235,8 @@ export default function RenoChecklistPage() {
     [updateSection]
   );
 
-  // Handle section click - guardar sección anterior antes de cambiar
-  const handleSectionClick = useCallback(async (sectionId: string) => {
-    // No guardar si estamos cambiando desde property-info a checklist (iniciar checklist)
-    const isStartingChecklist = activeSection === "property-info" && sectionId.startsWith("checklist-");
-    
-    // Guardar sección anterior antes de cambiar (excepto cuando iniciamos el checklist)
-    if (activeSection && activeSection !== sectionId && checklist && !isStartingChecklist) {
-      try {
-        await saveCurrentSection();
-        setHasUnsavedChanges(false);
-      } catch (error) {
-        console.error("Error al guardar sección anterior:", error);
-        toast.error("Error al guardar cambios");
-      }
-    }
-    
+  // Handle section click - NO guardar automáticamente, solo cambiar de sección
+  const handleSectionClick = useCallback((sectionId: string) => {
     setActiveSection(sectionId);
     // Cerrar sidebar móvil al cambiar de sección
     setIsMobileSidebarOpen(false);
@@ -262,7 +248,7 @@ export default function RenoChecklistPage() {
         sectionRef.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }
-  }, [activeSection, checklist, saveCurrentSection]);
+  }, []);
 
   // Handle save
   const handleSave = useCallback(async () => {
