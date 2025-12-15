@@ -679,10 +679,16 @@ export function convertSupabaseToChecklist(
       });
     } else {
       // Sección fija (no dinámica)
-      const zone = zonesOfType[0]; // Solo debería haber una zona por tipo
-      const zoneElements = elementsByZone.get(zone.id) || [];
+      // Para secciones fijas, buscar elementos por zone_id directamente en lugar de usar zonesOfType[0]
+      // Esto es necesario porque los elementos pueden tener zone_id diferentes dentro del mismo tipo de zona
+      const allZoneElements = Array.from(elementsByZone.entries())
+        .filter(([zoneId, _]) => {
+          const zone = zones.find(z => z.id === zoneId);
+          return zone && zone.zone_type === zoneType;
+        })
+        .flatMap(([_, elements]) => elements);
 
-      zoneElements.forEach(element => {
+      allZoneElements.forEach(element => {
         // Upload zones
         if (element.element_name.startsWith('fotos-')) {
           const uploadZoneId = element.element_name.replace('fotos-', '');
@@ -696,19 +702,12 @@ export function convertSupabaseToChecklist(
           console.log(`[convertSupabaseToChecklist] Loading photos for upload zone "${uploadZoneId}" in section "${sectionId}":`, {
             elementName: element.element_name,
             elementId: element.id,
+            elementZoneId: element.zone_id,
             photoUrlsCount: photoUrls.length,
             photoUrls: photoUrls,
             uploadZoneId: uploadZoneId,
             sectionId: sectionId,
-          });
-          console.log(`[convertSupabaseToChecklist] Loading photos for zone ${uploadZoneId}:`, {
-            zoneId: uploadZoneId,
-            elementName: element.element_name,
-            elementId: element.id,
-            photoUrlsCount: photoUrls.length,
-            photoUrls: photoUrls,
-            hasImageUrls: !!element.image_urls,
-            imageUrlsType: Array.isArray(element.image_urls) ? 'array' : typeof element.image_urls,
+            zoneFound: zones.find(z => z.id === element.zone_id) ? 'YES' : 'NO',
           });
           uploadZone.photos = photoUrls.length > 0 ? photoUrls.map(url => urlToFileUpload(url)) : [];
           console.log(`[convertSupabaseToChecklist] ✅ Loaded ${uploadZone.photos.length} photos for zone ${uploadZoneId}`);
