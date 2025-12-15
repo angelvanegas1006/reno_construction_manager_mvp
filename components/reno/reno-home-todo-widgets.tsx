@@ -235,9 +235,6 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
               {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
                 <span className="whitespace-nowrap">{t.dashboard?.todoWidgets?.daysToStart || "Días para empezar"}: {property.daysToStartRenoSinceRSD}</span>
               )}
-              {property.renoType && (
-                <span className="whitespace-nowrap">• {property.renoType}</span>
-              )}
             </div>
           </div>
         );
