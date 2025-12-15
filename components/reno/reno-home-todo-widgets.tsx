@@ -73,12 +73,15 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     ], 'daysToStartRenoSinceRSD');
 
     // 4. Actualizacion de obra - solo propiedades que necesitan update esta semana (lunes a domingo)
+    // Todas las actualizaciones se calculan desde la fecha base (viernes 11 de diciembre de 2024)
     const pendingWorkUpdateProps = (propertiesByPhase['reno-in-progress'] || [])
       .map(prop => {
-        // Calcular proximaActualizacion si no existe, usando ultimaActualizacion y renoType
+        // Calcular proximaActualizacion desde la fecha base si no existe
+        // Si tiene next_update en BD, usarlo; sino calcular desde fecha base
         let proximaActualizacion = prop.proximaActualizacion;
-        if (!proximaActualizacion && prop.ultimaActualizacion) {
-          const calculated = calculateNextUpdateDate(prop.ultimaActualizacion, prop.renoType);
+        if (!proximaActualizacion) {
+          // Calcular desde fecha base (viernes 11 de diciembre de 2024)
+          const calculated = calculateNextUpdateDate(null, prop.renoType);
           proximaActualizacion = calculated || undefined;
         }
         return {
@@ -87,10 +90,6 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         };
       })
       .filter(prop => {
-        // Si no tiene ultimaActualizacion ni proximaActualizacion calculada, necesita update
-        if (!prop.ultimaActualizacion && !prop.proximaActualizacion) {
-          return true;
-        }
         // Si necesita update (fecha pasada o hoy) O necesita update esta semana
         if (needsUpdate(prop.proximaActualizacion)) {
           return true;

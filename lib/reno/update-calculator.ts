@@ -27,17 +27,52 @@ export function getUpdateIntervalDays(renoType?: string | null): number {
 }
 
 /**
- * Calculate the next update date based on last update date and renovation type
- * @param lastUpdateDate ISO date string of the last update (or null/undefined)
+ * Base date for all renovation updates: Friday, December 11, 2024
+ * All updates are calculated from this date forward
+ */
+const BASE_UPDATE_DATE = new Date('2024-12-11T00:00:00.000Z'); // Friday, December 11, 2024
+
+/**
+ * Calculate the next update date based on base date and renovation type
+ * All updates are calculated from the base date (Friday, December 11, 2024) forward
+ * @param lastUpdateDate ISO date string of the last update (or null/undefined) - used for fallback only
  * @param renoType Type of renovation (Light Reno, Medium Reno, Major Reno)
- * @returns ISO date string of the next update date, or null if lastUpdateDate is not provided
+ * @returns ISO date string of the next update date
  */
 export function calculateNextUpdateDate(
   lastUpdateDate: string | null | undefined,
   renoType?: string | null
 ): string | null {
-  if (!lastUpdateDate) return null;
+  const intervalDays = getUpdateIntervalDays(renoType);
   
+  // Calculate next update from base date
+  // Find the next update date that is >= today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Start from base date
+  let nextUpdate = new Date(BASE_UPDATE_DATE);
+  nextUpdate.setHours(0, 0, 0, 0);
+  
+  // Keep adding interval days until we get a date >= today
+  while (nextUpdate < today) {
+    nextUpdate.setDate(nextUpdate.getDate() + intervalDays);
+  }
+  
+  return nextUpdate.toISOString();
+}
+
+/**
+ * Calculate the next update date from a specific last update date (for when user saves progress)
+ * This is used when a user explicitly saves progress, which resets the cycle
+ * @param lastUpdateDate ISO date string of the last update
+ * @param renoType Type of renovation (Light Reno, Medium Reno, Major Reno)
+ * @returns ISO date string of the next update date
+ */
+export function calculateNextUpdateDateFromLastUpdate(
+  lastUpdateDate: string,
+  renoType?: string | null
+): string {
   const lastUpdate = new Date(lastUpdateDate);
   const intervalDays = getUpdateIntervalDays(renoType);
   
