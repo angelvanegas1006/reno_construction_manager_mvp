@@ -516,10 +516,23 @@ export function useSupabaseChecklist({
         zonesCount: zones.length,
         elementsCount: elements.length,
         hasChecklist: !!checklist,
+        inspectionType: inspection?.inspection_type,
+        expectedType: inspectionType,
       });
       
       // Si es la primera vez que tenemos una inspección (pasó de null a un valor), recargar inmediatamente
       const isFirstInspection = lastProcessedInspectionIdRef.current === null && inspectionId !== null;
+      
+      // SOLO procesar si la inspección es del tipo correcto
+      if (inspection && inspection.inspection_type !== inspectionType) {
+        console.log('[useSupabaseChecklist] ⏸️ Ignoring inspection change - wrong type:', {
+          currentInspectionType: inspection.inspection_type,
+          expectedInspectionType: inspectionType,
+          inspectionId: inspection.id,
+        });
+        // No actualizar lastProcessedInspectionIdRef para que se vuelva a intentar cuando cambie la inspección
+        return;
+      }
       
       lastProcessedInspectionIdRef.current = inspectionId;
       lastProcessedZonesLengthRef.current = zones.length;
