@@ -413,6 +413,15 @@ export function useSupabaseInspection(
     try {
       setError(null);
 
+      console.log('[useSupabaseInspection] 📤 Upserting element to Supabase:', {
+        element_name: elementData.element_name,
+        zone_id: elementData.zone_id,
+        image_urls: elementData.image_urls,
+        image_urls_count: elementData.image_urls?.length || 0,
+        video_urls: elementData.video_urls,
+        video_urls_count: elementData.video_urls?.length || 0,
+      });
+
       // Usar upsert con unique constraint en (zone_id, element_name)
       const { data, error: upsertError } = await supabase
         .from('inspection_elements')
@@ -422,14 +431,28 @@ export function useSupabaseInspection(
         .select()
         .single();
 
-      if (upsertError) throw upsertError;
+      if (upsertError) {
+        console.error('[useSupabaseInspection] ❌ Error upserting element:', {
+          error: upsertError,
+          element_name: elementData.element_name,
+          zone_id: elementData.zone_id,
+        });
+        throw upsertError;
+      }
+
+      console.log('[useSupabaseInspection] ✅ Element upserted successfully:', {
+        element_name: elementData.element_name,
+        result_id: data?.id,
+        result_image_urls: data?.image_urls,
+        result_image_urls_count: data?.image_urls?.length || 0,
+      });
 
       await fetchInspection();
       return data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al guardar elemento';
       setError(errorMessage);
-      console.error('Error upserting element:', err);
+      console.error('[useSupabaseInspection] ❌ Error upserting element:', err);
       return null;
     }
   }, [supabase, fetchInspection]);

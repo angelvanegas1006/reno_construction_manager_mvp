@@ -655,7 +655,21 @@ export function useSupabaseChecklist({
 
       // Guardar elementos
       for (const elementData of elementsToSave) {
-        await upsertElement(elementData);
+        console.log(`[useSupabaseChecklist] 💾 Upserting element:`, {
+          element_name: elementData.element_name,
+          zone_id: elementData.zone_id,
+          image_urls: elementData.image_urls,
+          image_urls_count: elementData.image_urls?.length || 0,
+          video_urls: elementData.video_urls,
+          video_urls_count: elementData.video_urls?.length || 0,
+        });
+        const result = await upsertElement(elementData);
+        console.log(`[useSupabaseChecklist] ✅ Upserted element result:`, {
+          element_name: elementData.element_name,
+          result_id: result?.id,
+          result_image_urls: result?.image_urls,
+          result_image_urls_count: result?.image_urls?.length || 0,
+        });
       }
 
       // Sync to Airtable if in initial-check phase
