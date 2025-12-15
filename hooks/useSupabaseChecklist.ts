@@ -56,6 +56,12 @@ export function useSupabaseChecklist({
 
   // Determinar inspection_type basado en checklistType
   const inspectionType: InspectionType = checklistType === "reno_final" ? "final" : "initial";
+  
+  console.log('[useSupabaseChecklist] 🔍 Inspection type determination:', {
+    checklistType,
+    inspectionType,
+    propertyId,
+  });
 
   // Hook de Supabase para inspecciones
   const {

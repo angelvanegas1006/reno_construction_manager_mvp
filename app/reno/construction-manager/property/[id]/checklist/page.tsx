@@ -90,8 +90,14 @@ export default function RenoChecklistPage() {
   const checklistType: ChecklistType = useMemo(() => {
     if (!property || !supabaseProperty) return "reno_initial";
     const phase = getPropertyRenoPhase(property);
-    // Final check checklist is available from furnishing, final-check, and cleaning phases
-    return (phase === "final-check" || phase === "furnishing" || phase === "cleaning") ? "reno_final" : "reno_initial";
+    const result = (phase === "final-check" || phase === "furnishing" || phase === "cleaning") ? "reno_final" : "reno_initial";
+    console.log('[ChecklistPage] 🔍 Checklist type determination:', {
+      phase,
+      checklistType: result,
+      propertyId: property?.id,
+      setUpStatus: property?.['Set Up Status'],
+    });
+    return result;
   }, [property, supabaseProperty, getPropertyRenoPhase]);
 
   // Redirect back if trying to access final-check but not in final-check, furnishing, or cleaning phase
