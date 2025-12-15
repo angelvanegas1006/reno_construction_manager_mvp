@@ -307,6 +307,16 @@ export default function RenoChecklistPage() {
   const entornoSection = useMemo(() => {
     if (!checklist) return null;
     const section = checklist.sections["entorno-zonas-comunes"];
+    console.log('[RenoChecklistPage] 🔍 entornoSection useMemo:', {
+      hasChecklist: !!checklist,
+      hasSection: !!section,
+      sectionUploadZonesCount: section?.uploadZones?.length || 0,
+      sectionUploadZones: section?.uploadZones?.map(z => ({
+        id: z.id,
+        photosCount: z.photos.length,
+        photos: z.photos.map(p => ({ id: p.id, hasData: !!p.data, dataPreview: p.data?.substring(0, 50) })),
+      })) || [],
+    });
     if (section) {
       return section;
     }
