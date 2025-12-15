@@ -51,9 +51,27 @@ Value: Properties
 Environment: Production, Preview, Development
 ```
 
+## 📋 Variables de AWS S3 (Para PDFs de Presupuesto)
+
+### 7. AWS_S3_USERNAME
+```
+Key: AWS_S3_USERNAME
+Value: prophero
+Environment: Production, Preview, Development
+Sensitive: ✅ Marca como sensitive
+```
+
+### 8. AWS_S3_PASSWORD
+```
+Key: AWS_S3_PASSWORD
+Value: DocPropHero2024!
+Environment: Production, Preview, Development
+Sensitive: ✅ Marca como sensitive
+```
+
 ## 📋 Variables Opcionales
 
-### 7. AIRTABLE_WEBHOOK_SECRET (Opcional pero recomendado)
+### 9. AIRTABLE_WEBHOOK_SECRET (Opcional pero recomendado)
 ```
 Key: AIRTABLE_WEBHOOK_SECRET
 Value: [Genera uno tú - cualquier string aleatorio]

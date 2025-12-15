@@ -16,7 +16,6 @@ interface PropertyStatusSidebarProps {
   property: Property;
   supabaseProperty?: any;
   propertyId?: string | null;
-  progress?: number; // Progress percentage (0-100)
   pendingItems?: Array<{
     label: string;
     onClick?: () => void;
@@ -38,7 +37,6 @@ export function PropertyStatusSidebar({
   property,
   supabaseProperty,
   propertyId,
-  progress = 0,
   pendingItems = [],
 }: PropertyStatusSidebarProps) {
   const { t, language } = useI18n();
@@ -71,11 +69,12 @@ export function PropertyStatusSidebar({
 
         if (data && !error) {
           setHasChecklist(true);
-          // Calculate progress (simplified - could be improved)
+          // Only show progress if checklist is completed
           if (data.completed_at) {
             setChecklistProgress(100);
           } else {
-            setChecklistProgress(25); // Placeholder
+            // Don't show progress if not completed - it's not accurate
+            setChecklistProgress(0);
           }
         }
       }
@@ -123,21 +122,6 @@ export function PropertyStatusSidebar({
             </span>
           </div>
 
-          {/* Progress Bar */}
-          {progress > 0 && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">{t.propertySidebar.dataCompleted}</span>
-                <span className="text-xs font-medium">{progress}%</span>
-              </div>
-              <div className="w-full h-2 bg-[var(--prophero-gray-200)] dark:bg-[#1a1a1a] rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Pending Items */}
@@ -202,7 +186,7 @@ export function PropertyStatusSidebar({
               <div className="flex items-center gap-2">
                 <ClipboardList className="h-4 w-4 text-muted-foreground" />
                 {getChecklistLabel()}
-                {hasChecklist && (
+                {hasChecklist && checklistProgress === 100 && (
                   <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                     {checklistProgress}%
                   </span>
@@ -220,13 +204,9 @@ export function PropertyStatusSidebar({
                 {hasChecklist ? (
                   <>
                     <div className="text-xs text-muted-foreground mb-2">
-                      {t.propertySidebar.checklistInProgress}
-                    </div>
-                    <div className="w-full h-2 bg-[var(--prophero-gray-200)] dark:bg-[#1a1a1a] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-green-500 transition-all duration-300"
-                        style={{ width: `${checklistProgress}%` }}
-                      />
+                      {checklistProgress === 100 
+                        ? t.propertySidebar.checklistCompleted || "Checklist completado"
+                        : t.propertySidebar.checklistInProgress}
                     </div>
                     <button
                       onClick={() => {

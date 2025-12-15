@@ -88,17 +88,18 @@ export default function RenoChecklistPage() {
   const checklistType: ChecklistType = useMemo(() => {
     if (!property || !supabaseProperty) return "reno_initial";
     const phase = getPropertyRenoPhase(property);
-    return (phase === "final-check" || phase === "furnishing-cleaning") ? "reno_final" : "reno_initial";
+    // Final check checklist is available from furnishing, final-check, and cleaning phases
+    return (phase === "final-check" || phase === "furnishing" || phase === "cleaning") ? "reno_final" : "reno_initial";
   }, [property, supabaseProperty, getPropertyRenoPhase]);
 
-  // Redirect back if trying to access final-check but not in final-check or furnishing-cleaning phase
+  // Redirect back if trying to access final-check but not in final-check, furnishing, or cleaning phase
   // Initial-check remains accessible from all phases
   useEffect(() => {
     if (!isLoading && property && supabaseProperty) {
       const phase = getPropertyRenoPhase(property);
-      // Allow final-check checklist from furnishing-cleaning phase
-      // Only redirect if trying to access final-check but not in final-check or furnishing-cleaning phase
-      if (checklistType === "reno_final" && phase && phase !== "final-check" && phase !== "furnishing-cleaning") {
+      // Allow final-check checklist from furnishing, final-check, and cleaning phases
+      // Only redirect if trying to access final-check but not in one of these phases
+      if (checklistType === "reno_final" && phase && phase !== "final-check" && phase !== "furnishing" && phase !== "cleaning") {
         router.replace(`/reno/construction-manager/property/${property.id}`);
       }
     }
@@ -180,7 +181,7 @@ export default function RenoChecklistPage() {
 
   // Calculate phase and counts before any conditional returns
   const phase = property ? (getPropertyRenoPhase(property) || "initial-check") : null;
-  const isFinalCheck = phase === "final-check" || phase === "furnishing-cleaning";
+  const isFinalCheck = phase === "final-check" || phase === "furnishing" || phase === "cleaning";
   const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
   
@@ -317,11 +318,11 @@ export default function RenoChecklistPage() {
     }
 
     const phase = getPropertyRenoPhase(property) || "initial-check";
-    const isFinalCheck = phase === "final-check" || phase === "furnishing-cleaning";
+    const isFinalCheck = phase === "final-check" || phase === "furnishing" || phase === "cleaning";
 
     switch (activeSection) {
       case "property-info":
-        // Only show property-info section for final-check (including from furnishing-cleaning)
+        // Only show property-info section for final-check (including from furnishing and cleaning)
         if (isFinalCheck) {
           return (
             <PropertyInfoSection
@@ -809,7 +810,7 @@ export default function RenoChecklistPage() {
   // Determinar el título del formulario basado en la fase, pero permitir todas las fases
   const getFormTitle = () => {
     const currentPhase = getPropertyRenoPhase(property);
-    if (currentPhase === "final-check" || currentPhase === "furnishing-cleaning") return t.kanban.finalCheck;
+    if (currentPhase === "final-check" || currentPhase === "furnishing" || currentPhase === "cleaning") return t.kanban.finalCheck;
     if (currentPhase === "initial-check") return t.kanban.initialCheck;
     return t.checklist.title; // Fallback para otras fases
   };
@@ -838,7 +839,15 @@ export default function RenoChecklistPage() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => router.push(`/reno/construction-manager/property/${property.id}`)}
+                onClick={() => {
+                  // Use browser history to go back to previous page (property detail, home, or kanban)
+                  if (window.history.length > 1) {
+                    router.back();
+                  } else {
+                    // Fallback to property detail page if no history
+                    router.push(`/reno/construction-manager/property/${property.id}`);
+                  }
+                }}
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
@@ -901,7 +910,15 @@ export default function RenoChecklistPage() {
     <div className="flex h-screen overflow-hidden relative">
       {/* Navbar L3: Header único sobrepuesto sobre todo (sidebar y contenido) */}
       <NavbarL3
-        onBack={() => router.push("/reno/construction-manager/kanban")}
+        onBack={() => {
+          // Use browser history to go back to previous page (property detail, home, or kanban)
+          if (window.history.length > 1) {
+            router.back();
+          } else {
+            // Fallback to property detail page if no history
+            router.push(`/reno/construction-manager/property/${property?.id}`);
+          }
+        }}
         backLabel="Atrás"
         formTitle={formTitle}
         statusText={hasUnsavedChanges ? undefined : "Cambios guardados"}

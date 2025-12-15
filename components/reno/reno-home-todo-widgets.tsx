@@ -42,12 +42,13 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     today.setHours(0, 0, 0, 0);
 
     // Helper para ordenar por fecha (días para visitar/empezar)
+    // Ordena descendente: más días primero (las que llevan más tiempo en la fase)
     const sortByDays = (props: Property[], field: 'daysToVisit' | 'daysToStartRenoSinceRSD' | 'renoDuration' | 'daysToPropertyReady') => {
       return [...props].sort((a, b) => {
-        const aValue = a[field] ?? Infinity;
-        const bValue = b[field] ?? Infinity;
-        // Ordenar por valor ascendente (menos días primero, luego los que no tienen fecha)
-        return aValue - bValue;
+        const aValue = a[field] ?? -Infinity;
+        const bValue = b[field] ?? -Infinity;
+        // Ordenar por valor descendente (más días primero, luego los que no tienen fecha al final)
+        return bValue - aValue;
       });
     };
 
@@ -97,7 +98,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     // 5. Check Final - ordenar por daysToPropertyReady
     const pendingFinalCheckProps = sortByDays((propertiesByPhase['final-check'] || []), 'daysToPropertyReady');
 
-    // Ordenar widgets según el orden del kanban: upcoming-settlements, initial-check, reno-budget-renovator, reno-budget-client, reno-budget-start, reno-in-progress, furnishing-cleaning, final-check
+    // Ordenar widgets según el orden del kanban: upcoming-settlements, initial-check, reno-budget-renovator, reno-budget-client, reno-budget-start, reno-in-progress, furnishing, final-check, cleaning
     const widgets: TodoWidget[] = [
       {
         id: 'estimated-visit',

@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useCallback, useState, useRef } from "react";
-import { ArrowLeft, MapPin, AlertTriangle, Info, X } from "lucide-react";
+import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +25,21 @@ import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } f
 import type { Database } from '@/lib/supabase/types';
 import { ReportProblemModal } from "@/components/reno/report-problem-modal";
 import { DynamicCategoriesProgress } from "@/components/reno/dynamic-categories-progress";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
+
+// Importar PdfViewer solo en el cliente para evitar problemas con SSR
+const PdfViewer = dynamic(() => import("@/components/reno/pdf-viewer").then(mod => ({ default: mod.PdfViewer })), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full border rounded-lg overflow-hidden bg-muted/50 flex items-center justify-center" style={{ minHeight: '600px' }}>
+      <div className="flex flex-col items-center gap-2">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <p className="text-sm text-muted-foreground">Cargando visor de PDF...</p>
+      </div>
+    </div>
+  ),
+});
 import { appendSetUpNotesToAirtable } from "@/lib/airtable/initial-check-sync";
 import { updateAirtableWithRetry, findRecordByPropertyId } from "@/lib/airtable/client";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
@@ -61,6 +75,7 @@ export default function RenoPropertyDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isEditingDate, setIsEditingDate] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   // Determine phase using "Set Up Status" from Supabase
   const getPropertyRenoPhase = useCallback((): RenoKanbanPhase | null => {
@@ -86,6 +101,37 @@ export default function RenoPropertyDetailPage() {
     hasCheckedInitialTab.current = false;
   }, [propertyId]);
 
+  // Verificar el PDF cuando estamos en la tab de presupuesto y existe budget_pdf_url
+  useEffect(() => {
+    if (activeTab !== "presupuesto-reforma" || !supabaseProperty?.budget_pdf_url) {
+      setPdfError(null);
+      return;
+    }
+
+    const budgetPdfUrl = supabaseProperty.budget_pdf_url;
+    const proxyPdfUrl = `/api/proxy-pdf?url=${encodeURIComponent(budgetPdfUrl)}`;
+    
+    // Verificar que el PDF sea accesible antes de cargarlo
+    fetch(proxyPdfUrl)
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((data) => {
+            throw new Error(data.error || `Error ${response.status}: ${response.statusText}`);
+          });
+        }
+        // Si la respuesta es OK, verificar que sea un PDF
+        const contentType = response.headers.get('content-type');
+        if (contentType && !contentType.includes('application/pdf')) {
+          throw new Error('La URL no apunta a un PDF válido');
+        }
+        setPdfError(null);
+      })
+      .catch((error) => {
+        console.error('[PDF Viewer] Error verificando PDF:', error);
+        setPdfError(error.message || 'Error al cargar el PDF');
+      });
+  }, [activeTab, supabaseProperty?.budget_pdf_url]);
+
   // Auto-switch to summary tab for reno-budget and furnishing-cleaning phases without tasks
   // PERO solo si no viene un tab específico en la URL
   useEffect(() => {
@@ -101,13 +147,13 @@ export default function RenoPropertyDetailPage() {
     const phase = getPropertyRenoPhase();
     const hasNoTasks = dynamicCategories.length === 0;
     
-    // If property is in reno-budget phases or furnishing-cleaning and has no tasks, switch to summary
+    // If property is in reno-budget phases or furnishing/cleaning and has no tasks, switch to summary
     // EXCEPTO para reno-budget-renovator y reno-budget-client que siempre deben mostrar tareas
     if (phase === "reno-budget-renovator" || phase === "reno-budget-client") {
       // Siempre mostrar tareas para estas fases
       setActiveTab("tareas");
       hasCheckedInitialTab.current = true;
-    } else if ((phase === "reno-budget" || phase === "reno-budget-start" || phase === "furnishing-cleaning") && hasNoTasks) {
+    } else if ((phase === "reno-budget" || phase === "reno-budget-start" || phase === "furnishing" || phase === "cleaning") && hasNoTasks) {
       setActiveTab("resumen");
       hasCheckedInitialTab.current = true;
     } else {
@@ -295,7 +341,6 @@ export default function RenoPropertyDetailPage() {
   }, [propertyId, supabaseProperty, updateSupabaseProperty, refetch]);
 
   // Calculate progress (simplified - could be improved)
-  const progress = 25; // TODO: Calculate from checklist completion
 
   // Get pending items based on phase
   const getPendingItems = () => {
@@ -348,8 +393,8 @@ export default function RenoPropertyDetailPage() {
     
     switch (activeTab) {
       case "tareas":
-        // For furnishing-cleaning phase, show final check CTA
-        if (currentPhase === "furnishing-cleaning") {
+        // For furnishing and cleaning phases, show final check CTA
+        if (currentPhase === "furnishing" || currentPhase === "cleaning") {
           return (
             <div className="space-y-6">
               <PropertyActionTab 
@@ -697,9 +742,71 @@ export default function RenoPropertyDetailPage() {
       case "estado-propiedad":
         return propertyId ? <PropertyStatusTab propertyId={propertyId} /> : null;
       case "presupuesto-reforma":
+        const budgetPdfUrl = supabaseProperty?.budget_pdf_url;
+        
+        // Crear URL del proxy si existe el PDF
+        const proxyPdfUrl = budgetPdfUrl 
+          ? `/api/proxy-pdf?url=${encodeURIComponent(budgetPdfUrl)}`
+          : null;
+        
         return (
-          <div className="bg-card rounded-lg border p-6 shadow-sm">
-            <p className="text-muted-foreground">{t.propertyPage.renovationBudget} - {t.propertyPage.comingSoon}</p>
+          <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+            {budgetPdfUrl && proxyPdfUrl ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">{t.propertyPage.renovationBudget}</h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(proxyPdfUrl, '_blank')}
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Abrir en nueva pestaña
+                  </Button>
+                </div>
+                {pdfError ? (
+                  <div className="w-full border rounded-lg p-6 bg-muted/50">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      <AlertTriangle className="h-12 w-12 text-destructive" />
+                      <div className="text-center">
+                        <p className="font-semibold text-lg">Error al cargar el PDF</p>
+                        <p className="text-sm text-muted-foreground mt-2">{pdfError}</p>
+                        <p className="text-xs text-muted-foreground mt-4 break-all">URL: {budgetPdfUrl}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setPdfError(null);
+                          // Forzar verificación nuevamente
+                          fetch(proxyPdfUrl)
+                            .then((response) => {
+                              if (!response.ok) {
+                                return response.json().then((data) => {
+                                  throw new Error(data.error || `Error ${response.status}`);
+                                });
+                              }
+                              setPdfError(null);
+                            })
+                            .catch((error) => {
+                              setPdfError(error.message || 'Error al cargar el PDF');
+                            });
+                        }}
+                      >
+                        Reintentar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <PdfViewer 
+                    fileUrl={proxyPdfUrl} 
+                    fileName={budgetPdfUrl?.split('/').pop() || 'budget.pdf'} 
+                  />
+                )}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">{t.propertyPage.renovationBudget} - {t.propertyPage.comingSoon}</p>
+            )}
           </div>
         );
       case "comentarios":
@@ -765,7 +872,15 @@ export default function RenoPropertyDetailPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Navbar L2: Botón atrás + Acciones críticas */}
         <NavbarL2
-          onBack={() => router.push(`/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`)}
+          onBack={() => {
+            // Use browser history to go back to previous page (home or kanban)
+            if (window.history.length > 1) {
+              router.back();
+            } else {
+              // Fallback to kanban if no history
+              router.push(`/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`);
+            }
+          }}
           classNameTitle={t.propertyPage.property}
           actions={[
             {
@@ -816,7 +931,6 @@ export default function RenoPropertyDetailPage() {
               property={property}
               supabaseProperty={supabaseProperty}
               propertyId={propertyId}
-              progress={progress}
               pendingItems={getPendingItems()}
             />
           </div>
@@ -848,7 +962,6 @@ export default function RenoPropertyDetailPage() {
                 property={property}
                 supabaseProperty={supabaseProperty}
                 propertyId={propertyId}
-                progress={progress}
                 pendingItems={getPendingItems()}
               />
             </div>
@@ -885,8 +998,10 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "reno-budget": t.kanban.renoBudget, // Legacy
     "upcoming": t.kanban.upcoming,
     "reno-in-progress": t.kanban.renoInProgress,
-    "furnishing-cleaning": t.kanban.furnishingCleaning,
+    "furnishing": t.kanban.furnishing,
     "final-check": t.kanban.finalCheck,
+    "cleaning": t.kanban.cleaning,
+    "furnishing-cleaning": t.kanban.furnishingCleaning, // Legacy
     "reno-fixes": t.kanban.renoFixes,
     "done": t.kanban.done,
     "orphaned": "Orphaned", // Properties without a valid phase

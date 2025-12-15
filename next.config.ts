@@ -15,6 +15,20 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // Configuración para Turbopack (Next.js 16 usa Turbopack por defecto)
+  // Agregar configuración vacía para silenciar el warning
+  turbopack: {},
+  // Configuración para webpack (fallback para cuando se use --webpack flag)
+  webpack: (config, { isServer }) => {
+    // Ignorar el módulo 'canvas' en el cliente (solo se necesita en el servidor)
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        canvas: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

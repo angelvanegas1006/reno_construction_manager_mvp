@@ -2,6 +2,16 @@
 
 Esta guía explica cómo configurar un nodo HTTP Request en n8n para insertar categorías dinámicas en la tabla `property_dynamic_categories` de Supabase.
 
+## ⚠️ IMPORTANTE: Campos Correctos
+
+**NO uses el campo `categories`** - ese campo NO existe en la tabla.
+
+Los campos correctos son:
+- ✅ `property_id` (requerido)
+- ✅ `category_name` (requerido) 
+- ✅ `activities_text` (opcional)
+- ✅ `percentage` (opcional, 0-100)
+
 ## 📋 Estructura de la Tabla
 
 La tabla `property_dynamic_categories` tiene los siguientes campos:
@@ -144,7 +154,17 @@ Si recibes datos del webhook anterior, puedes mapearlos así:
 
 ## ✅ Validaciones y Errores Comunes
 
-### 1. Error: "new row violates foreign key constraint"
+### 1. Error: "Could not find the 'categories' column"
+
+**Causa**: Estás intentando insertar un campo llamado `categories` que NO existe en la tabla.
+
+**Solución**: 
+- ❌ **NO uses**: `"categories": "..."` 
+- ✅ **Usa**: `"category_name": "..."` 
+
+La tabla NO tiene una columna `categories`, solo tiene `category_name`.
+
+### 2. Error: "new row violates foreign key constraint"
 
 **Causa**: El `property_id` no existe en la tabla `properties`.
 
@@ -155,25 +175,25 @@ Si recibes datos del webhook anterior, puedes mapearlos así:
 SELECT id FROM properties WHERE id = 'SP-Q4X-HPS-003953';
 ```
 
-### 2. Error: "null value in column 'property_id' violates not-null constraint"
+### 3. Error: "null value in column 'property_id' violates not-null constraint"
 
 **Causa**: El campo `property_id` es requerido pero no se está enviando.
 
 **Solución**: Asegúrate de incluir `property_id` en el body.
 
-### 3. Error: "null value in column 'category_name' violates not-null constraint"
+### 4. Error: "null value in column 'category_name' violates not-null constraint"
 
 **Causa**: El campo `category_name` es requerido pero no se está enviando.
 
-**Solución**: Asegúrate de incluir `category_name` en el body.
+**Solución**: Asegúrate de incluir `category_name` en el body (NO uses `categories`).
 
-### 4. Error: "new row violates check constraint"
+### 5. Error: "new row violates check constraint"
 
 **Causa**: El `percentage` está fuera del rango 0-100 o no es un número.
 
 **Solución**: Verifica que `percentage` sea `null` o un número entre 0 y 100.
 
-### 5. Error: 401 Unauthorized
+### 6. Error: 401 Unauthorized
 
 **Causa**: El `SUPABASE_SERVICE_ROLE_KEY` es incorrecto o no se está enviando.
 
