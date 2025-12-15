@@ -44,9 +44,19 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
 
     const handleUploadZoneUpdate = useCallback((zoneId: string, updates: ChecklistUploadZone) => {
       const currentZones = section.uploadZones || uploadZones;
+      console.log('[EntornoZonasComunesSection] 🔄 handleUploadZoneUpdate called:', {
+        zoneId,
+        updatesPhotosCount: updates.photos.length,
+        updatesVideosCount: updates.videos.length,
+        currentZonesCount: currentZones.length,
+        currentZones: currentZones.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length }))
+      });
       const updatedZones = currentZones.map(zone => 
         zone.id === zoneId ? updates : zone
       );
+      console.log('[EntornoZonasComunesSection] ✅ Updated zones:', {
+        updatedZones: updatedZones.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length }))
+      });
       onUpdate({ uploadZones: updatedZones });
     }, [section.uploadZones, uploadZones, onUpdate]);
 

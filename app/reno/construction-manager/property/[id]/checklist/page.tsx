@@ -354,7 +354,9 @@ export default function RenoChecklistPage() {
             onUpdate={(updates) => {
               console.log('[RenoChecklistPage] 📝 onUpdate called for entorno-zonas-comunes:', {
                 updates,
-                uploadZones: updates.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length }))
+                uploadZones: updates.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+                uploadZonesLength: updates.uploadZones?.length || 0,
+                updatesKeys: Object.keys(updates)
               });
               updateChecklistSection("entorno-zonas-comunes", updates);
             }}

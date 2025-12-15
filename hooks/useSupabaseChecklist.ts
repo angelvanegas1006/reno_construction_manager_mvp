@@ -635,7 +635,10 @@ export function useSupabaseChecklist({
       console.log('[useSupabaseChecklist] 🔄 updateSection called:', {
         sectionId,
         sectionData,
-        uploadZones: sectionData.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length }))
+        sectionDataKeys: Object.keys(sectionData),
+        uploadZones: sectionData.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+        uploadZonesLength: sectionData.uploadZones?.length || 0,
+        uploadZonesRaw: sectionData.uploadZones
       });
 
       // Actualizar estado local
