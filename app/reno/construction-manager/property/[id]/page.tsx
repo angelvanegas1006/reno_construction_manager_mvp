@@ -295,7 +295,6 @@ export default function RenoPropertyDetailPage() {
   }, [propertyId, supabaseProperty, updateSupabaseProperty, refetch]);
 
   // Calculate progress (simplified - could be improved)
-  const progress = 25; // TODO: Calculate from checklist completion
 
   // Get pending items based on phase
   const getPendingItems = () => {
@@ -816,7 +815,6 @@ export default function RenoPropertyDetailPage() {
               property={property}
               supabaseProperty={supabaseProperty}
               propertyId={propertyId}
-              progress={progress}
               pendingItems={getPendingItems()}
             />
           </div>
@@ -848,7 +846,6 @@ export default function RenoPropertyDetailPage() {
                 property={property}
                 supabaseProperty={supabaseProperty}
                 propertyId={propertyId}
-                progress={progress}
                 pendingItems={getPendingItems()}
               />
             </div>
