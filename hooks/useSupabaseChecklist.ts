@@ -555,6 +555,16 @@ export function useSupabaseChecklist({
       return;
     }
 
+    // Verificar que la inspección corresponde al tipo correcto antes de procesar cambios
+    if (inspection && inspection.inspection_type !== inspectionType) {
+      console.log('[useSupabaseChecklist] ⏸️ Ignoring zones/elements changes - inspection type mismatch:', {
+        currentInspectionType: inspection.inspection_type,
+        expectedInspectionType: inspectionType,
+        inspectionId: inspection.id,
+      });
+      return;
+    }
+
     // Verificar si zones o elements cambiaron (solo si es la misma inspección)
     const zonesCountChanged = zones.length > 0 && zones.length !== lastProcessedZonesLengthRef.current;
     const elementsCountChanged = elements.length !== lastProcessedElementsLengthRef.current;
