@@ -114,8 +114,9 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
       const lastUpdateDate = new Date().toISOString();
       
       // Calculate next_update based on renovation_type
-      const { calculateNextUpdateDate } = await import('@/lib/reno/update-calculator');
-      const nextUpdateDate = calculateNextUpdateDate(lastUpdateDate, property?.renovation_type);
+      // When user saves progress, calculate from last_update (resets the cycle)
+      const { calculateNextUpdateDateFromLastUpdate } = await import('@/lib/reno/update-calculator');
+      const nextUpdateDate = calculateNextUpdateDateFromLastUpdate(lastUpdateDate, property?.renovation_type);
 
       const updateData: any = {
         last_update: lastUpdateDate,
