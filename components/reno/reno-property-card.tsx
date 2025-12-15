@@ -42,7 +42,19 @@ export function RenoPropertyCard({
     : false;
 
   // Check if property needs an update (for reno-in-progress phase)
-  const needsUpdateBadge = stage === "reno-in-progress" && needsUpdate(proximaActualizacionCalculada, property.renoType);
+  const needsUpdateBadge = stage === "reno-in-progress" && proximaActualizacionCalculada && needsUpdate(proximaActualizacionCalculada, property.renoType);
+  
+  // Debug log (remove after testing)
+  if (stage === "reno-in-progress" && property.id === "SP-6KR-YCK-003058") {
+    console.log('[RenoPropertyCard] Debug for property:', {
+      id: property.id,
+      stage,
+      renoType: property.renoType,
+      proximaActualizacionCalculada,
+      needsUpdateResult: proximaActualizacionCalculada ? needsUpdate(proximaActualizacionCalculada, property.renoType) : false,
+      needsUpdateBadge,
+    });
+  }
 
   // Check if property exceeds duration limit based on reno type (for reno-in-progress)
   const exceedsDurationLimit = (() => {
