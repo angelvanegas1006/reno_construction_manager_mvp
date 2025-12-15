@@ -330,11 +330,11 @@ export function RenoPropertyCard({
               <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
-          {showRenoDetails && property.proximaActualizacion && (
+          {showRenoDetails && proximaActualizacionCalculada && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3 flex-shrink-0" />
               <span>
-                {t.propertyCard.next}: {formatDate(property.proximaActualizacion)}
+                {t.propertyCard.next}: {formatDate(proximaActualizacionCalculada)}
                 {needsUpdateToday && (
                   <span className="ml-1 text-[var(--prophero-blue-600)] font-medium">({t.propertyCard.today})</span>
                 )}
@@ -360,16 +360,10 @@ export function RenoPropertyCard({
               <span className="font-medium">Duración de la obra:</span> {property.renoDuration} días
             </div>
           )}
-          {showRenoDetails && property.proximaActualizacion && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3 flex-shrink-0" />
-              <span>
-                {t.propertyCard.next}: {formatDate(property.proximaActualizacion)}
-                {needsUpdateToday && (
-                  <span className="ml-1 text-[var(--prophero-blue-600)] font-medium">({t.propertyCard.today})</span>
-                )}
-              </span>
-            </div>
+          {showRenoDetails && needsUpdateBadge && (
+            <Badge variant="outline" className="text-xs border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 w-fit">
+              {language === "es" ? "Necesita actualización" : "Need Update"}
+            </Badge>
           )}
         </div>
       ) : stage === "furnishing" || stage === "cleaning" ? (
