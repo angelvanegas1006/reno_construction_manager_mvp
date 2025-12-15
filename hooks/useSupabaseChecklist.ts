@@ -476,6 +476,7 @@ export function useSupabaseChecklist({
         newInspectionId: inspectionId,
         zonesCount: zones.length,
         elementsCount: elements.length,
+        hasChecklist: !!checklist,
       });
       
       // Si es la primera vez que tenemos una inspección (pasó de null a un valor), recargar inmediatamente
@@ -485,9 +486,14 @@ export function useSupabaseChecklist({
       lastProcessedZonesLengthRef.current = zones.length;
       lastProcessedElementsLengthRef.current = elements.length;
       
-      // Si es la primera inspección y tenemos datos, recargar el checklist
-      if (isFirstInspection && zones.length > 0 && elements.length > 0) {
-        console.log('[useSupabaseChecklist] 🔄 First inspection detected, reloading checklist immediately...');
+      // Si es la primera inspección y tenemos datos, SIEMPRE recargar el checklist
+      // Esto asegura que las imágenes se carguen correctamente al navegar desde otra página
+      if (isFirstInspection && zones.length > 0) {
+        console.log('[useSupabaseChecklist] 🔄 First inspection detected, reloading checklist immediately...', {
+          zonesCount: zones.length,
+          elementsCount: elements.length,
+          photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).length,
+        });
         initializationInProgressRef.current = true;
         
         // Recargar checklist con zonas y elementos actualizados
@@ -509,7 +515,7 @@ export function useSupabaseChecklist({
           inspectionId,
           zonesCount: zones.length,
           elementsCount: elements.length,
-          photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-')).length,
+          photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).length,
         });
         
         // Resetear flag después de un breve delay
@@ -523,7 +529,15 @@ export function useSupabaseChecklist({
     // Verificar si zones o elements cambiaron (solo si es la misma inspección)
     const zonesCountChanged = zones.length > 0 && zones.length !== lastProcessedZonesLengthRef.current;
     const elementsCountChanged = elements.length !== lastProcessedElementsLengthRef.current;
-    const shouldReload = (zonesCountChanged || elementsCountChanged) && !initializationInProgressRef.current && inspectionId === lastProcessedInspectionIdRef.current;
+    
+    // Verificar si hay elementos con fotos que no están en el checklist
+    const hasPhotoElements = elements.some(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0);
+    const checklistHasPhotos = checklist && Object.values(checklist.sections).some(section => 
+      section.uploadZones?.some(zone => zone.photos && zone.photos.length > 0)
+    );
+    const photosMissing = hasPhotoElements && !checklistHasPhotos;
+    
+    const shouldReload = (zonesCountChanged || elementsCountChanged || photosMissing) && !initializationInProgressRef.current && inspectionId === lastProcessedInspectionIdRef.current;
     
     if (shouldReload) {
       console.log('[useSupabaseChecklist] 🔄 Zones/Elements changed, reloading checklist...', {
@@ -532,7 +546,12 @@ export function useSupabaseChecklist({
         newZonesCount: zones.length,
         oldElementsCount: lastProcessedElementsLengthRef.current,
         newElementsCount: elements.length,
-        photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-')).length,
+        photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).length,
+        zonesCountChanged,
+        elementsCountChanged,
+        photosMissing,
+        hasPhotoElements,
+        checklistHasPhotos,
       });
       
       // Marcar que estamos recargando para evitar loops
