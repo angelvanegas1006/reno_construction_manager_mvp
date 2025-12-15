@@ -113,14 +113,19 @@ export function useFileUpload({
         validFiles.map(file => processFile(file))
       );
 
-      setFiles(prev => [...prev, ...processedFiles]);
-      onFilesChange([...files, ...processedFiles]);
+      // Use functional update to ensure we have the latest state
+      setFiles(prev => {
+        const updatedFiles = [...prev, ...processedFiles];
+        // Call onFilesChange with updated files
+        onFilesChange(updatedFiles);
+        return updatedFiles;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al procesar archivos");
     } finally {
       setIsUploading(false);
     }
-  }, [files, validateFile, processFile, onFilesChange]);
+  }, [validateFile, processFile, onFilesChange]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
