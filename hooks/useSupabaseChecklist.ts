@@ -314,34 +314,45 @@ export function useSupabaseChecklist({
           // Continuar con la inicialización normal (no retornar aquí)
         }
         
-        // Si no hay inspección, crear una nueva
-        if (!inspection && !inspectionCreationInProgressRef.current && functionsRef.current) {
-          inspectionCreationInProgressRef.current = true;
-          console.log('[useSupabaseChecklist] 📝 Creating new inspection...');
-          const newInspection = await functionsRef.current.createInspection(propertyId, inspectionType);
-          if (!newInspection) {
-            console.error('[useSupabaseChecklist] ❌ Failed to create inspection');
-            setIsLoading(false);
+        // Si no hay inspección, esperar primero a que termine el loading antes de crear una nueva
+        // Esto evita crear inspecciones duplicadas cuando la inspección existe pero aún no se ha cargado en el estado
+        if (!inspection && !inspectionCreationInProgressRef.current) {
+          // Si aún está cargando, esperar a que termine antes de crear una nueva inspección
+          if (inspectionLoading) {
+            console.log('[useSupabaseChecklist] ⏳ Waiting for inspection to load before creating new one...');
             initializationInProgressRef.current = false;
-            inspectionCreationInProgressRef.current = false;
+            setIsLoading(true);
             return;
           }
-          console.log('[useSupabaseChecklist] ✅ Inspection created, refetching...');
-          // Refetch para obtener zonas y elementos
-          await functionsRef.current.refetchInspection();
-          // Esperar un momento para que el estado se actualice después del refetch
-          // El estado de React puede tardar un momento en actualizarse después del refetch
-          await new Promise(resolve => setTimeout(resolve, 500));
-          // Después del refetch, crear un checklist vacío para que el usuario pueda ver algo
-          // El siguiente ciclo del efecto continuará cuando la inspección esté disponible
-          // Nota: Estamos dentro de un bloque donde !inspection era true, así que inspection puede ser null
-          // El refetch puede no haber actualizado el estado aún, así que creamos un checklist vacío
-          console.log('[useSupabaseChecklist] ⏳ Inspection not yet available after refetch, creating empty checklist...');
-          const emptyChecklist = createChecklist(propertyId, checklistType, {});
-          setChecklist(emptyChecklist);
-          const stableKey = `${propertyId}-${checklistType}-no-inspection-yet`;
-          initializationRef.current = stableKey;
-          // Resetear flags para permitir que el siguiente ciclo del efecto continúe
+          
+          // Solo crear una nueva inspección si realmente no existe y no está cargando
+          if (functionsRef.current) {
+            inspectionCreationInProgressRef.current = true;
+            console.log('[useSupabaseChecklist] 📝 Creating new inspection...');
+            const newInspection = await functionsRef.current.createInspection(propertyId, inspectionType);
+            if (!newInspection) {
+              console.error('[useSupabaseChecklist] ❌ Failed to create inspection');
+              setIsLoading(false);
+              initializationInProgressRef.current = false;
+              inspectionCreationInProgressRef.current = false;
+              return;
+            }
+            console.log('[useSupabaseChecklist] ✅ Inspection created, refetching...');
+            // Refetch para obtener zonas y elementos
+            await functionsRef.current.refetchInspection();
+            // Esperar un momento para que el estado se actualice después del refetch
+            // El estado de React puede tardar un momento en actualizarse después del refetch
+            await new Promise(resolve => setTimeout(resolve, 500));
+            // Después del refetch, crear un checklist vacío para que el usuario pueda ver algo
+            // El siguiente ciclo del efecto continuará cuando la inspección esté disponible
+            // Nota: Estamos dentro de un bloque donde !inspection era true, así que inspection puede ser null
+            // El refetch puede no haber actualizado el estado aún, así que creamos un checklist vacío
+            console.log('[useSupabaseChecklist] ⏳ Inspection not yet available after refetch, creating empty checklist...');
+            const emptyChecklist = createChecklist(propertyId, checklistType, {});
+            setChecklist(emptyChecklist);
+            const stableKey = `${propertyId}-${checklistType}-no-inspection-yet`;
+            initializationRef.current = stableKey;
+            // Resetear flags para permitir que el siguiente ciclo del efecto continúe
           initializationInProgressRef.current = false;
           inspectionCreationInProgressRef.current = false;
           setIsLoading(false);
