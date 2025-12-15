@@ -91,7 +91,11 @@ export function ChecklistUploadZone({
       
       // Only update if there are new photos
       if (newPhotos.length > 0) {
+        console.log('[ChecklistUploadZone] 📸 Adding new photos:', newPhotos.length, 'Total photos:', currentUploadZone.photos.length + newPhotos.length);
         handlePhotosChange([...currentUploadZone.photos, ...newPhotos]);
+      } else if (photos.length === 0 && currentUploadZone.photos.length > 0) {
+        // Don't overwrite existing photos if hook returns empty array
+        console.log('[ChecklistUploadZone] ⚠️ Hook returned empty array but uploadZone has photos, skipping update');
       }
     }, [handlePhotosChange]),
   });
@@ -121,7 +125,11 @@ export function ChecklistUploadZone({
       
       // Only update if there are new videos
       if (newVideos.length > 0) {
+        console.log('[ChecklistUploadZone] 🎥 Adding new videos:', newVideos.length, 'Total videos:', currentUploadZone.videos.length + newVideos.length);
         handleVideosChange([...currentUploadZone.videos, ...newVideos]);
+      } else if (videos.length === 0 && currentUploadZone.videos.length > 0) {
+        // Don't overwrite existing videos if hook returns empty array
+        console.log('[ChecklistUploadZone] ⚠️ Hook returned empty array but uploadZone has videos, skipping update');
       }
     }, [handleVideosChange]),
   });
