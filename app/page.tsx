@@ -26,6 +26,7 @@ export default function HomePage() {
     if (role === 'foreman' || role === 'admin' || role === 'construction_manager') {
       router.push("/reno/construction-manager");
     } else {
+      // For other roles (including settlements_analyst), let individual pages handle routing
       // User without permissions - redirect to login
       router.push("/login");
     }

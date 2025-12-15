@@ -36,6 +36,12 @@ const mockUsers: Record<UserRole, User> = {
     email: "admin@vistral.com",
     role: "super_admin",
   },
+  settlements_analyst: {
+    id: "5",
+    name: "Luis Fernández",
+    email: "luis@settlements.com",
+    role: "settlements_analyst",
+  },
 };
 
 export function AuthProvider({ children }: AuthProviderProps) {

@@ -22,6 +22,12 @@ export default function LoginPage() {
         router.push("/reno/construction-manager");
       } else if (role === 'admin') {
         router.push("/reno/construction-manager/kanban");
+      } else if (role === 'settlements_analyst') {
+        // Check localStorage for settlements_analyst role (temporary frontend auth)
+        const storedRole = localStorage.getItem("userRole");
+        if (storedRole === "settlements_analyst") {
+          router.push("/settlements");
+        }
       }
     }
   }, [user, role, supabaseLoading, appLoading, router]);
