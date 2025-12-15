@@ -74,12 +74,20 @@ export function ChecklistUploadZone({
   }, [uploadZone]);
 
   // Initialize refs with existing file IDs and sync when uploadZone changes
+  // Also sync when uploadZone itself changes (not just length) to catch when photos are loaded from Supabase
   React.useEffect(() => {
     processedPhotoIdsRef.current.clear();
     processedVideoIdsRef.current.clear();
     uploadZone.photos.forEach(p => processedPhotoIdsRef.current.add(p.id));
     uploadZone.videos.forEach(v => processedVideoIdsRef.current.add(v.id));
-  }, [uploadZone.photos.length, uploadZone.videos.length]);
+    console.log('[ChecklistUploadZone] 🔄 Synced processed IDs:', {
+      photosCount: uploadZone.photos.length,
+      videosCount: uploadZone.videos.length,
+      photoIds: Array.from(processedPhotoIdsRef.current),
+      videoIds: Array.from(processedVideoIdsRef.current),
+      photosWithData: uploadZone.photos.filter(p => p.data).length,
+    });
+  }, [uploadZone.photos.length, uploadZone.videos.length, uploadZone]);
 
   const photosHook = useFileUpload({
     maxFileSize: maxSizeMB,
