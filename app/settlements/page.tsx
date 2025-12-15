@@ -29,6 +29,19 @@ export default function SettlementsHomePage() {
     const loadSettlements = () => {
       const allSettlements = getAllSettlementProperties();
       setSettlements(allSettlements);
+      
+      // Initialize test data if empty (only once)
+      if (allSettlements.length === 0 && typeof window !== "undefined") {
+        const hasInitialized = localStorage.getItem("settlements_test_data_initialized");
+        if (!hasInitialized) {
+          // Import and initialize test data
+          import("@/scripts/init-settlements-test-data").then(({ initSettlementsTestData }) => {
+            initSettlementsTestData();
+            localStorage.setItem("settlements_test_data_initialized", "true");
+            setSettlements(getAllSettlementProperties());
+          });
+        }
+      }
     };
 
     loadSettlements();
