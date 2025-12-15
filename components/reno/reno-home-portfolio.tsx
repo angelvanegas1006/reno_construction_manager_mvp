@@ -84,7 +84,10 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
   };
 
   const getBarHeight = (count: number) => {
-    return (count / maxCount) * maxHeight;
+    if (maxCount === 0) return 0;
+    const calculatedHeight = (count / maxCount) * maxHeight;
+    // Ensure minimum height for visibility when count > 0
+    return count > 0 ? Math.max(calculatedHeight, 4) : 0;
   };
 
   const handleBarClick = (stage: RenoKanbanPhase) => {
@@ -99,10 +102,10 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
           {t.dashboard.portfolioDescription}
         </p>
       </CardHeader>
-      <CardContent className="pt-6 flex-1 flex flex-col">
-        <div className="flex-1 flex flex-col justify-end">
+      <CardContent className="pt-6 flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col justify-end min-h-0">
           {/* Chart */}
-          <div className="flex items-end justify-between gap-3 h-[200px] relative pb-2">
+          <div className="flex items-end justify-between gap-2 h-[200px] relative pb-12 min-h-[200px]">
             {visibleRenoKanbanColumns.map((column) => {
               const count = stageCounts[column.stage];
               const height = getBarHeight(count);
@@ -110,15 +113,16 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
               return (
                 <div
                   key={column.stage}
-                  className="flex-1 flex flex-col items-center group cursor-pointer h-full"
+                  className="flex-1 flex flex-col items-center group cursor-pointer h-full min-w-0"
                   onClick={() => handleBarClick(column.stage)}
                 >
-                  <div className="relative w-full flex items-end justify-center flex-1 min-h-0 pb-1">
+                  <div className="relative w-full flex items-end justify-center flex-1 min-h-0 pb-1 max-h-[200px]">
                     <div
                       className="w-full rounded-t-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-lg relative overflow-hidden group-hover:opacity-90"
                       style={{ 
-                        height: `${Math.max(height, count > 0 ? 6 : 0)}px`, 
-                        minHeight: count > 0 ? "6px" : "0",
+                        height: `${height}px`, 
+                        maxHeight: `${maxHeight}px`,
+                        minHeight: count > 0 ? "4px" : "0",
                         backgroundColor: count > 0 ? "var(--prophero-blue-400)" : "transparent"
                       }}
                       title={`${getStageLabel(column.stage)}: ${count}`}
@@ -129,7 +133,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-3 text-center leading-tight h-10 flex items-start justify-center overflow-hidden px-1">
+                  <p className="text-xs text-muted-foreground mt-2 text-center leading-tight h-10 flex items-start justify-center overflow-hidden px-0.5 line-clamp-2">
                     {getStageLabel(column.stage)}
                   </p>
                 </div>
