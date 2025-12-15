@@ -56,7 +56,23 @@ export function RenoHomeTasks({ checks, visits, onPropertyClick }: RenoHomeTasks
   const getPropertyStage = (property: Property): RenoKanbanPhase => {
     // Use renoPhase if available, otherwise fallback to default
     // Filter out "orphaned" phase - these properties shouldn't be shown in tasks
-    if (property.renoPhase && property.renoPhase !== "orphaned" && ["upcoming-settlements", "initial-check", "reno-budget-renovator", "reno-budget-client", "reno-budget-start", "reno-budget", "reno-in-progress", "furnishing-cleaning", "final-check", "reno-fixes", "done"].includes(property.renoPhase)) {
+    const validPhases: RenoKanbanPhase[] = [
+      "upcoming-settlements", 
+      "initial-check", 
+      "reno-budget-renovator", 
+      "reno-budget-client", 
+      "reno-budget-start", 
+      "reno-budget", 
+      "reno-in-progress", 
+      "furnishing",
+      "final-check",
+      "cleaning",
+      "furnishing-cleaning", // Legacy
+      "reno-fixes", 
+      "done"
+    ];
+    
+    if (property.renoPhase && property.renoPhase !== "orphaned" && validPhases.includes(property.renoPhase as RenoKanbanPhase)) {
       return property.renoPhase as RenoKanbanPhase;
     }
     // Default fallback
@@ -116,7 +132,7 @@ export function RenoHomeTasks({ checks, visits, onPropertyClick }: RenoHomeTasks
               <RenoPropertyCard
                 key={property.id}
                 property={property}
-                stage={getPropertyStage(property)}
+                stage={getPropertyStage(property) as any}
                 onClick={() => onPropertyClick(property)}
                 showRenoDetails={true}
               />
