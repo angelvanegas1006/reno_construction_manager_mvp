@@ -45,6 +45,11 @@ export async function uploadFileToStorage(
       console.error(`[storage-upload] ⚠️ Bucket '${STORAGE_BUCKET}' no encontrado. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
       throw new Error(`Bucket '${STORAGE_BUCKET}' no encontrado. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
     }
+    // Si es un error de RLS, proporcionar instrucciones claras
+    if (error.message?.includes('row-level security') || error.message?.includes('RLS') || error.message?.includes('policy')) {
+      console.error(`[storage-upload] ⚠️ Error de Row Level Security. Por favor ejecuta las políticas SQL en Supabase Dashboard → SQL Editor. Ver docs/SUPABASE_STORAGE_POLICIES.md`);
+      throw new Error(`Error de Row Level Security. Por favor ejecuta las políticas SQL en Supabase Dashboard → SQL Editor. Ver docs/SUPABASE_STORAGE_POLICIES.md`);
+    }
     throw new Error(`Error al subir archivo: ${error.message}`);
   }
 
