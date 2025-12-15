@@ -8,7 +8,7 @@ import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
 import { useMixpanel } from "@/hooks/useMixpanel";
-import { needsUpdate } from "@/lib/reno/update-calculator";
+import { needsUpdate, calculateNextUpdateDate } from "@/lib/reno/update-calculator";
 
 type RenoStage = "upcoming-settlements" | "initial-check" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "upcoming" | "reno-in-progress" | "furnishing" | "final-check" | "cleaning" | "furnishing-cleaning" | "reno-fixes" | "done" | "orphaned";
 
@@ -33,12 +33,16 @@ export function RenoPropertyCard({
   const { track } = useMixpanel();
   const isExpired = isPropertyExpired(property);
 
-  const needsUpdateToday = property.proximaActualizacion
-    ? new Date(property.proximaActualizacion).toDateString() === new Date().toDateString()
+  // Calculate proximaActualizacion if it doesn't exist (from base date)
+  const proximaActualizacionCalculada = property.proximaActualizacion || 
+    (stage === "reno-in-progress" ? calculateNextUpdateDate(null, property.renoType) : null);
+
+  const needsUpdateToday = proximaActualizacionCalculada
+    ? new Date(proximaActualizacionCalculada).toDateString() === new Date().toDateString()
     : false;
 
   // Check if property needs an update (for reno-in-progress phase)
-  const needsUpdateBadge = stage === "reno-in-progress" && needsUpdate(property.proximaActualizacion);
+  const needsUpdateBadge = stage === "reno-in-progress" && needsUpdate(proximaActualizacionCalculada);
 
   // Check if property exceeds duration limit based on reno type (for reno-in-progress)
   const exceedsDurationLimit = (() => {
