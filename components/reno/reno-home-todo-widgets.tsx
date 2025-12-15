@@ -11,7 +11,7 @@ import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { useRouter } from "next/navigation";
 import { TodoWidgetModal } from "./todo-widget-modal";
 import { Badge } from "@/components/ui/badge";
-import { needsUpdateThisWeek } from "@/lib/reno/update-calculator";
+import { needsUpdateThisWeek, calculateNextUpdateDate, needsUpdate } from "@/lib/reno/update-calculator";
 
 interface RenoHomeTodoWidgetsProps {
   propertiesByPhase?: Record<RenoKanbanPhase, Property[]>;
@@ -74,7 +74,27 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
 
     // 4. Actualizacion de obra - solo propiedades que necesitan update esta semana (lunes a domingo)
     const pendingWorkUpdateProps = (propertiesByPhase['reno-in-progress'] || [])
+      .map(prop => {
+        // Calcular proximaActualizacion si no existe, usando ultimaActualizacion y renoType
+        let proximaActualizacion = prop.proximaActualizacion;
+        if (!proximaActualizacion && prop.ultimaActualizacion) {
+          const calculated = calculateNextUpdateDate(prop.ultimaActualizacion, prop.renoType);
+          proximaActualizacion = calculated || undefined;
+        }
+        return {
+          ...prop,
+          proximaActualizacion: proximaActualizacion || undefined,
+        };
+      })
       .filter(prop => {
+        // Si no tiene ultimaActualizacion ni proximaActualizacion calculada, necesita update
+        if (!prop.ultimaActualizacion && !prop.proximaActualizacion) {
+          return true;
+        }
+        // Si necesita update (fecha pasada o hoy) O necesita update esta semana
+        if (needsUpdate(prop.proximaActualizacion)) {
+          return true;
+        }
         // Solo mostrar propiedades que necesitan update esta semana
         return needsUpdateThisWeek(prop.proximaActualizacion);
       })
