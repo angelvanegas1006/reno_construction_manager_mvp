@@ -47,31 +47,51 @@ export async function updateAirtableRecord(
     console.log(`✅ Updated Airtable record ${recordId} in ${tableName}`, { fields });
     return true;
   } catch (error: any) {
-    // Extraer información detallada del error
-    const errorInfo = {
-      message: error?.message || String(error),
-      statusCode: error?.statusCode || error?.status,
-      errorType: error?.errorType || error?.type,
-      errorCode: error?.error || error?.code,
-      details: error?.details || error?.errorDetails,
-      tableName,
-      recordId,
-      fields,
-      // Información adicional del error de Airtable
-      airtableError: error?.error || null,
-    };
-
-    // Si el error tiene información útil, mostrarla
-    if (error?.message || error?.statusCode || error?.error) {
-      console.error('[Airtable] ❌ Error updating record:', errorInfo);
-    } else {
-      // Si el error está vacío, intentar serializar el objeto completo
-      console.error('[Airtable] ❌ Error updating record (empty error object):', {
-        ...errorInfo,
-        rawError: error,
-        errorKeys: error ? Object.keys(error) : [],
-      });
+    // Extraer toda la información posible del error
+    let errorDetails: any = {};
+    
+    // Intentar extraer información del error de diferentes formas
+    try {
+      errorDetails = {
+        // Propiedades comunes de errores
+        message: error?.message,
+        name: error?.name,
+        stack: error?.stack,
+        // Propiedades específicas de Airtable
+        statusCode: error?.statusCode || error?.status,
+        status: error?.status,
+        errorType: error?.errorType || error?.type,
+        error: error?.error,
+        code: error?.code,
+        details: error?.details,
+        errorDetails: error?.errorDetails,
+        // Información del contexto
+        tableName,
+        recordId,
+        fields,
+        // Serializar el error completo si es posible
+        stringified: JSON.stringify(error, Object.getOwnPropertyNames(error)),
+        // Todas las propiedades del error
+        allProperties: error ? Object.getOwnPropertyNames(error).reduce((acc: any, key: string) => {
+          try {
+            acc[key] = (error as any)[key];
+          } catch {
+            acc[key] = '[Cannot access]';
+          }
+          return acc;
+        }, {}) : null,
+      };
+    } catch (serializationError) {
+      errorDetails = {
+        error: 'Failed to serialize error',
+        originalError: String(error),
+        tableName,
+        recordId,
+        fields,
+      };
     }
+
+    console.error('[Airtable] ❌ Error updating record:', errorDetails);
     return false;
   }
 }
