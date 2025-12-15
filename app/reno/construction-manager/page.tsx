@@ -122,39 +122,42 @@ export default function RenoConstructionManagerHomePage() {
     return filtered;
   }, [rawPropertiesByPhase, selectedForemanEmails, role, user?.email]);
   
-  // Load visits for today
-  const [visitsForToday, setVisitsForToday] = useState<number>(0);
+  // Load visits for this week (from estimatedVisitDate)
+  const [visitsForThisWeek, setVisitsForThisWeek] = useState<number>(0);
   const [loadingVisits, setLoadingVisits] = useState(true);
   
   useEffect(() => {
-    const fetchVisitsForToday = async () => {
+    const fetchVisitsForThisWeek = async () => {
       try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const endOfWeek = new Date(today);
+        endOfWeek.setDate(endOfWeek.getDate() + 7);
+        endOfWeek.setHours(23, 59, 59, 999);
         
-        const { count, error } = await supabase
-          .from("property_visits")
-          .select("*", { count: "exact", head: true })
-          .gte("visit_date", today.toISOString())
-          .lt("visit_date", tomorrow.toISOString());
+        // Get all properties with estimatedVisitDate within this week
+        const { data, error } = await supabase
+          .from("properties")
+          .select("id, \"Estimated Visit Date\"")
+          .not("\"Estimated Visit Date\"", "is", null)
+          .gte("\"Estimated Visit Date\"", today.toISOString().split('T')[0])
+          .lte("\"Estimated Visit Date\"", endOfWeek.toISOString().split('T')[0]);
         
         if (error) {
-          console.error("Error fetching visits for today:", error);
-          setVisitsForToday(0);
+          console.error("Error fetching visits for this week:", error);
+          setVisitsForThisWeek(0);
         } else {
-          setVisitsForToday(count || 0);
+          setVisitsForThisWeek(data?.length || 0);
         }
       } catch (error) {
-        console.error("Error fetching visits for today:", error);
-        setVisitsForToday(0);
+        console.error("Error fetching visits for this week:", error);
+        setVisitsForThisWeek(0);
       } finally {
         setLoadingVisits(false);
       }
     };
     
-    fetchVisitsForToday();
+    fetchVisitsForThisWeek();
   }, [supabase]);
   
   // Convert Supabase properties to Property format for home page
@@ -205,35 +208,28 @@ export default function RenoConstructionManagerHomePage() {
 
   // Calculate indicators
   const indicators = useMemo(() => {
-    // Obras Activas: all properties between reno-in-progress and final-check
-    // Includes: reno-in-progress, furnishing-cleaning, and final-check
+    // Obras Activas: all properties between reno-in-progress and cleaning
+    // Includes: reno-in-progress, furnishing, final-check, and cleaning
     const obrasActivas = (
       (propertiesByPhase?.['reno-in-progress']?.length || 0) +
-      (propertiesByPhase?.['furnishing-cleaning']?.length || 0) +
-      (propertiesByPhase?.['final-check']?.length || 0)
+      (propertiesByPhase?.['furnishing']?.length || 0) +
+      (propertiesByPhase?.['final-check']?.length || 0) +
+      (propertiesByPhase?.['cleaning']?.length || 0)
     );
 
-    // Visitas para hoy: todas las visitas de la tabla property_visits programadas para hoy
+    // Visitas para esta semana: propiedades con estimatedVisitDate dentro de esta semana
     // Se carga desde Supabase en el useEffect anterior
-    const visitasParaHoy = visitsForToday;
+    const visitasParaEstaSemana = visitsForThisWeek;
 
     // Total visitas del mes: simulated with dummy data
     const totalVisitasMes = 28; // Dummy for now
 
-    // Deltas MoM (simulated)
-    const obrasActivasDelta = { value: 12, isPositive: true };
-    const visitasParaHoyDelta = { value: 5, isPositive: true };
-    const totalVisitasMesDelta = { value: 8, isPositive: true };
-
     return {
       obrasActivas,
-      visitasParaHoy,
+      visitasParaEstaSemana,
       totalVisitasMes,
-      obrasActivasDelta,
-      visitasParaHoyDelta,
-      totalVisitasMesDelta,
     };
-  }, [properties]);
+  }, [properties, visitsForThisWeek]);
 
 
   // Handle property click - navigate to property detail or task
@@ -289,11 +285,8 @@ export default function RenoConstructionManagerHomePage() {
               {/* KPIs */}
               <RenoHomeIndicators
                 obrasActivas={indicators.obrasActivas}
-                visitasParaHoy={indicators.visitasParaHoy}
+                visitasParaHoy={indicators.visitasParaEstaSemana}
                 totalVisitasMes={indicators.totalVisitasMes}
-                obrasActivasDelta={indicators.obrasActivasDelta}
-                visitasParaHoyDelta={indicators.visitasParaHoyDelta}
-                totalVisitasMesDelta={indicators.totalVisitasMesDelta}
               />
 
               {/* Todo List Widgets */}

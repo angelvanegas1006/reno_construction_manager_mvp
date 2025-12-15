@@ -19,6 +19,7 @@ import type { RenoKanbanPhase } from '@/lib/reno-kanban-config';
 const AIRTABLE_TABLE_ID = 'tblmX19OTsj3cTHmA';
 
 // Configuración de vistas con prioridad (mayor número = mayor prioridad)
+// Orden de fases: reno-in-progress → furnishing → final-check → cleaning
 const PHASE_VIEWS: Array<{
   phase: RenoKanbanPhase;
   viewId: string;
@@ -26,16 +27,22 @@ const PHASE_VIEWS: Array<{
   priority: number; // Mayor número = fase más avanzada = mayor prioridad
 }> = [
   {
+    phase: 'cleaning',
+    viewId: 'viwLajczYxzQd4UvU',
+    description: 'Cleaning',
+    priority: 6, // Más avanzada
+  },
+  {
     phase: 'final-check',
     viewId: 'viwnDG5TY6wjZhBL2',
     description: 'Final Check',
-    priority: 6,
+    priority: 5,
   },
   {
-    phase: 'furnishing-cleaning',
+    phase: 'furnishing',
     viewId: 'viw9NDUaeGIQDvugU',
-    description: 'Furnishing & Cleaning',
-    priority: 5,
+    description: 'Furnishing',
+    priority: 4,
   },
   {
     phase: 'reno-in-progress',
@@ -113,12 +120,20 @@ async function fetchAllPropertiesFromAllViews(): Promise<PropertyPhaseMapping[]>
           return; // Skip si no hay ID único
         }
 
-        // Si ya existe esta propiedad con una fase de mayor prioridad, mantenerla
+        // Si ya existe esta propiedad, verificar si debemos actualizarla
+        // Para furnishing y cleaning, si una propiedad está en ambas vistas,
+        // la vista que se procesa primero gana (o podemos usar prioridad)
+        // Pero en este caso, queremos que cada vista tenga sus propiedades exactas
         const existing = propertyIdToMapping.get(uniqueId);
+        
+        // Si la propiedad ya está mapeada a una fase más avanzada (mayor prioridad), mantenerla
+        // EXCEPTO para furnishing y cleaning: si está en cleaning (prioridad 6) y luego aparece en furnishing (prioridad 4),
+        // mantener cleaning porque es más avanzada
         if (existing && existing.priority > phaseConfig.priority) {
           return; // Ya tiene una fase más avanzada, mantenerla
         }
-
+        
+        // Si está en una fase menos avanzada, actualizarla a la más avanzada
         // Crear o actualizar el mapeo con la fase de mayor prioridad
         propertyIdToMapping.set(uniqueId, {
           propertyId: uniqueId,
@@ -349,8 +364,10 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       'reno-budget': 0,
       'upcoming': 0,
       'reno-in-progress': 0,
-      'furnishing-cleaning': 0,
+      'furnishing': 0,
       'final-check': 0,
+      'cleaning': 0,
+      'furnishing-cleaning': 0, // Legacy
       'reno-fixes': 0,
       'done': 0,
       'orphaned': 0,
@@ -407,6 +424,13 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         if (mapping.phase === 'upcoming-settlements' && supabaseData['Estimated Visit Date']) {
           // Si tiene fecha, debería estar en initial-check
           finalPhase = 'initial-check';
+        }
+
+        // Forzar Set Up Status según la fase de la vista
+        if (finalPhase === 'furnishing') {
+          supabaseData['Set Up Status'] = 'Furnishing';
+        } else if (finalPhase === 'cleaning') {
+          supabaseData['Set Up Status'] = 'Cleaning';
         }
 
         supabaseData.reno_phase = finalPhase;
@@ -527,8 +551,10 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         'reno-budget': 0,
         'upcoming': 0,
         'reno-in-progress': 0,
-        'furnishing-cleaning': 0,
+        'furnishing': 0,
         'final-check': 0,
+        'cleaning': 0,
+        'furnishing-cleaning': 0, // Legacy
         'reno-fixes': 0,
         'done': 0,
         'orphaned': 0,

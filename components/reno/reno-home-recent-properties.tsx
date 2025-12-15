@@ -20,19 +20,53 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRenovator, setSelectedRenovator] = useState<string | null>(null);
 
-  // Filter active works: from reno-in-progress to final-check
+  // Filter active works: include all phases from reno-budget-start onwards, plus previous phases with assigned renovator
+  // Include all properties with assigned renovator (including those already assigned previously)
   const activeWorks = useMemo(() => {
     if (!propertiesByPhase) return [];
     
-    const activePhases = ['reno-in-progress', 'furnishing-cleaning', 'final-check'];
+    // Phases that always count as active works (from reno-budget-start onwards)
+    const alwaysActivePhases = [
+      'reno-budget-start',
+      'reno-in-progress', 
+      'furnishing',
+      'final-check',
+      'cleaning'
+    ];
+    
+    // Previous phases that should be included only if they have renovator assigned
+    const previousPhasesWithRenovator = [
+      'reno-budget-renovator',
+      'reno-budget-client'
+    ];
+    
     const activeProperties: Property[] = [];
     
-    activePhases.forEach(phase => {
+    // Add properties from always active phases
+    alwaysActivePhases.forEach(phase => {
       const phaseProperties = propertiesByPhase[phase] || [];
       activeProperties.push(...phaseProperties);
     });
     
-    return activeProperties;
+    // Add properties from previous phases only if they have renovator assigned
+    previousPhasesWithRenovator.forEach(phase => {
+      const phaseProperties = propertiesByPhase[phase] || [];
+      phaseProperties.forEach(property => {
+        const renovatorName = property.renovador || 
+                             (property as any).supabaseProperty?.["Renovator name"];
+        if (renovatorName && typeof renovatorName === 'string' && renovatorName.trim().length > 0) {
+          activeProperties.push(property);
+        }
+      });
+    });
+    
+    // Filter only properties that have a renovator assigned
+    // Get renovator from property.renovador or supabaseProperty["Renovator name"]
+    return activeProperties.filter(property => {
+      const renovatorName = property.renovador || 
+                           (property as any).supabaseProperty?.["Renovator name"];
+      return renovatorName && typeof renovatorName === 'string' && renovatorName.trim().length > 0;
+    });
   }, [propertiesByPhase]);
 
   // Group by renovator name with properties
@@ -40,15 +74,21 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
     const grouped: Record<string, Property[]> = {};
     
     activeWorks.forEach(property => {
-      const renovatorName = property.renovador || (language === 'es' ? 'Sin renovator' : 'No renovator');
-      if (!grouped[renovatorName]) {
-        grouped[renovatorName] = [];
+      // Get renovator from property.renovador or supabaseProperty["Renovator name"]
+      const renovatorName = property.renovador || 
+                           (property as any).supabaseProperty?.["Renovator name"];
+      
+      if (renovatorName && typeof renovatorName === 'string' && renovatorName.trim().length > 0) {
+        const trimmedName = renovatorName.trim();
+        if (!grouped[trimmedName]) {
+          grouped[trimmedName] = [];
+        }
+        grouped[trimmedName].push(property);
       }
-      grouped[renovatorName].push(property);
     });
     
     return grouped;
-  }, [activeWorks, language]);
+  }, [activeWorks]);
 
   // Create ranking from groups
   const fullRanking = useMemo(() => {

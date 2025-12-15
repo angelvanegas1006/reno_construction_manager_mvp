@@ -163,8 +163,10 @@ export interface Translations {
       renoBudget: string; // Legacy
       upcoming: string;
       renoInProgress: string;
-      furnishingCleaning: string;
+      furnishing: string;
       finalCheck: string;
+      cleaning: string;
+      furnishingCleaning: string; // Legacy
       renoFixes: string;
       done: string;
   };
@@ -728,8 +730,10 @@ export const translations: Record<Language, Translations> = {
       renoBudget: "Presupuesto de Renovación", // Legacy
       upcoming: "Próximas propiedades",
       renoInProgress: "Obras en proceso",
-      furnishingCleaning: "Limpieza y amoblamiento",
+      furnishing: "Amoblamiento",
       finalCheck: "Revisión Final",
+      cleaning: "Limpieza",
+      furnishingCleaning: "Limpieza y amoblamiento", // Legacy
       renoFixes: "Reparaciones reno",
       done: "Finalizadas",
     },
@@ -1304,8 +1308,8 @@ export const translations: Record<Language, Translations> = {
       // Reno Construction Manager Dashboard
       activeWorks: "Obras Activas",
       activeWorksDescription: "Propiedades en fase de renovación",
-      visitsToday: "Visitas para Hoy",
-      visitsTodayDescription: "Actualizaciones o checks programados",
+      visitsToday: "Visitas para Esta Semana",
+      visitsTodayDescription: "Visitas estimadas programadas para esta semana",
       totalVisitsMonth: "Total de visitas hechas en el mes",
       totalVisitsMonthDescription: "Visitas completadas este mes",
       checksForToday: "Checks para ejecutar hoy",
@@ -1694,8 +1698,10 @@ export const translations: Record<Language, Translations> = {
       renoBudget: "Reno Budget", // Legacy
       upcoming: "Upcoming Properties",
       renoInProgress: "Reno in Progress",
-      furnishingCleaning: "Furnishing/Cleaning",
+      furnishing: "Furnishing",
       finalCheck: "Final Check",
+      cleaning: "Cleaning",
+      furnishingCleaning: "Furnishing/Cleaning", // Legacy
       renoFixes: "Reno Fixes",
       done: "Done",
     },
@@ -2269,8 +2275,8 @@ export const translations: Record<Language, Translations> = {
       // Reno Construction Manager Dashboard
       activeWorks: "Active Works",
       activeWorksDescription: "Properties in renovation phase",
-      visitsToday: "Visits for Today",
-      visitsTodayDescription: "Scheduled updates or checks",
+      visitsToday: "Visits for This Week",
+      visitsTodayDescription: "Estimated visits scheduled for this week",
       totalVisitsMonth: "Total visits made in the month",
       totalVisitsMonthDescription: "Visits completed this month",
       checksForToday: "Checks to execute today",

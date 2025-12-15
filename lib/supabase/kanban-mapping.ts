@@ -54,14 +54,22 @@ export function mapSetUpStatusToKanbanPhase(setUpStatus: string | null): RenoKan
     'reno in progress': 'reno-in-progress',
     'obras en proceso': 'reno-in-progress',
     
-    // Limpieza y amoblamiento → furnishing-cleaning
+    // Furnishing → furnishing (después de reno-in-progress)
+    'furnishing': 'furnishing',
+    'amoblamiento': 'furnishing',
+    
+    // Check final → final-check (después de furnishing)
+    'final check': 'final-check',
+    'check final': 'final-check',
+    
+    // Cleaning → cleaning (después de final-check)
+    'cleaning': 'cleaning',
+    'limpieza': 'cleaning',
+    
+    // Legacy: Limpieza y amoblamiento → furnishing-cleaning (mantener para compatibilidad)
     'cleaning & furnishing': 'furnishing-cleaning',
     'limpieza y amoblamiento': 'furnishing-cleaning',
     'cleaning and furnishing': 'furnishing-cleaning',
-    
-    // Check final → final-check
-    'final check': 'final-check',
-    'check final': 'final-check',
     
     // TODO: Agregar mapeos para reno-fixes y done cuando se definan
     // 'reno fixes': 'reno-fixes',
@@ -104,8 +112,10 @@ export function getMappedKanbanPhases(): RenoKanbanPhase[] {
     'reno-budget', // Legacy - mantener para compatibilidad
     'upcoming',
     'reno-in-progress',
-    'furnishing-cleaning',
+    'furnishing',
     'final-check',
+    'cleaning',
+    'furnishing-cleaning', // Legacy - mantener para compatibilidad
     // 'reno-fixes', // TODO: Agregar cuando se defina el mapeo
     // 'done', // TODO: Agregar cuando se defina el mapeo
   ];

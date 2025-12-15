@@ -204,16 +204,10 @@ export function PropertyStatusSidebar({
                 {hasChecklist ? (
                   <>
                     <div className="text-xs text-muted-foreground mb-2">
-                      {t.propertySidebar.checklistInProgress}
+                      {checklistProgress === 100 
+                        ? t.propertySidebar.checklistCompleted || "Checklist completado"
+                        : t.propertySidebar.checklistInProgress}
                     </div>
-                    {checklistProgress === 100 && (
-                      <div className="w-full h-2 bg-[var(--prophero-gray-200)] dark:bg-[#1a1a1a] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-green-500 transition-all duration-300"
-                          style={{ width: `${checklistProgress}%` }}
-                        />
-                      </div>
-                    )}
                     <button
                       onClick={() => {
                         if (propertyId) {
