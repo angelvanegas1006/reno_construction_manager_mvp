@@ -847,6 +847,8 @@ export default function RenoChecklistPage() {
           onSectionClick={handleSectionClick}
           habitacionesCount={habitacionesCount}
           banosCount={banosCount}
+          isFinalCheck={true}
+          checklist={checklist}
         />
 
         {/* Main Content */}

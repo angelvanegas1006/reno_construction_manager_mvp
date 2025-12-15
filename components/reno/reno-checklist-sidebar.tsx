@@ -22,6 +22,7 @@ interface RenoChecklistSidebarProps {
   onCompleteInspection?: () => void;
   canCompleteInspection?: boolean;
   isCompleting?: boolean;
+  isFinalCheck?: boolean; // Indica si es un final check para mostrar property-info
 }
 
 export function RenoChecklistSidebar({
@@ -37,6 +38,7 @@ export function RenoChecklistSidebar({
   onCompleteInspection,
   canCompleteInspection = false,
   isCompleting = false,
+  isFinalCheck = false,
 }: RenoChecklistSidebarProps) {
   const { t } = useI18n();
   const [expandedGroups, setExpandedGroups] = useState<string[]>([
@@ -164,18 +166,18 @@ export function RenoChecklistSidebar({
 
       {/* Sections List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
-        {/* Property Info Section - Only for final-check (will be filtered by parent) */}
-        {activeSection === "property-info" && (
+        {/* Property Info Section - Only for final-check */}
+        {isFinalCheck && (
           <button
             onClick={() => onSectionClick("property-info")}
             className={cn(
-              "w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors",
+              "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between mb-2",
               activeSection === "property-info"
-                ? "bg-primary text-primary-foreground font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                ? "bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] text-foreground font-medium"
+                : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] hover:text-foreground"
             )}
           >
-            {t.sidebar.propertyInformation}
+            <span>{t.sidebar.propertyInformation}</span>
           </button>
         )}
         
