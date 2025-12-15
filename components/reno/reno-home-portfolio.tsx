@@ -83,16 +83,21 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
     return stageMap[stage];
   };
 
-  const getBarHeight = (count: number) => {
+  const getBarWidth = (count: number) => {
     if (maxCount === 0) return 0;
-    const calculatedHeight = (count / maxCount) * maxHeight;
-    // Ensure minimum height for visibility when count > 0
-    return count > 0 ? Math.max(calculatedHeight, 4) : 0;
+    return (count / maxCount) * 100;
   };
 
   const handleBarClick = (stage: RenoKanbanPhase) => {
     router.push(`/reno/construction-manager/kanban?stage=${stage}`);
   };
+
+  // Sort columns by count (descending) for better visualization
+  const sortedColumns = useMemo(() => {
+    return [...visibleRenoKanbanColumns].sort((a, b) => {
+      return stageCounts[b.stage] - stageCounts[a.stage];
+    });
+  }, [visibleRenoKanbanColumns, stageCounts]);
 
   return (
     <Card className="bg-card h-full flex flex-col">
@@ -103,39 +108,49 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
         </p>
       </CardHeader>
       <CardContent className="pt-6 flex-1 flex flex-col min-h-0">
-        <div className="flex-1 flex flex-col justify-end min-h-0">
-          {/* Chart */}
-          <div className="flex items-end justify-between gap-2 h-[200px] relative pb-12 min-h-[200px]">
-            {visibleRenoKanbanColumns.map((column) => {
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Horizontal Bar Chart */}
+          <div className="space-y-3 flex-1 overflow-y-auto">
+            {sortedColumns.map((column) => {
               const count = stageCounts[column.stage];
-              const height = getBarHeight(count);
+              const width = getBarWidth(count);
+              const label = getStageLabel(column.stage);
 
               return (
                 <div
                   key={column.stage}
-                  className="flex-1 flex flex-col items-center group cursor-pointer h-full min-w-0"
+                  className="group cursor-pointer"
                   onClick={() => handleBarClick(column.stage)}
                 >
-                  <div className="relative w-full flex items-end justify-center flex-1 min-h-0 pb-1 max-h-[200px]">
-                    <div
-                      className="w-full rounded-t-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-lg relative overflow-hidden group-hover:opacity-90"
-                      style={{ 
-                        height: `${height}px`, 
-                        maxHeight: `${maxHeight}px`,
-                        minHeight: count > 0 ? "4px" : "0",
-                        backgroundColor: count > 0 ? "var(--prophero-blue-400)" : "transparent"
-                      }}
-                      title={`${getStageLabel(column.stage)}: ${count}`}
-                    />
-                    {count > 0 && (
-                      <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs font-semibold text-foreground bg-card border border-border rounded-md px-2.5 py-1 shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 whitespace-nowrap pointer-events-none">
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {label}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-sm font-semibold text-foreground tabular-nums">
                         {count}
                       </span>
-                    )}
+                      <span className="text-xs text-muted-foreground">
+                        {maxCount > 0 ? `${Math.round((count / maxCount) * 100)}%` : '0%'}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 text-center leading-tight h-10 flex items-start justify-center overflow-hidden px-0.5 line-clamp-2">
-                    {getStageLabel(column.stage)}
-                  </p>
+                  <div className="relative h-8 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-300 group-hover:opacity-90 relative overflow-hidden"
+                      style={{ 
+                        width: `${width}%`,
+                        backgroundColor: count > 0 ? "var(--prophero-blue-400)" : "transparent",
+                        minWidth: count > 0 ? "4px" : "0"
+                      }}
+                    >
+                      {count > 0 && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse" />
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
