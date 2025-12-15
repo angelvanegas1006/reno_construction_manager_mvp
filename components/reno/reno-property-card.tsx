@@ -42,7 +42,19 @@ export function RenoPropertyCard({
     : false;
 
   // Check if property needs an update (for reno-in-progress phase)
-  const needsUpdateBadge = stage === "reno-in-progress" && needsUpdate(proximaActualizacionCalculada, property.renoType);
+  const needsUpdateBadge = stage === "reno-in-progress" && proximaActualizacionCalculada && needsUpdate(proximaActualizacionCalculada, property.renoType);
+  
+  // Debug log (remove after testing)
+  if (stage === "reno-in-progress" && property.id === "SP-6KR-YCK-003058") {
+    console.log('[RenoPropertyCard] Debug for property:', {
+      id: property.id,
+      stage,
+      renoType: property.renoType,
+      proximaActualizacionCalculada,
+      needsUpdateResult: proximaActualizacionCalculada ? needsUpdate(proximaActualizacionCalculada, property.renoType) : false,
+      needsUpdateBadge,
+    });
+  }
 
   // Check if property exceeds duration limit based on reno type (for reno-in-progress)
   const exceedsDurationLimit = (() => {
@@ -359,11 +371,6 @@ export function RenoPropertyCard({
             <div className="text-xs text-muted-foreground">
               <span className="font-medium">Duración de la obra:</span> {property.renoDuration} días
             </div>
-          )}
-          {showRenoDetails && needsUpdateBadge && (
-            <Badge variant="outline" className="text-xs border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 w-fit">
-              {language === "es" ? "Necesita actualización" : "Need Update"}
-            </Badge>
           )}
         </div>
       ) : stage === "furnishing" || stage === "cleaning" ? (
