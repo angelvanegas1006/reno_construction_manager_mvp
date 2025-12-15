@@ -95,8 +95,14 @@ export function ChecklistUploadZone({
       
       // Only update if there are new photos
       if (newPhotos.length > 0) {
-        console.log('[ChecklistUploadZone] 📸 Adding new photos:', newPhotos.length, 'Total photos:', currentUploadZone.photos.length + newPhotos.length);
-        handlePhotosChange([...currentUploadZone.photos, ...newPhotos]);
+        const updatedPhotos = [...currentUploadZone.photos, ...newPhotos];
+        console.log('[ChecklistUploadZone] 📸 Adding new photos:', {
+          newCount: newPhotos.length,
+          totalCount: updatedPhotos.length,
+          newPhotos: newPhotos.map(p => ({ id: p.id, name: p.name, hasData: !!p.data, dataPreview: p.data?.substring(0, 50) })),
+          currentPhotos: currentUploadZone.photos.map(p => ({ id: p.id, name: p.name, hasData: !!p.data }))
+        });
+        handlePhotosChange(updatedPhotos);
       } else if (photos.length === 0 && currentUploadZone.photos.length > 0) {
         // Don't overwrite existing photos if hook returns empty array
         console.log('[ChecklistUploadZone] ⚠️ Hook returned empty array but uploadZone has photos, skipping update');
@@ -364,27 +370,44 @@ export function ChecklistUploadZone({
       {(uploadZone.photos.length > 0 || uploadZone.videos.length > 0) && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
           {/* Photos */}
-          {uploadZone.photos.map((file, index) => (
-            <div
-              key={file.id || `photo-${index}`}
-              className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-            >
-              {file.data && (
-                <img
-                  src={file.data}
-                  alt={file.name}
-                  className="w-full h-full object-cover"
-                />
-              )}
-              <button
-                type="button"
-                onClick={() => handleRemovePhoto(index)}
-                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          {uploadZone.photos.map((file, index) => {
+            // Debug: Log file data
+            if (!file.data) {
+              console.log('[ChecklistUploadZone] ⚠️ Photo without data:', { id: file.id, name: file.name, index });
+            }
+            return (
+              <div
+                key={file.id || `photo-${index}`}
+                className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
               >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
+                {file.data ? (
+                  <img
+                    src={file.data}
+                    alt={file.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('[ChecklistUploadZone] ❌ Error loading image:', { id: file.id, name: file.name, data: file.data?.substring(0, 50) });
+                    }}
+                    onLoad={() => {
+                      console.log('[ChecklistUploadZone] ✅ Image loaded:', { id: file.id, name: file.name });
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <ImageIcon className="h-8 w-8 text-[var(--prophero-gray-400)]" />
+                    <span className="text-xs text-[var(--prophero-gray-400)] ml-2">{file.name}</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleRemovePhoto(index)}
+                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            );
+          })}
           
           {/* Videos */}
           {uploadZone.videos.map((file, index) => (
