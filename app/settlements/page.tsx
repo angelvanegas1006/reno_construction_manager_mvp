@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { SettlementsSidebar } from "@/components/settlements/settlements-sidebar";
+import { SettlementsHomeHeader } from "@/components/settlements/settlements-home-header";
 import { getAllSettlementProperties, SettlementProperty } from "@/lib/settlements-storage";
 import { useAuth } from "@/lib/auth/context";
 import { useRouter } from "next/navigation";
@@ -85,38 +86,14 @@ export default function SettlementsHomePage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden">
       <SettlementsSidebar
         isMobileOpen={isMobileMenuOpen}
         onMobileToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="h-[64px] border-b bg-card px-4 md:px-6 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 rounded-md hover:bg-muted"
-            >
-              <span className="sr-only">Toggle menu</span>
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
-            <h1 className="text-2xl font-bold">Escrituración</h1>
-          </div>
-        </header>
+      <div className="flex flex-1 flex-col overflow-hidden w-full md:w-auto">
+        <SettlementsHomeHeader />
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">

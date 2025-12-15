@@ -2,15 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Grid, LogOut, Menu, X, ChevronDown } from "lucide-react";
+import { Home, Grid, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { VistralLogo } from "@/components/vistral-logo";
-import { ThemeSelector } from "@/components/user/theme-selector";
-import { LanguageSelector } from "@/components/user/language-selector";
-import { useI18n } from "@/lib/i18n";
-import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
-import { useAuth0 } from "@auth0/auth0-react";
+import { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +12,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { VistralLogo } from "@/components/vistral-logo";
+import { ThemeSelector } from "@/components/user/theme-selector";
+import { LanguageSelector } from "@/components/user/language-selector";
+import { ChangePasswordModal } from "@/components/user/change-password-modal";
+import { useI18n } from "@/lib/i18n";
+import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
+import { useAuth0 } from "@auth0/auth0-react";
+import { extractNameFromEmail } from "@/lib/supabase/user-name-utils";
 
 // Navigation items for Settlements Analyst
 const getNavigationItems = (t: any) => [
@@ -40,11 +42,11 @@ interface SettlementsSidebarProps {
 
 export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: SettlementsSidebarProps) {
   const { t } = useI18n();
-  const { signOut } = useSupabaseAuthContext();
+  const { user: supabaseUser, signOut } = useSupabaseAuthContext();
   const { isAuthenticated: isAuth0Authenticated, logout: auth0Logout } = useAuth0();
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
+  
   // Unified logout: handle both Auth0 and Supabase
   const handleLogout = async () => {
     // Logout from Supabase
@@ -59,127 +61,339 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
       });
     }
   };
+  
+  const navigationItems = getNavigationItems(t);
+  
+  // Get user name from email
+  const userName = supabaseUser?.email 
+    ? extractNameFromEmail(supabaseUser.email) 
+    : undefined;
+  
+  // Always start collapsed - user can expand by clicking
+  const [collapsed, setCollapsed] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const navItems = getNavigationItems(t);
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth < 768) {
+        setCollapsed(true);
+      }
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
+  // On mobile, render as overlay drawer
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile toggle button */}
+        <button
+          onClick={onMobileToggle}
+          className="fixed top-3 left-3 z-50 md:hidden p-2 rounded-md bg-card border shadow-lg hover:bg-accent transition-colors"
+          aria-label="Toggle sidebar"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+
+        {/* Mobile overlay */}
+        {isMobileOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={onMobileToggle}
+          />
+        )}
+
+        {/* Mobile sidebar drawer */}
+        <aside
+          className={cn(
+            "fixed left-0 top-0 h-full w-80 bg-card border-r border-border z-50 transform transition-transform duration-300 ease-in-out md:hidden",
+            isMobileOpen ? "translate-x-0" : "-translate-x-full"
+          )}
+        >
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <Link 
+                href="/settlements"
+                onClick={onMobileToggle}
+                className="flex-shrink-0 hover:opacity-80"
+              >
+                <VistralLogo variant={null} className="h-8" />
+              </Link>
+              <button
+                onClick={onMobileToggle}
+                className="p-2 rounded-md hover:bg-accent"
+                aria-label="Close sidebar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="mb-6">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
+                  Plataforma
+                </p>
+                <nav className="space-y-1">
+                  {navigationItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href || 
+                      (pathname?.startsWith(item.href + "/") && item.href !== "/settlements");
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={onMobileToggle}
+                        className={cn(
+                          "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-primary/20 text-primary dark:text-white"
+                            : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                          <span className="whitespace-nowrap truncate">{item.label}</span>
+                        </div>
+                        <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+            </div>
+
+            {/* Footer - User Menu */}
+            <div className="p-4 border-t border-border">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-3 w-full rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <span className="text-xs font-semibold">
+                        {supabaseUser?.email?.charAt(0).toUpperCase() || "U"}
+                      </span>
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-medium truncate">{supabaseUser?.email || "Usuario"}</p>
+                      <p className="text-xs text-muted-foreground truncate">Settlements</p>
+                    </div>
+                    <ChevronDown className="h-5 w-5 flex-shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <ThemeSelector />
+                  <DropdownMenuSeparator />
+                  <LanguageSelector />
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)}>
+                    <Lock className="mr-2 h-5 w-5" />
+                    {t.userMenu?.changePassword?.menuItem || "Cambiar Contraseña"}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-5 w-5" />
+                    {t.nav.logout}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          
+          {/* Change Password Modal */}
+          <ChangePasswordModal
+            open={isChangePasswordModalOpen}
+            onOpenChange={setIsChangePasswordModalOpen}
+          />
+        </aside>
+      </>
+    );
+  }
+
+  // Desktop sidebar
   return (
     <>
-      {/* Mobile overlay */}
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onMobileToggle}
-        />
-      )}
-
-      {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:static inset-y-0 left-0 z-50 lg:z-auto",
-          "bg-card border-r border-border",
-          "flex flex-col",
-          "transition-all duration-300",
-          isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          isCollapsed ? "lg:w-20" : "lg:w-64"
+          "hidden md:flex flex-col h-screen w-16 border-r border-border bg-card transition-all duration-300",
+          !collapsed && "md:w-64"
         )}
       >
         {/* Header */}
-        <div className="h-[64px] border-b border-border flex items-center justify-between px-4 flex-shrink-0">
-          {!isCollapsed && (
-            <Link href="/settlements" className="flex items-center gap-2">
-              <VistralLogo iconOnly={false} />
+        <div className={cn(
+          "flex items-center border-b border-border transition-all duration-300",
+          collapsed ? "justify-center px-3 py-3 h-[64px] min-h-[64px]" : "justify-between p-4 h-[64px] min-h-[64px]"
+        )}>
+          {collapsed ? (
+            <Link 
+              href="/settlements"
+              className="flex-shrink-0 transition-all duration-300 ease-in-out hover:opacity-80 flex items-center justify-center"
+              title="Vistral"
+            >
+              <VistralLogo variant={null} iconOnly className="h-8 w-8" />
             </Link>
-          )}
-          {isCollapsed && (
-            <Link href="/settlements" className="flex items-center justify-center w-full">
-              <VistralLogo iconOnly={true} />
-            </Link>
-          )}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted transition-colors"
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? (
-              <Menu className="h-5 w-5 text-muted-foreground" />
-            ) : (
-              <X className="h-5 w-5 text-muted-foreground" />
-            )}
-          </button>
-          <button
-            onClick={onMobileToggle}
-            className="lg:hidden flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted transition-colors"
-            aria-label="Close sidebar"
-          >
-            <X className="h-5 w-5 text-muted-foreground" />
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
-            
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-                onClick={() => {
-                  if (onMobileToggle) {
-                    onMobileToggle();
-                  }
-                }}
+          ) : (
+            <>
+              <Link 
+                href="/settlements"
+                className="flex-shrink-0 transition-all duration-300 ease-in-out hover:opacity-80 flex items-center"
               >
-                <Icon className={cn("h-5 w-5 flex-shrink-0", isCollapsed && "mx-auto")} />
-                {!isCollapsed && <span>{item.label}</span>}
+                <VistralLogo variant={null} className="h-8" />
               </Link>
-            );
-          })}
-        </nav>
-
-        {/* Footer */}
-        <div className="border-t border-border p-4 flex-shrink-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className={cn(
-                "flex items-center gap-3 w-full rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
-                isCollapsed && "justify-center"
-              )}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground flex-shrink-0">
-                  <span className="text-xs font-semibold">S</span>
-                </div>
-                {!isCollapsed && (
-                  <>
-                    <div className="flex-1 text-left min-w-0">
-                      <p className="text-sm font-medium truncate">Settlements</p>
-                      <p className="text-xs text-muted-foreground truncate">Analista</p>
-                    </div>
-                    <ChevronDown className="h-5 w-5 flex-shrink-0" />
-                  </>
-                )}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCollapsed((prev) => !prev);
+                }}
+                className="p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] transition-colors flex-shrink-0"
+                aria-label="Collapse sidebar"
+                type="button"
+              >
+                <PanelLeftClose className="h-5 w-5 text-foreground" />
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <ThemeSelector />
-              <DropdownMenuSeparator />
-              <LanguageSelector />
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Cerrar sesión
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </>
+          )}
         </div>
+
+        {/* Navigation - Plataforma */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {!collapsed && (
+            <div className="mb-6">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
+                Plataforma
+              </p>
+              <nav className="space-y-1">
+                {navigationItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href || 
+                    (pathname?.startsWith(item.href + "/") && item.href !== "/settlements");
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-primary/20 text-primary dark:text-white"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                        <span className="whitespace-nowrap truncate">{item.label}</span>
+                      </div>
+                      <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          )}
+          {collapsed && (
+            <nav className="space-y-1">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href || 
+                  (pathname?.startsWith(item.href + "/") && item.href !== "/settlements");
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full",
+                      isActive
+                        ? "bg-primary/20 text-primary dark:text-white"
+                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
+                    title={item.label}
+                  >
+                    <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
+
+          {/* Divider */}
+          <div className={cn("border-t border-border", collapsed ? "my-2" : "my-4")} />
+        </div>
+
+        {/* Footer - User Menu */}
+        <div className="border-t border-border">
+          {/* Botón de toggle en el centro de la línea divisoria cuando está comprimida */}
+          {collapsed && (
+            <div className="flex justify-center py-2 border-b border-border">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCollapsed((prev) => !prev);
+                }}
+                className="p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] transition-colors"
+                aria-label="Expand sidebar"
+                type="button"
+              >
+                <PanelLeftOpen className="h-5 w-5 text-foreground" />
+              </button>
+            </div>
+          )}
+          
+          <div className="p-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={cn(
+                  "flex items-center gap-3 w-full rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
+                  collapsed && "justify-center"
+                )}>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground flex-shrink-0">
+                    <span className="text-xs font-semibold">
+                      {supabaseUser?.email?.charAt(0).toUpperCase() || "U"}
+                    </span>
+                  </div>
+                  {!collapsed && (
+                    <>
+                      <div className="flex-1 text-left min-w-0">
+                        <p className="text-sm font-medium truncate">{supabaseUser?.email || "Usuario"}</p>
+                        <p className="text-xs text-muted-foreground truncate">Settlements</p>
+                      </div>
+                      <ChevronDown className="h-5 w-5 flex-shrink-0" />
+                    </>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <ThemeSelector />
+                <DropdownMenuSeparator />
+                <LanguageSelector />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsChangePasswordModalOpen(true)}>
+                  <Lock className="mr-2 h-4 w-4" />
+                  {t.userMenu?.changePassword?.menuItem || "Cambiar Contraseña"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {t.nav.logout}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+        
+        {/* Change Password Modal */}
+        <ChangePasswordModal
+          open={isChangePasswordModalOpen}
+          onOpenChange={setIsChangePasswordModalOpen}
+        />
       </aside>
     </>
   );
 }
-
