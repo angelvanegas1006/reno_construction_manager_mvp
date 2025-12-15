@@ -485,6 +485,14 @@ export function convertSupabaseToChecklist(
     console.log(`[convertSupabaseToChecklist] Element ${index + 1}/${allElementDetails.length}:`, element);
   });
 
+  // Log todas las zonas
+  console.log('[convertSupabaseToChecklist] 📍 All zones:', zones.map(z => ({
+    id: z.id,
+    zone_type: z.zone_type,
+    zone_name: z.zone_name,
+    inspection_id: z.inspection_id,
+  })));
+
   // Agrupar elementos por zona
   const elementsByZone = new Map<string, InspectionElement[]>();
   elements.forEach(element => {
@@ -494,6 +502,20 @@ export function convertSupabaseToChecklist(
     elementsByZone.get(element.zone_id)!.push(element);
   });
 
+  // Log elementos agrupados por zona
+  console.log('[convertSupabaseToChecklist] 🔗 Elements grouped by zone:', 
+    Array.from(elementsByZone.entries()).map(([zoneId, zoneElements]) => ({
+      zone_id: zoneId,
+      elements_count: zoneElements.length,
+      elements: zoneElements.map(e => ({
+        id: e.id,
+        element_name: e.element_name,
+        has_image_urls: !!e.image_urls,
+        image_urls_count: e.image_urls?.length || 0,
+      })),
+    }))
+  );
+
   // Agrupar zonas por tipo para manejar dinámicas (habitaciones, banos)
   const zonesByType = new Map<string, InspectionZone[]>();
   zones.forEach(zone => {
@@ -502,6 +524,19 @@ export function convertSupabaseToChecklist(
     }
     zonesByType.get(zone.zone_type)!.push(zone);
   });
+
+  // Log zonas agrupadas por tipo
+  console.log('[convertSupabaseToChecklist] 📂 Zones grouped by type:', 
+    Array.from(zonesByType.entries()).map(([zoneType, zonesOfType]) => ({
+      zone_type: zoneType,
+      zones_count: zonesOfType.length,
+      zones: zonesOfType.map(z => ({
+        id: z.id,
+        zone_name: z.zone_name,
+        elements_count: elementsByZone.get(z.id)?.length || 0,
+      })),
+    }))
+  );
 
   // Procesar cada tipo de zona
   zonesByType.forEach((zonesOfType, zoneType) => {
