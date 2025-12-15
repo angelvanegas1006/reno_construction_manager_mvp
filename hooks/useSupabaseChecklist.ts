@@ -569,7 +569,142 @@ export function useSupabaseChecklist({
               }
             });
           }
+          // Recopilar fotos de carpentryItems
+          if (item.carpentryItems) {
+            item.carpentryItems.forEach(carpentryItem => {
+              if (carpentryItem.photos) {
+                allFiles.push(...carpentryItem.photos);
+              }
+              // Fotos en units de carpentryItems
+              if (carpentryItem.units) {
+                carpentryItem.units.forEach(unit => {
+                  if (unit.photos) {
+                    allFiles.push(...unit.photos);
+                  }
+                });
+              }
+            });
+          }
+          // Recopilar fotos de climatizationItems
+          if (item.climatizationItems) {
+            item.climatizationItems.forEach(climatizationItem => {
+              if (climatizationItem.photos) {
+                allFiles.push(...climatizationItem.photos);
+              }
+              // Fotos en units de climatizationItems
+              if (climatizationItem.units) {
+                climatizationItem.units.forEach(unit => {
+                  if (unit.photos) {
+                    allFiles.push(...unit.photos);
+                  }
+                });
+              }
+            });
+          }
         });
+      }
+      
+      // Recopilar fotos de carpentryItems a nivel de sección
+      if (section.carpentryItems) {
+        section.carpentryItems.forEach(carpentryItem => {
+          if (carpentryItem.photos) {
+            allFiles.push(...carpentryItem.photos);
+          }
+          // Fotos en units de carpentryItems
+          if (carpentryItem.units) {
+            carpentryItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de climatizationItems a nivel de sección
+      if (section.climatizationItems) {
+        section.climatizationItems.forEach(climatizationItem => {
+          if (climatizationItem.photos) {
+            allFiles.push(...climatizationItem.photos);
+          }
+          // Fotos en units de climatizationItems
+          if (climatizationItem.units) {
+            climatizationItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de storageItems
+      if (section.storageItems) {
+        section.storageItems.forEach(storageItem => {
+          if (storageItem.photos) {
+            allFiles.push(...storageItem.photos);
+          }
+          if (storageItem.units) {
+            storageItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de appliancesItems
+      if (section.appliancesItems) {
+        section.appliancesItems.forEach(applianceItem => {
+          if (applianceItem.photos) {
+            allFiles.push(...applianceItem.photos);
+          }
+          if (applianceItem.units) {
+            applianceItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de securityItems
+      if (section.securityItems) {
+        section.securityItems.forEach(securityItem => {
+          if (securityItem.photos) {
+            allFiles.push(...securityItem.photos);
+          }
+          if (securityItem.units) {
+            securityItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de systemsItems
+      if (section.systemsItems) {
+        section.systemsItems.forEach(systemItem => {
+          if (systemItem.photos) {
+            allFiles.push(...systemItem.photos);
+          }
+          if (systemItem.units) {
+            systemItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de mobiliario
+      if (section.mobiliario?.question?.photos) {
+        allFiles.push(...section.mobiliario.question.photos);
       }
 
       // Subir archivos y actualizar URLs
