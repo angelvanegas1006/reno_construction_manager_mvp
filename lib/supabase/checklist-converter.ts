@@ -519,6 +519,19 @@ export function convertSupabaseToChecklist(
       elementsByZone.set(element.zone_id, []);
     }
     elementsByZone.get(element.zone_id)!.push(element);
+    
+    // Log detallado para elementos con fotos
+    if (element.element_name.startsWith('fotos-')) {
+      const zone = zones.find(z => z.id === element.zone_id);
+      console.log(`[convertSupabaseToChecklist] 📸 Photo element found:`, {
+        element_name: element.element_name,
+        element_id: element.id,
+        element_zone_id: element.zone_id,
+        zone_found: zone ? { id: zone.id, zone_type: zone.zone_type, zone_name: zone.zone_name } : 'NOT FOUND',
+        image_urls_count: element.image_urls?.length || 0,
+        image_urls: element.image_urls,
+      });
+    }
   });
 
   // Log elementos agrupados por zona

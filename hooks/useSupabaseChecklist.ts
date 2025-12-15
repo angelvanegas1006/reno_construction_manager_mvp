@@ -521,20 +521,27 @@ export function useSupabaseChecklist({
         return;
       }
       // Encontrar zona correspondiente
-      const zone = zones.find(z => {
-        const zoneType = sectionId === "habitaciones" ? "dormitorio" :
-                        sectionId === "banos" ? "bano" :
-                        sectionId === "entorno-zonas-comunes" ? "entorno" :
-                        sectionId === "estado-general" ? "distribucion" :
-                        sectionId === "entrada-pasillos" ? "entrada" :
-                        sectionId === "salon" ? "salon" :
-                        sectionId === "cocina" ? "cocina" :
-                        sectionId === "exteriores" ? "exterior" : null;
-        return z.zone_type === zoneType;
+      const expectedZoneType = sectionId === "habitaciones" ? "dormitorio" :
+                              sectionId === "banos" ? "bano" :
+                              sectionId === "entorno-zonas-comunes" ? "entorno" :
+                              sectionId === "estado-general" ? "distribucion" :
+                              sectionId === "entrada-pasillos" ? "entrada" :
+                              sectionId === "salon" ? "salon" :
+                              sectionId === "cocina" ? "cocina" :
+                              sectionId === "exteriores" ? "exterior" : null;
+      
+      const zone = zones.find(z => z.zone_type === expectedZoneType);
+
+      console.log(`[useSupabaseChecklist] 🔍 Finding zone for section "${sectionId}":`, {
+        sectionId,
+        expectedZoneType,
+        availableZones: zones.map(z => ({ id: z.id, zone_type: z.zone_type, zone_name: z.zone_name })),
+        foundZone: zone ? { id: zone.id, zone_type: zone.zone_type, zone_name: zone.zone_name } : null,
       });
 
       if (!zone) {
-        console.warn(`No se encontró zona para sección ${sectionId}`);
+        console.error(`[useSupabaseChecklist] ❌ No se encontró zona para sección ${sectionId} con zone_type ${expectedZoneType}`);
+        console.error(`[useSupabaseChecklist] Available zones:`, zones.map(z => ({ id: z.id, zone_type: z.zone_type, zone_name: z.zone_name })));
         return;
       }
 
