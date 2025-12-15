@@ -691,23 +691,28 @@ export function convertSupabaseToChecklist(
         zoneIdsOfTypeCount: zoneIdsOfType.length,
         allZoneIds: zones.map(z => ({ id: z.id, zone_type: z.zone_type })),
         elementsByZoneKeys: Array.from(elementsByZone.keys()),
+        elementsByZoneDetails: Array.from(elementsByZone.entries()).map(([zoneId, zoneElements]) => ({
+          zoneId,
+          zoneFound: zones.find(z => z.id === zoneId) ? 'YES' : 'NO',
+          zoneType: zones.find(z => z.id === zoneId)?.zone_type,
+          elementsCount: zoneElements.length,
+          elementNames: zoneElements.map(e => e.element_name),
+        })),
       });
       
       // Buscar elementos que pertenecen a zonas del tipo correcto
+      // Primero, obtener todos los elementos de zonas que tienen el zone_type correcto
       const allZoneElements = Array.from(elementsByZone.entries())
         .filter(([zoneId, _]) => {
-          // Si la zona está en zoneIdsOfType, incluirla
-          if (zoneIdsOfType.includes(zoneId)) {
-            return true;
-          }
-          // Si la zona no está en el array pero tiene elementos, verificar si debería pertenecer a este tipo
           const zone = zones.find(z => z.id === zoneId);
-          if (zone && zone.zone_type === zoneType) {
-            return true;
-          }
-          // Si no encontramos la zona pero tenemos elementos con este zone_id, incluirlos de todos modos
-          // Esto puede pasar si las zonas se cargaron en diferentes momentos
-          return false;
+          const matches = zone && zone.zone_type === zoneType;
+          console.log(`[convertSupabaseToChecklist] 🔍 Checking zone ${zoneId}:`, {
+            zoneFound: !!zone,
+            zoneType: zone?.zone_type,
+            expectedZoneType: zoneType,
+            matches,
+          });
+          return matches;
         })
         .flatMap(([_, elements]) => elements);
       
@@ -715,7 +720,17 @@ export function convertSupabaseToChecklist(
       // Esto es necesario porque los elementos pueden tener zone_id que no está en zonesOfType
       const directElements = elements.filter(element => {
         const zone = zones.find(z => z.id === element.zone_id);
-        return zone && zone.zone_type === zoneType;
+        const matches = zone && zone.zone_type === zoneType;
+        if (element.element_name.startsWith('fotos-') || element.element_name.startsWith('videos-')) {
+          console.log(`[convertSupabaseToChecklist] 🔍 Checking direct element ${element.element_name}:`, {
+            elementZoneId: element.zone_id,
+            zoneFound: !!zone,
+            zoneType: zone?.zone_type,
+            expectedZoneType: zoneType,
+            matches,
+          });
+        }
+        return matches;
       });
       
       // Combinar ambos conjuntos de elementos, evitando duplicados
