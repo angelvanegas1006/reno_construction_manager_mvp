@@ -523,7 +523,14 @@ export function convertSupabaseToChecklist(
           if (element.element_name.startsWith('fotos-')) {
             const uploadZoneId = element.element_name.replace('fotos-', '');
             if (dynamicItem.uploadZone && dynamicItem.uploadZone.id === uploadZoneId) {
-              dynamicItem.uploadZone.photos = element.image_urls?.map(url => urlToFileUpload(url)) || [];
+              const photoUrls = element.image_urls || [];
+              console.log(`[convertSupabaseToChecklist] Loading photos for dynamic item ${dynamicItem.id}:`, {
+                dynamicItemId: dynamicItem.id,
+                elementName: element.element_name,
+                photoUrlsCount: photoUrls.length,
+                photoUrls: photoUrls,
+              });
+              dynamicItem.uploadZone.photos = photoUrls.map(url => urlToFileUpload(url)) || [];
             }
           } else if (element.element_name.startsWith('videos-')) {
             const uploadZoneId = element.element_name.replace('videos-', '');
@@ -589,7 +596,14 @@ export function convertSupabaseToChecklist(
             if (!section.uploadZones) section.uploadZones = [];
             section.uploadZones.push(uploadZone);
           }
-          uploadZone.photos = element.image_urls?.map(url => urlToFileUpload(url)) || [];
+          const photoUrls = element.image_urls || [];
+          console.log(`[convertSupabaseToChecklist] Loading photos for zone ${uploadZoneId}:`, {
+            zoneId: uploadZoneId,
+            elementName: element.element_name,
+            photoUrlsCount: photoUrls.length,
+            photoUrls: photoUrls,
+          });
+          uploadZone.photos = photoUrls.map(url => urlToFileUpload(url)) || [];
         } else if (element.element_name.startsWith('videos-')) {
           const uploadZoneId = element.element_name.replace('videos-', '');
           let uploadZone = section.uploadZones?.find(uz => uz.id === uploadZoneId);

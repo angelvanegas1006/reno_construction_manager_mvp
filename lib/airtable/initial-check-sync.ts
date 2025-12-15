@@ -204,7 +204,13 @@ export async function syncChecklistToAirtable(
       // Si es un Record ID (empieza con "rec"), validarlo primero
       if (property.airtable_property_id.startsWith('rec')) {
         console.log('[syncChecklistToAirtable] Validating Record ID:', property.airtable_property_id);
-        recordId = await findRecordByPropertyId(tableName, property.airtable_property_id);
+        const validatedRecordId = await findRecordByPropertyId(tableName, property.airtable_property_id);
+        // Solo usar el Record ID si es válido (no null)
+        if (validatedRecordId) {
+          recordId = validatedRecordId;
+        } else {
+          console.warn('[syncChecklistToAirtable] Record ID is invalid, skipping:', property.airtable_property_id);
+        }
       } else {
         // Si no es un Record ID, buscar por ese valor como Property ID
         console.log('[syncChecklistToAirtable] Searching by airtable_property_id:', property.airtable_property_id);

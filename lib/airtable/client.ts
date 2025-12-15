@@ -154,14 +154,20 @@ export async function findRecordByPropertyId(
         }
       } catch (fieldError: any) {
         // Si el campo no existe o hay un error de sintaxis (422), continuar con el siguiente
-        if (fieldError?.message?.includes('Unknown field') || 
+        const isFieldError = fieldError?.message?.includes('Unknown field') || 
             fieldError?.message?.includes('does not exist') ||
             fieldError?.status === 422 ||
-            fieldError?.statusCode === 422) {
+            fieldError?.statusCode === 422;
+        
+        if (isFieldError) {
+          console.debug(`[findRecordByPropertyId] Field "${fieldName}" not found or invalid (422), trying next...`);
           continue;
         }
         // Si es otro error, loguearlo pero continuar
-        console.debug(`Field ${fieldName} search failed:`, fieldError?.message);
+        console.debug(`[findRecordByPropertyId] Field ${fieldName} search failed:`, {
+          message: fieldError?.message,
+          status: fieldError?.status || fieldError?.statusCode,
+        });
       }
     }
     
