@@ -692,11 +692,16 @@ export function convertSupabaseToChecklist(
         // Upload zones
         if (element.element_name.startsWith('fotos-')) {
           const uploadZoneId = element.element_name.replace('fotos-', '');
-          let uploadZone = section.uploadZones?.find(uz => uz.id === uploadZoneId);
+          // Asegurar que section.uploadZones existe
+          if (!section.uploadZones) {
+            section.uploadZones = [];
+            console.log(`[convertSupabaseToChecklist] 🔧 Initialized uploadZones array for section "${sectionId}"`);
+          }
+          let uploadZone = section.uploadZones.find(uz => uz.id === uploadZoneId);
           if (!uploadZone) {
             uploadZone = { id: uploadZoneId, photos: [], videos: [] };
-            if (!section.uploadZones) section.uploadZones = [];
             section.uploadZones.push(uploadZone);
+            console.log(`[convertSupabaseToChecklist] ➕ Created new uploadZone "${uploadZoneId}" in section "${sectionId}"`);
           }
           const photoUrls = element.image_urls || [];
           console.log(`[convertSupabaseToChecklist] Loading photos for upload zone "${uploadZoneId}" in section "${sectionId}":`, {
@@ -708,9 +713,16 @@ export function convertSupabaseToChecklist(
             uploadZoneId: uploadZoneId,
             sectionId: sectionId,
             zoneFound: zones.find(z => z.id === element.zone_id) ? 'YES' : 'NO',
+            sectionUploadZonesCount: section.uploadZones.length,
+            uploadZoneExists: !!uploadZone,
           });
           uploadZone.photos = photoUrls.length > 0 ? photoUrls.map(url => urlToFileUpload(url)) : [];
-          console.log(`[convertSupabaseToChecklist] ✅ Loaded ${uploadZone.photos.length} photos for zone ${uploadZoneId}`);
+          console.log(`[convertSupabaseToChecklist] ✅ Loaded ${uploadZone.photos.length} photos for zone ${uploadZoneId}`, {
+            uploadZoneId,
+            photosCount: uploadZone.photos.length,
+            sectionUploadZonesCount: section.uploadZones.length,
+            sectionUploadZones: section.uploadZones.map(z => ({ id: z.id, photosCount: z.photos.length })),
+          });
         } else if (element.element_name.startsWith('videos-')) {
           const uploadZoneId = element.element_name.replace('videos-', '');
           let uploadZone = section.uploadZones?.find(uz => uz.id === uploadZoneId);
