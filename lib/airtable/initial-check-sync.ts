@@ -189,17 +189,35 @@ export async function syncChecklistToAirtable(
       return false;
     }
 
-    const airtablePropertyId = property.airtable_property_id || property['Unique ID From Engagements'];
+    // Priorizar "Unique ID From Engagements" para buscar por "UNIQUEID (from Engagements)" en Airtable
+    // Solo usar airtable_property_id si es un Record ID válido
+    let recordId: string | null = null;
     
-    if (!airtablePropertyId) {
-      console.warn('Property has no Airtable ID, skipping sync:', propertyId);
-      return false;
+    // Primero intentar con "Unique ID From Engagements" (corresponde a "UNIQUEID (from Engagements)" en Airtable)
+    if (property['Unique ID From Engagements']) {
+      console.log('[syncChecklistToAirtable] Searching by Unique ID From Engagements:', property['Unique ID From Engagements']);
+      recordId = await findRecordByPropertyId(tableName, property['Unique ID From Engagements']);
     }
-
-    const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
-
+    
+    // Si no se encontró y hay airtable_property_id, validar si es un Record ID válido
+    if (!recordId && property.airtable_property_id) {
+      // Si es un Record ID (empieza con "rec"), validarlo primero
+      if (property.airtable_property_id.startsWith('rec')) {
+        console.log('[syncChecklistToAirtable] Validating Record ID:', property.airtable_property_id);
+        recordId = await findRecordByPropertyId(tableName, property.airtable_property_id);
+      } else {
+        // Si no es un Record ID, buscar por ese valor como Property ID
+        console.log('[syncChecklistToAirtable] Searching by airtable_property_id:', property.airtable_property_id);
+        recordId = await findRecordByPropertyId(tableName, property.airtable_property_id);
+      }
+    }
+    
     if (!recordId) {
-      console.warn('Airtable record not found, skipping sync:', airtablePropertyId);
+      console.warn('Airtable record not found, skipping sync:', {
+        propertyId,
+        uniqueIdFromEngagements: property['Unique ID From Engagements'],
+        airtablePropertyId: property.airtable_property_id,
+      });
       return false;
     }
 
