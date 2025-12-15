@@ -477,11 +477,17 @@ export function useSupabaseChecklist({
     }
 
     savingRef.current = true;
-    if (!inspection?.id || !checklist || !currentSectionRef.current) return;
+    
+    try {
+      if (!inspection?.id || !checklist || !currentSectionRef.current) {
+        return;
+      }
 
-    const sectionId = currentSectionRef.current;
-    const section = checklist.sections[sectionId];
-    if (!section) return;
+      const sectionId = currentSectionRef.current;
+      const section = checklist.sections[sectionId];
+      if (!section) {
+        return;
+      }
 
     try {
       // Encontrar zona correspondiente
@@ -647,7 +653,7 @@ export function useSupabaseChecklist({
     } finally {
       savingRef.current = false;
     }
-  }, [inspection, checklist, zones, upsertElement, propertyId]);
+    }, [inspection, checklist, zones, upsertElement, propertyId]);
 
   // Actualizar sección (solo actualiza estado local, NO guarda automáticamente)
   const updateSection = useCallback(

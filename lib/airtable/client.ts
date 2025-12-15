@@ -119,12 +119,14 @@ export async function findRecordByPropertyId(
         console.debug('[findRecordByPropertyId] ✅ Record ID validated:', propertyId);
         return propertyId;
       } catch (validationError: any) {
-        // Si el Record ID no existe, continuar con la búsqueda normal
-        console.warn('[findRecordByPropertyId] ⚠️ Record ID does not exist, searching by Property ID:', {
+        // Si el Record ID no existe, NO retornarlo - buscar por Property ID en su lugar
+        const errorMessage = validationError?.message || String(validationError);
+        console.warn('[findRecordByPropertyId] ⚠️ Record ID does not exist, will search by Property ID instead:', {
           recordId: propertyId,
-          error: validationError?.message,
+          error: errorMessage,
         });
-        // Continuar con la búsqueda normal abajo
+        // NO retornar aquí - continuar con la búsqueda normal abajo
+        // Si el Record ID no existe, debemos buscar el registro correcto por Property ID
       }
     }
 
