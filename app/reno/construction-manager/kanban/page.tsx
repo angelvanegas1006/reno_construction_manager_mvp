@@ -59,7 +59,7 @@ export default function RenoConstructionManagerKanbanPage() {
         }));
       }
     }
-  }, [searchParams]);
+  }, [unwrappedSearchParams]);
   
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const { t } = useI18n();

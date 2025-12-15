@@ -67,7 +67,7 @@ export default function RenoConstructionManagerHomePage() {
     
     if (isEqual) return; // No actualizar si ya está sincronizado
     
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(unwrappedSearchParams.toString());
     
     if (selectedForemanEmails.length > 0) {
       params.set('foreman', selectedForemanEmails.join(','));
