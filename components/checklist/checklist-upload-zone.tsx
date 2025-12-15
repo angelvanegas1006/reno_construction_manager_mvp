@@ -51,55 +51,79 @@ export function ChecklistUploadZone({
   // Track processed file IDs to avoid duplicates
   const processedPhotoIdsRef = React.useRef<Set<string>>(new Set());
   const processedVideoIdsRef = React.useRef<Set<string>>(new Set());
-
-  // Initialize refs with existing file IDs
+  
+  // Use ref to always get latest uploadZone value
+  const uploadZoneRef = React.useRef(uploadZone);
   React.useEffect(() => {
+    uploadZoneRef.current = uploadZone;
+  }, [uploadZone]);
+
+  // Initialize refs with existing file IDs and sync when uploadZone changes
+  React.useEffect(() => {
+    processedPhotoIdsRef.current.clear();
+    processedVideoIdsRef.current.clear();
     uploadZone.photos.forEach(p => processedPhotoIdsRef.current.add(p.id));
     uploadZone.videos.forEach(v => processedVideoIdsRef.current.add(v.id));
-  }, []);
+  }, [uploadZone.photos.length, uploadZone.videos.length]);
 
   const photosHook = useFileUpload({
     maxFileSize: maxSizeMB,
     acceptedTypes: PHOTO_TYPES,
-    onFilesChange: (allFiles) => {
+    onFilesChange: useCallback((allFiles) => {
       // Filter to only include photos
       const photos = allFiles.filter(f => 
-        f.type.startsWith("image/")
+        f.type && f.type.startsWith("image/")
       );
-      // Only add photos that haven't been processed yet
+      
+      // Get current photo IDs from uploadZone (use ref to get latest value)
+      const currentUploadZone = uploadZoneRef.current;
+      const currentPhotoIds = new Set(currentUploadZone.photos.map(p => p.id));
+      
+      // Find new photos that aren't already in uploadZone
       const newPhotos = photos.filter(p => {
-        if (processedPhotoIdsRef.current.has(p.id)) {
+        // If already processed or already in uploadZone, skip
+        if (processedPhotoIdsRef.current.has(p.id) || currentPhotoIds.has(p.id)) {
           return false;
         }
         processedPhotoIdsRef.current.add(p.id);
         return true;
       });
+      
+      // Only update if there are new photos
       if (newPhotos.length > 0) {
-        handlePhotosChange([...uploadZone.photos, ...newPhotos]);
+        handlePhotosChange([...currentUploadZone.photos, ...newPhotos]);
       }
-    },
+    }, [handlePhotosChange]),
   });
 
   const videosHook = useFileUpload({
     maxFileSize: maxSizeMB * 10, // Videos can be larger
     acceptedTypes: VIDEO_TYPES,
-    onFilesChange: (allFiles) => {
+    onFilesChange: useCallback((allFiles) => {
       // Filter to only include videos
       const videos = allFiles.filter(f => 
-        f.type.startsWith("video/")
+        f.type && f.type.startsWith("video/")
       );
-      // Only add videos that haven't been processed yet
+      
+      // Get current video IDs from uploadZone (use ref to get latest value)
+      const currentUploadZone = uploadZoneRef.current;
+      const currentVideoIds = new Set(currentUploadZone.videos.map(v => v.id));
+      
+      // Find new videos that aren't already in uploadZone
       const newVideos = videos.filter(v => {
-        if (processedVideoIdsRef.current.has(v.id)) {
+        // If already processed or already in uploadZone, skip
+        if (processedVideoIdsRef.current.has(v.id) || currentVideoIds.has(v.id)) {
           return false;
         }
         processedVideoIdsRef.current.add(v.id);
         return true;
       });
+      
+      // Only update if there are new videos
       if (newVideos.length > 0) {
-        handleVideosChange([...uploadZone.videos, ...newVideos]);
+        handleVideosChange([...currentUploadZone.videos, ...newVideos]);
       }
-    },
+    }, [handleVideosChange]),
   });
 
   const [localError, setLocalError] = React.useState<string | null>(null);
