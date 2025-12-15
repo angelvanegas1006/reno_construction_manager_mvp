@@ -90,11 +90,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         };
       })
       .filter(prop => {
-        // Si necesita update (fecha pasada o hoy) O necesita update esta semana
-        if (needsUpdate(prop.proximaActualizacion, prop.renoType)) {
-          return true;
-        }
-        // Solo mostrar propiedades que necesitan update esta semana
+        // Solo mostrar propiedades que necesitan update esta semana (lunes a domingo)
         return needsUpdateThisWeek(prop.proximaActualizacion);
       })
       .sort((a, b) => {
