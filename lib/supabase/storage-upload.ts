@@ -102,14 +102,34 @@ export async function uploadFilesToStorage(
       const mimeMatch = file.data.match(/data:([^;]+);/);
       const mimeType = mimeMatch ? mimeMatch[1] : file.type || 'image/jpeg';
       
-      const fileObj = base64ToFile(file.data, file.name, mimeType);
-      return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
+      try {
+        const fileObj = base64ToFile(file.data, file.name, mimeType);
+        return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
+      } catch (error: any) {
+        // Si el bucket no existe, mantener el base64 en lugar de fallar
+        if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
+          console.warn(`[storage-upload] ⚠️ Bucket '${STORAGE_BUCKET}' no encontrado. Manteniendo archivo como base64. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
+          // Retornar el base64 como "URL" temporal para que el flujo continúe
+          return file.data;
+        }
+        throw error;
+      }
     }
 
     // Si es base64 sin prefijo data:, intentar con el tipo del archivo
     if (file.data && !file.data.startsWith('http') && !file.data.startsWith('data:')) {
-      const fileObj = base64ToFile(file.data, file.name, file.type || 'image/jpeg');
-      return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
+      try {
+        const fileObj = base64ToFile(file.data, file.name, file.type || 'image/jpeg');
+        return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
+      } catch (error: any) {
+        // Si el bucket no existe, mantener el base64 en lugar de fallar
+        if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
+          console.warn(`[storage-upload] ⚠️ Bucket '${STORAGE_BUCKET}' no encontrado. Manteniendo archivo como base64. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
+          // Retornar el base64 como "URL" temporal para que el flujo continúe
+          return file.data;
+        }
+        throw error;
+      }
     }
 
     // Si no tiene data, retornar null (archivo no válido)
