@@ -6,7 +6,6 @@ import { NavbarL3 } from "@/components/layout/navbar-l3";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
-import { PropertyInfoSection } from "@/components/reno/property-info-section";
 import { ArrowLeft, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileSidebarMenu } from "@/components/property/mobile-sidebar-menu";
