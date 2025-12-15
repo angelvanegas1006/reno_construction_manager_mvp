@@ -535,6 +535,8 @@ export function convertSupabaseToChecklist(
         inspectionId: zone?.inspection_id,
       };
     }),
+    allZonesWithIds: zones.map(z => ({ id: z.id, zone_type: z.zone_type, inspection_id: z.inspection_id })),
+    missingZones: uniquePhotoZoneIds.filter(zoneId => !zones.find(z => z.id === zoneId)),
   });
 
   // Agrupar elementos por zona
