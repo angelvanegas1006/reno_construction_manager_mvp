@@ -132,10 +132,10 @@ export async function findRecordByPropertyId(
 
     // Intentar buscar por diferentes campos posibles
     // Priorizar "UNIQUEID (from Engagements)" como especificado
-    // Nota: Airtable puede tener problemas con espacios y paréntesis en filterByFormula
-    // Intentamos diferentes variaciones del nombre del campo
+    // Nota: "UNIQUEID (from Engagements)" es un campo Lookup que busca en "Engagements" el campo "UNIQUEID"
+    // Los campos Lookup en Airtable pueden requerir sintaxis especial
     const possibleFields = [
-      'UNIQUEID (from Engagements)', // Nombre exacto según usuario
+      'UNIQUEID (from Engagements)', // Nombre exacto según usuario (campo Lookup)
       'Unique ID (From Engagements)',
       'Unique ID From Engagements',
       'Property ID',
@@ -150,10 +150,13 @@ export async function findRecordByPropertyId(
         const escapedValue = propertyId.replace(/"/g, '\\"');
         
         // Intentar con diferentes formatos de fórmula
+        // Para campos Lookup, Airtable puede devolver arrays o strings
         const formulaVariations = [
           `{${fieldName}} = "${escapedValue}"`, // Formato estándar
           `{${fieldName}}="${escapedValue}"`, // Sin espacios
           `FIND("${escapedValue}", {${fieldName}})`, // Usar FIND para campos que pueden ser arrays
+          `SEARCH("${escapedValue}", {${fieldName}})`, // Usar SEARCH como alternativa
+          `{${fieldName}} = "${escapedValue}" & ""`, // Forzar conversión a string
         ];
         
         for (const formula of formulaVariations) {
