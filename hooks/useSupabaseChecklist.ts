@@ -337,25 +337,33 @@ export function useSupabaseChecklist({
 
         // Cargar checklist desde Supabase
         if (zones.length > 0) {
+          // Log detallado de todos los elementos
+          const allElementsDetails = elements.map(e => ({
+            id: e.id,
+            element_name: e.element_name,
+            zone_id: e.zone_id,
+            has_image_urls: !!e.image_urls,
+            image_urls_count: e.image_urls?.length || 0,
+            image_urls: e.image_urls, // Incluir las URLs para debugging
+          }));
+          
+          const photoElementsDetails = elements.filter(e => e.element_name?.startsWith('fotos-')).map(e => ({
+            id: e.id,
+            element_name: e.element_name,
+            zone_id: e.zone_id,
+            image_urls_count: e.image_urls?.length || 0,
+            image_urls: e.image_urls,
+          }));
+          
           console.log('[useSupabaseChecklist] 📥 Loading checklist from Supabase...', {
             zonesCount: zones.length,
             elementsCount: elements.length,
             bedrooms: supabaseProperty.bedrooms,
             bathrooms: supabaseProperty.bathrooms,
-            elementsWithPhotos: elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).map(e => ({
-              id: e.id,
-              element_name: e.element_name,
-              zone_id: e.zone_id,
-              image_urls_count: e.image_urls?.length || 0,
-            })),
-            allElements: elements.map(e => ({
-              id: e.id,
-              element_name: e.element_name,
-              zone_id: e.zone_id,
-              has_image_urls: !!e.image_urls,
-              image_urls_count: e.image_urls?.length || 0,
-              image_urls: e.image_urls, // Incluir las URLs para debugging
-            })),
+            photoElementsCount: photoElementsDetails.length,
+            photoElements: photoElementsDetails,
+            allElementsCount: allElementsDetails.length,
+            allElements: allElementsDetails,
           });
           
           const supabaseData = convertSupabaseToChecklist(
