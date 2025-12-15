@@ -19,7 +19,7 @@ import {
 import { uploadFilesToStorage } from "@/lib/supabase/storage-upload";
 import type { FileUpload } from "@/lib/checklist-storage";
 import { toast } from "sonner";
-import { syncChecklistToAirtable, finalizeInitialCheckInAirtable } from "@/lib/airtable/initial-check-sync";
+import { finalizeInitialCheckInAirtable } from "@/lib/airtable/initial-check-sync";
 
 interface UseSupabaseChecklistProps {
   propertyId: string;
@@ -672,35 +672,8 @@ export function useSupabaseChecklist({
         });
       }
 
-      // Sync to Airtable if in initial-check phase
-      try {
-        // Calculate progress (simplified - count sections with data)
-        const totalSections = Object.keys(checklist.sections || {}).length;
-        // Consider a section "completed" if it has been visited (has data)
-        let completedSections = 0;
-        for (const sid in checklist.sections) {
-          const section = checklist.sections[sid];
-          if (!section) continue;
-          // Consider completed if it has questions with notes, uploadZones with files, or dynamicItems
-          const hasQuestions = section.questions && section.questions.some((q: any) => q.notes);
-          const hasUploads = section.uploadZones && section.uploadZones.some((u: any) => 
-            (u.photos && u.photos.length > 0) || (u.videos && u.videos.length > 0)
-          );
-          const hasDynamicItems = section.dynamicItems && section.dynamicItems.length > 0;
-          if (hasQuestions || hasUploads || hasDynamicItems) {
-            completedSections++;
-          }
-        }
-        const progress = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0;
-
-        await syncChecklistToAirtable(propertyId, {
-          progress,
-          completed: false, // Only complete when finalizing
-        });
-      } catch (airtableError) {
-        console.error('[useSupabaseChecklist] Error syncing to Airtable:', airtableError);
-        // Don't fail the save if Airtable sync fails
-      }
+      // NOTA: La sincronización con Airtable ahora solo ocurre al finalizar el checklist
+      // Esto evita múltiples llamadas innecesarias y errores si el Record ID no existe
 
       toast.success("Sección guardada correctamente");
     } catch (error) {
@@ -786,11 +759,29 @@ export function useSupabaseChecklist({
 
   // Finalizar checklist
   const finalizeChecklist = useCallback(async (data?: { estimatedVisitDate?: string; autoVisitDate?: string; nextRenoSteps?: string }) => {
-    if (!propertyId) return false;
+    if (!propertyId || !checklist) return false;
 
     try {
       // Guardar sección actual antes de finalizar
       await saveCurrentSection();
+
+      // Calcular progreso final del checklist
+      const totalSections = Object.keys(checklist.sections || {}).length;
+      let completedSections = 0;
+      for (const sid in checklist.sections) {
+        const section = checklist.sections[sid];
+        if (!section) continue;
+        // Consider completed if it has questions with notes, uploadZones with files, or dynamicItems
+        const hasQuestions = section.questions && section.questions.some((q: any) => q.notes);
+        const hasUploads = section.uploadZones && section.uploadZones.some((u: any) => 
+          (u.photos && u.photos.length > 0) || (u.videos && u.videos.length > 0)
+        );
+        const hasDynamicItems = section.dynamicItems && section.dynamicItems.length > 0;
+        if (hasQuestions || hasUploads || hasDynamicItems) {
+          completedSections++;
+        }
+      }
+      const progress = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 100;
 
       // Obtener datos de la propiedad para completar los campos
       const supabase = createClient();
@@ -815,6 +806,7 @@ export function useSupabaseChecklist({
         estimatedVisitDate,
         autoVisitDate,
         nextRenoSteps,
+        progress, // Incluir progreso al finalizar
       });
 
       if (success) {
@@ -829,7 +821,7 @@ export function useSupabaseChecklist({
       toast.error("Error al finalizar checklist");
       return false;
     }
-  }, [propertyId, checklistType, saveCurrentSection]);
+  }, [propertyId, checklistType, checklist, saveCurrentSection]);
 
   // Si no tenemos checklist pero estamos inicializando, mantener isLoading en true
   const finalIsLoading = isLoading || inspectionLoading || (!checklist && (initializationInProgressRef.current || inspectionCreationInProgressRef.current));

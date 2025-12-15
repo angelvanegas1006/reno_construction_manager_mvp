@@ -282,6 +282,7 @@ export async function finalizeInitialCheckInAirtable(
     estimatedVisitDate?: string;
     autoVisitDate?: string;
     nextRenoSteps?: string;
+    progress?: number; // Progreso del checklist (0-100)
   }
 ): Promise<boolean> {
   const supabase = createClient();
@@ -318,6 +319,14 @@ export async function finalizeInitialCheckInAirtable(
       'Set Up Status': 'Pending to budget (from Renovator)',
       'Initial Check Complete': true,
     };
+
+    // Incluir progreso del checklist (100% al finalizar)
+    if (data.progress !== undefined) {
+      updates['Checklist Progress'] = data.progress;
+    } else {
+      // Si no se proporciona progreso, asumir 100% al finalizar
+      updates['Checklist Progress'] = 100;
+    }
 
     // Field IDs específicos de Airtable
     if (data.estimatedVisitDate) {
