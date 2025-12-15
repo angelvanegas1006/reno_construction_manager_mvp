@@ -726,11 +726,6 @@ export default function RenoChecklistPage() {
   // Get section title and subtitle for HeaderL3
   const getSectionInfo = () => {
     switch (activeSection) {
-      case "property-info":
-        return {
-          title: t.sidebar.propertyInformation,
-          subtitle: "",
-        };
       case "checklist-entorno-zonas-comunes":
         return {
           title: t.checklist.sections.entornoZonasComunes.title,
