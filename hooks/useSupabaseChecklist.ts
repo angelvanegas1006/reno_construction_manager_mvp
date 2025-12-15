@@ -608,19 +608,41 @@ export function useSupabaseChecklist({
       if (updatedSection.uploadZones) {
         updatedSection.uploadZones = updatedSection.uploadZones.map(uploadZone => ({
           ...uploadZone,
-          photos: uploadZone.photos.map(photo => ({
-            ...photo,
-            data: fileUrlMap.get(photo.id) || photo.data,
-          })),
-          videos: uploadZone.videos.map(video => ({
-            ...video,
-            data: fileUrlMap.get(video.id) || video.data,
-          })),
+          photos: uploadZone.photos.map(photo => {
+            const updatedUrl = fileUrlMap.get(photo.id) || photo.data;
+            console.log(`[useSupabaseChecklist] 📸 Updating photo URL for ${uploadZone.id}:`, {
+              photoId: photo.id,
+              oldData: photo.data?.substring(0, 50),
+              newUrl: updatedUrl?.substring(0, 50),
+              hasHttp: updatedUrl?.startsWith('http'),
+            });
+            return {
+              ...photo,
+              data: updatedUrl,
+            };
+          }),
+          videos: uploadZone.videos.map(video => {
+            const updatedUrl = fileUrlMap.get(video.id) || video.data;
+            return {
+              ...video,
+              data: updatedUrl,
+            };
+          }),
         }));
       }
 
       // Convertir sección a elementos (con URLs actualizadas)
       const elementsToSave = convertSectionToElements(sectionId, updatedSection, zone.id);
+      
+      // Log elementos que se van a guardar
+      const photoElements = elementsToSave.filter(e => e.element_name?.startsWith('fotos-'));
+      console.log(`[useSupabaseChecklist] 💾 Saving ${photoElements.length} photo elements:`, 
+        photoElements.map(e => ({
+          element_name: e.element_name,
+          image_urls_count: e.image_urls?.length || 0,
+          image_urls: e.image_urls,
+        }))
+      );
 
       // Guardar elementos
       for (const elementData of elementsToSave) {
