@@ -401,10 +401,17 @@ export function useSupabaseChecklist({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId, inspection?.id, inspectionLoading, checklistType, supabaseProperty?.bedrooms, supabaseProperty?.bathrooms]);
   
+  // Memoizar valores estables para el array de dependencias (siempre el mismo tamaño)
+  const bedroomsCount = supabaseProperty?.bedrooms ?? null;
+  const bathroomsCount = supabaseProperty?.bathrooms ?? null;
+  const inspectionId = inspection?.id ?? null;
+  const hasSupabaseProperty = !!supabaseProperty;
+  const hasInspection = !!inspection;
+  
   // Efecto separado para manejar cambios en zones cuando están completamente cargadas
   useEffect(() => {
     // Solo procesar si no hay inicialización en progreso, tenemos datos básicos, y no estamos cargando
-    if (initializationInProgressRef.current || !propertyId || !supabaseProperty || !inspection || inspectionLoading) {
+    if (initializationInProgressRef.current || !propertyId || !hasSupabaseProperty || !hasInspection || inspectionLoading) {
       return;
     }
 
@@ -414,8 +421,7 @@ export function useSupabaseChecklist({
     }
 
     // Si ya tenemos checklist con el mismo número de zones, no recargar
-    const inspectionId = inspection?.id;
-    const key = `${propertyId}-${checklistType}-${inspectionId}`;
+    const key = `${propertyId}-${checklistType}-${inspectionId || ''}`;
     if (initializationRef.current === key && checklist && zones.length === lastZonesCountRef.current) {
       return;
     }
@@ -440,14 +446,14 @@ export function useSupabaseChecklist({
       const supabaseData = convertSupabaseToChecklist(
         zones,
         elements,
-        supabaseProperty.bedrooms || null,
-        supabaseProperty.bathrooms || null
+        bedroomsCount,
+        bathroomsCount
       );
       
       const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
       setChecklist(loadedChecklist);
-      if (inspection?.id) {
-        const stableKey = `${propertyId}-${checklistType}-${inspection.id}`;
+      if (inspectionId) {
+        const stableKey = `${propertyId}-${checklistType}-${inspectionId}`;
         initializationRef.current = stableKey;
       }
       
@@ -456,7 +462,8 @@ export function useSupabaseChecklist({
         initializationInProgressRef.current = false;
       }, 100);
     }
-  }, [zones.length, propertyId, checklistType, supabaseProperty?.bedrooms, supabaseProperty?.bathrooms, inspection?.id, inspectionLoading]); // Removed elements.length and checklist from dependencies to prevent loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zones.length, propertyId, checklistType, bedroomsCount, bathroomsCount, inspectionId, inspectionLoading, hasSupabaseProperty, hasInspection]); // Fixed: Use stable boolean values to ensure consistent array size
 
   // Guardar sección actual en Supabase
   const saveCurrentSection = useCallback(async () => {
