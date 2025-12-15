@@ -131,11 +131,12 @@ export async function findRecordByPropertyId(
     }
 
     // Intentar buscar por diferentes campos posibles
+    // Priorizar "UNIQUEID (from Engagements)" como especificado
     const possibleFields = [
-      'Property ID',
+      'UNIQUEID (from Engagements)',
       'Unique ID (From Engagements)',
       'Unique ID From Engagements',
-      'UNIQUEID (from Engagements)',
+      'Property ID',
       'Unique ID'
     ];
 
