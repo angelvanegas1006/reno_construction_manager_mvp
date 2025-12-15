@@ -73,11 +73,24 @@ async function createSantiagoUser() {
     user_metadata: {
       name: 'Santiago Figueiredo',
     },
-    app_metadata: {
-      provider: 'email',
-      providers: ['email'],
-    },
   });
+
+  if (createError) {
+    console.error('❌ Error creando usuario:', createError);
+    console.error('   Detalles:', JSON.stringify(createError, null, 2));
+    process.exit(1);
+  }
+
+  if (!newUser.user) {
+    console.error('❌ No se pudo crear el usuario');
+    process.exit(1);
+  }
+
+  console.log(`✅ Usuario creado: ${newUser.user.id}`);
+  
+  // Esperar un momento para que Supabase procese la creación
+  console.log('⏳ Esperando a que Supabase procese la creación...');
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
   if (createError) {
     console.error('❌ Error creando usuario:', createError);
