@@ -43,20 +43,40 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
       : defaultQuestions;
 
     const handleUploadZoneUpdate = useCallback((zoneId: string, updates: ChecklistUploadZone) => {
-      const currentZones = section.uploadZones || uploadZones;
+      // Always use section.uploadZones if available, otherwise use defaults
+      const currentZones = (section.uploadZones && section.uploadZones.length > 0) 
+        ? section.uploadZones 
+        : uploadZones;
+      
       console.log('[EntornoZonasComunesSection] 🔄 handleUploadZoneUpdate called:', {
         zoneId,
         updatesPhotosCount: updates.photos.length,
         updatesVideosCount: updates.videos.length,
         currentZonesCount: currentZones.length,
-        currentZones: currentZones.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length }))
+        currentZones: currentZones.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+        sectionUploadZones: section.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+        defaultUploadZones: uploadZones.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length }))
       });
-      const updatedZones = currentZones.map(zone => 
-        zone.id === zoneId ? updates : zone
-      );
+      
+      // Find if zone exists, if not add it
+      const zoneIndex = currentZones.findIndex(zone => zone.id === zoneId);
+      let updatedZones: ChecklistUploadZone[];
+      
+      if (zoneIndex >= 0) {
+        // Update existing zone
+        updatedZones = currentZones.map(zone => 
+          zone.id === zoneId ? updates : zone
+        );
+      } else {
+        // Add new zone if it doesn't exist
+        updatedZones = [...currentZones, updates];
+      }
+      
       console.log('[EntornoZonasComunesSection] ✅ Updated zones:', {
-        updatedZones: updatedZones.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length }))
+        updatedZones: updatedZones.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+        updatedZonesLength: updatedZones.length
       });
+      
       onUpdate({ uploadZones: updatedZones });
     }, [section.uploadZones, uploadZones, onUpdate]);
 
