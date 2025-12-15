@@ -105,15 +105,27 @@ export async function findRecordByPropertyId(
   propertyId: string
 ): Promise<string | null> {
   try {
-    // Si el propertyId ya es un Record ID de Airtable (empieza con "rec"), retornarlo directamente
-    if (propertyId && propertyId.startsWith('rec')) {
-      console.debug('[findRecordByPropertyId] Property ID is already an Airtable Record ID:', propertyId);
-      return propertyId;
-    }
-
     const base = getBase();
     if (!base) {
       return null;
+    }
+
+    // Si el propertyId ya es un Record ID de Airtable (empieza con "rec"), validar que existe
+    if (propertyId && propertyId.startsWith('rec')) {
+      console.debug('[findRecordByPropertyId] Property ID is already an Airtable Record ID, validating:', propertyId);
+      try {
+        // Intentar obtener el registro para validar que existe
+        await base(tableName).find(propertyId);
+        console.debug('[findRecordByPropertyId] ✅ Record ID validated:', propertyId);
+        return propertyId;
+      } catch (validationError: any) {
+        // Si el Record ID no existe, continuar con la búsqueda normal
+        console.warn('[findRecordByPropertyId] ⚠️ Record ID does not exist, searching by Property ID:', {
+          recordId: propertyId,
+          error: validationError?.message,
+        });
+        // Continuar con la búsqueda normal abajo
+      }
     }
 
     // Intentar buscar por diferentes campos posibles

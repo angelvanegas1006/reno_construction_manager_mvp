@@ -466,7 +466,17 @@ export function useSupabaseChecklist({
   }, [zones.length, propertyId, checklistType, bedroomsCount, bathroomsCount, inspectionId, inspectionLoading, hasSupabaseProperty, hasInspection]); // Fixed: Use stable boolean values to ensure consistent array size
 
   // Guardar sección actual en Supabase
+  // Flag para prevenir múltiples ejecuciones simultáneas
+  const savingRef = useRef(false);
+
   const saveCurrentSection = useCallback(async () => {
+    // Prevenir múltiples ejecuciones simultáneas
+    if (savingRef.current) {
+      console.log('[useSupabaseChecklist] ⏸️ Save already in progress, skipping...');
+      return;
+    }
+
+    savingRef.current = true;
     if (!inspection?.id || !checklist || !currentSectionRef.current) return;
 
     const sectionId = currentSectionRef.current;
@@ -634,6 +644,8 @@ export function useSupabaseChecklist({
     } catch (error) {
       console.error("Error saving section:", error);
       toast.error("Error al guardar sección");
+    } finally {
+      savingRef.current = false;
     }
   }, [inspection, checklist, zones, upsertElement, propertyId]);
 
