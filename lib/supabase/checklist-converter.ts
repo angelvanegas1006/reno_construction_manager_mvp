@@ -517,6 +517,25 @@ export function convertSupabaseToChecklist(
     zone_name: z.zone_name,
     inspection_id: z.inspection_id,
   })));
+  
+  // Log zonas específicas que tienen elementos de fotos
+  const photoElementZoneIds = elements
+    .filter(e => e.element_name?.startsWith('fotos-'))
+    .map(e => e.zone_id);
+  const uniquePhotoZoneIds = [...new Set(photoElementZoneIds)];
+  console.log('[convertSupabaseToChecklist] 🔍 Photo element zone IDs:', {
+    photoElementZoneIds: uniquePhotoZoneIds,
+    zonesForPhotoElements: uniquePhotoZoneIds.map(zoneId => {
+      const zone = zones.find(z => z.id === zoneId);
+      return {
+        zoneId,
+        zoneFound: !!zone,
+        zoneType: zone?.zone_type,
+        zoneName: zone?.zone_name,
+        inspectionId: zone?.inspection_id,
+      };
+    }),
+  });
 
   // Agrupar elementos por zona
   const elementsByZone = new Map<string, InspectionElement[]>();
