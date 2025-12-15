@@ -430,9 +430,10 @@ export function useSupabaseChecklist({
   const hasSupabaseProperty = !!supabaseProperty;
   const hasInspection = !!inspection;
   
-  // Efecto separado para manejar cambios en zones cuando están completamente cargadas
-  // Usar un ref para rastrear el último zones.length procesado
+  // Efecto separado para manejar cambios en zones y elements cuando están completamente cargadas
+  // Usar un ref para rastrear el último zones.length y elements.length procesados
   const lastProcessedZonesLengthRef = useRef(0);
+  const lastProcessedElementsLengthRef = useRef(0);
   
   useEffect(() => {
     // Solo procesar si no hay inicialización en progreso, tenemos datos básicos, y no estamos cargando
@@ -445,36 +446,27 @@ export function useSupabaseChecklist({
       return;
     }
 
-    // Si ya procesamos este número de zones, no hacer nada
-    if (zones.length === lastProcessedZonesLengthRef.current) {
-      return;
-    }
-
-    // Si ya tenemos checklist con el mismo número de zones, no recargar
-    const key = `${propertyId}-${checklistType}-${inspectionId || ''}`;
-    if (initializationRef.current === key && checklist && zones.length === lastZonesCountRef.current) {
-      lastProcessedZonesLengthRef.current = zones.length;
-      return;
-    }
-
-    // Solo recargar si zones.length cambió Y es diferente del último valor conocido
-    // Y no estamos en proceso de inicialización
-    const zonesCountChanged = zones.length > 0 && zones.length !== lastZonesCountRef.current;
-    const shouldReload = zonesCountChanged && !initializationInProgressRef.current;
+    // Verificar si zones o elements cambiaron
+    const zonesCountChanged = zones.length > 0 && zones.length !== lastProcessedZonesLengthRef.current;
+    const elementsCountChanged = elements.length !== lastProcessedElementsLengthRef.current;
+    const shouldReload = (zonesCountChanged || elementsCountChanged) && !initializationInProgressRef.current;
     
     if (shouldReload) {
-      console.log('[useSupabaseChecklist] 🔄 Zones stabilized, loading checklist...', {
-        oldCount: lastZonesCountRef.current,
-        newCount: zones.length,
+      console.log('[useSupabaseChecklist] 🔄 Zones/Elements changed, reloading checklist...', {
+        oldZonesCount: lastProcessedZonesLengthRef.current,
+        newZonesCount: zones.length,
+        oldElementsCount: lastProcessedElementsLengthRef.current,
+        newElementsCount: elements.length,
+        photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-')).length,
       });
       
       // Marcar que estamos recargando para evitar loops
       initializationInProgressRef.current = true;
       
-      lastZonesCountRef.current = zones.length;
       lastProcessedZonesLengthRef.current = zones.length;
+      lastProcessedElementsLengthRef.current = elements.length;
       
-      // Recargar checklist con nuevas zonas
+      // Recargar checklist con zonas y elementos actualizados
       const supabaseData = convertSupabaseToChecklist(
         zones,
         elements,
@@ -489,13 +481,15 @@ export function useSupabaseChecklist({
         initializationRef.current = stableKey;
       }
       
+      console.log('[useSupabaseChecklist] ✅ Checklist reloaded with updated zones/elements');
+      
       // Resetear flag después de un breve delay para permitir que el estado se estabilice
       setTimeout(() => {
         initializationInProgressRef.current = false;
       }, 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zones.length, propertyId, checklistType, bedroomsCount, bathroomsCount, inspectionId, inspectionLoading, hasSupabaseProperty, hasInspection]); // Fixed: Use stable boolean values to ensure consistent array size
+  }, [zones.length, elements.length, propertyId, checklistType, bedroomsCount, bathroomsCount, inspectionId, inspectionLoading, hasSupabaseProperty, hasInspection]); // Fixed: Use stable boolean values to ensure consistent array size
 
   // Guardar sección actual en Supabase
   // Flag para prevenir múltiples ejecuciones simultáneas
@@ -721,6 +715,29 @@ export function useSupabaseChecklist({
 
       // NOTA: La sincronización con Airtable ahora solo ocurre al finalizar el checklist
       // Esto evita múltiples llamadas innecesarias y errores si el Record ID no existe
+
+      // Recargar elementos desde Supabase para asegurar que los elementos con fotos- se carguen
+      console.log('[useSupabaseChecklist] 🔄 Refetching inspection after save to reload elements...');
+      await refetchInspection();
+      
+      // Recargar checklist con los nuevos elementos
+      // Esperar un momento para que el estado se actualice
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Recargar checklist manualmente con los elementos actualizados
+      if (inspection?.id && zones.length > 0) {
+        console.log('[useSupabaseChecklist] 🔄 Reloading checklist with updated elements...');
+        const supabaseData = convertSupabaseToChecklist(
+          zones,
+          elements,
+          supabaseProperty?.bedrooms ?? null,
+          supabaseProperty?.bathrooms ?? null
+        );
+        
+        const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
+        setChecklist(loadedChecklist);
+        console.log('[useSupabaseChecklist] ✅ Checklist reloaded with updated elements');
+      }
 
       toast.success("Sección guardada correctamente");
     } catch (error) {
