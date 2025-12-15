@@ -493,6 +493,16 @@ export function useSupabaseChecklist({
       return;
     }
 
+    // Verificar que la inspección corresponde al tipo correcto ANTES de procesar cualquier cambio
+    if (inspection && inspection.inspection_type !== inspectionType) {
+      console.log('[useSupabaseChecklist] ⏸️ Ignoring all changes - inspection type mismatch:', {
+        currentInspectionType: inspection.inspection_type,
+        expectedInspectionType: inspectionType,
+        inspectionId: inspection.id,
+      });
+      return;
+    }
+
     // Solo procesar si zones.length es estable (no está cambiando)
     if (zones.length === 0) {
       return;
