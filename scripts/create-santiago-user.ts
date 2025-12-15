@@ -26,7 +26,7 @@ try {
 
 import { createAdminClient } from '@/lib/supabase/admin';
 
-const EMAIL = 'santiagofigueiredo@prophero.com';
+const EMAIL = 'santiago.figueiredo@prophero.com';
 const PASSWORD = 'santi123*';
 
 async function createSantiagoUser() {

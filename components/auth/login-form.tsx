@@ -92,7 +92,7 @@ export function LoginForm() {
       if (role === 'foreman' || role === 'admin' || role === 'construction_manager') {
         router.push("/reno/construction-manager");
         toast.success(role === 'admin' ? "¡Bienvenido Admin!" : "¡Bienvenido!");
-      } else if (email === 'santiagofigueiredo@prophero.com') {
+      } else if (email === 'santiago.figueiredo@prophero.com' || email === 'santiagofigueiredo@prophero.com') {
         // Special handling for Santiago - settlements_analyst
         localStorage.setItem("userRole", "settlements_analyst");
         router.push("/settlements/kanban");
