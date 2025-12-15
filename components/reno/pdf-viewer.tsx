@@ -70,11 +70,6 @@ export function PdfViewer({ fileUrl, fileName = 'budget.pdf' }: PdfViewerProps) 
                 setLoading(false);
                 setError(null);
               }}
-              onLoadError={(error) => {
-                console.error('[PDF Viewer] Error loading PDF:', error);
-                setError('Error al cargar el PDF. Verifica que la URL sea válida.');
-                setLoading(false);
-              }}
             />
           </div>
         )}
