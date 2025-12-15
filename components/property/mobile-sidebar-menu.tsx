@@ -56,6 +56,7 @@ export function MobileSidebarMenu({
   };
   const [expandedGroups, setExpandedGroups] = useState<string[]>([
     "datos-basicos",
+    "estado-caracteristicas", // Expand checklist sections by default
   ]);
 
   // Prevent body scroll when menu is open
@@ -99,81 +100,9 @@ export function MobileSidebarMenu({
     {
       id: "estado-caracteristicas",
       name: t.sidebar.statusCharacteristics,
-      sections: [
-        // Checklist sections in correct order (no duplicates)
-        {
-          sectionId: "checklist-entorno-zonas-comunes",
-          name: t.checklist.sections.entornoZonasComunes.title,
-          progress: 0,
-          requiredFieldsCount: 0,
-          completedRequiredFieldsCount: 0,
-          optionalFieldsCount: 0,
-          completedOptionalFieldsCount: 0,
-        },
-        {
-          sectionId: "checklist-estado-general",
-          name: t.checklist.sections.estadoGeneral.title,
-          progress: 0,
-          requiredFieldsCount: 0,
-          completedRequiredFieldsCount: 0,
-          optionalFieldsCount: 0,
-          completedOptionalFieldsCount: 0,
-        },
-        {
-          sectionId: "checklist-entrada-pasillos",
-          name: t.checklist.sections.entradaPasillos.title,
-          progress: 0,
-          requiredFieldsCount: 0,
-          completedRequiredFieldsCount: 0,
-          optionalFieldsCount: 0,
-          completedOptionalFieldsCount: 0,
-        },
-        {
-          sectionId: "checklist-habitaciones",
-          name: t.checklist.sections.habitaciones.title,
-          progress: 0,
-          requiredFieldsCount: 0,
-          completedRequiredFieldsCount: 0,
-          optionalFieldsCount: 0,
-          completedOptionalFieldsCount: 0,
-        },
-        {
-          sectionId: "checklist-salon",
-          name: t.checklist.sections.salon.title,
-          progress: 0,
-          requiredFieldsCount: 0,
-          completedRequiredFieldsCount: 0,
-          optionalFieldsCount: 0,
-          completedOptionalFieldsCount: 0,
-        },
-        {
-          sectionId: "checklist-banos",
-          name: t.checklist.sections.banos.title,
-          progress: 0,
-          requiredFieldsCount: 0,
-          completedRequiredFieldsCount: 0,
-          optionalFieldsCount: 0,
-          completedOptionalFieldsCount: 0,
-        },
-        {
-          sectionId: "checklist-cocina",
-          name: t.checklist.sections.cocina.title,
-          progress: 0,
-          requiredFieldsCount: 0,
-          completedRequiredFieldsCount: 0,
-          optionalFieldsCount: 0,
-          completedOptionalFieldsCount: 0,
-        },
-        {
-          sectionId: "checklist-exteriores",
-          name: t.checklist.sections.exteriores.title,
-          progress: 0,
-          requiredFieldsCount: 0,
-          completedRequiredFieldsCount: 0,
-          optionalFieldsCount: 0,
-          completedOptionalFieldsCount: 0,
-        },
-      ],
+      sections: sections.filter((s) => 
+        s.sectionId.startsWith("checklist-") || s.sectionId === "property-info"
+      ),
     },
   ];
 
@@ -189,7 +118,7 @@ export function MobileSidebarMenu({
           
           {/* Mobile Sidebar */}
           <div 
-            className="fixed left-0 top-0 h-full w-80 bg-card dark:bg-[var(--prophero-gray-900)] z-50 shadow-xl md:hidden overflow-y-auto transition-transform duration-300 ease-out"
+            className="fixed left-0 top-0 h-full w-80 bg-card dark:bg-[var(--prophero-gray-900)] z-[60] shadow-xl md:hidden overflow-y-auto transition-transform duration-300 ease-out"
           >
             {/* Header */}
             <div className="p-4 border-b sticky top-0 bg-card dark:bg-[var(--prophero-gray-900)] z-10">

@@ -51,7 +51,6 @@ export default function RenoChecklistPage() {
   const router = useRouter();
   const sectionRefs = useRef<Record<string, HTMLDivElement>>({});
   const { t } = useI18n();
-  const [activeSection, setActiveSection] = useState("checklist-entorno-zonas-comunes");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -189,16 +188,6 @@ export default function RenoChecklistPage() {
   const overallProgress = calculateOverallChecklistProgress(checklist || null);
   const sectionProgress = getAllChecklistSectionsProgress(checklist || null);
 
-  // Set initial section: property-info for final-check, checklist for initial-check
-  // This hook must be called before any conditional returns
-  useEffect(() => {
-    if (property && !isLoading && !checklistLoading && activeSection === "checklist-entorno-zonas-comunes") {
-      if (isFinalCheck) {
-        setActiveSection("property-info");
-      }
-    }
-  }, [property, isFinalCheck, isLoading, checklistLoading, activeSection]);
-
   // Combine loading states - also check if checklist is null when we have a property
   const isFullyLoading = isLoading || checklistLoading || (property && !checklist);
 
@@ -213,8 +202,11 @@ export default function RenoChecklistPage() {
 
   // Handle section click - guardar sección anterior antes de cambiar
   const handleSectionClick = useCallback(async (sectionId: string) => {
-    // Guardar sección anterior antes de cambiar
-    if (activeSection && activeSection !== sectionId && checklist) {
+    // No guardar si estamos cambiando desde property-info a checklist (iniciar checklist)
+    const isStartingChecklist = activeSection === "property-info" && sectionId.startsWith("checklist-");
+    
+    // Guardar sección anterior antes de cambiar (excepto cuando iniciamos el checklist)
+    if (activeSection && activeSection !== sectionId && checklist && !isStartingChecklist) {
       try {
         await saveCurrentSection();
         setHasUnsavedChanges(false);
@@ -225,10 +217,15 @@ export default function RenoChecklistPage() {
     }
     
     setActiveSection(sectionId);
-    // Scroll to section if it exists
-    const sectionRef = sectionRefs.current[sectionId];
-    if (sectionRef) {
-      sectionRef.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Cerrar sidebar móvil al cambiar de sección
+    setIsMobileSidebarOpen(false);
+    
+    // Scroll to section if it exists (solo en desktop)
+    if (window.innerWidth >= 768) {
+      const sectionRef = sectionRefs.current[sectionId];
+      if (sectionRef) {
+        sectionRef.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     }
   }, [activeSection, checklist, saveCurrentSection]);
 
