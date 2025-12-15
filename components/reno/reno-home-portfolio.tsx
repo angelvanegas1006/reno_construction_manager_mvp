@@ -75,6 +75,10 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "furnishing": language === "es" ? "Amoblamiento" : "Furnishing",
       "final-check": language === "es" ? "Check final" : "Final Check",
       "cleaning": language === "es" ? "Limpieza" : "Cleaning",
+      "furnishing-cleaning": language === "es" ? "Limpieza y Amoblamiento" : "Furnishing & Cleaning", // Legacy
+      "furnishing": language === "es" ? "Amoblamiento" : "Furnishing",
+      "final-check": language === "es" ? "Check final" : "Final Check",
+      "cleaning": language === "es" ? "Limpieza" : "Cleaning",
       "furnishing-cleaning": language === "es" ? "Limpieza y amoblamiento" : "Furnishing & Cleaning", // Legacy
       "reno-fixes": language === "es" ? "Reparaciones reno" : "Reno Fixes",
       "done": language === "es" ? "Finalizadas" : "Done",
