@@ -24,6 +24,7 @@ import { fetchInitialCheckFieldsFromAirtable } from "@/lib/airtable/initial-chec
 import { useSupabaseInspection } from "@/hooks/useSupabaseInspection";
 import { areAllActivitiesReported } from "@/lib/checklist-validation";
 import { calculateOverallChecklistProgress, getAllChecklistSectionsProgress } from "@/lib/checklist-progress";
+import { useDynamicCategories } from "@/hooks/useDynamicCategories";
 
 // Checklist section components
 import { EntornoZonasComunesSection } from "@/components/checklist/sections/entorno-zonas-comunes-section";
@@ -159,6 +160,9 @@ export default function RenoChecklistPage() {
     inspectionType
   );
 
+  // Get dynamic categories for reno-in-progress phase
+  const { categories: dynamicCategories } = useDynamicCategories(propertyId);
+
   // State for completion dialog
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -205,7 +209,18 @@ export default function RenoChecklistPage() {
   }, [property, phase, isLoading, checklistLoading]); // Only run when property/phase changes
   
   // Calculate overall progress
-  const overallProgress = calculateOverallChecklistProgress(checklist || null);
+  // For reno-in-progress phase, use average of dynamic categories
+  // For other phases, use checklist progress
+  const overallProgress = useMemo(() => {
+    if (phase === "reno-in-progress" && dynamicCategories.length > 0) {
+      // Calculate average of all dynamic categories
+      const total = dynamicCategories.reduce((sum, cat) => sum + (cat.percentage || 0), 0);
+      return Math.round(total / dynamicCategories.length);
+    }
+    // For other phases, use checklist progress
+    return calculateOverallChecklistProgress(checklist || null);
+  }, [phase, dynamicCategories, checklist]);
+  
   const sectionProgress = getAllChecklistSectionsProgress(checklist || null);
 
   // Combine loading states - also check if checklist is null when we have a property
