@@ -1549,7 +1549,7 @@ export const translations: Record<Language, Translations> = {
       hour: "hora",
       lessThanHour: "Hace menos de 1 hora",
       siteManager: "Jefe de Obra",
-      daysLabel: "Días:",
+      daysLabel: "Días para propiedad lista:",
     },
     partner: {
       management: "Venta de Propiedades",
@@ -2472,7 +2472,7 @@ export const translations: Record<Language, Translations> = {
       hour: "hour",
       lessThanHour: "Less than 1 hour ago",
       siteManager: "Site Manager",
-      daysLabel: "Days:",
+      daysLabel: "Days to property ready:",
     },
     partner: {
       management: "Property Selling",

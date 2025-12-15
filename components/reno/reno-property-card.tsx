@@ -75,9 +75,9 @@ export function RenoPropertyCard({
     return property.daysToVisit > 5;
   })();
 
-  // Check if property exceeds Days to Property Ready limit (for furnishing-cleaning phase)
+  // Check if property exceeds Days to Property Ready limit (for furnishing, cleaning, and furnishing-cleaning phases)
   const exceedsDaysToPropertyReadyLimit = (() => {
-    if (stage !== "furnishing-cleaning" || !property.daysToPropertyReady) {
+    if ((stage !== "furnishing" && stage !== "cleaning" && stage !== "furnishing-cleaning") || !property.daysToPropertyReady) {
       return false;
     }
     
@@ -149,7 +149,7 @@ export function RenoPropertyCard({
         exceedsDurationLimit && stage === "reno-in-progress" && "border-l-4 border-l-red-500",
         exceedsDaysToStartLimit && "border-l-4 border-l-red-500", // Red left border for budget phases
         exceedsDaysToVisitLimit && "border-l-4 border-l-red-500", // Red left border for initial-check phase
-        exceedsDaysToPropertyReadyLimit && "border-l-4 border-l-red-500" // Red left border for furnishing-cleaning phase
+        exceedsDaysToPropertyReadyLimit && (stage === "furnishing" || stage === "cleaning" || stage === "furnishing-cleaning") && "border-l-4 border-l-red-500" // Red left border for furnishing/cleaning phases
       )}
       onClick={disabled ? undefined : () => {
         track("Property Card Clicked", {
