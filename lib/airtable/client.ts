@@ -142,6 +142,7 @@ export async function findRecordByPropertyId(
 
     for (const fieldName of possibleFields) {
       try {
+        console.log(`[findRecordByPropertyId] Trying field "${fieldName}" with value "${propertyId}"`);
         const records = await base(tableName)
           .select({
             filterByFormula: `{${fieldName}} = "${propertyId}"`,
@@ -149,7 +150,9 @@ export async function findRecordByPropertyId(
           })
           .firstPage();
         
+        console.log(`[findRecordByPropertyId] Field "${fieldName}" returned ${records.length} records`);
         if (records.length > 0) {
+          console.log(`[findRecordByPropertyId] ✅ Found record with ID: ${records[0].id}`);
           return records[0].id;
         }
       } catch (fieldError: any) {
