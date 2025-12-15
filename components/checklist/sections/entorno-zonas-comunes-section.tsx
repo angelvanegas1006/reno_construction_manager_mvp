@@ -18,11 +18,14 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
     const { t } = useI18n();
 
     // Initialize upload zones if they don't exist
-    const uploadZones = section.uploadZones || [
-      { id: "portal", photos: [], videos: [] },
-      { id: "fachada", photos: [], videos: [] },
-      { id: "entorno", photos: [], videos: [] },
-    ];
+    // Use section.uploadZones if available, otherwise use defaults
+    const uploadZones = section.uploadZones && section.uploadZones.length > 0
+      ? section.uploadZones
+      : [
+          { id: "portal", photos: [], videos: [] },
+          { id: "fachada", photos: [], videos: [] },
+          { id: "entorno", photos: [], videos: [] },
+        ];
 
     // Default questions for initialization
     const defaultQuestions = [
