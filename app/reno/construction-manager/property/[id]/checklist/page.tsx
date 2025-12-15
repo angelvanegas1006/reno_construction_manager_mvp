@@ -327,24 +327,35 @@ export default function RenoChecklistPage() {
 
     switch (activeSection) {
       case "checklist-entorno-zonas-comunes":
+        const entornoSection = checklist.sections["entorno-zonas-comunes"] || {
+          id: "entorno-zonas-comunes",
+          uploadZones: [
+            { id: "portal", photos: [], videos: [] },
+            { id: "fachada", photos: [], videos: [] },
+            { id: "entorno", photos: [], videos: [] },
+          ],
+          questions: [
+            { id: "acceso-principal" },
+            { id: "acabados" },
+            { id: "comunicaciones" },
+            { id: "electricidad" },
+            { id: "carpinteria" },
+          ],
+        };
+        console.log('[RenoChecklistPage] 🖼️ Rendering EntornoZonasComunesSection:', {
+          sectionId: "entorno-zonas-comunes",
+          uploadZones: entornoSection.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+          hasChecklist: !!checklist,
+          checklistSections: Object.keys(checklist?.sections || {})
+        });
         return (
           <EntornoZonasComunesSection
-            section={checklist.sections["entorno-zonas-comunes"] || {
-              id: "entorno-zonas-comunes",
-              uploadZones: [
-                { id: "portal", photos: [], videos: [] },
-                { id: "fachada", photos: [], videos: [] },
-                { id: "entorno", photos: [], videos: [] },
-              ],
-              questions: [
-                { id: "acceso-principal" },
-                { id: "acabados" },
-                { id: "comunicaciones" },
-                { id: "electricidad" },
-                { id: "carpinteria" },
-              ],
-            }}
+            section={entornoSection}
             onUpdate={(updates) => {
+              console.log('[RenoChecklistPage] 📝 onUpdate called for entorno-zonas-comunes:', {
+                updates,
+                uploadZones: updates.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length }))
+              });
               updateChecklistSection("entorno-zonas-comunes", updates);
             }}
             ref={(el) => {
