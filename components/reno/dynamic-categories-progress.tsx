@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { Database } from '@/lib/supabase/types';
 import { callN8nCategoriesWebhook, prepareWebhookPayload } from '@/lib/n8n/webhook-caller';
+import { calculateNextUpdateDate } from '@/lib/reno/update-calculator';
 
 type SupabaseProperty = Database['public']['Tables']['properties']['Row'];
 
@@ -442,7 +443,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
             <Clock className="h-4 w-4 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">Última actualización</p>
-              <p className="text-sm font-medium">{formatDate(property.last_update)}</p>
+              <p className="text-sm font-medium">{formatDate(property.last_update) || "No definida"}</p>
             </div>
           </div>
           <Dialog open={isScheduleVisitOpen} onOpenChange={setIsScheduleVisitOpen}>
@@ -452,7 +453,10 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                 <div className="flex-1">
                   <p className="text-xs text-muted-foreground">Próxima actualización</p>
                   <p className="text-sm font-medium text-primary hover:underline">
-                    {formatDate(property.next_update)}
+                    {formatDate(
+                      property.next_update || 
+                      (property.last_update ? calculateNextUpdateDate(property.last_update, property.renovation_type) : null)
+                    ) || "No definida"}
                   </p>
                 </div>
               </button>
