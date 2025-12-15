@@ -372,11 +372,6 @@ export function RenoPropertyCard({
               <span className="font-medium">Duración de la obra:</span> {property.renoDuration} días
             </div>
           )}
-          {showRenoDetails && needsUpdateBadge && (
-            <Badge variant="outline" className="text-xs border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 w-fit">
-              {language === "es" ? "Necesita actualización" : "Need Update"}
-            </Badge>
-          )}
         </div>
       ) : stage === "furnishing" || stage === "cleaning" ? (
         <div className="space-y-2">
