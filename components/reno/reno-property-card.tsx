@@ -372,7 +372,7 @@ export function RenoPropertyCard({
           {/* Días para propiedad lista - only show if filled */}
           {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
             <div className="text-xs text-muted-foreground">
-              <span className="font-medium">Días:</span> {property.daysToPropertyReady} días
+              <span className="font-medium">{t.propertyCard.daysLabel}</span> {property.daysToPropertyReady} {t.propertyCard.days}
             </div>
           )}
         </div>

@@ -495,6 +495,7 @@ export interface Translations {
       hour: string;
       lessThanHour: string;
       siteManager: string;
+      daysLabel: string;
     };
   
   // Partner
@@ -1548,6 +1549,7 @@ export const translations: Record<Language, Translations> = {
       hour: "hora",
       lessThanHour: "Hace menos de 1 hora",
       siteManager: "Jefe de Obra",
+      daysLabel: "Días:",
     },
     partner: {
       management: "Venta de Propiedades",
@@ -2470,6 +2472,7 @@ export const translations: Record<Language, Translations> = {
       hour: "hour",
       lessThanHour: "Less than 1 hour ago",
       siteManager: "Site Manager",
+      daysLabel: "Days:",
     },
     partner: {
       management: "Property Selling",
