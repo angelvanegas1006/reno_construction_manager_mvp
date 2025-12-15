@@ -384,8 +384,16 @@ export function useSupabaseChecklist({
             const stableKey = `${propertyId}-${checklistType}-${inspection.id}`;
             initializationRef.current = stableKey; // Marcar como inicializado (sin zones.length)
             lastZonesCountRef.current = zones.length; // Actualizar contador
+            // Actualizar el ref de inspección procesada
+            lastProcessedInspectionIdRef.current = inspection.id;
+            lastProcessedZonesLengthRef.current = zones.length;
+            lastProcessedElementsLengthRef.current = elements.length;
           }
-          console.log('[useSupabaseChecklist] ✅ Checklist loaded and set');
+          console.log('[useSupabaseChecklist] ✅ Checklist loaded and set', {
+            inspectionId: inspection?.id,
+            zonesCount: zones.length,
+            elementsCount: elements.length,
+          });
         } else {
           console.log('[useSupabaseChecklist] 📝 Creating empty checklist...');
           // Si no hay datos, crear checklist vacío
@@ -494,9 +502,16 @@ export function useSupabaseChecklist({
       if (inspectionId) {
         const stableKey = `${propertyId}-${checklistType}-${inspectionId}`;
         initializationRef.current = stableKey;
+        // Actualizar el ref de inspección procesada
+        lastProcessedInspectionIdRef.current = inspectionId;
       }
       
-      console.log('[useSupabaseChecklist] ✅ Checklist reloaded with updated zones/elements');
+      console.log('[useSupabaseChecklist] ✅ Checklist reloaded with updated zones/elements', {
+        inspectionId,
+        zonesCount: zones.length,
+        elementsCount: elements.length,
+        photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-')).length,
+      });
       
       // Resetear flag después de un breve delay para permitir que el estado se estabilice
       setTimeout(() => {
