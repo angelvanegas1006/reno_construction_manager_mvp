@@ -422,6 +422,7 @@ export interface Translations {
     reminders: string;
     comments: string;
     checklistInProgress: string;
+    checklistCompleted: string;
     continueChecklist: string;
     noChecklistStarted: string;
     openChecklist: string;
@@ -1436,6 +1437,7 @@ export const translations: Record<Language, Translations> = {
       reminders: "Recordatorios",
       comments: "Comentarios",
       checklistInProgress: "Checklist en progreso",
+      checklistCompleted: "Checklist completado",
       continueChecklist: "Continuar checklist",
       noChecklistStarted: "No hay checklist iniciado aún",
       openChecklist: "Abrir Checklist",
@@ -2403,6 +2405,7 @@ export const translations: Record<Language, Translations> = {
       reminders: "Reminders",
       comments: "Comments",
       checklistInProgress: "Checklist in progress",
+      checklistCompleted: "Checklist completed",
       continueChecklist: "Continue checklist",
       noChecklistStarted: "No checklist started yet",
       openChecklist: "Open Checklist",
