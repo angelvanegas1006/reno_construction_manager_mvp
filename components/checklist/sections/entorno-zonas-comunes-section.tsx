@@ -91,7 +91,7 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
                 <ChecklistUploadZoneComponent
                   title={t.checklist.sections.entornoZonasComunes.portal}
                   description={t.checklist.addPhotos}
-                  uploadZone={uploadZones.find(z => z.id === "portal") || { id: "portal", photos: [], videos: [] }}
+                  uploadZone={(section.uploadZones || uploadZones).find(z => z.id === "portal") || { id: "portal", photos: [], videos: [] }}
                   onUpdate={(updates) => handleUploadZoneUpdate("portal", updates)}
                   isRequired={true}
                   hideTitle={true}
@@ -110,7 +110,7 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
                 <ChecklistUploadZoneComponent
                   title={t.checklist.sections.entornoZonasComunes.fachada}
                   description={t.checklist.addPhotos}
-                  uploadZone={uploadZones.find(z => z.id === "fachada") || { id: "fachada", photos: [], videos: [] }}
+                  uploadZone={(section.uploadZones || uploadZones).find(z => z.id === "fachada") || { id: "fachada", photos: [], videos: [] }}
                   onUpdate={(updates) => handleUploadZoneUpdate("fachada", updates)}
                   isRequired={true}
                   hideTitle={true}
@@ -129,7 +129,7 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
                 <ChecklistUploadZoneComponent
                   title={t.checklist.sections.entornoZonasComunes.entorno}
                   description={t.checklist.addPhotos}
-                  uploadZone={uploadZones.find(z => z.id === "entorno") || { id: "entorno", photos: [], videos: [] }}
+                  uploadZone={(section.uploadZones || uploadZones).find(z => z.id === "entorno") || { id: "entorno", photos: [], videos: [] }}
                   onUpdate={(updates) => handleUploadZoneUpdate("entorno", updates)}
                   isRequired={true}
                   hideTitle={true}
