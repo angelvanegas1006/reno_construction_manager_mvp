@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Grid, LogOut, Menu, X } from "lucide-react";
+import { Home, Grid, LogOut, Menu, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { VistralLogo } from "@/components/vistral-logo";
@@ -11,6 +11,13 @@ import { LanguageSelector } from "@/components/user/language-selector";
 import { useI18n } from "@/lib/i18n";
 import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
 import { useAuth0 } from "@auth0/auth0-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 // Navigation items for Settlements Analyst
 const getNavigationItems = (t: any) => [
@@ -138,21 +145,38 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-border p-4 space-y-2 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <ThemeSelector />
-            <LanguageSelector />
-          </div>
-          <button
-            onClick={handleLogout}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
-              isCollapsed && "justify-center"
-            )}
-          >
-            <LogOut className="h-5 w-5 flex-shrink-0" />
-            {!isCollapsed && <span>Cerrar sesión</span>}
-          </button>
+        <div className="border-t border-border p-4 flex-shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn(
+                "flex items-center gap-3 w-full rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
+                isCollapsed && "justify-center"
+              )}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground flex-shrink-0">
+                  <span className="text-xs font-semibold">S</span>
+                </div>
+                {!isCollapsed && (
+                  <>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-medium truncate">Settlements</p>
+                      <p className="text-xs text-muted-foreground truncate">Analista</p>
+                    </div>
+                    <ChevronDown className="h-5 w-5 flex-shrink-0" />
+                  </>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <ThemeSelector />
+              <DropdownMenuSeparator />
+              <LanguageSelector />
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar sesión
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
     </>
