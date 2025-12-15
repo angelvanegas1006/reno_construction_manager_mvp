@@ -80,8 +80,10 @@ function getSetUpStatusForPhase(phase: RenoKanbanPhase): string {
     'reno-budget': 'Pending to validate budget',
     'upcoming': 'Pending to validate budget',
     'reno-in-progress': 'Reno in progress',
-    'furnishing-cleaning': 'Cleaning & Furnishing',
+    'furnishing': 'Furnishing',
     'final-check': 'Final Check',
+    'cleaning': 'Cleaning',
+    'furnishing-cleaning': 'Cleaning & Furnishing', // Legacy
     'reno-fixes': 'Reno Fixes',
     'done': 'Done',
     'orphaned': 'Orphaned',
