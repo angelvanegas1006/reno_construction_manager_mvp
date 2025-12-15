@@ -420,12 +420,19 @@ export function useSupabaseChecklist({
       return;
     }
 
-    // Si zones.length cambió y ya tenemos zonas cargadas, recargar checklist
-    if (zones.length > 0 && zones.length !== lastZonesCountRef.current && !initializationInProgressRef.current) {
+    // Solo recargar si zones.length cambió Y es diferente del último valor conocido
+    // Y no estamos en proceso de inicialización
+    const zonesCountChanged = zones.length > 0 && zones.length !== lastZonesCountRef.current;
+    const shouldReload = zonesCountChanged && !initializationInProgressRef.current;
+    
+    if (shouldReload) {
       console.log('[useSupabaseChecklist] 🔄 Zones stabilized, loading checklist...', {
         oldCount: lastZonesCountRef.current,
         newCount: zones.length,
       });
+      
+      // Marcar que estamos recargando para evitar loops
+      initializationInProgressRef.current = true;
       
       lastZonesCountRef.current = zones.length;
       
@@ -443,8 +450,13 @@ export function useSupabaseChecklist({
         const stableKey = `${propertyId}-${checklistType}-${inspection.id}`;
         initializationRef.current = stableKey;
       }
+      
+      // Resetear flag después de un breve delay para permitir que el estado se estabilice
+      setTimeout(() => {
+        initializationInProgressRef.current = false;
+      }, 100);
     }
-  }, [zones.length, elements.length, propertyId, checklistType, supabaseProperty, inspection, inspectionLoading, checklist]);
+  }, [zones.length, propertyId, checklistType, supabaseProperty?.bedrooms, supabaseProperty?.bathrooms, inspection?.id, inspectionLoading]); // Removed elements.length and checklist from dependencies to prevent loops
 
   // Guardar sección actual en Supabase
   const saveCurrentSection = useCallback(async () => {
@@ -512,18 +524,37 @@ export function useSupabaseChecklist({
         return;
       }
       
-      const uploadedUrls = await uploadFilesToStorage(
-        allFiles,
-        propertyId,
-        inspection.id,
-        zone.id
+      // Filtrar solo archivos que necesitan ser subidos (base64 o sin URL)
+      const filesToUpload = allFiles.filter(file => 
+        file.data && 
+        !file.data.startsWith('http') && 
+        (file.data.startsWith('data:') || file.data.length > 0)
       );
+      
+      let uploadedUrls: string[] = [];
+      if (filesToUpload.length > 0) {
+        console.log(`[useSupabaseChecklist] 📤 Uploading ${filesToUpload.length} files to storage...`);
+        uploadedUrls = await uploadFilesToStorage(
+          filesToUpload,
+          propertyId,
+          inspection.id,
+          zone.id
+        );
+        console.log(`[useSupabaseChecklist] ✅ Uploaded ${uploadedUrls.length} files successfully`);
+      }
 
       // Crear mapa de archivos originales a URLs subidas
       const fileUrlMap = new Map<string, string>();
-      allFiles.forEach((file, index) => {
-        if (uploadedUrls[index]) {
-          fileUrlMap.set(file.id, uploadedUrls[index]);
+      let uploadedIndex = 0;
+      allFiles.forEach((file) => {
+        // Si el archivo ya tiene URL (ya subido), mantenerla
+        if (file.data && file.data.startsWith('http')) {
+          fileUrlMap.set(file.id, file.data);
+        }
+        // Si el archivo fue subido ahora, usar la nueva URL
+        else if (filesToUpload.includes(file) && uploadedUrls[uploadedIndex]) {
+          fileUrlMap.set(file.id, uploadedUrls[uploadedIndex]);
+          uploadedIndex++;
         }
       });
 

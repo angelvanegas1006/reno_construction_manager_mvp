@@ -102,21 +102,39 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         throw new Error(supabaseError.message);
       }
 
-      // Actualizar en Airtable
+      // Actualizar en Airtable - obtener el Unique ID de Airtable desde Supabase
       const AIRTABLE_TABLE_NAME = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
-      const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, propertyId);
+      
+      // Obtener el Unique ID de Airtable desde Supabase
+      const { data: propertyData } = await supabase
+        .from('properties')
+        .select('airtable_property_id, "Unique ID From Engagements"')
+        .eq('id', propertyId)
+        .single();
+      
+      const airtablePropertyId = propertyData?.airtable_property_id || propertyData?.['Unique ID From Engagements'];
+      
+      if (!airtablePropertyId) {
+        console.warn('Property has no Airtable ID, skipping Airtable update:', propertyId);
+        toast.warning("Guardado parcialmente", {
+          description: "Se guardó en Supabase pero no se encontró el ID de Airtable.",
+        });
+        return;
+      }
+      
+      const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, airtablePropertyId);
 
       if (recordId) {
         // Formatear fecha para Airtable (YYYY-MM-DD)
         const airtableDate = estimatedVisitDate || null;
         
         const airtableUpdates: Record<string, any> = {
-          'Est. visit date': airtableDate,
+          'fldIhqPOAFL52MMBn': airtableDate, // Usar field ID para mayor confiabilidad
         };
         
         // Si se cambió el Set Up Status, también actualizarlo en Airtable
         if (supabaseUpdates['Set Up Status']) {
-          airtableUpdates['Set Up Status'] = 'initial check';
+          airtableUpdates['Set Up Status'] = 'Initial Check';
         }
         
         const airtableSuccess = await updateAirtableWithRetry(
