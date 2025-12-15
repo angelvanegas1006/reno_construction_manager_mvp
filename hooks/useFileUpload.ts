@@ -87,20 +87,30 @@ export function useFileUpload({
       
       reader.onload = () => {
         const base64 = reader.result as string;
-        resolve({
+        const fileUpload = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           name: file.name,
           type: file.type,
           size: file.size,
           data: base64,
           uploadedAt: new Date().toISOString(),
+        };
+        console.log('[useFileUpload] ✅ File processed:', {
+          id: fileUpload.id,
+          name: fileUpload.name,
+          hasData: !!fileUpload.data,
+          dataLength: fileUpload.data?.length || 0,
+          dataPreview: fileUpload.data?.substring(0, 50)
         });
+        resolve(fileUpload);
       };
       
-      reader.onerror = () => {
+      reader.onerror = (error) => {
+        console.error('[useFileUpload] ❌ Error processing file:', { name: file.name, error });
         reject(new Error("Error al procesar el archivo"));
       };
       
+      console.log('[useFileUpload] 🔄 Processing file:', { name: file.name, type: file.type, size: file.size });
       reader.readAsDataURL(file);
     });
   }, []);
@@ -136,10 +146,27 @@ export function useFileUpload({
         validFiles.map(file => processFile(file))
       );
 
+      console.log('[useFileUpload] ✅ All files processed:', {
+        count: processedFiles.length,
+        files: processedFiles.map(f => ({
+          id: f.id,
+          name: f.name,
+          hasData: !!f.data,
+          dataLength: f.data?.length || 0
+        }))
+      });
+
       // Use functional update to ensure we have the latest state
       // onFilesChange will be called automatically via useEffect when files state updates
       setFiles(prev => {
-        return [...prev, ...processedFiles];
+        const updated = [...prev, ...processedFiles];
+        console.log('[useFileUpload] 📝 Setting files state:', {
+          prevCount: prev.length,
+          newCount: processedFiles.length,
+          totalCount: updated.length,
+          allFiles: updated.map(f => ({ id: f.id, name: f.name, hasData: !!f.data }))
+        });
+        return updated;
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al procesar archivos");
