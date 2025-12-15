@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useRef, startTransition, useEffect, useCallback, useMemo, useState } from "react";
+import { useRef, startTransition, useEffect, useCallback, useMemo, useState, use } from "react";
 import { NavbarL3 } from "@/components/layout/navbar-l3";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
@@ -54,8 +54,11 @@ export default function RenoChecklistPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  // Unwrap params if it's a Promise (Next.js 16+)
+  const unwrappedParams = params instanceof Promise ? use(params) : params;
+
   // Get property ID from params
-  const propertyId = params.id && typeof params.id === "string" ? params.id : null;
+  const propertyId = unwrappedParams.id && typeof unwrappedParams.id === "string" ? unwrappedParams.id : null;
 
   // Debug: Log propertyId
   useEffect(() => {
