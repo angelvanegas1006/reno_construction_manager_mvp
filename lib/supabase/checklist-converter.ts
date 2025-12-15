@@ -121,40 +121,38 @@ export function convertUploadZonesToElements(
   const elements: ElementInsert[] = [];
 
   uploadZones.forEach((uploadZone) => {
-    // Crear elemento para fotos
-    if (uploadZone.photos && uploadZone.photos.length > 0) {
-      const imageUrls = uploadZone.photos
-        .filter(photo => photo.data) // Solo fotos con data (ya subidas)
-        .map(photo => photo.data); // URLs de Supabase Storage
+    // Crear elemento para fotos (siempre crear el elemento, incluso si está vacío)
+    const imageUrls = uploadZone.photos
+      ?.filter(photo => photo.data && photo.data.startsWith('http')) // Solo URLs ya subidas (no base64)
+      .map(photo => photo.data) || [];
 
-      elements.push({
-        zone_id: zoneId,
-        element_name: `fotos-${uploadZone.id}`,
-        condition: null,
-        image_urls: imageUrls.length > 0 ? imageUrls : null,
-        notes: null,
-        quantity: null,
-        exists: null,
-      });
-    }
+    // Crear elemento siempre, incluso si no hay fotos todavía (para mantener la estructura)
+    elements.push({
+      zone_id: zoneId,
+      element_name: `fotos-${uploadZone.id}`,
+      condition: null,
+      image_urls: imageUrls.length > 0 ? imageUrls : null,
+      notes: null,
+      quantity: null,
+      exists: null,
+    });
 
-    // Crear elemento para videos
-    if (uploadZone.videos && uploadZone.videos.length > 0) {
-      const videoUrls = uploadZone.videos
-        .filter(video => video.data) // Solo videos con data (ya subidos)
-        .map(video => video.data); // URLs de Supabase Storage
+    // Crear elemento para videos (siempre crear el elemento, incluso si está vacío)
+    const videoUrls = uploadZone.videos
+      ?.filter(video => video.data && video.data.startsWith('http')) // Solo URLs ya subidas (no base64)
+      .map(video => video.data) || [];
 
-      elements.push({
-        zone_id: zoneId,
-        element_name: `videos-${uploadZone.id}`,
-        condition: null,
-        image_urls: null,
-        video_urls: videoUrls.length > 0 ? videoUrls : null,
-        notes: null,
-        quantity: null,
-        exists: null,
-      });
-    }
+    // Crear elemento siempre, incluso si no hay videos todavía (para mantener la estructura)
+    elements.push({
+      zone_id: zoneId,
+      element_name: `videos-${uploadZone.id}`,
+      condition: null,
+      image_urls: null,
+      video_urls: videoUrls.length > 0 ? videoUrls : null,
+      notes: null,
+      quantity: null,
+      exists: null,
+    });
   });
 
   return elements;
