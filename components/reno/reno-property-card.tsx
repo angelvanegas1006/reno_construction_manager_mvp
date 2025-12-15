@@ -266,17 +266,17 @@ export function RenoPropertyCard({
         
         return (
           <div className="flex flex-wrap gap-2 mb-3">
-            <Badge 
+            <span 
               className={cn(
                 badgeStyles.bg,
                 badgeStyles.text,
                 badgeStyles.border,
                 badgeStyles.hover,
-                "text-xs font-medium px-2 py-1"
+                "inline-flex items-center rounded-full text-xs font-medium px-2 py-1"
               )}
             >
               {property.renoType}
-            </Badge>
+            </span>
           </div>
         );
       })()}
