@@ -114,11 +114,9 @@ export function useFileUpload({
       );
 
       // Use functional update to ensure we have the latest state
+      // onFilesChange will be called automatically via useEffect when files state updates
       setFiles(prev => {
-        const updatedFiles = [...prev, ...processedFiles];
-        // Call onFilesChange with updated files
-        onFilesChange(updatedFiles);
-        return updatedFiles;
+        return [...prev, ...processedFiles];
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al procesar archivos");
@@ -181,9 +179,9 @@ export function useFileUpload({
   }, [files, onFilesChange]);
 
   const clearFiles = useCallback(() => {
+    // onFilesChange will be called automatically via useEffect when files state updates
     setFiles([]);
-    onFilesChange([]);
-  }, [onFilesChange]);
+  }, []);
 
   return {
     files,
