@@ -353,10 +353,11 @@ export function useSupabaseChecklist({
             const stableKey = `${propertyId}-${checklistType}-no-inspection-yet`;
             initializationRef.current = stableKey;
             // Resetear flags para permitir que el siguiente ciclo del efecto continúe
-          initializationInProgressRef.current = false;
-          inspectionCreationInProgressRef.current = false;
-          setIsLoading(false);
-          return;
+            initializationInProgressRef.current = false;
+            inspectionCreationInProgressRef.current = false;
+            setIsLoading(false);
+            return;
+          }
         }
 
         // Si hay inspección pero no hay zonas, crear zonas iniciales
