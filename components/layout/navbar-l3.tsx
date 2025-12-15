@@ -66,8 +66,12 @@ export function NavbarL3({
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden flex-shrink-0"
-              onClick={onMenuClick}
+              className="md:hidden flex-shrink-0 z-50 relative"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMenuClick();
+              }}
+              aria-label="Abrir menú"
             >
               <Menu className="h-5 w-5" />
             </Button>
