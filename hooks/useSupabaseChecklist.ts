@@ -361,7 +361,7 @@ export function useSupabaseChecklist({
             image_urls: e.image_urls, // Incluir las URLs para debugging
           }));
           
-          const photoElementsDetails = elements.filter(e => e.element_name?.startsWith('fotos-')).map(e => ({
+          const photoElementsDetails = elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).map(e => ({
             id: e.id,
             element_name: e.element_name,
             zone_id: e.zone_id,
@@ -389,6 +389,10 @@ export function useSupabaseChecklist({
           
           console.log('[useSupabaseChecklist] ✅ Converted Supabase data:', {
             sectionsCount: Object.keys(supabaseData.sections || {}).length,
+            sectionsWithPhotos: Object.keys(supabaseData.sections || {}).filter(sectionId => {
+              const section = supabaseData.sections?.[sectionId];
+              return section?.uploadZones?.some(zone => zone.photos && zone.photos.length > 0);
+            }).length,
           });
           
           // Crear checklist con datos de Supabase
@@ -407,6 +411,11 @@ export function useSupabaseChecklist({
             inspectionId: inspection?.id,
             zonesCount: zones.length,
             elementsCount: elements.length,
+            photoElementsCount: photoElementsDetails.length,
+            sectionsWithPhotos: Object.keys(loadedChecklist.sections).filter(sectionId => {
+              const section = loadedChecklist.sections[sectionId];
+              return section?.uploadZones?.some(zone => zone.photos && zone.photos.length > 0);
+            }).length,
           });
         } else {
           console.log('[useSupabaseChecklist] 📝 Creating empty checklist...');
