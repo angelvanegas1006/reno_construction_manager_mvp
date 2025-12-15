@@ -184,6 +184,26 @@ export default function RenoChecklistPage() {
   const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
   
+  // Initialize activeSection based on checklist type
+  const [activeSection, setActiveSection] = useState<string>(() => {
+    // Default to checklist section, will be updated when property loads
+    return "checklist-entorno-zonas-comunes";
+  });
+
+  // Update activeSection when phase is determined (only once on mount)
+  useEffect(() => {
+    if (property && !isLoading && phase && !checklistLoading) {
+      const shouldBePropertyInfo = isFinalCheck;
+      // Only update if we're still on the default section
+      if (shouldBePropertyInfo && activeSection === "checklist-entorno-zonas-comunes") {
+        setActiveSection("property-info");
+      } else if (!shouldBePropertyInfo && activeSection === "property-info") {
+        setActiveSection("checklist-entorno-zonas-comunes");
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [property, phase, isLoading, checklistLoading]); // Only run when property/phase changes
+  
   // Calculate overall progress
   const overallProgress = calculateOverallChecklistProgress(checklist || null);
   const sectionProgress = getAllChecklistSectionsProgress(checklist || null);
