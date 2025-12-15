@@ -649,10 +649,23 @@ export function useSupabaseChecklist({
         }
 
         const currentSection = prevChecklist.sections[sectionId] || {};
+        console.log('[useSupabaseChecklist] 📋 Merging sections:', {
+          sectionId,
+          currentSectionUploadZones: currentSection.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+          currentSectionUploadZonesLength: currentSection.uploadZones?.length || 0,
+          sectionDataUploadZones: sectionData.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+          sectionDataUploadZonesLength: sectionData.uploadZones?.length || 0,
+          sectionDataKeys: Object.keys(sectionData)
+        });
         const updatedSection: ChecklistSection = {
           ...currentSection,
           ...sectionData,
         };
+        console.log('[useSupabaseChecklist] ✅ Merged section:', {
+          sectionId,
+          updatedSectionUploadZones: updatedSection.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+          updatedSectionUploadZonesLength: updatedSection.uploadZones?.length || 0
+        });
 
         const updatedSections = {
           ...prevChecklist.sections,
