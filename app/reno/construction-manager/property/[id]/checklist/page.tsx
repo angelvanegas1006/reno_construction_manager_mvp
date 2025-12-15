@@ -303,6 +303,7 @@ export default function RenoChecklistPage() {
 
   // Memoizar entornoSection para evitar re-renders innecesarios
   // Usar el checklist completo como dependencia para estabilidad
+  // También incluir un hash de las fotos para detectar cambios en las imágenes
   const entornoSection = useMemo(() => {
     if (!checklist) return null;
     const section = checklist.sections["entorno-zonas-comunes"];
@@ -325,7 +326,13 @@ export default function RenoChecklistPage() {
         { id: "carpinteria" },
       ],
     };
-  }, [checklist]);
+  }, [
+    checklist,
+    // Incluir un hash de las fotos para detectar cambios cuando se cargan desde Supabase
+    checklist?.sections["entorno-zonas-comunes"]?.uploadZones?.map(z => 
+      `${z.id}-${z.photos.length}-${z.photos.map(p => p.id || p.data?.substring(0, 50)).join(',')}`
+    ).join('|') || ''
+  ]);
 
   // Memoizar callback de update para evitar re-renders
   const handleEntornoUpdate = useCallback((updates: any) => {

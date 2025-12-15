@@ -119,6 +119,7 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
             <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">
                 <ChecklistUploadZoneComponent
+                  key={`portal-${(section.uploadZones || uploadZones).find(z => z.id === "portal")?.photos.length || 0}-${(section.uploadZones || uploadZones).find(z => z.id === "portal")?.photos.map(p => p.id || p.data?.substring(0, 20)).join(',') || ''}`}
                   title={t.checklist.sections.entornoZonasComunes.portal}
                   description={t.checklist.addPhotos}
                   uploadZone={(section.uploadZones || uploadZones).find(z => z.id === "portal") || { id: "portal", photos: [], videos: [] }}
@@ -138,6 +139,7 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
             <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">
                 <ChecklistUploadZoneComponent
+                  key={`fachada-${(section.uploadZones || uploadZones).find(z => z.id === "fachada")?.photos.length || 0}-${(section.uploadZones || uploadZones).find(z => z.id === "fachada")?.photos.map(p => p.id || p.data?.substring(0, 20)).join(',') || ''}`}
                   title={t.checklist.sections.entornoZonasComunes.fachada}
                   description={t.checklist.addPhotos}
                   uploadZone={(section.uploadZones || uploadZones).find(z => z.id === "fachada") || { id: "fachada", photos: [], videos: [] }}
@@ -157,6 +159,7 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
             <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">
                 <ChecklistUploadZoneComponent
+                  key={`entorno-${(section.uploadZones || uploadZones).find(z => z.id === "entorno")?.photos.length || 0}-${(section.uploadZones || uploadZones).find(z => z.id === "entorno")?.photos.map(p => p.id || p.data?.substring(0, 20)).join(',') || ''}`}
                   title={t.checklist.sections.entornoZonasComunes.entorno}
                   description={t.checklist.addPhotos}
                   uploadZone={(section.uploadZones || uploadZones).find(z => z.id === "entorno") || { id: "entorno", photos: [], videos: [] }}
