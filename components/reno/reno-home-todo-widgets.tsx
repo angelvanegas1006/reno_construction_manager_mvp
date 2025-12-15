@@ -72,7 +72,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         .filter(prop => !prop.renovador || prop.renovador.trim() === '')
     ], 'daysToStartRenoSinceRSD');
 
-    // 4. Actualizacion de obra - solo propiedades que necesitan update esta semana (lunes a domingo)
+    // 4. Actualizacion de obra - propiedades que necesitan update esta semana o deberían haberse actualizado antes
     // Todas las actualizaciones se calculan desde la fecha base (viernes 11 de diciembre de 2024)
     const pendingWorkUpdateProps = (propertiesByPhase['reno-in-progress'] || [])
       .map(prop => {
@@ -84,17 +84,44 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
           const calculated = calculateNextUpdateDate(null, prop.renoType);
           proximaActualizacion = calculated || undefined;
         }
+        
+        // Verificar si debería haberse actualizado la semana pasada o antes
+        const isOverdue = needsUpdate(proximaActualizacion, prop.renoType) && !needsUpdateThisWeek(proximaActualizacion);
+        
         return {
           ...prop,
           proximaActualizacion: proximaActualizacion || undefined,
+          isOverdue,
         };
       })
       .filter(prop => {
-        // Solo mostrar propiedades que necesitan update esta semana (lunes a domingo)
-        return needsUpdateThisWeek(prop.proximaActualizacion);
+        // Mostrar propiedades que necesitan update esta semana O que deberían haberse actualizado antes
+        return needsUpdateThisWeek(prop.proximaActualizacion) || prop.isOverdue;
       })
       .sort((a, b) => {
-        // Ordenar por proximaActualizacion (más antiguas primero)
+        // Función helper para obtener prioridad del tipo de renovación
+        const getRenoTypePriority = (renoType?: string | null): number => {
+          if (!renoType) return 4; // Sin tipo = último
+          const typeLower = renoType.toLowerCase();
+          if (typeLower.includes('major')) return 1; // Major primero
+          if (typeLower.includes('medium')) return 2; // Medium segundo
+          if (typeLower.includes('light')) return 3; // Light tercero
+          return 4; // Otros últimos
+        };
+        
+        // Primero: propiedades overdue (rojas) primero
+        if (a.isOverdue !== b.isOverdue) {
+          return a.isOverdue ? -1 : 1;
+        }
+        
+        // Segundo: ordenar por tipo de renovación (Major > Medium > Light)
+        const aPriority = getRenoTypePriority(a.renoType);
+        const bPriority = getRenoTypePriority(b.renoType);
+        if (aPriority !== bPriority) {
+          return aPriority - bPriority;
+        }
+        
+        // Tercero: ordenar por proximaActualizacion (más antiguas primero)
         const aDate = a.proximaActualizacion ? new Date(a.proximaActualizacion) : new Date(0);
         const bDate = b.proximaActualizacion ? new Date(b.proximaActualizacion) : new Date(0);
         return aDate.getTime() - bDate.getTime();
@@ -247,8 +274,8 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
             </div>
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
               {property.renovador && <span>{property.renovador}</span>}
-              {property.renoDuration !== null && property.renoDuration !== undefined && (
-                <span>• {t.dashboard?.todoWidgets?.workDays || "Días de obra"}: {property.renoDuration}</span>
+              {property.renoType && (
+                <span>• {property.renoType}</span>
               )}
             </div>
           </div>
@@ -318,19 +345,27 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
           {/* Lista de propiedades pendientes */}
           {hasItems && widget.properties.length > 0 && (
             <div className="space-y-2 flex-1 overflow-y-auto max-h-[500px] pr-1 scrollbar-overlay">
-              {widget.properties.map((property, index) => (
-                <div
-                  key={property.id}
-                  onClick={(e) => handlePropertyClick(e, property, widget.id)}
-                  className={cn(
-                    "p-2.5 rounded-lg cursor-pointer",
-                    "hover:bg-muted/30",
-                    "border border-border/50"
-                  )}
-                >
-                  {renderPropertyInfo(property, widget.id)}
-                </div>
-              ))}
+              {widget.properties.map((property, index) => {
+                // Verificar si la propiedad está overdue (debería haberse actualizado antes)
+                const isOverdue = (property as any).isOverdue === true;
+                
+                return (
+                  <div
+                    key={property.id}
+                    onClick={(e) => handlePropertyClick(e, property, widget.id)}
+                    className={cn(
+                      "p-2.5 rounded-lg cursor-pointer",
+                      "hover:bg-muted/30",
+                      "border",
+                      isOverdue 
+                        ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
+                        : "border-border/50"
+                    )}
+                  >
+                    {renderPropertyInfo(property, widget.id)}
+                  </div>
+                );
+              })}
             </div>
           )}
           
@@ -421,19 +456,27 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                   {hasItems && widget.properties.length > 0 && (
                     <CollapsibleContent className="px-4 pb-4">
                       <div className="pt-3 space-y-2">
-                        {widget.properties.map((property) => (
-                          <div
-                            key={property.id}
-                            onClick={(e) => handlePropertyClick(e, property, widget.id)}
-                            className={cn(
-                              "p-2.5 rounded-lg cursor-pointer",
-                              "hover:bg-muted/30",
-                              "border border-border/50"
-                            )}
-                          >
-                            {renderPropertyInfo(property, widget.id)}
-                          </div>
-                        ))}
+                        {widget.properties.map((property) => {
+                          // Verificar si la propiedad está overdue (debería haberse actualizado antes)
+                          const isOverdue = (property as any).isOverdue === true;
+                          
+                          return (
+                            <div
+                              key={property.id}
+                              onClick={(e) => handlePropertyClick(e, property, widget.id)}
+                              className={cn(
+                                "p-2.5 rounded-lg cursor-pointer",
+                                "hover:bg-muted/30",
+                                "border",
+                                isOverdue 
+                                  ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
+                                  : "border-border/50"
+                              )}
+                            >
+                              {renderPropertyInfo(property, widget.id)}
+                            </div>
+                          );
+                        })}
                       </div>
                     </CollapsibleContent>
                   )}
