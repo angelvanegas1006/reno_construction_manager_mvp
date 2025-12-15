@@ -778,6 +778,20 @@ export function convertSupabaseToChecklist(
     }
   });
 
+  // Log final de secciones con fotos antes de retornar
+  console.log('[convertSupabaseToChecklist] 📊 Final sections summary:', 
+    Object.entries(sections).map(([sectionId, section]) => ({
+      sectionId,
+      uploadZonesCount: section.uploadZones?.length || 0,
+      uploadZones: section.uploadZones?.map(z => ({
+        id: z.id,
+        photosCount: z.photos.length,
+        videosCount: z.videos.length,
+      })) || [],
+      hasPhotos: section.uploadZones?.some(z => z.photos.length > 0) || false,
+    }))
+  );
+
   return { sections };
 }
 
