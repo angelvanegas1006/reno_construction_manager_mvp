@@ -826,7 +826,7 @@ export default function RenoChecklistPage() {
             variant: "outline",
             disabled: !hasUnsavedChanges,
           },
-          ...(getPropertyRenoPhase(property) === "initial-check" ? [{
+          {
             label: t.checklist.submitChecklist,
             onClick: async () => {
               if (!property) return;
@@ -840,7 +840,8 @@ export default function RenoChecklistPage() {
               }, 2000);
             },
             variant: "default" as const,
-          }] : []),
+            disabled: !canComplete || isCompleting,
+          },
         ]}
       />
 
