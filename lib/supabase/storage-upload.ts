@@ -39,7 +39,12 @@ export async function uploadFileToStorage(
     });
 
   if (error) {
-    console.error('Error uploading file:', error);
+    console.error('[storage-upload] ❌ Error uploading file:', error);
+    // Si el bucket no existe, proporcionar instrucciones claras
+    if (error.message?.includes('Bucket not found') || error.message?.includes('bucket')) {
+      console.error(`[storage-upload] ⚠️ Bucket '${STORAGE_BUCKET}' no encontrado. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
+      throw new Error(`Bucket '${STORAGE_BUCKET}' no encontrado. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
+    }
     throw new Error(`Error al subir archivo: ${error.message}`);
   }
 
