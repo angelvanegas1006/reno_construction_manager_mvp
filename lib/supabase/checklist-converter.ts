@@ -123,8 +123,10 @@ export function convertUploadZonesToElements(
   uploadZones.forEach((uploadZone) => {
     // Crear elemento para fotos (siempre crear el elemento, incluso si está vacío)
     const allPhotos = uploadZone.photos || [];
+    // IMPORTANTE: Solo guardar URLs HTTP (fotos ya subidas), NO base64
+    // Las fotos en base64 se subirán primero y luego se guardarán con sus URLs
     const photosWithHttp = allPhotos.filter(photo => photo.data && photo.data.startsWith('http'));
-    const imageUrls = photosWithHttp.map(photo => photo.data);
+    const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
     
     console.log(`[convertUploadZonesToElements] Processing upload zone "${uploadZone.id}":`, {
       zoneId,
@@ -132,26 +134,30 @@ export function convertUploadZonesToElements(
       totalPhotos: allPhotos.length,
       photosWithHttp: photosWithHttp.length,
       photosWithBase64: allPhotos.filter(p => p.data?.startsWith('data:')).length,
+      photosWithoutData: allPhotos.filter(p => !p.data).length,
       imageUrls: imageUrls,
-      imageUrlsCount: imageUrls.length,
+      imageUrlsCount: imageUrls?.length || 0,
+      willCreateElement: true, // Siempre crear el elemento
     });
 
-    // Crear elemento siempre, incluso si no hay fotos todavía (para mantener la estructura)
+    // IMPORTANTE: Siempre crear el elemento, incluso si no hay fotos todavía
+    // Esto asegura que la estructura se mantenga y que las fotos se puedan cargar después
     const photoElement = {
       zone_id: zoneId,
       element_name: `fotos-${uploadZone.id}`,
       condition: null,
-      image_urls: imageUrls.length > 0 ? imageUrls : null,
+      image_urls: imageUrls, // null si no hay URLs HTTP
       notes: null,
       quantity: null,
       exists: null,
     };
     
-    console.log(`[convertUploadZonesToElements] Created photo element:`, {
+    console.log(`[convertUploadZonesToElements] ✅ Created photo element:`, {
       element_name: photoElement.element_name,
       zone_id: photoElement.zone_id,
       image_urls: photoElement.image_urls,
       image_urls_count: photoElement.image_urls?.length || 0,
+      willBeSaved: true,
     });
     
     elements.push(photoElement);

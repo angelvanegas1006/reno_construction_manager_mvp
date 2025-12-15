@@ -657,16 +657,46 @@ export function useSupabaseChecklist({
         }));
       }
 
+      // Log de la sección antes de convertir
+      console.log(`[useSupabaseChecklist] 📋 Section data before conversion:`, {
+        sectionId,
+        uploadZonesCount: updatedSection.uploadZones?.length || 0,
+        uploadZones: updatedSection.uploadZones?.map(uz => ({
+          id: uz.id,
+          photosCount: uz.photos?.length || 0,
+          videosCount: uz.videos?.length || 0,
+          photos: uz.photos?.map(p => ({
+            id: p.id,
+            hasData: !!p.data,
+            dataType: p.data?.substring(0, 20) || 'no data',
+            startsWithHttp: p.data?.startsWith('http') || false,
+          })) || [],
+        })) || [],
+        zoneId: zone.id,
+        zoneType: zone.zone_type,
+      });
+
       // Convertir sección a elementos (con URLs actualizadas)
       const elementsToSave = convertSectionToElements(sectionId, updatedSection, zone.id);
       
       // Log elementos que se van a guardar
       const photoElements = elementsToSave.filter(e => e.element_name?.startsWith('fotos-'));
-      console.log(`[useSupabaseChecklist] 💾 Saving ${photoElements.length} photo elements:`, 
+      console.log(`[useSupabaseChecklist] 💾 Saving ${photoElements.length} photo elements out of ${elementsToSave.length} total elements:`, 
         photoElements.map(e => ({
           element_name: e.element_name,
+          zone_id: e.zone_id,
           image_urls_count: e.image_urls?.length || 0,
           image_urls: e.image_urls,
+        }))
+      );
+      
+      // Log todos los elementos para debugging
+      console.log(`[useSupabaseChecklist] 📦 All elements to save (${elementsToSave.length}):`, 
+        elementsToSave.map(e => ({
+          element_name: e.element_name,
+          zone_id: e.zone_id,
+          has_image_urls: !!e.image_urls,
+          image_urls_count: e.image_urls?.length || 0,
         }))
       );
 
