@@ -632,9 +632,18 @@ export function useSupabaseChecklist({
       // NO guardar automáticamente aquí - solo actualizar estado local
       // El guardado se hará al cambiar de sección o al finalizar
 
+      console.log('[useSupabaseChecklist] 🔄 updateSection called:', {
+        sectionId,
+        sectionData,
+        uploadZones: sectionData.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length }))
+      });
+
       // Actualizar estado local
       setChecklist((prevChecklist) => {
-        if (!prevChecklist) return null;
+        if (!prevChecklist) {
+          console.warn('[useSupabaseChecklist] ⚠️ prevChecklist is null');
+          return null;
+        }
 
         const currentSection = prevChecklist.sections[sectionId] || {};
         const updatedSection: ChecklistSection = {
@@ -647,11 +656,19 @@ export function useSupabaseChecklist({
           [sectionId]: updatedSection,
         };
 
-        return {
+        const updatedChecklist = {
           ...prevChecklist,
           sections: updatedSections,
           lastUpdated: new Date().toISOString(),
         };
+
+        console.log('[useSupabaseChecklist] ✅ Checklist updated:', {
+          sectionId,
+          updatedSectionUploadZones: updatedSection.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+          allSections: Object.keys(updatedSections)
+        });
+
+        return updatedChecklist;
       });
 
       // Actualizar referencia de sección actual
