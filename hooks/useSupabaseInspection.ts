@@ -61,22 +61,27 @@ export function useSupabaseInspection(
       setError(null);
 
       // Buscar inspección existente por property_id e inspection_type
+      // Ordenar por created_at descendente para obtener la más reciente
       // Intentar primero con inspection_type, si falla (campo no existe), buscar sin él
       let { data: inspectionData, error: inspectionError } = await supabase
         .from('property_inspections')
         .select('*')
         .eq('property_id', propertyId)
         .eq('inspection_type', inspectionType)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       // Si el error es que la columna no existe (42883), buscar sin inspection_type
       if (inspectionError && (inspectionError.code === '42883' || inspectionError.message?.includes('column') || inspectionError.message?.includes('does not exist'))) {
         console.warn('Campo inspection_type no existe aún, buscando sin filtro:', inspectionError);
-        // Buscar sin filtro de inspection_type (solo por property_id)
+        // Buscar sin filtro de inspection_type (solo por property_id), ordenar por fecha descendente
         const { data: allInspections, error: allError } = await supabase
           .from('property_inspections')
           .select('*')
           .eq('property_id', propertyId)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
         
         if (allError && allError.code !== 'PGRST116') {
@@ -86,6 +91,17 @@ export function useSupabaseInspection(
         inspectionError = null;
       } else if (inspectionError && inspectionError.code !== 'PGRST116') {
         throw inspectionError;
+      }
+
+      // Log para debugging
+      if (inspectionData) {
+        console.log('[useSupabaseInspection] ✅ Found inspection:', {
+          id: inspectionData.id,
+          propertyId,
+          inspectionType,
+          createdAt: inspectionData.created_at,
+          status: inspectionData.inspection_status,
+        });
       }
 
       if (!inspectionData) {

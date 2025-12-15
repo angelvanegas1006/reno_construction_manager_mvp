@@ -434,6 +434,7 @@ export function useSupabaseChecklist({
   // Usar un ref para rastrear el último zones.length y elements.length procesados
   const lastProcessedZonesLengthRef = useRef(0);
   const lastProcessedElementsLengthRef = useRef(0);
+  const lastProcessedInspectionIdRef = useRef<string | null>(null);
   
   useEffect(() => {
     // Solo procesar si no hay inicialización en progreso, tenemos datos básicos, y no estamos cargando
@@ -446,13 +447,27 @@ export function useSupabaseChecklist({
       return;
     }
 
-    // Verificar si zones o elements cambiaron
+    // Verificar si la inspección cambió - si cambió, resetear los contadores
+    if (inspectionId !== lastProcessedInspectionIdRef.current) {
+      console.log('[useSupabaseChecklist] 🔄 Inspection changed, resetting counters...', {
+        oldInspectionId: lastProcessedInspectionIdRef.current,
+        newInspectionId: inspectionId,
+      });
+      lastProcessedInspectionIdRef.current = inspectionId;
+      lastProcessedZonesLengthRef.current = 0;
+      lastProcessedElementsLengthRef.current = 0;
+      // No recargar aquí, esperar a que el primer useEffect inicialice
+      return;
+    }
+
+    // Verificar si zones o elements cambiaron (solo si es la misma inspección)
     const zonesCountChanged = zones.length > 0 && zones.length !== lastProcessedZonesLengthRef.current;
     const elementsCountChanged = elements.length !== lastProcessedElementsLengthRef.current;
-    const shouldReload = (zonesCountChanged || elementsCountChanged) && !initializationInProgressRef.current;
+    const shouldReload = (zonesCountChanged || elementsCountChanged) && !initializationInProgressRef.current && inspectionId === lastProcessedInspectionIdRef.current;
     
     if (shouldReload) {
       console.log('[useSupabaseChecklist] 🔄 Zones/Elements changed, reloading checklist...', {
+        inspectionId,
         oldZonesCount: lastProcessedZonesLengthRef.current,
         newZonesCount: zones.length,
         oldElementsCount: lastProcessedElementsLengthRef.current,
