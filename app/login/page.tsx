@@ -23,6 +23,8 @@ export default function LoginPage() {
       } else if (role === 'admin') {
         router.push("/reno/construction-manager/kanban");
       }
+      // Note: settlements_analyst is handled via localStorage in login-form.tsx
+      // and doesn't come from Supabase AppRole enum
     }
   }, [user, role, supabaseLoading, appLoading, router]);
 

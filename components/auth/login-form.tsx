@@ -88,10 +88,21 @@ export function LoginForm() {
         role = 'user';
       }
 
-      // Redirect based on role - todos van a la home
+      // Redirect based on role
       if (role === 'foreman' || role === 'admin' || role === 'construction_manager') {
         router.push("/reno/construction-manager");
         toast.success(role === 'admin' ? "¡Bienvenido Admin!" : "¡Bienvenido!");
+      } else if (email === 'santiagofigueiredo@prophero.com') {
+        // Special handling for Santiago - settlements_analyst
+        localStorage.setItem("userRole", "settlements_analyst");
+        router.push("/settlements/kanban");
+        toast.success("¡Bienvenido Analista de Escrituración!");
+      } else if (role === 'settlements_analyst') {
+        // For settlements_analyst, use the old auth system temporarily
+        // Set role in localStorage for the old auth context
+        localStorage.setItem("userRole", "settlements_analyst");
+        router.push("/settlements/kanban");
+        toast.success("¡Bienvenido Analista de Escrituración!");
       } else {
         toast.error("No tienes permisos para acceder a esta aplicación");
         await supabase.auth.signOut();
