@@ -102,9 +102,10 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
       }));
   }, [renovatorGroups]);
 
-  // Top 5 only for widget
-  const top5Ranking = useMemo(() => {
-    return fullRanking.slice(0, 5);
+  // Show more renovators in widget to fill space (up to 8, or all if less than 8)
+  const displayedRanking = useMemo(() => {
+    // Show up to 8 renovators, or all if there are fewer than 8
+    return fullRanking.length <= 8 ? fullRanking : fullRanking.slice(0, 8);
   }, [fullRanking]);
 
   // Get properties for selected renovator
@@ -129,7 +130,7 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
   };
 
   const handlePropertyClick = (property: Property) => {
-    router.push(`/reno/construction-manager/property/${property.id}`);
+    router.push(`/reno/construction-manager/property/${property.id}?from=home`);
     setIsModalOpen(false);
     setSelectedRenovator(null);
   };
@@ -211,15 +212,16 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
             {t.dashboard.activeWorksByRenovatorDescription}
           </p>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col">
-          <div className="space-y-2 flex-1">
-            {top5Ranking.length === 0 ? (
+        <CardContent className="pt-6 flex-1 flex flex-col min-h-0">
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="space-y-2 flex-1 overflow-y-auto">
+            {displayedRanking.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 {t.messages.notFound}
               </p>
             ) : (
               <>
-                {top5Ranking.map((item) => (
+                {displayedRanking.map((item) => (
                   <div
                     key={item.renovatorName}
                     onClick={() => handleRenovatorClickInWidget(item.renovatorName)}
@@ -255,7 +257,7 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
                     </div>
                   </div>
                 ))}
-                {fullRanking.length > 5 && (
+                {fullRanking.length > displayedRanking.length && (
                   <Button
                     variant="outline"
                     className="w-full mt-2"
@@ -270,6 +272,7 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
                 )}
               </>
             )}
+            </div>
           </div>
         </CardContent>
       </Card>

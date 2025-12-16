@@ -12,6 +12,8 @@ interface RenoPropertiesContextValue {
   totalProperties: number;
   // Helper to get all properties as flat array
   allProperties: Property[];
+  // Function to manually refresh properties
+  refetchProperties: () => Promise<void>;
 }
 
 const RenoPropertiesContext = createContext<RenoPropertiesContextValue | undefined>(undefined);
@@ -25,7 +27,7 @@ interface RenoPropertiesProviderProps {
  * This eliminates duplicate fetches between Home and Kanban pages
  */
 export function RenoPropertiesProvider({ children }: RenoPropertiesProviderProps) {
-  const { propertiesByPhase, loading, error, totalProperties } = useSupabaseKanbanProperties();
+  const { propertiesByPhase, loading, error, totalProperties, refetch } = useSupabaseKanbanProperties();
 
   // Memoize allProperties to avoid recalculating on every render
   const allProperties = React.useMemo(() => {
@@ -39,6 +41,7 @@ export function RenoPropertiesProvider({ children }: RenoPropertiesProviderProps
     error,
     totalProperties,
     allProperties,
+    refetchProperties: refetch,
   };
 
   return (

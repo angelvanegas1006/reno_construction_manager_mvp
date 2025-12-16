@@ -115,18 +115,48 @@ export async function findRecordByPropertyId(
       console.debug('[findRecordByPropertyId] Property ID is already an Airtable Record ID, validating:', propertyId);
       try {
         // Intentar obtener el registro para validar que existe
-        await base(tableName).find(propertyId);
+        // Usar una promesa con timeout para evitar que el error se propague
+        await Promise.race([
+          base(tableName).find(propertyId),
+          // Timeout de 5 segundos para evitar esperas infinitas
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Validation timeout')), 5000)
+          ),
+        ]);
         console.debug('[findRecordByPropertyId] ✅ Record ID validated:', propertyId);
         return propertyId;
       } catch (validationError: any) {
         // Si el Record ID no existe, NO retornarlo - buscar por Property ID en su lugar
         const errorMessage = validationError?.message || String(validationError);
-        console.warn('[findRecordByPropertyId] ⚠️ Record ID does not exist, will search by Property ID instead:', {
+        const errorCode = validationError?.statusCode || validationError?.status;
+        
+        // Si el error es específicamente que el record no existe, retornar null inmediatamente
+        // para evitar búsquedas innecesarias y errores en consola
+        // También verificar si el error viene de Airtable directamente
+        const isNotFoundError = 
+          errorMessage.includes('does not exist') || 
+          errorMessage.includes('not exist') ||
+          errorMessage.includes('not found') ||
+          errorMessage.includes('Record ID') && errorMessage.includes('does not exist') ||
+          errorCode === 404 ||
+          (validationError?.error && typeof validationError.error === 'string' && validationError.error.includes('does not exist'));
+        
+        if (isNotFoundError) {
+          // Solo loguear como debug, no como error o warning
+          console.debug('[findRecordByPropertyId] Record ID does not exist in Airtable, returning null:', {
+            recordId: propertyId,
+            tableName,
+          });
+          return null;
+        }
+        
+        // Para otros errores (autenticación, red, etc.), loguear como debug pero continuar búsqueda
+        console.debug('[findRecordByPropertyId] Error validating Record ID, will search by Property ID instead:', {
           recordId: propertyId,
           error: errorMessage,
+          code: errorCode,
         });
-        // NO retornar aquí - continuar con la búsqueda normal abajo
-        // Si el Record ID no existe, debemos buscar el registro correcto por Property ID
+        // Continuar con la búsqueda normal abajo
       }
     }
 

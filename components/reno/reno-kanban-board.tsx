@@ -117,7 +117,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     // Always go to "tareas" tab when clicking from kanban
     // Pass viewMode as query param to remember the current view
     startTransition(() => {
-      router.push(`/reno/construction-manager/property/${property.id}?tab=tareas&viewMode=${viewMode}`);
+      router.push(`/reno/construction-manager/property/${property.id}?tab=tareas&viewMode=${viewMode}&from=kanban`);
     });
   };
 

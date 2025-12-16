@@ -63,7 +63,17 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
     return counts;
   }, [propertiesByPhase]);
 
-  // Only use visible columns for maxCount calculation
+  // Calculate totalProperties: sum of all properties across visible phases
+  // This is used to calculate DISTRIBUTIONAL percentages: each phase's percentage relative to total portfolio
+  // Example: If total is 100 properties:
+  //   - "Obras en proceso": 41/100 = 41%
+  //   - "Upcoming Reno": 30/100 = 30%
+  //   - "Pendiente Presupuesto (Renovador)": 15/100 = 15%
+  const totalProperties = useMemo(() => {
+    return visibleRenoKanbanColumns.reduce((sum, col) => sum + stageCounts[col.stage], 0);
+  }, [visibleRenoKanbanColumns, stageCounts]);
+  
+  // maxCount is still used for bar width visualization (comparative)
   const maxCount = Math.max(
     ...visibleRenoKanbanColumns.map(col => stageCounts[col.stage]),
     1
@@ -140,8 +150,8 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
                       <span className="text-sm font-semibold text-foreground tabular-nums">
                         {count}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {maxCount > 0 ? `${Math.round((count / maxCount) * 100)}%` : '0%'}
+                      <span className="text-xs text-muted-foreground" title={`${count} de ${totalProperties} propiedades totales en el portfolio`}>
+                        {totalProperties > 0 ? `${Math.round((count / totalProperties) * 100)}%` : '0%'}
                       </span>
                     </div>
                   </div>
