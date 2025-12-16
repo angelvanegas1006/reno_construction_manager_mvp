@@ -34,17 +34,20 @@ export function ChecklistUploadZone({
   maxSizeMB = DEFAULT_MAX_SIZE,
   hideTitle = false,
 }: ChecklistUploadZoneProps) {
-  // Detectar si estamos en mobile
-  const [isMobile, setIsMobile] = useState(false);
+  // Detectar si estamos en mobile o tablet (no desktop)
+  const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
   
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    const checkMobileOrTablet = () => {
+      // Considerar mobile/tablet si el ancho es menor a 1024px (lg breakpoint) o si es un dispositivo móvil/tablet
+      const isSmallScreen = window.innerWidth < 1024;
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobileOrTablet(isSmallScreen || isMobileDevice);
     };
     
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    checkMobileOrTablet();
+    window.addEventListener('resize', checkMobileOrTablet);
+    return () => window.removeEventListener('resize', checkMobileOrTablet);
   }, []);
   const handlePhotosChange = useCallback((files: FileUpload[]) => {
     // Use ref to get latest uploadZone value to avoid stale closure
@@ -371,7 +374,7 @@ export function ChecklistUploadZone({
           multiple
           accept={PHOTO_TYPES.join(",")}
           onChange={photosHook.handleFileSelect}
-          capture={isMobile ? "environment" : undefined}
+          capture={isMobileOrTablet ? "environment" : undefined}
           className="hidden"
         />
         <input
@@ -380,12 +383,12 @@ export function ChecklistUploadZone({
           multiple
           accept={VIDEO_TYPES.join(",")}
           onChange={videosHook.handleFileSelect}
-          capture={isMobile ? "environment" : undefined}
+          capture={isMobileOrTablet ? "environment" : undefined}
           className="hidden"
         />
 
         <div className="flex flex-col sm:flex-row gap-2 justify-center">
-          {isMobile ? (
+          {isMobileOrTablet ? (
             <>
               {/* Botones para mobile: captura directa desde cámara */}
               <Button

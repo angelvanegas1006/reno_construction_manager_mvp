@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Menu } from "lucide-react";
+import { ArrowLeft, Menu, Save, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -100,8 +100,9 @@ export function NavbarL3({
               onClick={saveAction.onClick}
               disabled={saveAction.disabled}
               className="flex items-center gap-1 md:gap-2 rounded-full text-xs md:text-sm px-2 md:px-4 h-8 md:h-auto"
+              title={saveAction.label}
             >
-              {saveAction.icon}
+              {saveAction.icon || <Save className="h-4 w-4" />}
               <span className="hidden sm:inline">{saveAction.label}</span>
             </Button>
           )}
@@ -111,8 +112,9 @@ export function NavbarL3({
               onClick={submitAction.onClick}
               disabled={submitAction.disabled}
               className="flex items-center gap-1 md:gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white text-xs md:text-sm px-2 md:px-4 h-8 md:h-auto"
+              title={submitAction.label}
             >
-              {submitAction.icon}
+              {submitAction.icon || <Send className="h-4 w-4" />}
               <span className="hidden sm:inline">{submitAction.label}</span>
             </Button>
           )}
