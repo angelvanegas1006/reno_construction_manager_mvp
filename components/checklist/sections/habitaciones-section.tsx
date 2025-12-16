@@ -1039,6 +1039,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           type="file"
                                           accept="image/*"
                                           multiple
+                                          capture={typeof window !== 'undefined' && (window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) ? "environment" : undefined}
                                           onChange={async (e) => {
                                             const files = Array.from(e.target.files || []);
                                             const newPhotos: FileUpload[] = await Promise.all(files.map(async (file) => {
@@ -1641,6 +1642,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           type="file"
                                           accept="image/*"
                                           multiple
+                                          capture={typeof window !== 'undefined' && (window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) ? "environment" : undefined}
                                           onChange={async (e) => {
                                             const files = Array.from(e.target.files || []);
                                             const newPhotos: FileUpload[] = await Promise.all(files.map(async (file) => {
