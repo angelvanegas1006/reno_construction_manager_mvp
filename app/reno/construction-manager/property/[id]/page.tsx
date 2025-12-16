@@ -41,7 +41,7 @@ const PdfViewer = dynamic(() => import("@/components/reno/pdf-viewer").then(mod 
   ),
 });
 import { appendSetUpNotesToAirtable } from "@/lib/airtable/initial-check-sync";
-import { updateAirtableWithRetry, findRecordByPropertyId } from "@/lib/airtable/client";
+import { updateAirtableWithRetry, findTransactionsRecordIdByUniqueId } from "@/lib/airtable/client";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
 import { createClient } from "@/lib/supabase/client";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
@@ -262,24 +262,27 @@ export default function RenoPropertyDetailPage() {
               // Continue but mark Airtable update as failed
               airtableUpdateSuccess = false;
             } else {
-              // Validate Record ID using findRecordByPropertyId (simplified to only use Record ID)
-              console.log(`[Property Update] Validating Record ID in Transactions:`, airtablePropertyId);
-              const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
+              // IMPORTANTE: Usar Unique ID para buscar directamente en Transactions (método más confiable)
+              const uniqueId = supabaseProperty?.['Unique ID From Engagements'];
               
-              if (!recordId) {
-                console.error(`[Property Update] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId} in table "Transactions".`);
-                console.error(`[Property Update] This could mean:`, {
-                  recordIdDoesNotExist: 'The Record ID does not exist in Airtable',
-                  recordIdInvalid: 'The Record ID format is invalid',
-                  airtableConnectionIssue: 'There is a connection issue with Airtable',
-                });
-                toast.error("Error: No se encontró el registro en Airtable. Contacta al administrador.");
-                // Continue but mark Airtable update as failed
+              if (!uniqueId) {
+                console.error(`[Property Update] Property ${propertyId} does not have Unique ID From Engagements. Cannot update Airtable.`);
+                toast.error("Error: La propiedad no tiene Unique ID. Contacta al administrador.");
                 airtableUpdateSuccess = false;
               } else {
-                console.log(`[Property Update] Record ID validated successfully in Transactions:`, recordId);
+                console.log(`[Property Update] Searching Transactions by Unique ID:`, uniqueId);
                 
-                // Update Est. visit date in Airtable (field ID: fldIhqPOAFL52MMBn)
+                // Buscar el Record ID de Transactions usando el Unique ID
+                const recordId = await findTransactionsRecordIdByUniqueId(uniqueId);
+                
+                if (!recordId) {
+                  console.error(`[Property Update] Airtable Transactions record not found for Unique ID ${uniqueId}.`);
+                  toast.error("Error: No se encontró el registro en Airtable. Contacta al administrador.");
+                  airtableUpdateSuccess = false;
+                } else {
+                  console.log(`[Property Update] ✅ Found Transactions Record ID:`, recordId);
+                  
+                  // Update Est. visit date in Airtable (field ID: fldIhqPOAFL52MMBn)
                 // NOTE: "Set Up Status" field does not exist in "Transactions" table,
                 // so we only update the Estimated Visit Date here.
                 // The "Set Up Status" is already updated in Supabase, which is the source of truth.
@@ -292,27 +295,28 @@ export default function RenoPropertyDetailPage() {
                 // 2. Supabase is already updated with the correct status
                 // 3. The status sync happens from Supabase to Airtable via other mechanisms if needed
                 
-                console.log(`[Property Update] Attempting to update Airtable (Transactions):`, {
-                  tableName,
-                  recordId,
-                  airtableFields,
-                  propertyId,
-                  airtablePropertyId,
-                });
-                
-                airtableUpdateSuccess = await updateAirtableWithRetry(tableName, recordId, airtableFields);
-                
-                if (!airtableUpdateSuccess) {
-                  console.error(`[Property Update] Failed to update Airtable (Transactions) for property ${propertyId}`, {
+                  console.log(`[Property Update] Attempting to update Airtable (Transactions):`, {
                     tableName,
                     recordId,
                     airtableFields,
-                    airtablePropertyId,
                     propertyId,
+                    uniqueId,
                   });
-                  toast.error("Error: No se pudo actualizar Airtable. La propiedad se guardó en Supabase pero puede haber un problema de sincronización.");
-                } else {
-                  console.log(`[Property Update] ✅ Successfully updated Airtable (Transactions) for property ${propertyId}`);
+                
+                  airtableUpdateSuccess = await updateAirtableWithRetry(tableName, recordId, airtableFields);
+                  
+                  if (!airtableUpdateSuccess) {
+                    console.error(`[Property Update] Failed to update Airtable (Transactions) for property ${propertyId}`, {
+                      tableName,
+                      recordId,
+                      airtableFields,
+                      uniqueId,
+                      propertyId,
+                    });
+                    toast.error("Error: No se pudo actualizar Airtable. La propiedad se guardó en Supabase pero puede haber un problema de sincronización.");
+                  } else {
+                    console.log(`[Property Update] ✅ Successfully updated Airtable (Transactions) for property ${propertyId}`);
+                  }
                 }
               }
             }

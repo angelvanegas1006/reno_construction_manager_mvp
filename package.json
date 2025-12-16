@@ -25,6 +25,8 @@
     "test:sync-airtable": "tsx scripts/test-airtable-sync.ts",
     "test:phase-transitions": "tsx scripts/test-phase-transitions-simple.ts",
     "sync:all-phases": "tsx scripts/sync-all-phases.ts",
+    "debug:missing-property": "tsx scripts/debug-missing-property.ts",
+    "sync:specific-property": "tsx scripts/sync-specific-property.ts",
     "sync:initial-check": "tsx scripts/sync-initial-check.ts",
     "sync:upcoming-settlements": "tsx scripts/sync-upcoming-settlements.ts",
     "sync:reno-in-progress": "tsx scripts/sync-reno-in-progress.ts",
