@@ -37,15 +37,35 @@ export async function updateAirtableRecord(
 
     console.log(`[Airtable Update] Updating record ${recordId} in table ${tableName} with fields:`, fields);
     
-    await base(tableName).update([
-      {
-        id: recordId,
-        fields,
-      },
-    ]);
-    
-    console.log(`✅ Updated Airtable record ${recordId} in ${tableName}`, { fields });
-    return true;
+    try {
+      await base(tableName).update([
+        {
+          id: recordId,
+          fields,
+        },
+      ]);
+      
+      console.log(`✅ Updated Airtable record ${recordId} in ${tableName}`, { fields });
+      return true;
+    } catch (updateError: any) {
+      // Si el error es que el Record ID no existe en esta tabla específica,
+      // proporcionar más información de diagnóstico
+      const errorMessage = updateError?.message || String(updateError);
+      if (errorMessage.includes('does not exist in this table')) {
+        console.error(`[Airtable Update] ❌ Record ID ${recordId} does not exist in table "${tableName}"`, {
+          recordId,
+          tableName,
+          possibleCauses: [
+            'Record ID belongs to a different table',
+            'Table name is incorrect',
+            'Record was deleted from Airtable',
+            'Record ID format is invalid',
+          ],
+          suggestion: 'Verify that the Record ID belongs to the correct table in Airtable',
+        });
+      }
+      throw updateError; // Re-throw para que el manejo de errores superior lo capture
+    }
   } catch (error: any) {
     // Extraer toda la información posible del error
     let errorDetails: any = {};
@@ -126,22 +146,36 @@ export async function findRecordByPropertyId(
       return null;
     }
 
-    // Validar que el Record ID existe en Airtable
+    // Validar que el Record ID existe en la tabla especificada
     try {
-      await Promise.race([
+      const record = await Promise.race([
         base(tableName).find(airtablePropertyId),
         // Timeout de 5 segundos para evitar esperas infinitas
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Validation timeout')), 5000)
         ),
-      ]);
-      console.debug('[findRecordByPropertyId] ✅ Record ID validated:', airtablePropertyId);
-      return airtablePropertyId;
+      ]) as any;
+      
+      // Verificar que el record realmente existe y pertenece a esta tabla
+      if (record && record.id === airtablePropertyId) {
+        console.debug('[findRecordByPropertyId] ✅ Record ID validated in table:', {
+          recordId: airtablePropertyId,
+          tableName,
+        });
+        return airtablePropertyId;
+      }
+      
+      console.warn('[findRecordByPropertyId] Record ID found but validation failed:', {
+        recordId: airtablePropertyId,
+        tableName,
+        recordIdMatch: record?.id === airtablePropertyId,
+      });
+      return null;
     } catch (validationError: any) {
       const errorMessage = validationError?.message || String(validationError);
       const errorCode = validationError?.statusCode || validationError?.status;
       
-      // Si el Record ID no existe, retornar null
+      // Si el Record ID no existe en esta tabla específica, retornar null
       const isNotFoundError = 
         errorMessage.includes('does not exist') || 
         errorMessage.includes('not exist') ||
@@ -151,9 +185,15 @@ export async function findRecordByPropertyId(
         (validationError?.error && typeof validationError.error === 'string' && validationError.error.includes('does not exist'));
       
       if (isNotFoundError) {
-        console.debug('[findRecordByPropertyId] Record ID does not exist in Airtable:', {
+        console.error('[findRecordByPropertyId] ❌ Record ID does not exist in table:', {
           recordId: airtablePropertyId,
           tableName,
+          error: errorMessage,
+          possibleCauses: [
+            `Record ID belongs to a different table (not "${tableName}")`,
+            'Record was deleted from Airtable',
+            'Table name is incorrect',
+          ],
         });
         return null;
       }
@@ -161,6 +201,7 @@ export async function findRecordByPropertyId(
       // Para otros errores (autenticación, red, etc.), loguear como error
       console.error('[findRecordByPropertyId] Error validating Record ID:', {
         recordId: airtablePropertyId,
+        tableName,
         error: errorMessage,
         code: errorCode,
       });
@@ -190,25 +231,53 @@ export async function updateAirtableWithRetry(
   fields: Record<string, any>,
   maxRetries = 3
 ): Promise<boolean> {
+  console.log(`[updateAirtableWithRetry] Starting update attempt:`, {
+    tableName,
+    recordId,
+    fields,
+    maxRetries,
+  });
+  
   for (let i = 0; i < maxRetries; i++) {
     try {
+      console.log(`[updateAirtableWithRetry] Attempt ${i + 1}/${maxRetries}`);
       const success = await updateAirtableRecord(tableName, recordId, fields);
-      if (success) return true;
+      if (success) {
+        console.log(`[updateAirtableWithRetry] ✅ Success on attempt ${i + 1}`);
+        return true;
+      }
+      console.warn(`[updateAirtableWithRetry] updateAirtableRecord returned false on attempt ${i + 1}`);
     } catch (error: any) {
       // Si es un error de rate limit, esperar antes de reintentar
       if (error?.statusCode === 429 || error?.message?.includes('rate limit')) {
         const waitTime = Math.pow(2, i) * 1000; // Exponential backoff
-        console.log(`Rate limit hit, waiting ${waitTime}ms before retry ${i + 1}/${maxRetries}`);
+        console.log(`[updateAirtableWithRetry] Rate limit hit, waiting ${waitTime}ms before retry ${i + 1}/${maxRetries}`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }
       
+      console.error(`[updateAirtableWithRetry] Error on attempt ${i + 1}:`, {
+        error: error?.message || error,
+        statusCode: error?.statusCode,
+        tableName,
+        recordId,
+        fields,
+      });
+      
       if (i === maxRetries - 1) {
-        console.error('Failed to update Airtable after retries:', error);
+        console.error('[updateAirtableWithRetry] Failed to update Airtable after all retries:', {
+          error: error?.message || error,
+          statusCode: error?.statusCode,
+          tableName,
+          recordId,
+          fields,
+        });
         return false;
       }
     }
   }
+  
+  console.error('[updateAirtableWithRetry] All retries exhausted, returning false');
   return false;
 }
 

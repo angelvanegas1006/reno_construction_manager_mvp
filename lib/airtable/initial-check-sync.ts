@@ -12,7 +12,8 @@ export async function appendSetUpNotesToAirtable(
   newNotes: string
 ): Promise<boolean> {
   const supabase = createClient();
-  const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
+  // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
+  const tableName = 'Transactions';
   
   try {
     // 1. Obtener propiedad de Supabase
@@ -91,7 +92,8 @@ export async function fetchInitialCheckFieldsFromAirtable(
   setUpStatus?: string;
 } | null> {
   const supabase = createClient();
-  const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
+  // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
+  const tableName = 'Transactions';
   
   try {
     // 1. Obtener propiedad de Supabase
@@ -175,7 +177,8 @@ export async function syncChecklistToAirtable(
   }
 ): Promise<boolean> {
   const supabase = createClient();
-  const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
+  // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
+  const tableName = 'Transactions';
   
   try {
     const { data: property, error } = await supabase
@@ -286,7 +289,8 @@ export async function finalizeInitialCheckInAirtable(
   }
 ): Promise<boolean> {
   const supabase = createClient();
-  const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
+  // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
+  const tableName = 'Transactions';
   
   try {
     const { data: property, error } = await supabase
