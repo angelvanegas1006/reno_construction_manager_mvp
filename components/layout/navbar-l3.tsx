@@ -114,7 +114,7 @@ export function NavbarL3({
                   disabled={saveAction.disabled}
                   className="flex items-center gap-2 rounded-full"
                 >
-                  {saveAction.icon || <Save className="h-4 w-4" />}
+                  {saveAction.icon}
                   {saveAction.label}
                 </Button>
               )}
@@ -124,7 +124,7 @@ export function NavbarL3({
                   disabled={submitAction.disabled}
                   className="flex items-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white"
                 >
-                  {submitAction.icon || <ArrowRight className="h-4 w-4" />}
+                  {submitAction.icon}
                   {submitAction.label}
                 </Button>
               )}
@@ -144,7 +144,7 @@ export function NavbarL3({
                 disabled={submitAction.disabled}
                 className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-12 text-base font-medium"
               >
-                {submitAction.icon || <ArrowRight className="h-5 w-5" />}
+                {submitAction.icon}
                 {submitAction.label}
               </Button>
             )}
@@ -155,7 +155,7 @@ export function NavbarL3({
                 disabled={saveAction.disabled}
                 className="w-full text-center text-[var(--prophero-blue-600)] hover:text-[var(--prophero-blue-700)] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium py-2"
               >
-                {saveAction.icon || <Save className="h-4 w-4 inline mr-1" />}
+                {saveAction.icon}
                 {saveAction.label}
               </button>
             )}
