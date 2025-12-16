@@ -117,13 +117,26 @@ export default function RenoChecklistPage() {
     }
   }, [property, supabaseProperty, isLoading, checklistType, getPropertyRenoPhase, router]);
 
-  // Load Airtable fields when entering initial-check phase
+  // Load Airtable fields when entering initial-check phase (only once per property)
+  const airtableFieldsLoadedRef = useRef<string | null>(null);
   useEffect(() => {
     const loadAirtableFields = async () => {
       if (!propertyId || !property || !supabaseProperty || !updateSupabaseProperty) return;
       
+      // Skip if already loaded for this property
+      if (airtableFieldsLoadedRef.current === propertyId) return;
+      
       const phase = getPropertyRenoPhase(property);
-      if (phase !== "initial-check") return;
+      if (phase !== "initial-check") {
+        // Reset flag if we're not in initial-check phase
+        if (airtableFieldsLoadedRef.current === propertyId) {
+          airtableFieldsLoadedRef.current = null;
+        }
+        return;
+      }
+
+      // Mark as loading to prevent multiple simultaneous loads
+      airtableFieldsLoadedRef.current = propertyId;
 
       try {
         console.log('[ChecklistPage] 🔄 Loading Airtable fields for initial-check...');
@@ -146,17 +159,28 @@ export default function RenoChecklistPage() {
 
           if (Object.keys(updates).length > 0) {
             await updateSupabaseProperty(updates);
-            await refetchProperty();
+            // Don't call refetchProperty here to avoid triggering the effect again
+            // The property will update naturally through the hook
             console.log('[ChecklistPage] ✅ Airtable fields loaded and synced to Supabase');
           }
         }
       } catch (error) {
         console.error('[ChecklistPage] ❌ Error loading Airtable fields:', error);
+        // Reset flag on error so we can retry
+        if (airtableFieldsLoadedRef.current === propertyId) {
+          airtableFieldsLoadedRef.current = null;
+        }
       }
     };
 
     loadAirtableFields();
-  }, [propertyId, property, supabaseProperty, updateSupabaseProperty, refetchProperty, getPropertyRenoPhase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyId]); // Only depend on propertyId to avoid infinite loops
+
+  // Reset flag when propertyId changes
+  useEffect(() => {
+    airtableFieldsLoadedRef.current = null;
+  }, [propertyId]);
 
   // Use Supabase checklist hook (for production)
   // Usar hooks separados para initial y final para mantener estados independientes
