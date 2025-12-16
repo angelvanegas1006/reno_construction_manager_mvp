@@ -667,11 +667,16 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                           max={100}
                           step={1}
                           value={Math.max(0, Math.min(100, percentage))}
+                          onInput={(e) => {
+                            const newValue = parseInt((e.target as HTMLInputElement).value, 10);
+                            handleSliderChange(category.id, newValue);
+                          }}
                           onChange={(e) => {
                             const newValue = parseInt(e.target.value, 10);
                             handleSliderChange(category.id, newValue);
                           }}
                           className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-30"
+                          style={{ touchAction: 'none' }}
                           title={`Mínimo permitido: ${minAllowedValue}%`}
                         />
                       </div>
