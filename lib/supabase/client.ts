@@ -163,23 +163,28 @@ export function createClient() {
     }
   );
 
-      // Wrap getUser to handle "Auth session missing!" errors gracefully
-      const originalGetUser = client.auth.getUser.bind(client.auth);
-      client.auth.getUser = async (jwt?: string) => {
-        try {
-          return await originalGetUser(jwt);
-        } catch (error: any) {
-          // Si el error es "Auth session missing!", es normal cuando no hay sesión (ej: Auth0 users)
-          if (error?.message?.includes('Auth session missing') || 
-              error?.name === 'AuthSessionMissingError' ||
-              error?.message?.includes('session missing')) {
-            // Retornar null user en lugar de lanzar error
-            return { data: { user: null }, error: null } as any;
-          }
-          // Para otros errores, lanzarlos normalmente
-          throw error;
+  // Wrap getUser to handle "Auth session missing!" errors gracefully
+  // Solo envolver si no está ya envuelto (evitar recursión)
+  if (!(client.auth.getUser as any).__wrapped) {
+    const originalGetUser = client.auth.getUser.bind(client.auth);
+    client.auth.getUser = async (jwt?: string) => {
+      try {
+        return await originalGetUser(jwt);
+      } catch (error: any) {
+        // Si el error es "Auth session missing!", es normal cuando no hay sesión (ej: Auth0 users)
+        if (error?.message?.includes('Auth session missing') || 
+            error?.name === 'AuthSessionMissingError' ||
+            error?.message?.includes('session missing')) {
+          // Retornar null user en lugar de lanzar error
+          return { data: { user: null }, error: null } as any;
         }
-      };
+        // Para otros errores, lanzarlos normalmente
+        throw error;
+      }
+    };
+    // Marcar como envuelto para evitar múltiples wrappers
+    (client.auth.getUser as any).__wrapped = true;
+  }
 
   return client;
 }
