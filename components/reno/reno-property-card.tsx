@@ -42,12 +42,12 @@ export function RenoPropertyCard({
     ? new Date(proximaActualizacionCalculada).toDateString() === new Date().toDateString()
     : false;
 
-  // Check if property needs an update (for reno-in-progress phase)
-  // Show badge if the property needs update (nextUpdateDate is today or in the past)
-  // This matches the criteria: properties that need update will appear in the "Actualización de obra" widget
-  // The widget filters by needsUpdateThisWeek, but we show the badge for all properties that need update
+  // Check if property needs an update THIS WEEK (for reno-in-progress phase)
+  // Only show badge if the property needs update this week (Monday to Sunday)
+  // This matches exactly the criteria used in the "Actualización de obra" widget in home
   const needsUpdateBadge = stage === "reno-in-progress" && proximaActualizacionCalculada && 
-    needsUpdate(proximaActualizacionCalculada, property.renoType, renoStartDate);
+    needsUpdate(proximaActualizacionCalculada, property.renoType, renoStartDate) &&
+    needsUpdateThisWeek(proximaActualizacionCalculada);
   
   // Debug log for all reno-in-progress properties to understand the issue
   if (stage === "reno-in-progress") {
