@@ -879,6 +879,59 @@ export function useSupabaseChecklistBase({
             );
             filesToUpload.push(...base64Videos);
           }
+          // Fotos de carpentryItems dentro de dynamic items
+          if (item.carpentryItems) {
+            item.carpentryItems.forEach(carpentryItem => {
+              if (carpentryItem.photos) {
+                const base64Photos = carpentryItem.photos.filter(photo => 
+                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                );
+                filesToUpload.push(...base64Photos);
+              }
+              if (carpentryItem.units) {
+                carpentryItem.units.forEach(unit => {
+                  if (unit.photos) {
+                    const base64Photos = unit.photos.filter(photo => 
+                      photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                    );
+                    filesToUpload.push(...base64Photos);
+                  }
+                });
+              }
+            });
+          }
+          // Fotos de climatizationItems dentro de dynamic items
+          if (item.climatizationItems) {
+            item.climatizationItems.forEach(climatizationItem => {
+              if (climatizationItem.photos) {
+                const base64Photos = climatizationItem.photos.filter(photo => 
+                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                );
+                filesToUpload.push(...base64Photos);
+              }
+              if (climatizationItem.units) {
+                climatizationItem.units.forEach(unit => {
+                  if (unit.photos) {
+                    const base64Photos = unit.photos.filter(photo => 
+                      photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                    );
+                    filesToUpload.push(...base64Photos);
+                  }
+                });
+              }
+            });
+          }
+          // Fotos de questions dentro de dynamic items
+          if (item.questions) {
+            item.questions.forEach(question => {
+              if (question.photos) {
+                const base64Photos = question.photos.filter(photo => 
+                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                );
+                filesToUpload.push(...base64Photos);
+              }
+            });
+          }
         });
       }
 
@@ -890,6 +943,142 @@ export function useSupabaseChecklistBase({
               photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
             );
             filesToUpload.push(...base64Photos);
+          }
+        });
+      }
+
+      // Archivos de carpentryItems que están en base64
+      if (section.carpentryItems) {
+        section.carpentryItems.forEach(item => {
+          // Fotos cuando cantidad = 1
+          if (item.photos) {
+            const base64Photos = item.photos.filter(photo => 
+              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+            );
+            filesToUpload.push(...base64Photos);
+          }
+          // Fotos de units cuando cantidad > 1
+          if (item.units) {
+            item.units.forEach(unit => {
+              if (unit.photos) {
+                const base64Photos = unit.photos.filter(photo => 
+                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                );
+                filesToUpload.push(...base64Photos);
+              }
+            });
+          }
+        });
+      }
+
+      // Archivos de climatizationItems que están en base64
+      if (section.climatizationItems) {
+        section.climatizationItems.forEach(item => {
+          // Fotos cuando cantidad = 1
+          if (item.photos) {
+            const base64Photos = item.photos.filter(photo => 
+              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+            );
+            filesToUpload.push(...base64Photos);
+          }
+          // Fotos de units cuando cantidad > 1
+          if (item.units) {
+            item.units.forEach(unit => {
+              if (unit.photos) {
+                const base64Photos = unit.photos.filter(photo => 
+                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                );
+                filesToUpload.push(...base64Photos);
+              }
+            });
+          }
+        });
+      }
+
+      // Archivos de storageItems que están en base64
+      if (section.storageItems) {
+        section.storageItems.forEach(item => {
+          if (item.photos) {
+            const base64Photos = item.photos.filter(photo => 
+              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+            );
+            filesToUpload.push(...base64Photos);
+          }
+          if (item.units) {
+            item.units.forEach(unit => {
+              if (unit.photos) {
+                const base64Photos = unit.photos.filter(photo => 
+                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                );
+                filesToUpload.push(...base64Photos);
+              }
+            });
+          }
+        });
+      }
+
+      // Archivos de appliancesItems que están en base64
+      if (section.appliancesItems) {
+        section.appliancesItems.forEach(item => {
+          if (item.photos) {
+            const base64Photos = item.photos.filter(photo => 
+              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+            );
+            filesToUpload.push(...base64Photos);
+          }
+          if (item.units) {
+            item.units.forEach(unit => {
+              if (unit.photos) {
+                const base64Photos = unit.photos.filter(photo => 
+                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                );
+                filesToUpload.push(...base64Photos);
+              }
+            });
+          }
+        });
+      }
+
+      // Archivos de securityItems que están en base64
+      if (section.securityItems) {
+        section.securityItems.forEach(item => {
+          if (item.photos) {
+            const base64Photos = item.photos.filter(photo => 
+              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+            );
+            filesToUpload.push(...base64Photos);
+          }
+          if (item.units) {
+            item.units.forEach(unit => {
+              if (unit.photos) {
+                const base64Photos = unit.photos.filter(photo => 
+                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                );
+                filesToUpload.push(...base64Photos);
+              }
+            });
+          }
+        });
+      }
+
+      // Archivos de systemsItems que están en base64
+      if (section.systemsItems) {
+        section.systemsItems.forEach(item => {
+          if (item.photos) {
+            const base64Photos = item.photos.filter(photo => 
+              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+            );
+            filesToUpload.push(...base64Photos);
+          }
+          if (item.units) {
+            item.units.forEach(unit => {
+              if (unit.photos) {
+                const base64Photos = unit.photos.filter(photo => 
+                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+                );
+                filesToUpload.push(...base64Photos);
+              }
+            });
           }
         });
       }
@@ -942,6 +1131,89 @@ export function useSupabaseChecklistBase({
                   }
                 });
               }
+              if (item.uploadZone?.videos) {
+                item.uploadZone.videos.forEach(video => {
+                  if (video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))) {
+                    if (urlIndex < uploadedUrls.length) {
+                      video.data = uploadedUrls[urlIndex];
+                      urlIndex++;
+                    }
+                  }
+                });
+              }
+              // Actualizar carpentryItems dentro de dynamic items
+              if (item.carpentryItems) {
+                item.carpentryItems.forEach(carpentryItem => {
+                  if (carpentryItem.photos) {
+                    carpentryItem.photos.forEach(photo => {
+                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                        if (urlIndex < uploadedUrls.length) {
+                          photo.data = uploadedUrls[urlIndex];
+                          urlIndex++;
+                        }
+                      }
+                    });
+                  }
+                  if (carpentryItem.units) {
+                    carpentryItem.units.forEach(unit => {
+                      if (unit.photos) {
+                        unit.photos.forEach(photo => {
+                          if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                            if (urlIndex < uploadedUrls.length) {
+                              photo.data = uploadedUrls[urlIndex];
+                              urlIndex++;
+                            }
+                          }
+                        });
+                      }
+                    });
+                  }
+                });
+              }
+              // Actualizar climatizationItems dentro de dynamic items
+              if (item.climatizationItems) {
+                item.climatizationItems.forEach(climatizationItem => {
+                  if (climatizationItem.photos) {
+                    climatizationItem.photos.forEach(photo => {
+                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                        if (urlIndex < uploadedUrls.length) {
+                          photo.data = uploadedUrls[urlIndex];
+                          urlIndex++;
+                        }
+                      }
+                    });
+                  }
+                  if (climatizationItem.units) {
+                    climatizationItem.units.forEach(unit => {
+                      if (unit.photos) {
+                        unit.photos.forEach(photo => {
+                          if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                            if (urlIndex < uploadedUrls.length) {
+                              photo.data = uploadedUrls[urlIndex];
+                              urlIndex++;
+                            }
+                          }
+                        });
+                      }
+                    });
+                  }
+                });
+              }
+              // Actualizar questions dentro de dynamic items
+              if (item.questions) {
+                item.questions.forEach(question => {
+                  if (question.photos) {
+                    question.photos.forEach(photo => {
+                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                        if (urlIndex < uploadedUrls.length) {
+                          photo.data = uploadedUrls[urlIndex];
+                          urlIndex++;
+                        }
+                      }
+                    });
+                  }
+                });
+              }
             });
           }
           
@@ -955,6 +1227,190 @@ export function useSupabaseChecklistBase({
                       photo.data = uploadedUrls[urlIndex];
                       urlIndex++;
                     }
+                  }
+                });
+              }
+            });
+          }
+
+          // Actualizar carpentryItems
+          if (sectionToSave.carpentryItems) {
+            sectionToSave.carpentryItems.forEach(item => {
+              // Fotos cuando cantidad = 1
+              if (item.photos) {
+                item.photos.forEach(photo => {
+                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                    if (urlIndex < uploadedUrls.length) {
+                      photo.data = uploadedUrls[urlIndex];
+                      urlIndex++;
+                    }
+                  }
+                });
+              }
+              // Fotos de units cuando cantidad > 1
+              if (item.units) {
+                item.units.forEach(unit => {
+                  if (unit.photos) {
+                    unit.photos.forEach(photo => {
+                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                        if (urlIndex < uploadedUrls.length) {
+                          photo.data = uploadedUrls[urlIndex];
+                          urlIndex++;
+                        }
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
+
+          // Actualizar climatizationItems
+          if (sectionToSave.climatizationItems) {
+            sectionToSave.climatizationItems.forEach(item => {
+              // Fotos cuando cantidad = 1
+              if (item.photos) {
+                item.photos.forEach(photo => {
+                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                    if (urlIndex < uploadedUrls.length) {
+                      photo.data = uploadedUrls[urlIndex];
+                      urlIndex++;
+                    }
+                  }
+                });
+              }
+              // Fotos de units cuando cantidad > 1
+              if (item.units) {
+                item.units.forEach(unit => {
+                  if (unit.photos) {
+                    unit.photos.forEach(photo => {
+                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                        if (urlIndex < uploadedUrls.length) {
+                          photo.data = uploadedUrls[urlIndex];
+                          urlIndex++;
+                        }
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
+
+          // Actualizar storageItems
+          if (sectionToSave.storageItems) {
+            sectionToSave.storageItems.forEach(item => {
+              if (item.photos) {
+                item.photos.forEach(photo => {
+                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                    if (urlIndex < uploadedUrls.length) {
+                      photo.data = uploadedUrls[urlIndex];
+                      urlIndex++;
+                    }
+                  }
+                });
+              }
+              if (item.units) {
+                item.units.forEach(unit => {
+                  if (unit.photos) {
+                    unit.photos.forEach(photo => {
+                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                        if (urlIndex < uploadedUrls.length) {
+                          photo.data = uploadedUrls[urlIndex];
+                          urlIndex++;
+                        }
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
+
+          // Actualizar appliancesItems
+          if (sectionToSave.appliancesItems) {
+            sectionToSave.appliancesItems.forEach(item => {
+              if (item.photos) {
+                item.photos.forEach(photo => {
+                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                    if (urlIndex < uploadedUrls.length) {
+                      photo.data = uploadedUrls[urlIndex];
+                      urlIndex++;
+                    }
+                  }
+                });
+              }
+              if (item.units) {
+                item.units.forEach(unit => {
+                  if (unit.photos) {
+                    unit.photos.forEach(photo => {
+                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                        if (urlIndex < uploadedUrls.length) {
+                          photo.data = uploadedUrls[urlIndex];
+                          urlIndex++;
+                        }
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
+
+          // Actualizar securityItems
+          if (sectionToSave.securityItems) {
+            sectionToSave.securityItems.forEach(item => {
+              if (item.photos) {
+                item.photos.forEach(photo => {
+                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                    if (urlIndex < uploadedUrls.length) {
+                      photo.data = uploadedUrls[urlIndex];
+                      urlIndex++;
+                    }
+                  }
+                });
+              }
+              if (item.units) {
+                item.units.forEach(unit => {
+                  if (unit.photos) {
+                    unit.photos.forEach(photo => {
+                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                        if (urlIndex < uploadedUrls.length) {
+                          photo.data = uploadedUrls[urlIndex];
+                          urlIndex++;
+                        }
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
+
+          // Actualizar systemsItems
+          if (sectionToSave.systemsItems) {
+            sectionToSave.systemsItems.forEach(item => {
+              if (item.photos) {
+                item.photos.forEach(photo => {
+                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                    if (urlIndex < uploadedUrls.length) {
+                      photo.data = uploadedUrls[urlIndex];
+                      urlIndex++;
+                    }
+                  }
+                });
+              }
+              if (item.units) {
+                item.units.forEach(unit => {
+                  if (unit.photos) {
+                    unit.photos.forEach(photo => {
+                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                        if (urlIndex < uploadedUrls.length) {
+                          photo.data = uploadedUrls[urlIndex];
+                          urlIndex++;
+                        }
+                      }
+                    });
                   }
                 });
               }
@@ -1182,6 +1638,26 @@ export function useSupabaseChecklistBase({
       }
       if (sectionData.climatizationItems !== undefined) {
         updatedSection.climatizationItems = sectionData.climatizationItems.map(item => {
+          const clonedItem: any = { ...item };
+          // Clone units array if it exists
+          if (item.units) {
+            clonedItem.units = item.units.map(unit => ({ ...unit }));
+          }
+          return clonedItem;
+        });
+      }
+      if (sectionData.storageItems !== undefined) {
+        updatedSection.storageItems = sectionData.storageItems.map(item => {
+          const clonedItem: any = { ...item };
+          // Clone units array if it exists
+          if (item.units) {
+            clonedItem.units = item.units.map(unit => ({ ...unit }));
+          }
+          return clonedItem;
+        });
+      }
+      if (sectionData.appliancesItems !== undefined) {
+        updatedSection.appliancesItems = sectionData.appliancesItems.map(item => {
           const clonedItem: any = { ...item };
           // Clone units array if it exists
           if (item.units) {

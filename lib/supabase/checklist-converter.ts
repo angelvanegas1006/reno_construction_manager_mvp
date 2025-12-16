@@ -256,11 +256,22 @@ export function convertItemsToElements(
   items.forEach((item) => {
     if (item.cantidad === 0) return; // Saltar items con cantidad 0
 
+    console.log(`[convertItemsToElements] Processing ${itemType} item "${item.id}":`, {
+      zoneId,
+      itemId: item.id,
+      cantidad: item.cantidad,
+      estado: item.estado,
+      hasNotes: !!item.notes,
+      notesPreview: item.notes?.substring(0, 50),
+      totalPhotos: item.photos?.length || 0,
+      unitsCount: item.units?.length || 0,
+    });
+
     if (item.cantidad === 1) {
       // Un solo elemento
-      const imageUrls = item.photos
-        ?.filter(photo => photo.data)
-        .map(photo => photo.data) || null;
+      // IMPORTANTE: Solo guardar URLs HTTP (fotos ya subidas), NO base64
+      const photosWithHttp = item.photos?.filter(photo => photo.data && photo.data.startsWith('http')) || [];
+      const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
 
       // Nota: badElements se puede incluir en notes si es necesario
       const badElements = 'badElements' in item ? item.badElements : undefined;
@@ -268,10 +279,26 @@ export function convertItemsToElements(
         ? `${item.notes || ''}\nBad elements: ${badElements.join(', ')}`.trim()
         : item.notes || null;
 
+      const condition = mapStatusToCondition(item.estado);
+
+      console.log(`[convertItemsToElements] Creating element for ${itemType}-${item.id}:`, {
+        zoneId,
+        elementName: `${itemType}-${item.id}`,
+        condition,
+        estado: item.estado,
+        hasNotes: !!notesWithBadElements,
+        notesPreview: notesWithBadElements?.substring(0, 50),
+        photosWithHttp: photosWithHttp.length,
+        photosWithBase64: item.photos?.filter(p => p.data?.startsWith('data:')).length || 0,
+        imageUrlsCount: imageUrls?.length || 0,
+        quantity: 1,
+      });
+
+      // IMPORTANTE: Siempre crear el elemento si cantidad > 0, incluso si no tiene estado
       elements.push({
         zone_id: zoneId,
         element_name: `${itemType}-${item.id}`,
-        condition: mapStatusToCondition(item.estado),
+        condition: condition, // Puede ser null si no hay estado seleccionado
         notes: notesWithBadElements,
         image_urls: imageUrls && imageUrls.length > 0 ? imageUrls : null,
         quantity: 1,
@@ -280,9 +307,9 @@ export function convertItemsToElements(
     } else if (item.units && item.units.length > 0) {
       // Múltiples unidades - crear un elemento por unidad
       item.units.forEach((unit, index) => {
-        const imageUrls = unit.photos
-          ?.filter(photo => photo.data)
-          .map(photo => photo.data) || null;
+        // IMPORTANTE: Solo guardar URLs HTTP (fotos ya subidas), NO base64
+        const photosWithHttp = unit.photos?.filter(photo => photo.data && photo.data.startsWith('http')) || [];
+        const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
 
         // Nota: badElements se puede incluir en notes si es necesario
         const badElements = 'badElements' in unit ? unit.badElements : undefined;
@@ -290,10 +317,26 @@ export function convertItemsToElements(
           ? `${unit.notes || ''}\nBad elements: ${badElements.join(', ')}`.trim()
           : unit.notes || null;
 
+        const condition = mapStatusToCondition(unit.estado);
+
+        console.log(`[convertItemsToElements] Creating element for ${itemType}-${item.id}-${index + 1}:`, {
+          zoneId,
+          elementName: `${itemType}-${item.id}-${index + 1}`,
+          condition,
+          estado: unit.estado,
+          hasNotes: !!notesWithBadElements,
+          notesPreview: notesWithBadElements?.substring(0, 50),
+          photosWithHttp: photosWithHttp.length,
+          photosWithBase64: unit.photos?.filter(p => p.data?.startsWith('data:')).length || 0,
+          imageUrlsCount: imageUrls?.length || 0,
+          quantity: 1,
+        });
+
+        // IMPORTANTE: Siempre crear el elemento para cada unidad si cantidad > 0, incluso si no tiene estado
         elements.push({
           zone_id: zoneId,
           element_name: `${itemType}-${item.id}-${index + 1}`,
-          condition: mapStatusToCondition(unit.estado),
+          condition: condition, // Puede ser null si no hay estado seleccionado
           notes: notesWithBadElements,
           image_urls: imageUrls && imageUrls.length > 0 ? imageUrls : null,
           quantity: 1,
@@ -303,6 +346,7 @@ export function convertItemsToElements(
     }
   });
 
+  console.log(`[convertItemsToElements] Converted ${items.length} items to ${elements.length} elements for zone ${zoneId}`);
   return elements;
 }
 
@@ -686,10 +730,12 @@ export function convertSupabaseToChecklist(
           // Questions
           // Questions are elements that don't start with 'fotos-', 'videos-', or item type prefixes
           // and are not 'mobiliario'. Note: question IDs can contain hyphens (e.g., 'acceso-principal')
+          // Also exclude 'observaciones' from exteriores section (removed per user request)
           else if (!element.element_name.startsWith('fotos-') &&
                    !element.element_name.startsWith('videos-') &&
                    element.element_name !== 'mobiliario' &&
                    element.element_name !== 'mobiliario-detalle' &&
+                   element.element_name !== 'observaciones' &&
                    !element.element_name.startsWith('carpentry-') &&
                    !element.element_name.startsWith('climatization-')) {
             const question: ChecklistQuestion = {
@@ -702,6 +748,78 @@ export function convertSupabaseToChecklist(
             };
             if (!dynamicItem.questions) dynamicItem.questions = [];
             dynamicItem.questions.push(question);
+          }
+          // Carpentry items dentro de dynamic items
+          else if (element.element_name.startsWith('carpentry-')) {
+            const itemId = element.element_name.replace(/^carpentry-/, '').replace(/-\d+$/, '');
+            const unitMatch = element.element_name.match(/^carpentry-.*-(\d+)$/);
+            const unitIndex = unitMatch ? parseInt(unitMatch[1]) - 1 : null;
+            
+            if (!dynamicItem.carpentryItems) dynamicItem.carpentryItems = [];
+            
+            let carpentryItem = dynamicItem.carpentryItems.find(item => item.id === itemId);
+            if (!carpentryItem) {
+              carpentryItem = {
+                id: itemId,
+                cantidad: unitIndex !== null ? (unitIndex + 1) : 1,
+              };
+              dynamicItem.carpentryItems.push(carpentryItem);
+            }
+            
+            if (unitIndex !== null) {
+              if (!carpentryItem.units) carpentryItem.units = [];
+              while (carpentryItem.units.length <= unitIndex) {
+                carpentryItem.units.push({ id: `${itemId}-${carpentryItem.units.length + 1}` });
+              }
+              carpentryItem.units[unitIndex] = {
+                id: `${itemId}-${unitIndex + 1}`,
+                estado: mapConditionToStatus(element.condition),
+                notes: cleanNotesFromBadElements(element.notes) || undefined,
+                photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+              };
+              carpentryItem.cantidad = Math.max(carpentryItem.cantidad, unitIndex + 1);
+            } else {
+              carpentryItem.estado = mapConditionToStatus(element.condition);
+              carpentryItem.notes = cleanNotesFromBadElements(element.notes) || undefined;
+              carpentryItem.photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+              carpentryItem.cantidad = 1;
+            }
+          }
+          // Climatization items dentro de dynamic items
+          else if (element.element_name.startsWith('climatization-')) {
+            const itemId = element.element_name.replace(/^climatization-/, '').replace(/-\d+$/, '');
+            const unitMatch = element.element_name.match(/^climatization-.*-(\d+)$/);
+            const unitIndex = unitMatch ? parseInt(unitMatch[1]) - 1 : null;
+            
+            if (!dynamicItem.climatizationItems) dynamicItem.climatizationItems = [];
+            
+            let climatizationItem = dynamicItem.climatizationItems.find(item => item.id === itemId);
+            if (!climatizationItem) {
+              climatizationItem = {
+                id: itemId,
+                cantidad: unitIndex !== null ? (unitIndex + 1) : 1,
+              };
+              dynamicItem.climatizationItems.push(climatizationItem);
+            }
+            
+            if (unitIndex !== null) {
+              if (!climatizationItem.units) climatizationItem.units = [];
+              while (climatizationItem.units.length <= unitIndex) {
+                climatizationItem.units.push({ id: `${itemId}-${climatizationItem.units.length + 1}` });
+              }
+              climatizationItem.units[unitIndex] = {
+                id: `${itemId}-${unitIndex + 1}`,
+                estado: mapConditionToStatus(element.condition),
+                notes: cleanNotesFromBadElements(element.notes) || undefined,
+                photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+              };
+              climatizationItem.cantidad = Math.max(climatizationItem.cantidad, unitIndex + 1);
+            } else {
+              climatizationItem.estado = mapConditionToStatus(element.condition);
+              climatizationItem.notes = cleanNotesFromBadElements(element.notes) || undefined;
+              climatizationItem.photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+              climatizationItem.cantidad = 1;
+            }
           }
           // Mobiliario
           else if (element.element_name === 'mobiliario') {
@@ -725,6 +843,10 @@ export function convertSupabaseToChecklist(
         if (!section.dynamicItems) section.dynamicItems = [];
         section.dynamicItems.push(dynamicItem);
       });
+      
+      // Actualizar dynamicCount basado en el número de zonas encontradas
+      // Esto asegura que el contador refleje el número real de habitaciones/baños
+      section.dynamicCount = zonesOfType.length;
     } else {
       // Sección fija (no dinámica)
       // Para secciones fijas, buscar elementos por zone_id directamente
@@ -848,10 +970,12 @@ export function convertSupabaseToChecklist(
         // Questions
         // Questions are elements that don't start with 'fotos-', 'videos-', or item type prefixes
         // and are not 'mobiliario'. Note: question IDs can contain hyphens (e.g., 'acceso-principal')
+        // Also exclude 'observaciones' from exteriores section (removed per user request)
         else if (!element.element_name.startsWith('fotos-') &&
                  !element.element_name.startsWith('videos-') &&
                  element.element_name !== 'mobiliario' &&
                  element.element_name !== 'mobiliario-detalle' &&
+                 element.element_name !== 'observaciones' &&
                  !element.element_name.startsWith('carpentry-') &&
                  !element.element_name.startsWith('climatization-') &&
                  !element.element_name.startsWith('storage-') &&
@@ -867,6 +991,222 @@ export function convertSupabaseToChecklist(
           };
           if (!section.questions) section.questions = [];
           section.questions.push(question);
+        }
+        // Carpentry items
+        if (element.element_name.startsWith('carpentry-')) {
+          const itemId = element.element_name.replace(/^carpentry-/, '').replace(/-\d+$/, '');
+          const unitMatch = element.element_name.match(/^carpentry-.*-(\d+)$/);
+          const unitIndex = unitMatch ? parseInt(unitMatch[1]) - 1 : null;
+          
+          if (!section.carpentryItems) section.carpentryItems = [];
+          
+          let carpentryItem = section.carpentryItems.find(item => item.id === itemId);
+          if (!carpentryItem) {
+            carpentryItem = {
+              id: itemId,
+              cantidad: unitIndex !== null ? (unitIndex + 1) : 1,
+            };
+            section.carpentryItems.push(carpentryItem);
+          }
+          
+          if (unitIndex !== null) {
+            if (!carpentryItem.units) carpentryItem.units = [];
+            while (carpentryItem.units.length <= unitIndex) {
+              carpentryItem.units.push({ id: `${itemId}-${carpentryItem.units.length + 1}` });
+            }
+            carpentryItem.units[unitIndex] = {
+              id: `${itemId}-${unitIndex + 1}`,
+              estado: mapConditionToStatus(element.condition),
+              notes: cleanNotesFromBadElements(element.notes) || undefined,
+              photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+            };
+            carpentryItem.cantidad = Math.max(carpentryItem.cantidad, unitIndex + 1);
+          } else {
+            carpentryItem.estado = mapConditionToStatus(element.condition);
+            carpentryItem.notes = cleanNotesFromBadElements(element.notes) || undefined;
+            carpentryItem.photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+            carpentryItem.cantidad = 1;
+          }
+        }
+        // Climatization items
+        else if (element.element_name.startsWith('climatization-')) {
+          const itemId = element.element_name.replace(/^climatization-/, '').replace(/-\d+$/, '');
+          const unitMatch = element.element_name.match(/^climatization-.*-(\d+)$/);
+          const unitIndex = unitMatch ? parseInt(unitMatch[1]) - 1 : null;
+          
+          if (!section.climatizationItems) section.climatizationItems = [];
+          
+          let climatizationItem = section.climatizationItems.find(item => item.id === itemId);
+          if (!climatizationItem) {
+            climatizationItem = {
+              id: itemId,
+              cantidad: unitIndex !== null ? (unitIndex + 1) : 1,
+            };
+            section.climatizationItems.push(climatizationItem);
+          }
+          
+          if (unitIndex !== null) {
+            if (!climatizationItem.units) climatizationItem.units = [];
+            while (climatizationItem.units.length <= unitIndex) {
+              climatizationItem.units.push({ id: `${itemId}-${climatizationItem.units.length + 1}` });
+            }
+            climatizationItem.units[unitIndex] = {
+              id: `${itemId}-${unitIndex + 1}`,
+              estado: mapConditionToStatus(element.condition),
+              notes: cleanNotesFromBadElements(element.notes) || undefined,
+              photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+            };
+            climatizationItem.cantidad = Math.max(climatizationItem.cantidad, unitIndex + 1);
+          } else {
+            climatizationItem.estado = mapConditionToStatus(element.condition);
+            climatizationItem.notes = cleanNotesFromBadElements(element.notes) || undefined;
+            climatizationItem.photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+            climatizationItem.cantidad = 1;
+          }
+        }
+        // Storage items
+        else if (element.element_name.startsWith('storage-')) {
+          const itemId = element.element_name.replace(/^storage-/, '').replace(/-\d+$/, '');
+          const unitMatch = element.element_name.match(/^storage-.*-(\d+)$/);
+          const unitIndex = unitMatch ? parseInt(unitMatch[1]) - 1 : null;
+          
+          if (!section.storageItems) section.storageItems = [];
+          
+          let storageItem = section.storageItems.find(item => item.id === itemId);
+          if (!storageItem) {
+            storageItem = {
+              id: itemId,
+              cantidad: unitIndex !== null ? (unitIndex + 1) : 1,
+            };
+            section.storageItems.push(storageItem);
+          }
+          
+          if (unitIndex !== null) {
+            if (!storageItem.units) storageItem.units = [];
+            while (storageItem.units.length <= unitIndex) {
+              storageItem.units.push({ id: `${itemId}-${storageItem.units.length + 1}` });
+            }
+            storageItem.units[unitIndex] = {
+              id: `${itemId}-${unitIndex + 1}`,
+              estado: mapConditionToStatus(element.condition),
+              notes: cleanNotesFromBadElements(element.notes) || undefined,
+              photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+            };
+            storageItem.cantidad = Math.max(storageItem.cantidad, unitIndex + 1);
+          } else {
+            storageItem.estado = mapConditionToStatus(element.condition);
+            storageItem.notes = cleanNotesFromBadElements(element.notes) || undefined;
+            storageItem.photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+            storageItem.cantidad = 1;
+          }
+        }
+      // Appliances items
+      else if (element.element_name.startsWith('appliance-')) {
+        const itemId = element.element_name.replace(/^appliance-/, '').replace(/-\d+$/, '');
+        const unitMatch = element.element_name.match(/^appliance-.*-(\d+)$/);
+        const unitIndex = unitMatch ? parseInt(unitMatch[1]) - 1 : null;
+        
+        if (!section.appliancesItems) section.appliancesItems = [];
+        
+        let applianceItem = section.appliancesItems.find(item => item.id === itemId);
+        if (!applianceItem) {
+          applianceItem = {
+            id: itemId,
+            cantidad: unitIndex !== null ? (unitIndex + 1) : 1,
+          };
+          section.appliancesItems.push(applianceItem);
+        }
+        
+        if (unitIndex !== null) {
+          if (!applianceItem.units) applianceItem.units = [];
+          while (applianceItem.units.length <= unitIndex) {
+            applianceItem.units.push({ id: `${itemId}-${applianceItem.units.length + 1}` });
+          }
+          applianceItem.units[unitIndex] = {
+            id: `${itemId}-${unitIndex + 1}`,
+            estado: mapConditionToStatus(element.condition),
+            notes: cleanNotesFromBadElements(element.notes) || undefined,
+            photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+          };
+          applianceItem.cantidad = Math.max(applianceItem.cantidad, unitIndex + 1);
+        } else {
+          applianceItem.estado = mapConditionToStatus(element.condition);
+          applianceItem.notes = cleanNotesFromBadElements(element.notes) || undefined;
+          applianceItem.photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+          applianceItem.cantidad = 1;
+        }
+      }
+        // Security items
+        else if (element.element_name.startsWith('security-')) {
+          const itemId = element.element_name.replace(/^security-/, '').replace(/-\d+$/, '');
+          const unitMatch = element.element_name.match(/^security-.*-(\d+)$/);
+          const unitIndex = unitMatch ? parseInt(unitMatch[1]) - 1 : null;
+          
+          if (!section.securityItems) section.securityItems = [];
+          
+          let securityItem = section.securityItems.find(item => item.id === itemId);
+          if (!securityItem) {
+            securityItem = {
+              id: itemId,
+              cantidad: unitIndex !== null ? (unitIndex + 1) : 1,
+            };
+            section.securityItems.push(securityItem);
+          }
+          
+          if (unitIndex !== null) {
+            if (!securityItem.units) securityItem.units = [];
+            while (securityItem.units.length <= unitIndex) {
+              securityItem.units.push({ id: `${itemId}-${securityItem.units.length + 1}` });
+            }
+            securityItem.units[unitIndex] = {
+              id: `${itemId}-${unitIndex + 1}`,
+              estado: mapConditionToStatus(element.condition),
+              notes: cleanNotesFromBadElements(element.notes) || undefined,
+              photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+            };
+            securityItem.cantidad = Math.max(securityItem.cantidad, unitIndex + 1);
+          } else {
+            securityItem.estado = mapConditionToStatus(element.condition);
+            securityItem.notes = cleanNotesFromBadElements(element.notes) || undefined;
+            securityItem.photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+            securityItem.cantidad = 1;
+          }
+        }
+        // Systems items
+        else if (element.element_name.startsWith('system-')) {
+          const itemId = element.element_name.replace(/^system-/, '').replace(/-\d+$/, '');
+          const unitMatch = element.element_name.match(/^system-.*-(\d+)$/);
+          const unitIndex = unitMatch ? parseInt(unitMatch[1]) - 1 : null;
+          
+          if (!section.systemsItems) section.systemsItems = [];
+          
+          let systemItem = section.systemsItems.find(item => item.id === itemId);
+          if (!systemItem) {
+            systemItem = {
+              id: itemId,
+              cantidad: unitIndex !== null ? (unitIndex + 1) : 1,
+            };
+            section.systemsItems.push(systemItem);
+          }
+          
+          if (unitIndex !== null) {
+            if (!systemItem.units) systemItem.units = [];
+            while (systemItem.units.length <= unitIndex) {
+              systemItem.units.push({ id: `${itemId}-${systemItem.units.length + 1}` });
+            }
+            systemItem.units[unitIndex] = {
+              id: `${itemId}-${unitIndex + 1}`,
+              estado: mapConditionToStatus(element.condition),
+              notes: cleanNotesFromBadElements(element.notes) || undefined,
+              photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+            };
+            systemItem.cantidad = Math.max(systemItem.cantidad, unitIndex + 1);
+          } else {
+            systemItem.estado = mapConditionToStatus(element.condition);
+            systemItem.notes = cleanNotesFromBadElements(element.notes) || undefined;
+            systemItem.photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+            systemItem.cantidad = 1;
+          }
         }
         // Mobiliario
         if (element.element_name === 'mobiliario') {
@@ -886,6 +1226,93 @@ export function convertSupabaseToChecklist(
           }
         }
       });
+      
+      // After processing all elements, ensure all items are initialized for cocina section
+      if (sectionId === 'cocina') {
+        // Initialize appliancesItems
+        if (!section.appliancesItems) section.appliancesItems = [];
+        const ALL_APPLIANCES_IDS = [
+          'placa-gas',
+          'placa-vitro-induccion',
+          'campana-extractora',
+          'horno',
+          'nevera',
+          'lavadora',
+          'lavavajillas',
+          'microondas',
+        ];
+        ALL_APPLIANCES_IDS.forEach(applianceId => {
+          if (!section.appliancesItems!.find(item => item.id === applianceId)) {
+            section.appliancesItems!.push({
+              id: applianceId,
+              cantidad: 0,
+            });
+          }
+        });
+        
+        // Initialize storageItems
+        if (!section.storageItems) section.storageItems = [];
+        const ALL_STORAGE_IDS = [
+          'armarios-despensa',
+          'cuarto-lavado',
+        ];
+        ALL_STORAGE_IDS.forEach(storageId => {
+          if (!section.storageItems!.find(item => item.id === storageId)) {
+            section.storageItems!.push({
+              id: storageId,
+              cantidad: 0,
+            });
+          }
+        });
+        
+        // Initialize carpentryItems
+        if (!section.carpentryItems) section.carpentryItems = [];
+        const ALL_CARPENTRY_IDS = [
+          'ventanas',
+          'persianas',
+        ];
+        ALL_CARPENTRY_IDS.forEach(carpentryId => {
+          if (!section.carpentryItems!.find(item => item.id === carpentryId)) {
+            section.carpentryItems!.push({
+              id: carpentryId,
+              cantidad: 0,
+            });
+          }
+        });
+      }
+      
+      // After processing all elements, ensure all items are initialized for exteriores section
+      if (sectionId === 'exteriores') {
+        // Initialize securityItems
+        if (!section.securityItems) section.securityItems = [];
+        const ALL_SECURITY_IDS = [
+          'barandillas',
+          'rejas',
+        ];
+        ALL_SECURITY_IDS.forEach(securityId => {
+          if (!section.securityItems!.find(item => item.id === securityId)) {
+            section.securityItems!.push({
+              id: securityId,
+              cantidad: 0,
+            });
+          }
+        });
+        
+        // Initialize systemsItems
+        if (!section.systemsItems) section.systemsItems = [];
+        const ALL_SYSTEMS_IDS = [
+          'tendedero-exterior',
+          'toldos',
+        ];
+        ALL_SYSTEMS_IDS.forEach(systemId => {
+          if (!section.systemsItems!.find(item => item.id === systemId)) {
+            section.systemsItems!.push({
+              id: systemId,
+              cantidad: 0,
+            });
+          }
+        });
+      }
     }
   });
 

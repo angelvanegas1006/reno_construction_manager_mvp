@@ -727,6 +727,29 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       return { completed: completedSections, total: totalSections };
     }, []);
 
+    // Calculate questions for single habitacion mode (always calculate, even if not used)
+    const singleHabitacionAcabadosQuestion = useMemo(() => {
+      const latestDynamicItems = section.dynamicItems || [];
+      const latestHabitacion = latestDynamicItems[0];
+      if (!latestHabitacion) return { id: "acabados" };
+      const currentQuestions = (latestHabitacion.questions && latestHabitacion.questions.length > 0) 
+        ? latestHabitacion.questions 
+        : defaultQuestions;
+      return currentQuestions.find(q => q.id === "acabados") || { id: "acabados" };
+    }, [section.dynamicItems, defaultQuestions]);
+
+    // Calculate questions for specific habitacion mode (always calculate, even if not used)
+    const specificHabitacionAcabadosQuestion = useMemo(() => {
+      if (habitacionIndex === undefined) return { id: "acabados" };
+      const latestDynamicItems = section.dynamicItems || [];
+      const latestHabitacion = latestDynamicItems[habitacionIndex];
+      if (!latestHabitacion) return { id: "acabados" };
+      const currentQuestions = (latestHabitacion.questions && latestHabitacion.questions.length > 0) 
+        ? latestHabitacion.questions 
+        : defaultQuestions;
+      return currentQuestions.find(q => q.id === "acabados") || { id: "acabados" };
+    }, [section.dynamicItems, habitacionIndex, defaultQuestions]);
+
     // If dynamicCount === 1 and habitacionIndex is undefined, show the form directly (as if habitacionIndex === 0)
     if (dynamicCount === 1 && habitacionIndex === undefined) {
       const singleHabitacion = dynamicItems[0] || {
@@ -1091,16 +1114,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
           {/* Acabados */}
           <Card className="p-4 sm:p-6 space-y-4">
             <ChecklistQuestionComponent
-              question={useMemo(() => {
-                // Always get the latest habitacion from section.dynamicItems to ensure we have the most up-to-date data
-                const latestDynamicItems = section.dynamicItems || [];
-                const latestHabitacion = latestDynamicItems[0] || currentHabitacion;
-                if (!latestHabitacion) return { id: "acabados" };
-                const currentQuestions = (latestHabitacion.questions && latestHabitacion.questions.length > 0) 
-                  ? latestHabitacion.questions 
-                  : defaultQuestions;
-                return currentQuestions.find(q => q.id === "acabados") || { id: "acabados" };
-              }, [section.dynamicItems, currentHabitacion, defaultQuestions])}
+              question={singleHabitacionAcabadosQuestion}
               questionId="acabados"
               label={t.checklist.sections.habitaciones.acabados.title}
               description={t.checklist.sections.habitaciones.acabados.description}
@@ -1917,16 +1931,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
           {/* Acabados */}
           <Card className="p-4 sm:p-6 space-y-4">
             <ChecklistQuestionComponent
-              question={useMemo(() => {
-                // Always get the latest habitacion from section.dynamicItems to ensure we have the most up-to-date data
-                const latestDynamicItems = section.dynamicItems || [];
-                const latestHabitacion = latestDynamicItems[habitacionIndex];
-                if (!latestHabitacion) return { id: "acabados" };
-                const currentQuestions = (latestHabitacion.questions && latestHabitacion.questions.length > 0) 
-                  ? latestHabitacion.questions 
-                  : defaultQuestions;
-                return currentQuestions.find(q => q.id === "acabados") || { id: "acabados" };
-              }, [section.dynamicItems, habitacionIndex, defaultQuestions])}
+              question={specificHabitacionAcabadosQuestion}
               questionId="acabados"
               label={t.checklist.sections.habitaciones.acabados.title}
               description={t.checklist.sections.habitaciones.acabados.description}
