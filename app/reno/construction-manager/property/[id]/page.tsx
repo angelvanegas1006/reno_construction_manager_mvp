@@ -233,43 +233,48 @@ export default function RenoPropertyDetailPage() {
       const success = await updateSupabaseProperty(supabaseUpdates);
       
       if (success) {
-        // Update Airtable when:
-        // 1. Transitioning to initial-check (shouldAutoAdvance)
-        // 2. OR: Already in initial-check and date is being modified
-        const shouldUpdateAirtable = shouldAutoAdvance || (currentPhase === 'initial-check' && isNewDate && localEstimatedVisitDate);
-        
-        if (shouldUpdateAirtable) {
+        // Update Airtable whenever Estimated Visit Date is saved
+        // Use airtable_property_id (Record_ID) as the key to match records
+        if (localEstimatedVisitDate) {
           try {
             const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
-            const airtablePropertyId = supabaseProperty?.airtable_property_id || (supabaseProperty as any)?.['Unique ID From Engagements'];
+            const airtablePropertyId = supabaseProperty?.airtable_property_id;
             
-            if (airtablePropertyId && localEstimatedVisitDate) {
-              try {
-                const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
-                if (recordId) {
-                  const airtableFields: Record<string, any> = {
-                    'fldIhqPOAFL52MMBn': localEstimatedVisitDate, // Estimated visit date field ID
-                  };
-                  
-                  // Only update Set Up Status when transitioning
-                  if (shouldAutoAdvance) {
-                    airtableFields['Set Up Status'] = 'Initial Check';
-                  }
-                  
-                  await updateAirtableWithRetry(tableName, recordId, airtableFields);
-                } else {
-                  // Record not found - this is not an error, just log as debug
-                  console.debug(`[Property Update] Airtable record not found for property ${propertyId} with Airtable ID ${airtablePropertyId}. Skipping Airtable update.`);
-                }
-              } catch (findRecordError: any) {
-                // Si el record no existe en Airtable, solo loguear como debug y continuar
-                // No es un error crítico - la propiedad ya fue actualizada en Supabase
-                console.debug(`[Property Update] Could not find Airtable record for property ${propertyId}:`, findRecordError?.message || findRecordError);
-                // No fallar la operación si Airtable falla
-              }
+            // Validate that airtable_property_id exists (all properties should have it)
+            if (!airtablePropertyId) {
+              console.error(`[Property Update] Property ${propertyId} does not have airtable_property_id. All properties should have this field because they are created from Airtable.`);
+              toast.error("Error: La propiedad no tiene ID de Airtable. Contacta al administrador.");
+              return success; // Continue but show error
+            }
+            
+            // Validate Record ID using findRecordByPropertyId (simplified to only use Record ID)
+            const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
+            
+            if (!recordId) {
+              console.error(`[Property Update] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId}.`);
+              toast.error("Error: No se encontró el registro en Airtable. Contacta al administrador.");
+              return success; // Continue but show error
+            }
+            
+            // Update Est. visit date in Airtable (field ID: fldIhqPOAFL52MMBn)
+            const airtableFields: Record<string, any> = {
+              'fldIhqPOAFL52MMBn': localEstimatedVisitDate, // Est. visit date field ID
+            };
+            
+            // Only update Set Up Status when transitioning to initial-check
+            if (shouldAutoAdvance) {
+              airtableFields['Set Up Status'] = 'Initial Check';
+            }
+            
+            const airtableSuccess = await updateAirtableWithRetry(tableName, recordId, airtableFields);
+            
+            if (!airtableSuccess) {
+              console.error(`[Property Update] Failed to update Airtable for property ${propertyId}`);
+              toast.error("Error: No se pudo actualizar Airtable. La propiedad se guardó en Supabase pero puede haber un problema de sincronización.");
             }
           } catch (airtableError: any) {
             console.error('[Property Update] Error updating Airtable:', airtableError?.message || airtableError);
+            toast.error("Error: No se pudo actualizar Airtable. La propiedad se guardó en Supabase pero puede haber un problema de sincronización.");
             // Don't fail the whole operation if Airtable update fails
             // La propiedad ya fue actualizada en Supabase, que es lo importante
           }

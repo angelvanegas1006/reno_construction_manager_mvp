@@ -291,26 +291,29 @@ export async function finalizeInitialCheckInAirtable(
   try {
     const { data: property, error } = await supabase
       .from('properties')
-      .select('airtable_property_id, "Unique ID From Engagements"')
+      .select('airtable_property_id')
       .eq('id', propertyId)
       .single();
 
     if (error || !property) {
-      console.warn('Property not found in Supabase:', propertyId);
+      console.error('Property not found in Supabase:', propertyId);
       return false;
     }
 
-    const airtablePropertyId = property.airtable_property_id || property['Unique ID From Engagements'];
+    // Use airtable_property_id (Record_ID) as the key to match records
+    const airtablePropertyId = property.airtable_property_id;
     
+    // Validate that airtable_property_id exists (all properties should have it)
     if (!airtablePropertyId) {
-      console.warn('Property has no Airtable ID, skipping sync:', propertyId);
+      console.error(`[Initial Check Sync] Property ${propertyId} does not have airtable_property_id. All properties should have this field because they are created from Airtable.`);
       return false;
     }
 
+    // Validate Record ID using findRecordByPropertyId (simplified to only use Record ID)
     const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
 
     if (!recordId) {
-      console.warn('Airtable record not found, skipping sync:', airtablePropertyId);
+      console.error(`[Initial Check Sync] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId}.`);
       return false;
     }
 
