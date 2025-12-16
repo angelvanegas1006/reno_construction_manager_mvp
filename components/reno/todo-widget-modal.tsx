@@ -258,11 +258,11 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
     onOpenChange(false);
     
     if (widgetType === 'initial-check') {
-      router.push(`/reno/construction-manager/property/${propertyId}?tab=tareas`);
+      router.push(`/reno/construction-manager/property/${propertyId}?tab=tareas&from=home`);
     } else if (widgetType === 'work-update') {
-      router.push(`/reno/construction-manager/property/${propertyId}?tab=tareas`);
+      router.push(`/reno/construction-manager/property/${propertyId}?tab=tareas&from=home`);
     } else if (widgetType === 'final-check') {
-      router.push(`/reno/construction-manager/property/${propertyId}?tab=tareas`);
+      router.push(`/reno/construction-manager/property/${propertyId}?tab=tareas&from=home`);
     }
   };
 

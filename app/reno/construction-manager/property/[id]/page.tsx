@@ -54,7 +54,7 @@ export default function RenoPropertyDetailPage() {
   const searchParams = useSearchParams();
   const supabase = createClient();
   const { t, language } = useI18n();
-  const { allProperties } = useRenoProperties();
+  const { allProperties, refetchProperties } = useRenoProperties();
   
   // Unwrap params and searchParams if they're Promises (Next.js 16+)
   const unwrappedParams = params instanceof Promise ? use(params) : params;
@@ -62,6 +62,8 @@ export default function RenoPropertyDetailPage() {
   
   // Get viewMode from query params (kanban or list)
   const viewMode = unwrappedSearchParams.get('viewMode') || 'kanban';
+  // Get source page from query params or referrer to know where to redirect back
+  const sourcePage = unwrappedSearchParams.get('from') || null;
   const [reportProblemOpen, setReportProblemOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   // Leer el tab desde la URL si existe, sino usar "tareas" por defecto
@@ -202,11 +204,30 @@ export default function RenoPropertyDetailPage() {
         (transitionToInitialCheck && currentPhase === 'upcoming-settlements' && localEstimatedVisitDate) ||
         (currentPhase === 'upcoming-settlements' && isNewDate && localEstimatedVisitDate);
       
+      console.log('[Property Update] Transition check:', {
+        propertyId,
+        transitionToInitialCheck,
+        currentPhase,
+        isNewDate,
+        localEstimatedVisitDate,
+        previousDate,
+        shouldAutoAdvance,
+      });
+      
       if (shouldAutoAdvance) {
         // Update "Set Up Status" to move to initial-check phase
-        supabaseUpdates['Set Up Status'] = 'initial check';
+        // Usar el valor exacto que mapea a 'initial-check' según kanban-mapping.ts
+        // El mapeo acepta tanto 'initial check' como 'Initial Check', pero usamos 'Initial Check' para consistencia
+        supabaseUpdates['Set Up Status'] = 'Initial Check';
         // Also update reno_phase for consistency
         supabaseUpdates['reno_phase'] = 'initial-check';
+        
+        console.log('[Property Update] ✅ Auto-advancing to initial-check phase:', {
+          propertyId,
+          currentPhase,
+          newSetUpStatus: supabaseUpdates['Set Up Status'],
+          newRenoPhase: supabaseUpdates['reno_phase'],
+        });
       }
       
       const success = await updateSupabaseProperty(supabaseUpdates);
@@ -223,23 +244,34 @@ export default function RenoPropertyDetailPage() {
             const airtablePropertyId = supabaseProperty?.airtable_property_id || (supabaseProperty as any)?.['Unique ID From Engagements'];
             
             if (airtablePropertyId && localEstimatedVisitDate) {
-              const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
-              if (recordId) {
-                const airtableFields: Record<string, any> = {
-                  'fldIhqPOAFL52MMBn': localEstimatedVisitDate, // Estimated visit date field ID
-                };
-                
-                // Only update Set Up Status when transitioning
-                if (shouldAutoAdvance) {
-                  airtableFields['Set Up Status'] = 'Initial Check';
+              try {
+                const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
+                if (recordId) {
+                  const airtableFields: Record<string, any> = {
+                    'fldIhqPOAFL52MMBn': localEstimatedVisitDate, // Estimated visit date field ID
+                  };
+                  
+                  // Only update Set Up Status when transitioning
+                  if (shouldAutoAdvance) {
+                    airtableFields['Set Up Status'] = 'Initial Check';
+                  }
+                  
+                  await updateAirtableWithRetry(tableName, recordId, airtableFields);
+                } else {
+                  // Record not found - this is not an error, just log as debug
+                  console.debug(`[Property Update] Airtable record not found for property ${propertyId} with Airtable ID ${airtablePropertyId}. Skipping Airtable update.`);
                 }
-                
-                await updateAirtableWithRetry(tableName, recordId, airtableFields);
+              } catch (findRecordError: any) {
+                // Si el record no existe en Airtable, solo loguear como debug y continuar
+                // No es un error crítico - la propiedad ya fue actualizada en Supabase
+                console.debug(`[Property Update] Could not find Airtable record for property ${propertyId}:`, findRecordError?.message || findRecordError);
+                // No fallar la operación si Airtable falla
               }
             }
-          } catch (airtableError) {
-            console.error('Error updating Airtable:', airtableError);
+          } catch (airtableError: any) {
+            console.error('[Property Update] Error updating Airtable:', airtableError?.message || airtableError);
             // Don't fail the whole operation if Airtable update fails
+            // La propiedad ya fue actualizada en Supabase, que es lo importante
           }
         }
         
@@ -282,7 +314,7 @@ export default function RenoPropertyDetailPage() {
         
         if (showToast) {
           if (shouldAutoAdvance) {
-            toast.success("Cambios guardados. La propiedad ha pasado a Check Inicial", {
+            toast.success("Se ha guardado correctamente la fecha y se ha movido a Check Inicial", {
               description: "La propiedad se ha movido automáticamente a la fase de Check Inicial.",
             });
           } else {
@@ -293,11 +325,33 @@ export default function RenoPropertyDetailPage() {
         // Refetch to sync with server and get updated phase
         await refetch();
         
-        // If phase changed, redirect to initial-check page (which will show checklist)
+        // Also refresh the properties list in the context so the card updates immediately
+        await refetchProperties();
+        
+        // If phase changed, redirect back to source page (home or kanban)
         if (shouldAutoAdvance) {
-          // Small delay to let the toast show
+          // Small delay to let the toast show and refetch complete
           setTimeout(() => {
-            router.push(`/reno/construction-manager/property/${propertyId}/checklist`);
+            // Determine where to redirect based on source page or referrer
+            let redirectPath = '/reno/construction-manager';
+            
+            if (sourcePage === 'kanban' || sourcePage === 'home') {
+              redirectPath = sourcePage === 'kanban' 
+                ? `/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`
+                : '/reno/construction-manager';
+            } else {
+              // Try to detect from referrer if sourcePage is not provided
+              if (typeof window !== 'undefined') {
+                const referrer = document.referrer;
+                if (referrer.includes('/kanban')) {
+                  redirectPath = `/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`;
+                } else if (referrer.includes('/construction-manager') && !referrer.includes('/property')) {
+                  redirectPath = '/reno/construction-manager';
+                }
+              }
+            }
+            
+            router.push(redirectPath);
           }, 1500);
         }
       } else {
@@ -668,48 +722,30 @@ export default function RenoPropertyDetailPage() {
 
                   {/* Comments moved to sidebar */}
 
-                  {/* Action Buttons */}
+                  {/* Action Button - Solo un botón "Enviar" */}
                   {(!hasEstimatedDate || !isEditingDate) && (
                     <div className="flex items-center justify-end pt-3 md:pt-4 border-t">
-                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        {hasEstimatedDate && (
-                          <Button
-                            onClick={handleManualSave}
-                            disabled={isSaving || !hasUnsavedChanges}
-                            variant="outline"
-                            className="w-full sm:min-w-[120px]"
-                          >
-                            {isSaving ? (
-                              <>
-                                <span className="mr-2">Guardando...</span>
-                                <span className="animate-spin">⏳</span>
-                              </>
-                            ) : (
-                              "Guardar cambios"
-                            )}
-                          </Button>
+                      <Button
+                        onClick={async () => {
+                          if (!localEstimatedVisitDate) {
+                            toast.error("Debes ingresar una fecha estimada de visita antes de continuar");
+                            return;
+                          }
+                          // Guardar fecha y mover automáticamente a initial-check
+                          await saveToSupabase(true, true);
+                        }}
+                        disabled={isSaving || !localEstimatedVisitDate}
+                        className="w-full sm:min-w-[200px]"
+                      >
+                        {isSaving ? (
+                          <>
+                            <span className="mr-2">Enviando...</span>
+                            <span className="animate-spin">⏳</span>
+                          </>
+                        ) : (
+                          "Enviar"
                         )}
-                        <Button
-                          onClick={async () => {
-                            if (!localEstimatedVisitDate) {
-                              toast.error("Debes ingresar una fecha estimada de visita antes de continuar");
-                              return;
-                            }
-                            await saveToSupabase(true, true);
-                          }}
-                          disabled={isSaving || !localEstimatedVisitDate}
-                          className="w-full sm:min-w-[200px]"
-                        >
-                          {isSaving ? (
-                            <>
-                              <span className="mr-2">Enviando...</span>
-                              <span className="animate-spin">⏳</span>
-                            </>
-                          ) : (
-                            "Enviar y pasar a Check Inicial"
-                          )}
-                        </Button>
-                      </div>
+                      </Button>
                     </div>
                   )}
                 </div>

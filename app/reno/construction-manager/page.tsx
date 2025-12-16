@@ -196,7 +196,7 @@ export default function RenoConstructionManagerHomePage() {
 
   // Handle property click - navigate to property detail or task
   const handlePropertyClick = (property: Property) => {
-    router.push(`/reno/construction-manager/property/${property.id}`);
+    router.push(`/reno/construction-manager/property/${property.id}?from=home`);
   };
 
   // Handle add visit

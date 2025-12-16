@@ -146,127 +146,143 @@ export function useSupabaseKanbanProperties() {
   const fetchInProgressRef = useRef(false);
   const lastFetchKeyRef = useRef<string | null>(null);
 
-  // Fetch properties from Supabase
-  useEffect(() => {
-    async function fetchProperties() {
-      // Create a unique key for this fetch attempt
-      const fetchKey = `${role}-${user?.id || 'no-user'}-${user?.email || 'no-email'}`;
-      
-      // Skip if already fetching with the same key
-      if (fetchInProgressRef.current && lastFetchKeyRef.current === fetchKey) {
-        log.debug('Fetch already in progress with same key, skipping...', { fetchKey });
-        return;
-      }
-      
-      // Skip if we already fetched with this exact key
-      if (lastFetchKeyRef.current === fetchKey && !loading) {
-        log.debug('Already fetched with this key, skipping...', { fetchKey });
-        return;
-      }
-      
-      // Mark as in progress
-      fetchInProgressRef.current = true;
+  // Fetch properties function (extracted to be reusable)
+  const fetchProperties = useCallback(async (force = false) => {
+    // Create a unique key for this fetch attempt
+    const fetchKey = `${role}-${user?.id || 'no-user'}-${user?.email || 'no-email'}`;
+    
+    // Skip if already fetching with the same key (unless forced)
+    if (!force && fetchInProgressRef.current && lastFetchKeyRef.current === fetchKey) {
+      log.debug('Fetch already in progress with same key, skipping...', { fetchKey });
+      return;
+    }
+    
+    // Skip if we already fetched with this exact key (unless forced)
+    // Note: We check loading state directly, not from closure, to avoid stale closures
+    if (!force && lastFetchKeyRef.current === fetchKey) {
+      log.debug('Already fetched with this key, skipping...', { fetchKey });
+      return;
+    }
+    
+    // Mark as in progress
+    fetchInProgressRef.current = true;
+    if (force) {
+      // Reset last fetch key when forcing to allow refetch
+      lastFetchKeyRef.current = null;
+    } else {
       lastFetchKeyRef.current = fetchKey;
+    }
+    
+    try {
+      log.debug('Starting fetch...', { role, userEmail: user?.email, userId: user?.id, fetchKey, force });
       
-      try {
-        log.debug('Starting fetch...', { role, userEmail: user?.email, userId: user?.id, fetchKey });
+      setLoading(true);
+      setError(null);
+
+      // Build query based on user role
+      // Exclude orphaned properties (not visible in kanban)
+      let query = supabase
+        .from('properties')
+        .select('*')
+        .neq('reno_phase', 'orphaned');
+
+      // Filter by role:
+      // - Admin/Construction Manager: see all properties
+      // - Foreman: only see properties where "Technical construction" matches their name/email
+      if (role === 'foreman' && user?.email) {
+        // For foreman, we need to filter by "Technical construction"
+        // Since we can't do complex matching in the query, we'll fetch all and filter client-side
+        // This is not ideal for large datasets, but works for now
+        query = query.select('*');
+      }
+      // Admin, construction_manager and other roles: no filter needed (fetch all)
+
+      log.debug('Executing query...', { role, userEmail: user?.email });
+
+      const { data, error: fetchError } = await query.order('created_at', { ascending: false });
+
+      if (fetchError) {
+        log.error('Error fetching properties:', fetchError);
+        throw fetchError;
+      }
+
+      log.debug('Query response:', { dataCount: data?.length || 0 });
+
+      // Debug: Log phase counts (only in development)
+      log.debug('Raw data from Supabase:', {
+        count: data?.length || 0,
+        initialCheckCount: data?.filter(p => p.reno_phase === 'initial-check').length || 0,
+        furnishingCount: data?.filter(p => p.reno_phase === 'furnishing').length || 0,
+        cleaningCount: data?.filter(p => p.reno_phase === 'cleaning').length || 0,
+      });
+
+      // Apply client-side filtering for foreman
+      let filteredData = data || [];
+      if (role === 'foreman' && user?.email) {
+        log.debug('Starting foreman filter...', { userEmail: user.email, totalProperties: data?.length || 0 });
         
-        setLoading(true);
-        setError(null);
-
-        // Build query based on user role
-        // Exclude orphaned properties (not visible in kanban)
-        let query = supabase
-          .from('properties')
-          .select('*')
-          .neq('reno_phase', 'orphaned');
-
-        // Filter by role:
-        // - Admin/Construction Manager: see all properties
-        // - Foreman: only see properties where "Technical construction" matches their name/email
-        if (role === 'foreman' && user?.email) {
-          // For foreman, we need to filter by "Technical construction"
-          // Since we can't do complex matching in the query, we'll fetch all and filter client-side
-          // This is not ideal for large datasets, but works for now
-          query = query.select('*');
-        }
-        // Admin, construction_manager and other roles: no filter needed (fetch all)
-
-        log.debug('Executing query...', { role, userEmail: user?.email });
-
-        const { data, error: fetchError } = await query.order('created_at', { ascending: false });
-
-        if (fetchError) {
-          log.error('Error fetching properties:', fetchError);
-          throw fetchError;
-        }
-
-        log.debug('Query response:', { dataCount: data?.length || 0 });
-
-        // Debug: Log phase counts (only in development)
-        log.debug('Raw data from Supabase:', {
-          count: data?.length || 0,
-          initialCheckCount: data?.filter(p => p.reno_phase === 'initial-check').length || 0,
-          furnishingCount: data?.filter(p => p.reno_phase === 'furnishing').length || 0,
-          cleaningCount: data?.filter(p => p.reno_phase === 'cleaning').length || 0,
+        filteredData = filteredData.filter((property) => {
+          const technicalConstruction = property['Technical construction'];
+          return matchesTechnicalConstruction(technicalConstruction, user.email);
         });
-
-        // Apply client-side filtering for foreman
-        let filteredData = data || [];
-        if (role === 'foreman' && user?.email) {
-          log.debug('Starting foreman filter...', { userEmail: user.email, totalProperties: data?.length || 0 });
-          
-          filteredData = filteredData.filter((property) => {
-            const technicalConstruction = property['Technical construction'];
-            return matchesTechnicalConstruction(technicalConstruction, user.email);
-          });
-          
-          log.debug('Filtered for foreman:', {
-            originalCount: data?.length || 0,
-            filteredCount: filteredData.length,
+        
+        log.debug('Filtered for foreman:', {
+          originalCount: data?.length || 0,
+          filteredCount: filteredData.length,
+          userEmail: user.email,
+        });
+        
+        // If no properties match, log a warning and show all (dev mode)
+        if (filteredData.length === 0 && (data?.length || 0) > 0) {
+          log.warn('No properties matched foreman filter!', {
             userEmail: user.email,
+            extractedName: extractNameFromEmail(user.email),
           });
-          
-          // If no properties match, log a warning and show all (dev mode)
-          if (filteredData.length === 0 && (data?.length || 0) > 0) {
-            log.warn('No properties matched foreman filter!', {
-              userEmail: user.email,
-              extractedName: extractNameFromEmail(user.email),
-            });
-            // TEMPORARY: For development, if no matches, show all properties
-            // TODO: Remove this in production or adjust user role to 'admin'
-            log.warn('TEMPORARY: Showing all properties for foreman (dev mode)');
-            filteredData = data || [];
-          }
+          // TEMPORARY: For development, if no matches, show all properties
+          // TODO: Remove this in production or adjust user role to 'admin'
+          log.warn('TEMPORARY: Showing all properties for foreman (dev mode)');
+          filteredData = data || [];
         }
+      }
 
-        log.debug('Setting properties state:', {
-          count: filteredData.length,
-          role,
-          userEmail: user?.email,
-        });
+      log.debug('Setting properties state:', {
+        count: filteredData.length,
+        role,
+        userEmail: user?.email,
+      });
 
-        setSupabaseProperties(filteredData);
-        setLoading(false);
-        
-        log.debug('Fetch completed:', { propertiesCount: filteredData.length });
-      } catch (err) {
-        log.error('Unexpected error:', err);
-        setError(err instanceof Error ? err.message : 'Error fetching properties');
-        setLoading(false);
-      } finally {
-        // Reset fetch flag
-        fetchInProgressRef.current = false;
+      setSupabaseProperties(filteredData);
+      setLoading(false);
+      
+      log.debug('Fetch completed:', { propertiesCount: filteredData.length });
+    } catch (err) {
+      log.error('Unexpected error:', err);
+      setError(err instanceof Error ? err.message : 'Error fetching properties');
+      setLoading(false);
+    } finally {
+      // Reset fetch flag
+      fetchInProgressRef.current = false;
+      if (!force) {
+        lastFetchKeyRef.current = fetchKey;
       }
     }
+  }, [role, user?.id, user?.email, supabase]);
 
+  // Initial fetch on mount or when role/user changes
+  useEffect(() => {
     // Only fetch if we have both role and user, and we're not already fetching
     if (role !== null && user !== null && !fetchInProgressRef.current) {
-      fetchProperties();
+      fetchProperties(false);
     } else if (role === null || user === null) {
       log.debug('Waiting for role/user...', { hasRole: role !== null, hasUser: user !== null });
     }
-  }, [role, user?.id, user?.email]); // Removed supabase from deps to avoid re-fetching
+  }, [role, user?.id, user?.email, fetchProperties]);
+
+  // Expose refetch function
+  const refetch = useCallback(() => {
+    log.debug('Manual refetch requested');
+    return fetchProperties(true);
+  }, [fetchProperties]);
 
   // Convert and group properties by kanban phase
   // Memoized to avoid unnecessary recalculations
@@ -377,6 +393,7 @@ export function useSupabaseKanbanProperties() {
     loading,
     error,
     totalProperties,
+    refetch,
   };
 }
 
