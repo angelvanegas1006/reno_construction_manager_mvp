@@ -102,64 +102,65 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         throw new Error(supabaseError.message);
       }
 
-      // Actualizar en Airtable - obtener el Unique ID de Airtable desde Supabase
+      // Actualizar en Airtable usando airtable_property_id (Record_ID)
       const AIRTABLE_TABLE_NAME = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
       
-      // Obtener el Unique ID de Airtable desde Supabase
+      // Obtener airtable_property_id desde Supabase (Record_ID de Airtable)
       const { data: propertyData } = await supabase
         .from('properties')
-        .select('airtable_property_id, "Unique ID From Engagements"')
+        .select('airtable_property_id')
         .eq('id', propertyId)
         .single();
       
-      const airtablePropertyId = propertyData?.airtable_property_id || propertyData?.['Unique ID From Engagements'];
+      const airtablePropertyId = propertyData?.airtable_property_id;
       
+      // Validate that airtable_property_id exists (all properties should have it)
       if (!airtablePropertyId) {
-        console.warn('Property has no Airtable ID, skipping Airtable update:', propertyId);
-        toast.warning("Guardado parcialmente", {
-          description: "Se guardó en Supabase pero no se encontró el ID de Airtable.",
-        });
+        console.error(`[Todo Widget] Property ${propertyId} does not have airtable_property_id. All properties should have this field because they are created from Airtable.`);
+        toast.error("Error: La propiedad no tiene ID de Airtable. Contacta al administrador.");
         return;
       }
       
+      // Validate Record ID using findRecordByPropertyId (simplified to only use Record ID)
       const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, airtablePropertyId);
 
-      if (recordId) {
-        // Formatear fecha para Airtable (YYYY-MM-DD)
-        const airtableDate = estimatedVisitDate || null;
-        
-        const airtableUpdates: Record<string, any> = {
-          'fldIhqPOAFL52MMBn': airtableDate, // Usar field ID para mayor confiabilidad
-        };
-        
-        // Si se cambió el Set Up Status, también actualizarlo en Airtable
-        if (supabaseUpdates['Set Up Status']) {
-          airtableUpdates['Set Up Status'] = 'Initial Check';
-        }
-        
-        const airtableSuccess = await updateAirtableWithRetry(
-          AIRTABLE_TABLE_NAME,
-          recordId,
-          airtableUpdates
-        );
+      if (!recordId) {
+        console.error(`[Todo Widget] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId}.`);
+        toast.error("Error: No se encontró el registro en Airtable. Contacta al administrador.");
+        return;
+      }
+      
+      // Formatear fecha para Airtable (YYYY-MM-DD)
+      const airtableDate = estimatedVisitDate || null;
+      
+      // Update Est. visit date in Airtable (field ID: fldIhqPOAFL52MMBn)
+      const airtableUpdates: Record<string, any> = {
+        'fldIhqPOAFL52MMBn': airtableDate, // Est. visit date field ID
+      };
+      
+      // Si se cambió el Set Up Status, también actualizarlo en Airtable
+      if (supabaseUpdates['Set Up Status']) {
+        airtableUpdates['Set Up Status'] = 'Initial Check';
+      }
+      
+      const airtableSuccess = await updateAirtableWithRetry(
+        AIRTABLE_TABLE_NAME,
+        recordId,
+        airtableUpdates
+      );
 
-        if (airtableSuccess) {
-          toast.success("Visita estimada guardada", {
-            description: currentPhase === 'upcoming-settlements' 
-              ? "La fecha de visita estimada se ha guardado y la propiedad se ha movido a Revisión Inicial."
-              : "La fecha de visita estimada se ha guardado correctamente.",
-          });
-          onOpenChange(false);
-          // Recargar la página para reflejar los cambios
-          window.location.reload();
-        } else {
-          toast.warning("Guardado parcialmente", {
-            description: "Se guardó en Supabase pero hubo un problema al sincronizar con Airtable.",
-          });
-        }
+      if (airtableSuccess) {
+        toast.success("Visita estimada guardada", {
+          description: currentPhase === 'upcoming-settlements' 
+            ? "La fecha de visita estimada se ha guardado y la propiedad se ha movido a Revisión Inicial."
+            : "La fecha de visita estimada se ha guardado correctamente.",
+        });
+        onOpenChange(false);
+        // Recargar la página para reflejar los cambios
+        window.location.reload();
       } else {
-        toast.warning("Guardado parcialmente", {
-          description: "Se guardó en Supabase pero no se encontró el registro en Airtable.",
+        toast.error("Error: No se pudo actualizar Airtable", {
+          description: "Se guardó en Supabase pero hubo un problema al sincronizar con Airtable. Contacta al administrador.",
         });
       }
     } catch (error: any) {

@@ -16,31 +16,47 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient();
 
     // Verificar que la propiedad existe
-    const { data: property, error: fetchError } = await supabase
+    // Primero intentar buscar por id, luego por "Unique ID From Engagements"
+    let { data: property, error: fetchError } = await supabase
       .from('properties')
       .select('id, address, "Set Up Status", reno_phase, airtable_property_id, "Unique ID From Engagements"')
       .eq('id', propertyId)
       .single();
 
+    // Si no se encuentra por id, buscar por "Unique ID From Engagements"
     if (fetchError || !property) {
-      return NextResponse.json(
-        { error: `Property ${propertyId} not found` },
-        { status: 404 }
-      );
+      const { data: propertyByUniqueId, error: fetchErrorByUniqueId } = await supabase
+        .from('properties')
+        .select('id, address, "Set Up Status", reno_phase, airtable_property_id, "Unique ID From Engagements"')
+        .eq('Unique ID From Engagements', propertyId)
+        .single();
+      
+      if (fetchErrorByUniqueId || !propertyByUniqueId) {
+        return NextResponse.json(
+          { error: `Property ${propertyId} not found (searched by id and Unique ID From Engagements)` },
+          { status: 404 }
+        );
+      }
+      
+      property = propertyByUniqueId;
+      fetchError = null;
     }
+
+    // Usar el id real de Supabase para todas las operaciones
+    const actualPropertyId = property.id;
 
     // Primero, eliminar inspecciones relacionadas (initial y final)
     const { data: inspections, error: inspectionsError } = await supabase
       .from('property_inspections')
       .select('id')
-      .eq('property_id', propertyId);
+      .eq('property_id', actualPropertyId);
 
     // Solo procesar si no hay error y hay datos
     if (inspectionsError) {
       console.error('Error fetching inspections:', inspectionsError);
       // Continuar de todas formas, puede que no haya inspecciones
     } else if (inspections && inspections.length > 0) {
-      console.log(`Found ${inspections.length} inspections for property ${propertyId}`);
+      console.log(`Found ${inspections.length} inspections for property ${actualPropertyId}`);
       
       const inspectionIds = inspections.map(i => i.id);
       
@@ -82,7 +98,7 @@ export async function POST(request: NextRequest) {
       const { error: deleteInspectionsError } = await supabase
         .from('property_inspections')
         .delete()
-        .eq('property_id', propertyId);
+        .eq('property_id', actualPropertyId);
 
       if (deleteInspectionsError) {
         console.error('Error deleting inspections:', deleteInspectionsError);
@@ -108,7 +124,7 @@ export async function POST(request: NextRequest) {
     const { data: updatedProperty, error: updateError } = await supabase
       .from('properties')
       .update(updates)
-      .eq('id', propertyId)
+      .eq('id', actualPropertyId)
       .select()
       .single();
 
@@ -138,7 +154,7 @@ export async function POST(request: NextRequest) {
           
           if (airtableSuccess) {
             airtableUpdated = true;
-            console.log(`✅ Updated Airtable for property ${propertyId}`);
+            console.log(`✅ Updated Airtable for property ${actualPropertyId}`);
           }
         }
       }
@@ -149,7 +165,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Property ${propertyId} has been reset to initial phase (upcoming-settlements)`,
+      message: `Property ${propertyId} (${actualPropertyId}) has been reset to initial phase (upcoming-settlements)`,
       property: {
         id: updatedProperty.id,
         address: updatedProperty.address,
