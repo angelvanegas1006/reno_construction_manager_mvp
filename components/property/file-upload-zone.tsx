@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
-import { Upload, X, Camera, File } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Upload, X, Camera, File, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FileUpload } from "@/lib/property-storage";
@@ -37,6 +37,19 @@ export function FileUploadZone({
   maxSizeMB = DEFAULT_MAX_SIZE,
   acceptedTypes = DEFAULT_ACCEPTED_TYPES,
 }: FileUploadZoneProps) {
+  // Detectar si estamos en mobile
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const uploadHook = useFileUpload({
     maxFileSize: maxSizeMB,
     acceptedTypes,
@@ -46,6 +59,9 @@ export function FileUploadZone({
   const handleRemoveFile = useCallback((index: number) => {
     uploadHook.removeFile(index);
   }, [uploadHook]);
+
+  // Verificar si acepta imágenes para mostrar opciones de cámara
+  const acceptsImages = acceptedTypes.some(type => type.startsWith('image/'));
 
   return (
     <div className="space-y-3">
