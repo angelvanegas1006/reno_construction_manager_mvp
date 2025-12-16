@@ -1209,13 +1209,14 @@ export const translations: Record<Language, Translations> = {
             elements: {
               grifo: "Grifo",
               fregadero: "Fregadero",
+              desagues: "Desagües",
             },
           },
           carpinteria: {
             title: "Carpintería",
             description: "Revisa el estado y funcionamiento de ventanas, persianas, armarios empotrados y puerta de paso.",
             items: {
-              ventanas: "Ventanas",
+              ventanas: "Ventanas y vierteaguas",
               persianas: "Persianas",
             },
             puertaEntrada: "Puerta de entrada",
@@ -2178,13 +2179,14 @@ export const translations: Record<Language, Translations> = {
             elements: {
               grifo: "Faucet",
               fregadero: "Sink",
+              desagues: "Drains",
             },
           },
           carpinteria: {
             title: "Carpentry",
             description: "Review the state and functioning of windows, blinds, built-in wardrobes, and interior doors.",
             items: {
-              ventanas: "Windows",
+              ventanas: "Windows and sills",
               persianas: "Blinds",
             },
             puertaEntrada: "Entrance door",

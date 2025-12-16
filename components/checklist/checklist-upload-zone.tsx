@@ -415,7 +415,7 @@ export function ChecklistUploadZone({
                 onClick={() => {
                   if (photosHook.fileInputRef.current) {
                     photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
-                    photosHook.fileInputRef.current.capture = undefined;
+                    photosHook.fileInputRef.current.removeAttribute('capture');
                     photosHook.fileInputRef.current.multiple = true;
                     photosHook.fileInputRef.current.click();
                   }
@@ -449,7 +449,7 @@ export function ChecklistUploadZone({
                 onClick={() => {
                   if (videosHook.fileInputRef.current) {
                     videosHook.fileInputRef.current.accept = VIDEO_TYPES.join(",");
-                    videosHook.fileInputRef.current.capture = undefined;
+                    videosHook.fileInputRef.current.removeAttribute('capture');
                     videosHook.fileInputRef.current.multiple = true;
                     videosHook.fileInputRef.current.click();
                   }

@@ -6,12 +6,11 @@ import { use } from "react";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { NavbarL1 } from "@/components/layout/navbar-l1";
 import { RenoKanbanBoard } from "@/components/reno/reno-kanban-board";
-import { RenoKanbanFilters, KanbanFilters } from "@/components/reno/reno-kanban-filters";
+import { RenoKanbanFilters } from "@/components/reno/reno-kanban-filters";
 import { useI18n } from "@/lib/i18n";
-import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
-import { Property } from "@/lib/property-storage";
+import { useRenoProperties } from "@/contexts/reno-properties-context";
+import { useRenoFilters } from "@/hooks/useRenoFilters";
 import { cn } from "@/lib/utils";
-import { getTechnicalConstructionNamesFromForemanEmail } from "@/lib/supabase/user-name-utils";
 
 type ViewMode = "kanban" | "list";
 
@@ -32,43 +31,22 @@ export default function RenoConstructionManagerKanbanPage() {
     }
   }, [unwrappedSearchParams]);
   
-  // Leer filtro de foreman desde URL params y convertirlo a technicalConstructors
-  const [filters, setFilters] = useState<KanbanFilters>({
-    renovatorNames: [],
-    technicalConstructors: [],
-    areaClusters: [],
-    delayedWorks: false,
-  });
-  
-  // Aplicar filtro de foreman desde URL params al cargar
-  useEffect(() => {
-    const foremanParam = unwrappedSearchParams.get('foreman');
-    if (foremanParam) {
-      const foremanEmails = foremanParam.split(',').filter(Boolean);
-      // Convertir emails de foreman a nombres de Technical construction
-      const technicalConstructorNames = new Set<string>();
-      foremanEmails.forEach((email: string) => {
-        const names = getTechnicalConstructionNamesFromForemanEmail(email);
-        names.forEach(name => technicalConstructorNames.add(name));
-      });
-      
-      if (technicalConstructorNames.size > 0) {
-        setFilters(prev => ({
-          ...prev,
-          technicalConstructors: Array.from(technicalConstructorNames),
-        }));
-      }
-    }
-  }, [unwrappedSearchParams]);
-  
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const { t } = useI18n();
   
-  // Obtener todas las propiedades para el componente de filtros
-  const { propertiesByPhase } = useSupabaseKanbanProperties();
+  // Use shared properties context instead of fetching independently
+  const { allProperties } = useRenoProperties();
   
-  // Obtener todas las propiedades en un array plano
-  const allPropertiesForFilters: Property[] = Object.values(propertiesByPhase || {}).flat();
+  // Use unified filters hook
+  const { filters, updateFilters, filterBadgeCount } = useRenoFilters();
+  
+  // Convert RenoFilters to KanbanFilters format for compatibility
+  const kanbanFilters = {
+    renovatorNames: filters.renovatorNames,
+    technicalConstructors: filters.technicalConstructors,
+    areaClusters: filters.areaClusters,
+    delayedWorks: filters.delayedWorks,
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -88,12 +66,7 @@ export default function RenoConstructionManagerKanbanPage() {
           onFilterClick={() => {
             setIsFiltersOpen(true);
           }}
-          filterBadgeCount={
-            filters.renovatorNames.length +
-            filters.technicalConstructors.length +
-            filters.areaClusters.length +
-            (filters.delayedWorks ? 1 : 0)
-          }
+          filterBadgeCount={filterBadgeCount}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />
@@ -108,7 +81,7 @@ export default function RenoConstructionManagerKanbanPage() {
         >
           <RenoKanbanBoard 
             searchQuery={searchQuery} 
-            filters={filters}
+            filters={kanbanFilters}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
@@ -118,9 +91,16 @@ export default function RenoConstructionManagerKanbanPage() {
         <RenoKanbanFilters
           open={isFiltersOpen}
           onOpenChange={setIsFiltersOpen}
-          properties={allPropertiesForFilters}
-          filters={filters}
-          onFiltersChange={setFilters}
+          properties={allProperties}
+          filters={kanbanFilters}
+          onFiltersChange={(newFilters) => {
+            updateFilters({
+              renovatorNames: newFilters.renovatorNames,
+              technicalConstructors: newFilters.technicalConstructors,
+              areaClusters: newFilters.areaClusters,
+              delayedWorks: newFilters.delayedWorks,
+            });
+          }}
         />
       </div>
     </div>

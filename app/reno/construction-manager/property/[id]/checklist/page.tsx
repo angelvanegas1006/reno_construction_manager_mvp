@@ -20,7 +20,6 @@ import { useSupabaseFinalChecklist } from "@/hooks/useSupabaseFinalChecklist";
 import { ChecklistType } from "@/lib/checklist-storage";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
-import { fetchInitialCheckFieldsFromAirtable } from "@/lib/airtable/initial-check-sync";
 import { useSupabaseInspection } from "@/hooks/useSupabaseInspection";
 import { areAllActivitiesReported } from "@/lib/checklist-validation";
 import { calculateOverallChecklistProgress, getAllChecklistSectionsProgress } from "@/lib/checklist-progress";
@@ -55,12 +54,10 @@ export default function RenoChecklistPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Unwrap params if it's a Promise (Next.js 16+), otherwise use directly
-  // In client components, useParams() returns the object directly, not a Promise
-  const unwrappedParams = params && typeof params === 'object' && 'then' in params && typeof params.then === 'function' 
-    ? use(params as Promise<any>) 
-    : params as Record<string, string | string[]>;
-
+  // Unwrap params if it's a Promise (Next.js 16+)
+  // Using instanceof Promise to check without enumerating params
+  const unwrappedParams = params instanceof Promise ? use(params) : params;
+  
   // Get property ID from params
   const propertyId = unwrappedParams?.id && typeof unwrappedParams.id === "string" ? unwrappedParams.id : null;
 
@@ -74,7 +71,7 @@ export default function RenoChecklistPage() {
   }, [propertyId]);
 
   // Load property from Supabase
-  const { property: supabaseProperty, loading: supabaseLoading, error: propertyError, refetch: refetchProperty, updateProperty: updateSupabaseProperty } = useSupabaseProperty(propertyId);
+  const { property: supabaseProperty, loading: supabaseLoading, error: propertyError, refetch: refetchProperty } = useSupabaseProperty(propertyId);
 
   // Convert Supabase property to Property format
   const property: Property | null = useMemo(() => {
@@ -99,7 +96,9 @@ export default function RenoChecklistPage() {
       phase,
       checklistType: result,
       propertyId: property?.id,
-      setUpStatus: property?.['Set Up Status'],
+      setUpStatus: (property as any)?.supabaseProperty?.['Set Up Status'],
+      initialEnabled: result === "reno_initial",
+      finalEnabled: result === "reno_final",
     });
     return result;
   }, [property, supabaseProperty, getPropertyRenoPhase]);
@@ -117,79 +116,17 @@ export default function RenoChecklistPage() {
     }
   }, [property, supabaseProperty, isLoading, checklistType, getPropertyRenoPhase, router]);
 
-  // Load Airtable fields when entering initial-check phase (only once per property)
-  const airtableFieldsLoadedRef = useRef<string | null>(null);
-  useEffect(() => {
-    const loadAirtableFields = async () => {
-      if (!propertyId || !property || !supabaseProperty || !updateSupabaseProperty) return;
-      
-      // Skip if already loaded for this property
-      if (airtableFieldsLoadedRef.current === propertyId) return;
-      
-      const phase = getPropertyRenoPhase(property);
-      if (phase !== "initial-check") {
-        // Reset flag if we're not in initial-check phase
-        if (airtableFieldsLoadedRef.current === propertyId) {
-          airtableFieldsLoadedRef.current = null;
-        }
-        return;
-      }
-
-      // Mark as loading to prevent multiple simultaneous loads
-      airtableFieldsLoadedRef.current = propertyId;
-
-      try {
-        console.log('[ChecklistPage] 🔄 Loading Airtable fields for initial-check...');
-        const airtableFields = await fetchInitialCheckFieldsFromAirtable(propertyId);
-        
-        if (airtableFields) {
-          const updates: any = {};
-          if (airtableFields.nextRenoSteps) {
-            updates.next_reno_steps = airtableFields.nextRenoSteps;
-          }
-          if (airtableFields.renovatorName) {
-            updates['Renovator name'] = airtableFields.renovatorName;
-          }
-          if (airtableFields.keysLocation) {
-            updates.keys_location = airtableFields.keysLocation;
-          }
-          if (airtableFields.setUpStatus) {
-            updates['Set Up Status'] = airtableFields.setUpStatus;
-          }
-
-          if (Object.keys(updates).length > 0) {
-            await updateSupabaseProperty(updates);
-            // Don't call refetchProperty here to avoid triggering the effect again
-            // The property will update naturally through the hook
-            console.log('[ChecklistPage] ✅ Airtable fields loaded and synced to Supabase');
-          }
-        }
-      } catch (error) {
-        console.error('[ChecklistPage] ❌ Error loading Airtable fields:', error);
-        // Reset flag on error so we can retry
-        if (airtableFieldsLoadedRef.current === propertyId) {
-          airtableFieldsLoadedRef.current = null;
-        }
-      }
-    };
-
-    loadAirtableFields();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyId]); // Only depend on propertyId to avoid infinite loops
-
-  // Reset flag when propertyId changes
-  useEffect(() => {
-    airtableFieldsLoadedRef.current = null;
-  }, [propertyId]);
-
   // Use Supabase checklist hook (for production)
   // Usar hooks separados para initial y final para mantener estados independientes
+  // SOLO el hook activo está habilitado para evitar ejecuciones innecesarias y bucles infinitos
   const initialChecklist = useSupabaseInitialChecklist({
     propertyId: propertyId || "",
+    enabled: checklistType === "reno_initial", // Solo habilitar si es el tipo activo
   });
   
   const finalChecklist = useSupabaseFinalChecklist({
     propertyId: propertyId || "",
+    enabled: checklistType === "reno_final", // Solo habilitar si es el tipo activo
   });
   
   // Seleccionar el hook apropiado según el tipo de checklist

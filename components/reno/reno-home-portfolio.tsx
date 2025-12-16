@@ -6,7 +6,7 @@ import { Property } from "@/lib/property-storage";
 import { RenoKanbanPhase, visibleRenoKanbanColumns } from "@/lib/reno-kanban-config";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
-import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
+import { useRenoProperties } from "@/contexts/reno-properties-context";
 
 interface RenoHomePortfolioProps {
   properties: Property[];
@@ -17,10 +17,18 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
   const { t, language } = useI18n();
   const router = useRouter();
   
-  // Get properties grouped by phase from Supabase if not provided as prop
-  const { propertiesByPhase: hookPropertiesByPhase } = useSupabaseKanbanProperties();
+  // Get properties grouped by phase from context if not provided as prop
+  // Use try-catch to handle case where component is used outside provider
+  let hookPropertiesByPhase: Record<RenoKanbanPhase, Property[]> | undefined;
+  try {
+    const context = useRenoProperties();
+    hookPropertiesByPhase = context.propertiesByPhase;
+  } catch (e) {
+    // Component used outside provider, use prop only
+    hookPropertiesByPhase = undefined;
+  }
   
-  // Use prop if provided, otherwise use hook result
+  // Use prop if provided, otherwise use context result
   const propertiesByPhase = propsPropertiesByPhase || hookPropertiesByPhase;
 
   const stageCounts = useMemo(() => {

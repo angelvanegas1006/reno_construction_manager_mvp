@@ -7,7 +7,7 @@ import { RenoKanbanColumn } from "./reno-kanban-column";
 import { ColumnSelectorDialog } from "./column-selector-dialog";
 import { RenoHomeLoader } from "./reno-home-loader";
 import { Property } from "@/lib/property-storage";
-import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
+import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { calculateOverallProgress } from "@/lib/property-validation";
 import { useI18n } from "@/lib/i18n";
 import { visibleRenoKanbanColumns, RenoKanbanPhase } from "@/lib/reno-kanban-config";
@@ -109,8 +109,8 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     setIsMounted(true);
   }, []);
 
-  // Load properties from Supabase (replaces localStorage and mock data)
-  const { propertiesByPhase: supabasePropertiesByPhase, loading: supabaseLoading, error: supabaseError } = useSupabaseKanbanProperties();
+  // Load properties from shared context (no duplicate fetch)
+  const { propertiesByPhase: supabasePropertiesByPhase, loading: supabaseLoading, error: supabaseError } = useRenoProperties();
 
   const handleCardClick = (property: Property) => {
     // For construction manager, navigate to view-only page

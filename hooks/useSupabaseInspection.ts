@@ -38,16 +38,31 @@ interface UseSupabaseInspectionReturn {
 
 export function useSupabaseInspection(
   propertyId: string | null,
-  inspectionType: InspectionType
+  inspectionType: InspectionType,
+  enabled: boolean = true
 ): UseSupabaseInspectionReturn {
   const [inspection, setInspection] = useState<PropertyInspection | null>(null);
   const [zones, setZones] = useState<InspectionZone[]>([]);
   const [elements, setElements] = useState<InspectionElement[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
   const fetchInspection = useCallback(async () => {
+    if (!enabled) {
+      // Si el hook está deshabilitado, no hacer fetch
+      console.log(`[useSupabaseInspection:${inspectionType}] 🚫 Hook disabled, skipping fetch`, {
+        enabled,
+        inspectionType,
+        propertyId,
+      });
+      setInspection(null);
+      setZones([]);
+      setElements([]);
+      setLoading(false);
+      return;
+    }
+    
     if (!propertyId) {
       setInspection(null);
       setZones([]);
@@ -126,7 +141,7 @@ export function useSupabaseInspection(
 
       console.log('[useSupabaseInspection] 📍 Loaded zones:', {
         inspectionId: inspectionData.id,
-        inspectionType: inspectionData.inspection_type,
+        inspectionType: (inspectionData as any).inspection_type,
         zonesCount: zonesData?.length || 0,
         zoneIds: zonesData?.map(z => ({ id: z.id, zone_type: z.zone_type, zone_name: z.zone_name })) || [],
       });
@@ -146,7 +161,7 @@ export function useSupabaseInspection(
       const photoElements = elementsData?.filter(e => e.element_name?.startsWith('fotos-') || e.element_name?.startsWith('videos-')) || [];
       console.log('[useSupabaseInspection] 📸 Loaded elements:', {
         inspectionId: inspectionData.id,
-        inspectionType: inspectionData.inspection_type,
+        inspectionType: (inspectionData as any).inspection_type,
         totalElementsCount: elementsData?.length || 0,
         photoElementsCount: photoElements.length,
         photoElementZoneIds: photoElements.map(e => e.zone_id),
@@ -204,7 +219,7 @@ export function useSupabaseInspection(
     } finally {
       setLoading(false);
     }
-  }, [propertyId, inspectionType, supabase]);
+  }, [propertyId, inspectionType, supabase, enabled]);
 
   // Limpiar datos cuando inspectionType cambia para evitar usar datos del tipo incorrecto
   useEffect(() => {
@@ -550,8 +565,17 @@ export function useSupabaseInspection(
   }, [supabase, fetchInspection]);
 
   useEffect(() => {
-    fetchInspection();
-  }, [fetchInspection]);
+    if (enabled) {
+      fetchInspection();
+    } else {
+      // Si está deshabilitado, limpiar el estado
+      setInspection(null);
+      setZones([]);
+      setElements([]);
+      setLoading(false);
+      setError(null);
+    }
+  }, [fetchInspection, enabled]);
 
   return {
     inspection,

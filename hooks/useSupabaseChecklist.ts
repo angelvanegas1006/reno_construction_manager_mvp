@@ -182,7 +182,7 @@ export function useSupabaseChecklist({
       hasSupabaseProperty: !!supabaseProperty,
       hasInspection: !!inspection,
       inspectionId: inspection?.id,
-      inspectionType: inspection?.inspection_type,
+      inspectionType: (inspection as any)?.inspection_type,
       expectedInspectionType: inspectionType,
       zonesCount: zones.length,
       elementsCount: elements.length,
@@ -212,9 +212,9 @@ export function useSupabaseChecklist({
 
     // Verificar que la inspección corresponde al tipo correcto
     // Si tenemos una inspección pero es del tipo incorrecto, esperar a que se cargue la correcta
-    if (inspection && inspection.inspection_type !== inspectionType) {
+    if (inspection && (inspection as any).inspection_type !== inspectionType) {
       console.log('[useSupabaseChecklist] ⏳ Waiting for correct inspection type...', {
-        currentInspectionType: inspection.inspection_type,
+        currentInspectionType: (inspection as any).inspection_type,
         expectedInspectionType: inspectionType,
         inspectionId: inspection.id,
       });
@@ -506,9 +506,9 @@ export function useSupabaseChecklist({
     }
 
     // Verificar que la inspección corresponde al tipo correcto ANTES de procesar cualquier cambio
-    if (inspection && inspection.inspection_type !== inspectionType) {
+    if (inspection && (inspection as any).inspection_type !== inspectionType) {
       console.log('[useSupabaseChecklist] ⏸️ Ignoring all changes - inspection type mismatch:', {
-        currentInspectionType: inspection.inspection_type,
+        currentInspectionType: (inspection as any).inspection_type,
         expectedInspectionType: inspectionType,
         inspectionId: inspection.id,
       });
@@ -528,7 +528,7 @@ export function useSupabaseChecklist({
         zonesCount: zones.length,
         elementsCount: elements.length,
         hasChecklist: !!checklist,
-        inspectionType: inspection?.inspection_type,
+        inspectionType: (inspection as any)?.inspection_type,
         expectedType: inspectionType,
       });
       
@@ -536,9 +536,9 @@ export function useSupabaseChecklist({
       const isFirstInspection = lastProcessedInspectionIdRef.current === null && inspectionId !== null;
       
       // SOLO procesar si la inspección es del tipo correcto
-      if (inspection && inspection.inspection_type !== inspectionType) {
+      if (inspection && (inspection as any).inspection_type !== inspectionType) {
         console.log('[useSupabaseChecklist] ⏸️ Ignoring inspection change - wrong type:', {
-          currentInspectionType: inspection.inspection_type,
+          currentInspectionType: (inspection as any).inspection_type,
           expectedInspectionType: inspectionType,
           inspectionId: inspection.id,
         });
@@ -592,10 +592,10 @@ export function useSupabaseChecklist({
 
     // Verificar que la inspección corresponde al tipo correcto antes de procesar cambios
     // Si no hay inspección o es del tipo incorrecto, esperar a que se cargue la correcta
-    if (!inspection || inspection.inspection_type !== inspectionType) {
+    if (!inspection || (inspection as any).inspection_type !== inspectionType) {
       if (inspection) {
         console.log('[useSupabaseChecklist] ⏸️ Ignoring zones/elements changes - inspection type mismatch:', {
-          currentInspectionType: inspection.inspection_type,
+          currentInspectionType: (inspection as any).inspection_type,
           expectedInspectionType: inspectionType,
           inspectionId: inspection.id,
         });

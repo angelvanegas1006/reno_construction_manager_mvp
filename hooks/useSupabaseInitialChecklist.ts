@@ -5,6 +5,7 @@ import type { ChecklistType } from "@/lib/checklist-storage";
 
 interface UseSupabaseInitialChecklistProps {
   propertyId: string;
+  enabled?: boolean; // Si es false, el hook no hará fetch ni ejecutará lógica
 }
 
 /**
@@ -13,11 +14,13 @@ interface UseSupabaseInitialChecklistProps {
  */
 export function useSupabaseInitialChecklist({
   propertyId,
+  enabled = true,
 }: UseSupabaseInitialChecklistProps) {
   return useSupabaseChecklistBase({
     propertyId,
     checklistType: "reno_initial" as ChecklistType,
     inspectionType: "initial",
+    enabled,
   });
 }
 

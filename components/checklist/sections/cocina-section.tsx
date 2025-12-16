@@ -21,7 +21,6 @@ interface CocinaSectionProps {
 const CARPENTRY_ITEMS = [
   { id: "ventanas", translationKey: "ventanas" },
   { id: "persianas", translationKey: "persianas" },
-  { id: "puerta-entrada", translationKey: "puertaEntrada" },
 ] as const;
 
 const STORAGE_ITEMS = [
@@ -54,6 +53,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       { id: "acabados" },
       { id: "mobiliario-fijo" },
       { id: "agua-drenaje" },
+      { id: "puerta-entrada" },
     ];
 
     // Always use section.questions if available and not empty, otherwise use defaults
@@ -259,10 +259,23 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       itemsKey: "carpentryItems" | "storageItems" | "appliancesItems",
       translationPath: string
     ) => {
+      // Always get the latest items from section to ensure we have the most recent state
+      const latestItems = (() => {
+        if (itemsKey === "carpentryItems") {
+          return section.carpentryItems || items;
+        } else if (itemsKey === "storageItems") {
+          return section.storageItems || items;
+        } else if (itemsKey === "appliancesItems") {
+          return section.appliancesItems || items;
+        }
+        return items;
+      })();
+      
       return (
         <div className="space-y-4">
           {itemsConfig.map((itemConfig) => {
-            const item = items.find(i => i.id === itemConfig.id) || {
+            // Always get the latest item from latestItems to ensure we have the most recent state
+            const item = latestItems.find(i => i.id === itemConfig.id) || {
               id: itemConfig.id,
               cantidad: 0,
             };
@@ -270,9 +283,12 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             const needsValidation = cantidad > 0;
             const hasMultipleUnits = cantidad > 1;
             const units = item.units || [];
+            
+            // Ensure we're using the latest item state for rendering
+            const currentItem = latestItems.find(i => i.id === itemConfig.id) || item;
 
             return (
-              <div key={`${item.id}-${cantidad}`} className="space-y-4">
+              <div key={`${item.id}-${cantidad}`} className="space-y-4 w-full overflow-hidden">
                 {/* Quantity Stepper */}
                 <div className="flex items-center justify-between gap-2">
                   <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words">
@@ -290,7 +306,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                   <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <button
                       type="button"
-                      onClick={() => handleQuantityChange(item.id, -1, items, itemsKey)}
+                      onClick={() => handleQuantityChange(item.id, -1, latestItems, itemsKey)}
                       disabled={cantidad === 0}
                       className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                       aria-label="Decrementar cantidad"
@@ -302,7 +318,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleQuantityChange(item.id, 1, items, itemsKey)}
+                      onClick={() => handleQuantityChange(item.id, 1, latestItems, itemsKey)}
                       disabled={cantidad >= MAX_QUANTITY}
                       className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                       aria-label="Incrementar cantidad"
@@ -345,7 +361,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                     <button
                                       key={option.value}
                                       type="button"
-                                      onClick={() => handleStatusChange(item.id, index, option.value, items, itemsKey)}
+                                      onClick={() => handleStatusChange(item.id, index, option.value, latestItems, itemsKey)}
                                       className={cn(
                                         "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                         isSelected
@@ -364,13 +380,13 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
 
                               {/* Details for this unit (if necesita reparación or necesita reemplazo) */}
                               {unitRequiresDetails && (
-                                <div className="space-y-4 pt-2">
+                                <div className="space-y-4 pt-2 w-full overflow-hidden">
                                   {/* Bad Elements Checkboxes */}
                                   <div className="space-y-2">
                                     <Label className="text-xs sm:text-sm font-medium text-foreground">
                                       {t.checklist.sections.cocina.acabados.whatElementsBadCondition}
                                     </Label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full min-w-0">
                                       {[
                                         { id: "rotura", label: "Rotura" },
                                         { id: "desgaste", label: "Desgaste" },
@@ -381,7 +397,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                         return (
                                           <label
                                             key={badElement.id}
-                                            className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
+                                            className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer min-w-0"
                                           >
                                             <input
                                               type="checkbox"
@@ -391,11 +407,11 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                                 const updatedBadElements = e.target.checked
                                                   ? [...currentBadElements, badElement.id]
                                                   : currentBadElements.filter((id) => id !== badElement.id);
-                                                handleBadElementsChange(item.id, index, updatedBadElements, items, itemsKey);
+                                                handleBadElementsChange(item.id, index, updatedBadElements, latestItems, itemsKey);
                                               }}
                                               className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
                                             />
-                                            <span className="text-muted-foreground">{badElement.label}</span>
+                                            <span className="text-muted-foreground truncate">{badElement.label}</span>
                                           </label>
                                         );
                                       })}
@@ -409,7 +425,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                     </Label>
                                     <Textarea
                                       value={unit.notes || ""}
-                                      onChange={(e) => handleNotesChange(item.id, index, e.target.value, items, itemsKey)}
+                                        onChange={(e) => handleNotesChange(item.id, index, e.target.value, latestItems, itemsKey)}
                                       placeholder={t.checklist.observationsPlaceholder}
                                       className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
                                       required={unitRequiresDetails}
@@ -423,7 +439,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                       description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
                                       uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
                                       onUpdate={(updates) => {
-                                        handlePhotosChange(item.id, index, updates.photos, items, itemsKey);
+                                        handlePhotosChange(item.id, index, updates.photos, latestItems, itemsKey);
                                       }}
                                       isRequired={unitRequiresDetails}
                                       maxFiles={10}
@@ -441,12 +457,14 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
                           {STATUS_OPTIONS.map((option) => {
-                            const isSelected = item.estado === option.value;
+                            // Always get the latest item state to ensure correct selection state
+                            const latestItem = latestItems.find(i => i.id === itemConfig.id) || item;
+                            const isSelected = latestItem.estado === option.value;
                             return (
                               <button
                                 key={option.value}
                                 type="button"
-                                onClick={() => handleStatusChange(item.id, null, option.value, items, itemsKey)}
+                                onClick={() => handleStatusChange(latestItem.id, null, option.value, latestItems, itemsKey)}
                                 className={cn(
                                   "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                   isSelected
@@ -464,42 +482,44 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                         </div>
 
                         {/* Details for single unit (if necesita reparación or necesita reemplazo) */}
-                        {(item.estado === "necesita_reparacion" || item.estado === "necesita_reemplazo") && (
-                          <div className="space-y-4 pt-2">
-                            {/* Bad Elements Checkboxes */}
-                            <div className="space-y-2">
-                              <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                {t.checklist.sections.cocina.acabados.whatElementsBadCondition}
-                              </Label>
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                {[
-                                  { id: "rotura", label: "Rotura" },
-                                  { id: "desgaste", label: "Desgaste" },
-                                  { id: "oxidacion", label: "Oxidación" },
-                                  { id: "otros", label: "Otros" },
-                                ].map((badElement) => {
-                                  const isChecked = item.badElements?.includes(badElement.id) || false;
-                                  return (
-                                    <label
-                                      key={badElement.id}
-                                      className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={(e) => {
-                                          const currentBadElements = item.badElements || [];
-                                          const updatedBadElements = e.target.checked
-                                            ? [...currentBadElements, badElement.id]
-                                            : currentBadElements.filter((id) => id !== badElement.id);
-                                          handleBadElementsChange(item.id, null, updatedBadElements, items, itemsKey);
-                                        }}
-                                        className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
-                                      />
-                                      <span className="text-muted-foreground">{badElement.label}</span>
-                                    </label>
-                                  );
-                                })}
+                        {(() => {
+                          const latestItem = latestItems.find(i => i.id === itemConfig.id) || item;
+                          return (latestItem.estado === "necesita_reparacion" || latestItem.estado === "necesita_reemplazo") && (
+                            <div className="space-y-4 pt-2 w-full overflow-hidden">
+                              {/* Bad Elements Checkboxes */}
+                              <div className="space-y-2">
+                                <Label className="text-xs sm:text-sm font-medium text-foreground">
+                                  {t.checklist.sections.cocina.acabados.whatElementsBadCondition}
+                                </Label>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full min-w-0">
+                                  {[
+                                    { id: "rotura", label: "Rotura" },
+                                    { id: "desgaste", label: "Desgaste" },
+                                    { id: "oxidacion", label: "Oxidación" },
+                                    { id: "otros", label: "Otros" },
+                                  ].map((badElement) => {
+                                    const isChecked = latestItem.badElements?.includes(badElement.id) || false;
+                                    return (
+                                      <label
+                                        key={badElement.id}
+                                        className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer min-w-0"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          onChange={(e) => {
+                                            const currentBadElements = latestItem.badElements || [];
+                                            const updatedBadElements = e.target.checked
+                                              ? [...currentBadElements, badElement.id]
+                                              : currentBadElements.filter((id) => id !== badElement.id);
+                                            handleBadElementsChange(latestItem.id, null, updatedBadElements, latestItems, itemsKey);
+                                          }}
+                                          className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
+                                        />
+                                        <span className="text-muted-foreground">{badElement.label}</span>
+                                      </label>
+                                    );
+                                  })}
                               </div>
                             </div>
 
@@ -509,8 +529,8 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                 {t.checklist.notes} <span className="text-red-500">*</span>
                               </Label>
                               <Textarea
-                                value={item.notes || ""}
-                                onChange={(e) => handleNotesChange(item.id, null, e.target.value, items, itemsKey)}
+                                value={latestItem.notes || ""}
+                                onChange={(e) => handleNotesChange(latestItem.id, null, e.target.value, latestItems, itemsKey)}
                                 placeholder={t.checklist.observationsPlaceholder}
                                 className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
                                 required={true}
@@ -522,9 +542,9 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                               <ChecklistUploadZoneComponent
                                 title="Fotos"
                                 description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: [] }}
+                                uploadZone={{ id: `${latestItem.id}-photos`, photos: latestItem.photos || [], videos: [] }}
                                 onUpdate={(updates) => {
-                                  handlePhotosChange(item.id, null, updates.photos, items, itemsKey);
+                                  handlePhotosChange(latestItem.id, null, updates.photos, latestItems, itemsKey);
                                 }}
                                 isRequired={true}
                                 maxFiles={10}
@@ -532,7 +552,8 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                               />
                             </div>
                           </div>
-                        )}
+                        );
+                        })()}
                       </div>
                     )}
                   </>
@@ -605,12 +626,13 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             elements={[
               { id: "grifo", label: t.checklist.sections.cocina.aguaDrenaje.elements.grifo },
               { id: "fregadero", label: t.checklist.sections.cocina.aguaDrenaje.elements.fregadero },
+              { id: "desagues", label: t.checklist.sections.cocina.aguaDrenaje.elements.desagues },
             ]}
           />
         </Card>
 
         {/* Carpintería */}
-        <Card className="p-4 sm:p-6 space-y-4">
+        <Card className="p-4 sm:p-6 space-y-4 w-full overflow-hidden">
           <div className="space-y-2">
             <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words">
               {t.checklist.sections.cocina.carpinteria.title}
@@ -621,10 +643,21 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
           </div>
 
           {renderQuantityItems(carpentryItems, CARPENTRY_ITEMS, "carpentryItems", "carpinteria")}
+
+          {/* Puerta de entrada - Status selector (not quantity) */}
+          <div className="space-y-4 pt-4 border-t">
+            <ChecklistQuestionComponent
+              question={questions.find(q => q.id === "puerta-entrada") || { id: "puerta-entrada" }}
+              questionId="puerta-entrada"
+              label={t.checklist.sections.cocina.carpinteria.puertaEntrada}
+              description=""
+              onUpdate={(updates) => handleQuestionUpdate("puerta-entrada", updates)}
+            />
+          </div>
         </Card>
 
         {/* Almacenamiento */}
-        <Card className="p-4 sm:p-6 space-y-4">
+        <Card className="p-4 sm:p-6 space-y-4 w-full overflow-hidden">
           <div className="space-y-2">
             <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words">
               {t.checklist.sections.cocina.almacenamiento.title}
@@ -635,7 +668,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         </Card>
 
         {/* Electrodomésticos */}
-        <Card className="p-4 sm:p-6 space-y-4">
+        <Card className="p-4 sm:p-6 space-y-4 w-full overflow-hidden">
           <div className="space-y-2">
             <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words">
               {t.checklist.sections.cocina.electrodomesticos.title}

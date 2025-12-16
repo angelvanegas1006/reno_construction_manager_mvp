@@ -73,20 +73,23 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     ], 'daysToStartRenoSinceRSD');
 
     // 4. Actualizacion de obra - solo propiedades que necesitan update esta semana (lunes a domingo)
-    // Todas las actualizaciones se calculan desde la fecha base (viernes 11 de diciembre de 2024)
+    // Las actualizaciones se calculan desde la fecha de inicio de la obra (reno_start_date)
     const pendingWorkUpdateProps = (propertiesByPhase['reno-in-progress'] || [])
       .map(prop => {
-        // Calcular proximaActualizacion desde la fecha base si no existe
-        // Si tiene next_update en BD, usarlo; sino calcular desde fecha base
+        // Calcular proximaActualizacion desde la fecha de inicio de la obra si no existe
+        // Si tiene next_update en BD, usarlo; sino calcular desde fecha de inicio
         let proximaActualizacion = prop.proximaActualizacion;
         if (!proximaActualizacion) {
-          // Calcular desde fecha base (viernes 11 de diciembre de 2024)
-          const calculated = calculateNextUpdateDate(null, prop.renoType);
+          // Obtener fecha de inicio de la obra
+          const renoStartDate = prop.inicio || (prop as any).supabaseProperty?.["Reno Start Date"] || (prop as any).supabaseProperty?.start_date;
+          // Calcular desde fecha de inicio de la obra
+          const calculated = calculateNextUpdateDate(null, prop.renoType, renoStartDate);
           proximaActualizacion = calculated || undefined;
         }
         
         // Verificar si debería haberse actualizado la semana pasada o antes (para resaltar en rojo)
-        const isOverdue = needsUpdate(proximaActualizacion, prop.renoType) && !needsUpdateThisWeek(proximaActualizacion);
+        const renoStartDate = prop.inicio || (prop as any).supabaseProperty?.["Reno Start Date"] || (prop as any).supabaseProperty?.start_date;
+        const isOverdue = needsUpdate(proximaActualizacion, prop.renoType, renoStartDate) && !needsUpdateThisWeek(proximaActualizacion);
         
         return {
           ...prop,

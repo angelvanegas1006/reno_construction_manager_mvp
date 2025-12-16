@@ -135,7 +135,7 @@ export function FileUploadZone({
                 onClick={() => {
                   if (uploadHook.fileInputRef.current) {
                     uploadHook.fileInputRef.current.accept = acceptedTypes.join(",");
-                    uploadHook.fileInputRef.current.capture = undefined;
+                    uploadHook.fileInputRef.current.removeAttribute('capture');
                     uploadHook.fileInputRef.current.click();
                   }
                 }}

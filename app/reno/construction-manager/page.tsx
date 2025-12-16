@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, use } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoHomeHeader } from "@/components/reno/reno-home-header";
 import { RenoHomeIndicators } from "@/components/reno/reno-home-indicators";
@@ -13,71 +13,28 @@ import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
 import { ForemanFilterCombobox } from "@/components/reno/foreman-filter-combobox";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
-// import { GoogleCalendarConnect } from "@/components/auth/google-calendar-connect"; // Movido al calendario como botón pequeño
 import { sortPropertiesByExpired, isPropertyExpired } from "@/lib/property-sorting";
 import { toast } from "sonner";
-import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
+import { useRenoProperties } from "@/contexts/reno-properties-context";
+import { useRenoFilters } from "@/hooks/useRenoFilters";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { createClient } from "@/lib/supabase/client";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
-import { matchesTechnicalConstruction } from "@/lib/supabase/user-name-utils";
+import { getTechnicalConstructionNamesFromForemanEmail } from "@/lib/supabase/user-name-utils";
 
 export default function RenoConstructionManagerHomePage() {
   const { t } = useI18n();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user, role, isLoading } = useAppAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [selectedForemanEmails, setSelectedForemanEmails] = useState<string[]>([]);
   const supabase = createClient();
 
-  // Unwrap searchParams if it's a Promise (Next.js 16+)
-  const unwrappedSearchParams = searchParams instanceof Promise ? use(searchParams) : searchParams;
-
-  // Leer filtro de foreman desde URL params al cargar
-  useEffect(() => {
-    const foremanParam = unwrappedSearchParams.get('foreman');
-    if (foremanParam) {
-      const emails = foremanParam.split(',').filter(Boolean);
-      // Solo actualizar si es diferente para evitar loops
-      setSelectedForemanEmails(prev => {
-        const prevStr = prev.sort().join(',');
-        const newStr = emails.sort().join(',');
-        return prevStr === newStr ? prev : emails;
-      });
-    } else {
-      // Si no hay parámetro en URL y tenemos emails seleccionados, limpiar
-      setSelectedForemanEmails(prev => prev.length > 0 ? [] : prev);
-    }
-  }, [unwrappedSearchParams]);
-
-  // Guardar filtro en URL params cuando cambia (solo si es diferente)
-  useEffect(() => {
-    if (role !== 'construction_manager') return;
-    
-    const currentForemanParam = unwrappedSearchParams.get('foreman');
-    const currentForemanEmails = currentForemanParam 
-      ? currentForemanParam.split(',').filter(Boolean).sort()
-      : [];
-    const newForemanEmails = selectedForemanEmails.sort();
-    
-    // Comparar arrays ordenados para evitar actualizaciones innecesarias
-    const isEqual = currentForemanEmails.length === newForemanEmails.length &&
-      currentForemanEmails.every((email, index) => email === newForemanEmails[index]);
-    
-    if (isEqual) return; // No actualizar si ya está sincronizado
-    
-    const params = new URLSearchParams(unwrappedSearchParams.toString());
-    
-    if (selectedForemanEmails.length > 0) {
-      params.set('foreman', selectedForemanEmails.join(','));
-    } else {
-      params.delete('foreman');
-    }
-    
-    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-    router.replace(newUrl, { scroll: false });
-  }, [selectedForemanEmails, role, router, searchParams]);
+  // Use shared properties context instead of fetching independently
+  const { propertiesByPhase: rawPropertiesByPhase, loading: supabaseLoading, error: supabaseError } = useRenoProperties();
+  
+  // Use unified filters hook
+  const { filters, updateFilters } = useRenoFilters();
+  const selectedForemanEmails = filters.foremanEmails;
 
   // Protect route: redirect if user doesn't have required role
   useEffect(() => {
@@ -95,19 +52,17 @@ export default function RenoConstructionManagerHomePage() {
     }
   }, [user, role, isLoading, router]);
 
-  // Load properties from Supabase
-  const { propertiesByPhase: rawPropertiesByPhase, loading: supabaseLoading, error: supabaseError } = useSupabaseKanbanProperties();
-  
-  // Filtrar propertiesByPhase por foreman seleccionados (solo para construction_manager)
+  // Filter propertiesByPhase by selected foreman (only for construction_manager)
+  // Note: Foreman filtering is now handled in useRenoFilters hook
   const propertiesByPhase = useMemo(() => {
     if (!rawPropertiesByPhase) return undefined;
     
-    // Si no hay filtro o no es construction_manager, devolver sin filtrar
-    if (role !== 'construction_manager' || selectedForemanEmails.length === 0 || !user?.email) {
+    // If no foreman filter or not construction_manager, return unfiltered
+    if (role !== 'construction_manager' || selectedForemanEmails.length === 0) {
       return rawPropertiesByPhase;
     }
     
-    // Filtrar cada fase por foreman seleccionados
+    // Filter each phase by selected foreman
     const filtered: Record<string, Property[]> = {};
     
     Object.entries(rawPropertiesByPhase).forEach(([phase, phaseProperties]) => {
@@ -115,15 +70,19 @@ export default function RenoConstructionManagerHomePage() {
         const technicalConstruction = (property as any).supabaseProperty?.["Technical construction"];
         if (!technicalConstruction) return false;
         
-        // Verificar si el foreman de la propiedad está en la lista seleccionada
-        return selectedForemanEmails.some(email => 
-          matchesTechnicalConstruction(technicalConstruction, email)
-        );
+        // Check if property's foreman is in selected list
+        return selectedForemanEmails.some(email => {
+          const names = getTechnicalConstructionNamesFromForemanEmail(email);
+          return names.some(name => 
+            technicalConstruction === name || 
+            (typeof technicalConstruction === 'string' && technicalConstruction.includes(name))
+          );
+        });
       });
     });
     
     return filtered;
-  }, [rawPropertiesByPhase, selectedForemanEmails, role, user?.email]);
+  }, [rawPropertiesByPhase, selectedForemanEmails, role]);
   
   // Load visits for this week (from estimatedVisitDate)
   const [visitsForThisWeek, setVisitsForThisWeek] = useState<number>(0);
@@ -269,16 +228,16 @@ export default function RenoConstructionManagerHomePage() {
                 <div className="bg-card border rounded-lg p-4">
                   <ForemanFilterCombobox
                     properties={(() => {
-                      // Obtener todas las propiedades sin filtrar para el combobox
-                      if (!propertiesByPhase) return [];
+                      // Get all properties unfiltered for the combobox
+                      if (!rawPropertiesByPhase) return [];
                       const allProps: Property[] = [];
-                      Object.values(propertiesByPhase).forEach((phaseProperties) => {
+                      Object.values(rawPropertiesByPhase).forEach((phaseProperties) => {
                         allProps.push(...phaseProperties);
                       });
                       return allProps;
                     })()}
                     selectedForemanEmails={selectedForemanEmails}
-                    onSelectionChange={setSelectedForemanEmails}
+                    onSelectionChange={(emails) => updateFilters({ foremanEmails: emails })}
                     placeholder={t.dashboard?.foremanFilter?.filterByForeman || "Filtrar por jefe de obra..."}
                     label={t.dashboard?.foremanFilter?.filterByConstructionManager || "Filtrar por Gerente de Construcción"}
                   />

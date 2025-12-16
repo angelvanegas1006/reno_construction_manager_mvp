@@ -71,17 +71,31 @@ export function ChecklistQuestion({
   ];
 
   const handleStatusChange = (status: ChecklistStatus) => {
+    console.log(`🖱️ [ChecklistQuestion] handleStatusChange CALLED:`, {
+      questionId,
+      status,
+      currentStatus: question.status,
+      hasOnUpdate: typeof onUpdate === 'function',
+      label,
+    });
+    
     // If status is "buen_estado" or "no_aplica", clear badElements, notes, and photos
     if (status === "buen_estado" || status === "no_aplica") {
-      onUpdate({ 
+      const updates = { 
         status, 
         badElements: undefined, 
         notes: undefined, 
         photos: undefined 
-      });
+      };
+      console.log(`📤 [ChecklistQuestion] Calling onUpdate with:`, updates);
+      onUpdate(updates);
+      console.log(`✅ [ChecklistQuestion] onUpdate called successfully`);
     } else {
       // For "necesita_reparacion" or "necesita_reemplazo", keep existing data but update status
-      onUpdate({ status });
+      const updates = { status };
+      console.log(`📤 [ChecklistQuestion] Calling onUpdate with:`, updates);
+      onUpdate(updates);
+      console.log(`✅ [ChecklistQuestion] onUpdate called successfully`);
     }
   };
 
