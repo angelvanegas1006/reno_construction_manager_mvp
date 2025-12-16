@@ -458,43 +458,6 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
                                 {/* Details for this unit (if necesita reparación or necesita reemplazo) */}
                                 {unitRequiresDetails && (
                                   <div className="space-y-4 pt-2">
-                                    {/* Bad Elements Checkboxes */}
-                                    <div className="space-y-2">
-                                      <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                        {t.checklist.sections.salon.acabados.whatElementsBadCondition}
-                                      </Label>
-                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                        {[
-                                          { id: "rotura", label: "Rotura" },
-                                          { id: "desgaste", label: "Desgaste" },
-                                          { id: "oxidacion", label: "Oxidación" },
-                                          { id: "otros", label: "Otros" },
-                                        ].map((badElement) => {
-                                          const isChecked = unit.badElements?.includes(badElement.id) || false;
-                                          return (
-                                            <label
-                                              key={badElement.id}
-                                              className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
-                                            >
-                                              <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={(e) => {
-                                                  const currentBadElements = unit.badElements || [];
-                                                  const updatedBadElements = e.target.checked
-                                                    ? [...currentBadElements, badElement.id]
-                                                    : currentBadElements.filter((id) => id !== badElement.id);
-                                                  handleCarpentryBadElementsChange(item.id, index, updatedBadElements);
-                                                }}
-                                                className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
-                                              />
-                                              <span className="text-muted-foreground">{badElement.label}</span>
-                                            </label>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-
                                     {/* Notes */}
                                     <div className="space-y-2">
                                       <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
@@ -559,43 +522,6 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
                           {/* Details for single unit (if necesita reparación or necesita reemplazo) */}
                           {(carpentryItem.estado === "necesita_reparacion" || carpentryItem.estado === "necesita_reemplazo") && (
                             <div className="space-y-4 pt-2">
-                              {/* Bad Elements Checkboxes */}
-                              <div className="space-y-2">
-                                <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                  {t.checklist.sections.salon.acabados.whatElementsBadCondition}
-                                </Label>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                  {[
-                                    { id: "rotura", label: "Rotura" },
-                                    { id: "desgaste", label: "Desgaste" },
-                                    { id: "oxidacion", label: "Oxidación" },
-                                    { id: "otros", label: "Otros" },
-                                  ].map((badElement) => {
-                                    const isChecked = carpentryItem.badElements?.includes(badElement.id) || false;
-                                    return (
-                                      <label
-                                        key={badElement.id}
-                                        className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          checked={isChecked}
-                                          onChange={(e) => {
-                                            const currentBadElements = carpentryItem.badElements || [];
-                                            const updatedBadElements = e.target.checked
-                                              ? [...currentBadElements, badElement.id]
-                                              : currentBadElements.filter((id) => id !== badElement.id);
-                                            handleCarpentryBadElementsChange(carpentryItem.id, null, updatedBadElements);
-                                          }}
-                                          className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
-                                        />
-                                        <span className="text-muted-foreground">{badElement.label}</span>
-                                      </label>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-
                               {/* Notes */}
                               <div className="space-y-2">
                                 <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
@@ -883,9 +809,6 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
 
             {mobiliario.existeMobiliario && (
               <div className="space-y-4 pt-4 border-t">
-                <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words">
-                  {t.checklist.sections.salon.mobiliario.elementoPuntuar}
-                </Label>
                 <ChecklistQuestionComponent
                   question={mobiliario.question || { id: "mobiliario" }}
                   questionId="mobiliario"
@@ -893,6 +816,19 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
                   onUpdate={handleMobiliarioQuestionUpdate}
                   elements={[]}
                 />
+                {/* Campo de notas obligatorio para describir qué mobiliario existe */}
+                <div className="space-y-2">
+                  <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                    {t.checklist.sections.salon.mobiliario.queMobiliarioExiste} <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    value={mobiliario.question?.notes || ""}
+                    onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
+                    placeholder="Describe qué mobiliario existe en el salón..."
+                    className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                    required={true}
+                  />
+                </div>
               </div>
             )}
           </div>

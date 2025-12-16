@@ -1297,43 +1297,6 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                   {/* Details for this unit (if necesita reparación or necesita reemplazo) */}
                                   {unitRequiresDetails && (
                                     <div className="space-y-4 pt-2">
-                                      {/* Bad Elements Checkboxes */}
-                                      <div className="space-y-2">
-                                        <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                          Elementos en mal estado:
-                                        </Label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                          {[
-                                            { id: "rotura", label: "Rotura" },
-                                            { id: "desgaste", label: "Desgaste" },
-                                            { id: "oxidacion", label: "Oxidación" },
-                                            { id: "otros", label: "Otros" },
-                                          ].map((badElement) => {
-                                            const isChecked = unit.badElements?.includes(badElement.id) || false;
-                                            return (
-                                              <label
-                                                key={badElement.id}
-                                                className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
-                                              >
-                                                <input
-                                                  type="checkbox"
-                                                  checked={isChecked}
-                                                  onChange={(e) => {
-                                                    const currentBadElements = unit.badElements || [];
-                                                    const updatedBadElements = e.target.checked
-                                                      ? [...currentBadElements, badElement.id]
-                                                      : currentBadElements.filter((id: string) => id !== badElement.id);
-                                                    handleSingleCarpentryBadElementsChange(item.id, index, updatedBadElements);
-                                                  }}
-                                                  className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
-                                                />
-                                                <span className="text-muted-foreground">{badElement.label}</span>
-                                              </label>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-
                                       {/* Notes */}
                                       <div className="space-y-2">
                                         <Label className="text-xs sm:text-sm font-medium text-foreground">
@@ -1349,58 +1312,17 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
                                       {/* Photos */}
                                       <div className="space-y-2">
-                                        <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                          Fotos:
-                                        </Label>
-                                        <input
-                                          type="file"
-                                          accept="image/*"
-                                          multiple
-                                          capture={typeof window !== 'undefined' && (window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) ? "environment" : undefined}
-                                          onChange={async (e) => {
-                                            const files = Array.from(e.target.files || []);
-                                            const newPhotos: FileUpload[] = await Promise.all(files.map(async (file) => {
-                                              const reader = new FileReader();
-                                              const data = await new Promise<string>((resolve) => {
-                                                reader.onload = () => resolve(reader.result as string);
-                                                reader.readAsDataURL(file);
-                                              });
-                                              return {
-                                                id: `${Date.now()}-${Math.random()}`,
-                                                name: file.name,
-                                                size: file.size,
-                                                type: file.type,
-                                                data: data.split(',')[1], // Remove data:image/...;base64, prefix
-                                                uploadedAt: new Date().toISOString(),
-                                              };
-                                            }));
-                                            handleSingleCarpentryPhotosChange(item.id, index, [...(unit.photos || []), ...newPhotos]);
+                                        <ChecklistUploadZoneComponent
+                                          title="Fotos"
+                                          description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
+                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                          onUpdate={(updates) => {
+                                            handleSingleCarpentryPhotosChange(item.id, index, updates.photos);
                                           }}
-                                          className="w-full text-xs sm:text-sm"
+                                          isRequired={unitRequiresDetails}
+                                          maxFiles={10}
+                                          maxSizeMB={5}
                                         />
-                                        {unit.photos && unit.photos.length > 0 && (
-                                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                            {unit.photos.map((photo: FileUpload) => (
-                                              <div key={photo.id} className="relative">
-                                                <img
-                                                  src={`data:${photo.type};base64,${photo.data}`}
-                                                  alt="Preview"
-                                                  className="w-full h-20 object-cover rounded"
-                                                />
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const updatedPhotos = unit.photos?.filter((p: FileUpload) => p.id !== photo.id) || [];
-                                                    handleSingleCarpentryPhotosChange(item.id, index, updatedPhotos);
-                                                  }}
-                                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                                                >
-                                                  ×
-                                                </button>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -1463,45 +1385,6 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                               return (carpentryItem.estado === "necesita_reparacion" || carpentryItem.estado === "necesita_reemplazo");
                             })() && (
                               <div className="space-y-4 pt-2">
-                                {/* Bad Elements Checkboxes */}
-                                <div className="space-y-2">
-                                  <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                    Elementos en mal estado:
-                                  </Label>
-                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    {[
-                                      { id: "rotura", label: "Rotura" },
-                                      { id: "desgaste", label: "Desgaste" },
-                                      { id: "oxidacion", label: "Oxidación" },
-                                      { id: "otros", label: "Otros" },
-                                    ].map((badElement) => {
-                                      const carpentryItem = item as ChecklistCarpentryItem;
-                                      const isChecked = carpentryItem.badElements?.includes(badElement.id) || false;
-                                      return (
-                                        <label
-                                          key={badElement.id}
-                                          className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={isChecked}
-                                            onChange={(e) => {
-                                              const carpentryItem = item as ChecklistCarpentryItem;
-                                              const currentBadElements = carpentryItem.badElements || [];
-                                              const updatedBadElements = e.target.checked
-                                                ? [...currentBadElements, badElement.id]
-                                                : currentBadElements.filter((id) => id !== badElement.id);
-                                              handleSingleCarpentryBadElementsChange(item.id, null, updatedBadElements);
-                                            }}
-                                            className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
-                                          />
-                                          <span className="text-muted-foreground">{badElement.label}</span>
-                                        </label>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-
                                 {/* Notes */}
                                 <div className="space-y-2">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground">
@@ -1517,60 +1400,20 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
                                 {/* Photos */}
                                 <div className="space-y-2">
-                                  <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                    Fotos:
-                                  </Label>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={async (e) => {
-                                      const files = Array.from(e.target.files || []);
-                                      const newPhotos: FileUpload[] = await Promise.all(files.map(async (file) => {
-                                        const reader = new FileReader();
-                                        const data = await new Promise<string>((resolve) => {
-                                          reader.onload = () => resolve(reader.result as string);
-                                          reader.readAsDataURL(file);
-                                        });
-                                        return {
-                                          id: `${Date.now()}-${Math.random()}`,
-                                          name: file.name,
-                                          size: file.size,
-                                          type: file.type,
-                                          data: data.split(',')[1], // Remove data:image/...;base64, prefix
-                                          uploadedAt: new Date().toISOString(),
-                                        };
-                                      }));
-                                      handleSingleCarpentryPhotosChange(item.id, null, [...((item as ChecklistCarpentryItem).photos || []), ...newPhotos]);
+                                  <ChecklistUploadZoneComponent
+                                    title="Fotos"
+                                    description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
+                                    uploadZone={{ id: `${item.id}-photos`, photos: (item as ChecklistCarpentryItem).photos || [], videos: [] }}
+                                    onUpdate={(updates) => {
+                                      handleSingleCarpentryPhotosChange(item.id, null, updates.photos);
                                     }}
-                                    className="w-full text-xs sm:text-sm"
+                                    isRequired={(() => {
+                                      const carpentryItem = item as ChecklistCarpentryItem;
+                                      return carpentryItem.estado === "necesita_reparacion" || carpentryItem.estado === "necesita_reemplazo";
+                                    })()}
+                                    maxFiles={10}
+                                    maxSizeMB={5}
                                   />
-                                  {(() => {
-                                    const carpentryItem = item as ChecklistCarpentryItem;
-                                    return carpentryItem.photos && carpentryItem.photos.length > 0;
-                                  })() && (
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                      {((item as ChecklistCarpentryItem).photos || []).map((photo: FileUpload) => (
-                                        <div key={photo.id} className="relative">
-                                          <img
-                                            src={`data:${photo.type};base64,${photo.data}`}
-                                            alt="Preview"
-                                            className="w-full h-20 object-cover rounded"
-                                          />
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const updatedPhotos = (item as ChecklistCarpentryItem).photos?.filter((p: FileUpload) => p.id !== photo.id) || [];
-                                              handleSingleCarpentryPhotosChange(item.id, null, updatedPhotos);
-                                            }}
-                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                                          >
-                                            ×
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                             )}
@@ -1993,6 +1836,30 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                     }}
                     elements={[]}
                   />
+                  {/* Campo de notas obligatorio para describir qué mobiliario existe */}
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                      {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      value={(currentHabitacion.mobiliario || effectiveMobiliario).question?.notes || ""}
+                      onChange={(e) => {
+                        const currentMobiliario = currentHabitacion.mobiliario || effectiveMobiliario;
+                        const updatedItems = [...dynamicItems];
+                        updatedItems[0] = {
+                          ...currentHabitacion,
+                          mobiliario: {
+                            ...currentMobiliario,
+                            question: { ...(currentMobiliario.question || { id: "mobiliario" }), notes: e.target.value },
+                          },
+                        };
+                        onUpdate({ dynamicItems: updatedItems });
+                      }}
+                      placeholder="Describe qué mobiliario existe en la habitación..."
+                      className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                      required={true}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -2195,43 +2062,6 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                   {/* Details for this unit (if necesita reparación or necesita reemplazo) */}
                                   {unitRequiresDetails && (
                                     <div className="space-y-4 pt-2">
-                                      {/* Bad Elements Checkboxes */}
-                                      <div className="space-y-2">
-                                        <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                          Elementos en mal estado:
-                                        </Label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                          {[
-                                            { id: "rotura", label: "Rotura" },
-                                            { id: "desgaste", label: "Desgaste" },
-                                            { id: "oxidacion", label: "Oxidación" },
-                                            { id: "otros", label: "Otros" },
-                                          ].map((badElement) => {
-                                            const isChecked = unit.badElements?.includes(badElement.id) || false;
-                                            return (
-                                              <label
-                                                key={badElement.id}
-                                                className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
-                                              >
-                                                <input
-                                                  type="checkbox"
-                                                  checked={isChecked}
-                                                  onChange={(e) => {
-                                                    const currentBadElements = unit.badElements || [];
-                                                    const updatedBadElements = e.target.checked
-                                                      ? [...currentBadElements, badElement.id]
-                                                      : currentBadElements.filter((id: string) => id !== badElement.id);
-                                                    handleCarpentryBadElementsChange(item.id, index, updatedBadElements);
-                                                  }}
-                                                  className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
-                                                />
-                                                <span className="text-muted-foreground">{badElement.label}</span>
-                                              </label>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-
                                       {/* Notes */}
                                       <div className="space-y-2">
                                         <Label className="text-xs sm:text-sm font-medium text-foreground">
@@ -2247,58 +2077,17 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
                                       {/* Photos */}
                                       <div className="space-y-2">
-                                        <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                          Fotos:
-                                        </Label>
-                                        <input
-                                          type="file"
-                                          accept="image/*"
-                                          multiple
-                                          capture={typeof window !== 'undefined' && (window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) ? "environment" : undefined}
-                                          onChange={async (e) => {
-                                            const files = Array.from(e.target.files || []);
-                                            const newPhotos: FileUpload[] = await Promise.all(files.map(async (file) => {
-                                              const reader = new FileReader();
-                                              const data = await new Promise<string>((resolve) => {
-                                                reader.onload = () => resolve(reader.result as string);
-                                                reader.readAsDataURL(file);
-                                              });
-                                              return {
-                                                id: `${Date.now()}-${Math.random()}`,
-                                                name: file.name,
-                                                size: file.size,
-                                                type: file.type,
-                                                data: data.split(',')[1], // Remove data:image/...;base64, prefix
-                                                uploadedAt: new Date().toISOString(),
-                                              };
-                                            }));
-                                            handleCarpentryPhotosChange(item.id, index, [...(unit.photos || []), ...newPhotos]);
+                                        <ChecklistUploadZoneComponent
+                                          title="Fotos"
+                                          description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
+                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                          onUpdate={(updates) => {
+                                            handleCarpentryPhotosChange(item.id, index, updates.photos);
                                           }}
-                                          className="w-full text-xs sm:text-sm"
+                                          isRequired={unitRequiresDetails}
+                                          maxFiles={10}
+                                          maxSizeMB={5}
                                         />
-                                        {unit.photos && unit.photos.length > 0 && (
-                                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                            {unit.photos.map((photo: FileUpload) => (
-                                              <div key={photo.id} className="relative">
-                                                <img
-                                                  src={`data:${photo.type};base64,${photo.data}`}
-                                                  alt="Preview"
-                                                  className="w-full h-20 object-cover rounded"
-                                                />
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    const updatedPhotos = unit.photos?.filter((p: FileUpload) => p.id !== photo.id) || [];
-                                                    handleCarpentryPhotosChange(item.id, index, updatedPhotos);
-                                                  }}
-                                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                                                >
-                                                  ×
-                                                </button>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -2365,49 +2154,6 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                               return (carpentryItem.estado === "necesita_reparacion" || carpentryItem.estado === "necesita_reemplazo");
                             })() && (
                               <div className="space-y-4 pt-2">
-                                {/* Bad Elements Checkboxes */}
-                                <div className="space-y-2">
-                                  <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                    Elementos en mal estado:
-                                  </Label>
-                                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    {[
-                                      { id: "rotura", label: "Rotura" },
-                                      { id: "desgaste", label: "Desgaste" },
-                                      { id: "oxidacion", label: "Oxidación" },
-                                      { id: "otros", label: "Otros" },
-                                    ].map((badElement) => {
-                                      // Always get the latest item from section.dynamicItems to ensure we have the most recent badElements
-                                      const latestDynamicItems = section.dynamicItems || [];
-                                      const latestHabitacion = latestDynamicItems[habitacionIndex];
-                                      const latestCarpentryItems = latestHabitacion?.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
-                                      const latestItem = latestCarpentryItems.find(i => i.id === itemConfig.id) || item;
-                                      const carpentryItem = latestItem as ChecklistCarpentryItem;
-                                      const isChecked = carpentryItem.badElements?.includes(badElement.id) || false;
-                                      return (
-                                        <label
-                                          key={badElement.id}
-                                          className="flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={isChecked}
-                                            onChange={(e) => {
-                                              const currentBadElements = carpentryItem.badElements || [];
-                                              const updatedBadElements = e.target.checked
-                                                ? [...currentBadElements, badElement.id]
-                                                : currentBadElements.filter((id: string) => id !== badElement.id);
-                                              handleCarpentryBadElementsChange(item.id, null, updatedBadElements);
-                                            }}
-                                            className="h-4 w-4 rounded border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)]"
-                                          />
-                                          <span className="text-muted-foreground">{badElement.label}</span>
-                                        </label>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-
                                 {/* Notes */}
                                 <div className="space-y-2">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground">
@@ -2430,65 +2176,32 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
                                 {/* Photos */}
                                 <div className="space-y-2">
-                                  <Label className="text-xs sm:text-sm font-medium text-foreground">
-                                    Fotos:
-                                  </Label>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={async (e) => {
-                                      const files = Array.from(e.target.files || []);
-                                      const newPhotos: FileUpload[] = await Promise.all(files.map(async (file) => {
-                                        const reader = new FileReader();
-                                        const data = await new Promise<string>((resolve) => {
-                                          reader.onload = () => resolve(reader.result as string);
-                                          reader.readAsDataURL(file);
-                                        });
-                                        return {
-                                          id: `${Date.now()}-${Math.random()}`,
-                                          name: file.name,
-                                          size: file.size,
-                                          type: file.type,
-                                          data: data.split(',')[1], // Remove data:image/...;base64, prefix
-                                          uploadedAt: new Date().toISOString(),
-                                        };
-                                      }));
-                                      handleCarpentryPhotosChange(item.id, null, [...((item as ChecklistCarpentryItem).photos || []), ...newPhotos]);
+                                  <ChecklistUploadZoneComponent
+                                    title="Fotos"
+                                    description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
+                                    uploadZone={{ id: `${item.id}-photos`, photos: (() => {
+                                      // Always get the latest item from section.dynamicItems to ensure we have the most recent photos
+                                      const latestDynamicItems = section.dynamicItems || [];
+                                      const latestHabitacion = latestDynamicItems[habitacionIndex];
+                                      const latestCarpentryItems = latestHabitacion?.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+                                      const latestItem = latestCarpentryItems.find(i => i.id === itemConfig.id) || item;
+                                      return (latestItem as ChecklistCarpentryItem).photos || [];
+                                    })(), videos: [] }}
+                                    onUpdate={(updates) => {
+                                      handleCarpentryPhotosChange(item.id, null, updates.photos);
                                     }}
-                                    className="w-full text-xs sm:text-sm"
+                                    isRequired={(() => {
+                                      // Always get the latest item from section.dynamicItems to ensure we have the most recent estado
+                                      const latestDynamicItems = section.dynamicItems || [];
+                                      const latestHabitacion = latestDynamicItems[habitacionIndex];
+                                      const latestCarpentryItems = latestHabitacion?.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+                                      const latestItem = latestCarpentryItems.find(i => i.id === itemConfig.id) || item;
+                                      const carpentryItem = latestItem as ChecklistCarpentryItem;
+                                      return carpentryItem.estado === "necesita_reparacion" || carpentryItem.estado === "necesita_reemplazo";
+                                    })()}
+                                    maxFiles={10}
+                                    maxSizeMB={5}
                                   />
-                                  {(() => {
-                                    const carpentryItem = item as ChecklistCarpentryItem;
-                                    return carpentryItem.photos && carpentryItem.photos.length > 0;
-                                  })() && (
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                      {((item as ChecklistCarpentryItem).photos || []).map((photo: FileUpload) => (
-                                        <div key={photo.id} className="relative">
-                                          <img
-                                            src={`data:${photo.type};base64,${photo.data}`}
-                                            alt="Preview"
-                                            className="w-full h-20 object-cover rounded"
-                                          />
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              // Always get the latest item from section.dynamicItems to ensure we have the most recent photos
-                                              const latestDynamicItems = section.dynamicItems || [];
-                                              const latestHabitacion = latestDynamicItems[habitacionIndex];
-                                              const latestCarpentryItems = latestHabitacion?.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
-                                              const latestItem = latestCarpentryItems.find(i => i.id === itemConfig.id) || item;
-                                              const updatedPhotos = (latestItem as ChecklistCarpentryItem).photos?.filter((p: FileUpload) => p.id !== photo.id) || [];
-                                              handleCarpentryPhotosChange(item.id, null, updatedPhotos);
-                                            }}
-                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"
-                                          >
-                                            ×
-                                          </button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                             )}
@@ -2819,6 +2532,19 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                     onUpdate={handleMobiliarioQuestionUpdate}
                     elements={[]}
                   />
+                  {/* Campo de notas obligatorio para describir qué mobiliario existe */}
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                      {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      value={mobiliario.question?.notes || ""}
+                      onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
+                      placeholder="Describe qué mobiliario existe en la habitación..."
+                      className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                      required={true}
+                    />
+                  </div>
                 </div>
               )}
             </div>

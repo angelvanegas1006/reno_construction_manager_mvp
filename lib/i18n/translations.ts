@@ -992,7 +992,7 @@ export const translations: Record<Language, Translations> = {
           mobiliario: {
             title: "Mobiliario",
             existeMobiliario: "Existe mobiliario",
-            elementoPuntuar: "Elemento a puntuar",
+            queMobiliarioExiste: "¿Qué mobiliario existe?",
           },
         },
         habitaciones: {
@@ -1048,6 +1048,7 @@ export const translations: Record<Language, Translations> = {
           mobiliario: {
             title: "Mobiliario",
             existeMobiliario: "Existe mobiliario",
+            queMobiliarioExiste: "¿Qué mobiliario existe?",
           },
         },
         salon: {
@@ -1099,7 +1100,7 @@ export const translations: Record<Language, Translations> = {
           },
           mobiliario: {
             existeMobiliario: "Existe mobiliario",
-            elementoPuntuar: "Elemento a puntuar",
+            queMobiliarioExiste: "¿Qué mobiliario existe?",
           },
         },
         banos: {
@@ -1963,7 +1964,7 @@ export const translations: Record<Language, Translations> = {
           mobiliario: {
             title: "Furniture",
             existeMobiliario: "Furniture exists",
-            elementoPuntuar: "Item to rate",
+            queMobiliarioExiste: "What furniture exists?",
           },
         },
         habitaciones: {
@@ -2018,6 +2019,7 @@ export const translations: Record<Language, Translations> = {
           mobiliario: {
             title: "Furniture",
             existeMobiliario: "Furniture exists",
+            queMobiliarioExiste: "What furniture exists?",
           },
         },
         salon: {
@@ -2069,7 +2071,7 @@ export const translations: Record<Language, Translations> = {
           },
           mobiliario: {
             existeMobiliario: "Furniture exists",
-            elementoPuntuar: "Element to rate",
+            queMobiliarioExiste: "What furniture exists?",
           },
         },
         banos: {

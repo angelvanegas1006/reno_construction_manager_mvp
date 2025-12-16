@@ -38,6 +38,9 @@ export function ChecklistUploadZone({
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
   
   useEffect(() => {
+    // Solo ejecutar en el cliente
+    if (typeof window === 'undefined') return;
+    
     const checkMobileOrTablet = () => {
       // Considerar mobile/tablet si el ancho es menor a 1024px (lg breakpoint) o si es un dispositivo móvil/tablet
       const isSmallScreen = window.innerWidth < 1024;
