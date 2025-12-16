@@ -493,26 +493,6 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
             />
           </div>
         </Card>
-
-        {/* Navigation */}
-        {onContinue && (
-          <div className="flex justify-between pt-4 border-t">
-            <button
-              type="button"
-              onClick={() => window.history.back()}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              ← {t.common.back}
-            </button>
-            <button
-              type="button"
-              onClick={onContinue}
-              className="px-4 py-2 bg-[var(--prophero-blue-500)] text-white rounded-lg hover:bg-[var(--prophero-blue-600)] transition-colors"
-            >
-              {t.common.continue}
-            </button>
-          </div>
-        )}
       </div>
     );
   }

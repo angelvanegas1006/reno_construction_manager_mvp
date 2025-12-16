@@ -206,13 +206,42 @@ export default function RenoChecklistPage() {
     // Cerrar sidebar móvil al cambiar de sección
     setIsMobileSidebarOpen(false);
     
-    // Scroll to section if it exists (solo en desktop)
-    if (window.innerWidth >= 768) {
-      const sectionRef = sectionRefs.current[sectionId];
-      if (sectionRef) {
-        sectionRef.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }
+    // Scroll to section if it exists - usar requestAnimationFrame para asegurar que el DOM se haya actualizado
+    // Hacer scroll tanto en mobile como desktop
+    requestAnimationFrame(() => {
+      // Usar un pequeño delay adicional para asegurar que React haya renderizado
+      setTimeout(() => {
+        const sectionRef = sectionRefs.current[sectionId];
+        if (sectionRef) {
+          // Buscar el contenedor scrollable principal (el div con overflow-y-auto)
+          const scrollContainer = sectionRef.closest('.overflow-y-auto') as HTMLElement;
+          
+          if (scrollContainer) {
+            // Calcular la posición relativa dentro del contenedor scrollable
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const elementRect = sectionRef.getBoundingClientRect();
+            
+            // Calcular la posición de scroll necesaria
+            // Restar el padding-top (pt-32 = 128px) y agregar un pequeño offset
+            const scrollOffset = 128 + 20; // pt-32 + 20px de espacio adicional
+            const scrollPosition = scrollContainer.scrollTop + elementRect.top - containerRect.top - scrollOffset;
+            
+            // Hacer scroll dentro del contenedor
+            scrollContainer.scrollTo({
+              top: Math.max(0, scrollPosition), // Asegurar que no sea negativo
+              behavior: "smooth"
+            });
+          } else {
+            // Fallback: usar scrollIntoView si no encontramos el contenedor
+            sectionRef.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "start",
+              inline: "nearest"
+            });
+          }
+        }
+      }, 150); // 150ms de delay para asegurar que React haya renderizado completamente
+    });
   }, []);
 
   // Handle save

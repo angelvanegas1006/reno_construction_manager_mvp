@@ -822,9 +822,6 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
 
             {mobiliario.existeMobiliario && (
               <div className="space-y-4 pt-4 border-t">
-                <Label className="text-sm font-semibold text-foreground leading-tight">
-                  {t.checklist.sections.entradaPasillos.mobiliario.elementoPuntuar}
-                </Label>
                 <ChecklistQuestionComponent
                   question={mobiliario.question || { id: "mobiliario" }}
                   questionId="mobiliario"
@@ -832,6 +829,19 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                   onUpdate={handleMobiliarioQuestionUpdate}
                   elements={[]}
                 />
+                {/* Campo de notas obligatorio para describir qué mobiliario existe */}
+                <div className="space-y-2">
+                  <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                    {t.checklist.sections.entradaPasillos.mobiliario.queMobiliarioExiste} <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    value={mobiliario.question?.notes || ""}
+                    onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
+                    placeholder="Describe qué mobiliario existe en la entrada y pasillos..."
+                    className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                    required={true}
+                  />
+                </div>
               </div>
             )}
           </div>

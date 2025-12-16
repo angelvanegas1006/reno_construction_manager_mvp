@@ -1,11 +1,12 @@
 "use client";
 
+import React, { useMemo, useCallback } from "react";
 import { ThumbsUp, ThumbsDown, Wrench, XCircle } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChecklistStatus, ChecklistQuestion as ChecklistQuestionType, FileUpload } from "@/lib/checklist-storage";
-import { FileUploadZone } from "@/components/property/file-upload-zone";
+import { ChecklistStatus, ChecklistQuestion as ChecklistQuestionType, ChecklistUploadZone as ChecklistUploadZoneType } from "@/lib/checklist-storage";
+import { ChecklistUploadZone as ChecklistUploadZoneComponent } from "./checklist-upload-zone";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -33,9 +34,13 @@ export function ChecklistQuestion({
   elements = [],
 }: ChecklistQuestionProps) {
   const { t } = useI18n();
-  const requiresDetails = question.status === "necesita_reparacion" || question.status === "necesita_reemplazo";
+  
+  // Ensure question has a valid status
+  const questionStatus = question?.status || "buen_estado";
+  const requiresDetails = questionStatus === "necesita_reparacion" || questionStatus === "necesita_reemplazo";
   
   const handleBadElementToggle = (elementId: string) => {
+    if (!question) return;
     const currentElements = question.badElements || [];
     const updatedElements = currentElements.includes(elementId)
       ? currentElements.filter(id => id !== elementId)
@@ -71,10 +76,12 @@ export function ChecklistQuestion({
   ];
 
   const handleStatusChange = (status: ChecklistStatus) => {
+    if (!question) return;
+    
     console.log(`🖱️ [ChecklistQuestion] handleStatusChange CALLED:`, {
       questionId,
       status,
-      currentStatus: question.status,
+      currentStatus: questionStatus,
       hasOnUpdate: typeof onUpdate === 'function',
       label,
     });
@@ -100,12 +107,26 @@ export function ChecklistQuestion({
   };
 
   const handleNotesChange = (notes: string) => {
+    if (!question) return;
     onUpdate({ notes });
   };
 
-  const handlePhotosChange = (photos: FileUpload[]) => {
+  // Convert photos array to uploadZone format for ChecklistUploadZone component
+  const uploadZone: ChecklistUploadZoneType = useMemo(() => {
+    // Ensure photos is always an array
+    const photos = Array.isArray(question?.photos) ? question.photos : [];
+    return {
+      id: `${questionId}-photos`,
+      photos,
+      videos: [], // Questions don't support videos currently
+    };
+  }, [questionId, question?.photos]);
+
+  const handleUploadZoneUpdate = useCallback((updates: ChecklistUploadZoneType) => {
+    // Ensure photos is always an array
+    const photos = Array.isArray(updates?.photos) ? updates.photos : [];
     onUpdate({ photos });
-  };
+  }, [onUpdate]);
 
   return (
     <div className="space-y-4">
@@ -120,7 +141,7 @@ export function ChecklistQuestion({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {STATUS_OPTIONS.map((option) => {
           const Icon = option.icon;
-          const isSelected = question.status === option.value;
+          const isSelected = questionStatus === option.value;
           
           return (
             <button
@@ -154,7 +175,7 @@ export function ChecklistQuestion({
               <div key={element.id} className="flex items-center space-x-2">
                 <Checkbox
                   id={`${questionId}-${element.id}`}
-                  checked={question.badElements?.includes(element.id) || false}
+                  checked={question?.badElements?.includes(element.id) || false}
                   onCheckedChange={() => handleBadElementToggle(element.id)}
                 />
                 <label
@@ -176,7 +197,7 @@ export function ChecklistQuestion({
             {t.checklist.notes} <span className="text-red-500">*</span>
           </Label>
           <Textarea
-            value={question.notes || ""}
+            value={question?.notes || ""}
             onChange={(e) => handleNotesChange(e.target.value)}
             placeholder={t.checklist.observationsPlaceholder}
             className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
@@ -188,15 +209,14 @@ export function ChecklistQuestion({
       {/* Photos (required when status is "necesita_reparacion" or "necesita_reemplazo") */}
       {showPhotos && requiresDetails && (
         <div className="space-y-2">
-          <FileUploadZone
+          <ChecklistUploadZoneComponent
             title="Fotos"
             description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-            files={question.photos || []}
-            onFilesChange={handlePhotosChange}
+            uploadZone={uploadZone}
+            onUpdate={handleUploadZoneUpdate}
             isRequired={requiresDetails}
             maxFiles={10}
             maxSizeMB={5}
-            acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
           />
         </div>
       )}
