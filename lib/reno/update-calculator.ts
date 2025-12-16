@@ -95,12 +95,12 @@ export function calculateNextUpdateDateFromLastUpdate(
 }
 
 /**
- * Check if a property needs an update based on next update date and renovation start date
- * A property needs update if enough time has passed since the renovation started (based on interval)
+ * Check if a property needs an update based on next update date
+ * A property needs update if the next update date is today or in the past
  * @param nextUpdateDate ISO date string of the next update date (from calculateNextUpdateDate)
- * @param renoType Type of renovation (Light Reno, Medium Reno, Major Reno) - used to calculate the interval
- * @param renoStartDate ISO date string of when the renovation started (optional) - if not provided, uses nextUpdateDate - intervalDays
- * @returns true if the property needs an update (enough days have passed since start date)
+ * @param renoType Type of renovation (Light Reno, Medium Reno, Major Reno) - used for fallback calculation only
+ * @param renoStartDate ISO date string of when the renovation started (optional) - used for fallback calculation only
+ * @returns true if the property needs an update (next update date is today or in the past)
  */
 export function needsUpdate(
   nextUpdateDate: string | null | undefined, 
@@ -109,33 +109,15 @@ export function needsUpdate(
 ): boolean {
   if (!nextUpdateDate) return false;
   
-  const intervalDays = getUpdateIntervalDays(renoType);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  // If we have the renovation start date, use it directly
-  if (renoStartDate) {
-    const startDate = new Date(renoStartDate);
-    startDate.setHours(0, 0, 0, 0);
-    
-    // Calculate days since renovation started
-    const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // Need update ONLY if enough days have passed since the renovation started
-    // Light Reno: 7 days, Medium Reno: 14 days, Major Reno: 30 days
-    return daysSinceStart >= intervalDays;
-  }
-  
-  // Fallback: Calculate the last update date that should have happened (nextUpdate - intervalDays)
   const nextUpdate = new Date(nextUpdateDate);
   nextUpdate.setHours(0, 0, 0, 0);
   
-  const lastUpdateThatShouldHaveHappened = new Date(nextUpdate);
-  lastUpdateThatShouldHaveHappened.setDate(nextUpdate.getDate() - intervalDays);
-  lastUpdateThatShouldHaveHappened.setHours(0, 0, 0, 0);
-  
-  // Need update if the last update date that should have happened is <= today
-  return lastUpdateThatShouldHaveHappened <= today;
+  // Need update if the next update date is today or in the past
+  // This means we've reached or passed the scheduled update date
+  return nextUpdate <= today;
 }
 
 /**
