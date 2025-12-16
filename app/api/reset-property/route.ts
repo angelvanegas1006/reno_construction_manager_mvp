@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     // Verificar que la propiedad existe
     const { data: property, error: fetchError } = await supabase
       .from('properties')
-      .select('id, address, "Set Up Status", reno_phase')
+      .select('id, address, "Set Up Status", reno_phase, airtable_property_id, "Unique ID From Engagements"')
       .eq('id', propertyId)
       .single();
 
@@ -32,11 +32,51 @@ export async function POST(request: NextRequest) {
     // Primero, eliminar inspecciones relacionadas (initial y final)
     const { data: inspections, error: inspectionsError } = await supabase
       .from('property_inspections')
-      .select('id, inspection_type')
+      .select('id')
       .eq('property_id', propertyId);
 
-    if (!inspectionsError && inspections && inspections.length > 0) {
+    // Solo procesar si no hay error y hay datos
+    if (inspectionsError) {
+      console.error('Error fetching inspections:', inspectionsError);
+      // Continuar de todas formas, puede que no haya inspecciones
+    } else if (inspections && inspections.length > 0) {
       console.log(`Found ${inspections.length} inspections for property ${propertyId}`);
+      
+      const inspectionIds = inspections.map(i => i.id);
+      
+      // Primero obtener los zone_ids relacionados con estas inspecciones
+      const { data: zones, error: zonesFetchError } = await supabase
+        .from('inspection_zones')
+        .select('id')
+        .in('inspection_id', inspectionIds);
+      
+      if (!zonesFetchError && zones && zones.length > 0) {
+        const zoneIds = zones.map(z => z.id);
+        
+        // Eliminar elementos primero (tienen foreign key a zones)
+        const { error: deleteElementsError } = await supabase
+          .from('inspection_elements')
+          .delete()
+          .in('zone_id', zoneIds);
+        
+        if (deleteElementsError) {
+          console.error('Error deleting inspection elements:', deleteElementsError);
+        } else {
+          console.log(`Deleted inspection elements for ${zoneIds.length} zones`);
+        }
+      }
+      
+      // Eliminar zonas
+      const { error: deleteZonesError } = await supabase
+        .from('inspection_zones')
+        .delete()
+        .in('inspection_id', inspectionIds);
+      
+      if (deleteZonesError) {
+        console.error('Error deleting inspection zones:', deleteZonesError);
+      } else {
+        console.log(`Deleted inspection zones for ${inspectionIds.length} inspections`);
+      }
       
       // Eliminar todas las inspecciones relacionadas
       const { error: deleteInspectionsError } = await supabase
@@ -50,23 +90,6 @@ export async function POST(request: NextRequest) {
       } else {
         console.log(`Deleted ${inspections.length} inspections`);
       }
-    }
-
-    // También eliminar zonas y elementos relacionados con las inspecciones
-    if (inspections && inspections.length > 0) {
-      const inspectionIds = inspections.map(i => i.id);
-      
-      // Eliminar elementos primero (tienen foreign key a zones)
-      await supabase
-        .from('checklist_elements')
-        .delete()
-        .in('inspection_id', inspectionIds);
-      
-      // Eliminar zonas
-      await supabase
-        .from('checklist_zones')
-        .delete()
-        .in('inspection_id', inspectionIds);
     }
 
     // Resetear a fase inicial
