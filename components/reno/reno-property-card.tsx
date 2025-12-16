@@ -8,7 +8,7 @@ import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
 import { useMixpanel } from "@/hooks/useMixpanel";
-import { needsUpdate, calculateNextUpdateDate } from "@/lib/reno/update-calculator";
+import { needsUpdate, calculateNextUpdateDate, needsUpdateThisWeek } from "@/lib/reno/update-calculator";
 
 type RenoStage = "upcoming-settlements" | "initial-check" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "upcoming" | "reno-in-progress" | "furnishing" | "final-check" | "cleaning" | "furnishing-cleaning" | "reno-fixes" | "done" | "orphaned";
 
@@ -42,8 +42,12 @@ export function RenoPropertyCard({
     ? new Date(proximaActualizacionCalculada).toDateString() === new Date().toDateString()
     : false;
 
-  // Check if property needs an update (for reno-in-progress phase)
-  const needsUpdateBadge = stage === "reno-in-progress" && proximaActualizacionCalculada && needsUpdate(proximaActualizacionCalculada, property.renoType, renoStartDate);
+  // Check if property needs an update THIS WEEK (for reno-in-progress phase)
+  // Only show badge if the property needs update this week (Monday to Sunday)
+  // This matches the criteria used in the "Actualización de obra" widget in home
+  const needsUpdateBadge = stage === "reno-in-progress" && proximaActualizacionCalculada && 
+    needsUpdate(proximaActualizacionCalculada, property.renoType, renoStartDate) &&
+    needsUpdateThisWeek(proximaActualizacionCalculada);
   
   // Debug log for all reno-in-progress properties to understand the issue
   if (stage === "reno-in-progress") {
