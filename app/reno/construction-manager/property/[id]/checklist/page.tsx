@@ -934,7 +934,7 @@ export default function RenoChecklistPage() {
         {/* Content con padding-top para no quedar oculto bajo el header */}
         {/* El header tiene aproximadamente 80-90px de altura (py-3 + contenido), así que necesitamos más espacio */}
         <div className="flex-1 overflow-y-auto bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
-          <div className="pt-32 px-4 md:px-6 pb-4 md:pb-6 md:pb-6 pb-24 md:pb-6">
+          <div className="pt-32 px-4 md:px-6 pb-24 md:pb-6">
             <div className="max-w-4xl mx-auto">
               {/* Título y descripción fuera del contenedor */}
               {sectionInfo.title && (
