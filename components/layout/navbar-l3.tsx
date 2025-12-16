@@ -49,8 +49,7 @@ export function NavbarL3({
   const saveAction = actions.find(a => a.variant === "outline");
   const submitAction = actions.find(a => a.variant === "default" || !a.variant);
 
-  // Estado para controlar visibilidad de botones en mobile cuando se hace scroll
-  const [showActionsInMobile, setShowActionsInMobile] = useState(true);
+  // Detectar si estamos en mobile
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -61,28 +60,6 @@ export function NavbarL3({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  useEffect(() => {
-    if (!isMobile) return;
-
-    let lastScrollY = 0;
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY || document.documentElement.scrollTop;
-      
-      // Mostrar botones cuando se hace scroll hacia arriba o está en el top
-      if (currentScrollY < lastScrollY || currentScrollY < 50) {
-        setShowActionsInMobile(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        // Ocultar cuando se hace scroll hacia abajo y se ha pasado de 100px
-        setShowActionsInMobile(false);
-      }
-      
-      lastScrollY = currentScrollY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isMobile]);
 
   return (
     <>
@@ -127,63 +104,60 @@ export function NavbarL3({
             </div>
           </div>
 
-          {/* Zona C: Acciones - Guardar y Enviar (ocultar en mobile cuando se hace scroll hacia abajo) */}
-          <div className={cn(
-            "flex items-center gap-2 flex-shrink-0",
-            isMobile && !showActionsInMobile && "hidden"
-          )}>
-            {saveAction && (
-              <Button
-                variant="outline"
-                onClick={saveAction.onClick}
-                disabled={saveAction.disabled}
-                className="flex items-center gap-2 rounded-full"
-              >
-                {saveAction.icon || <Save className="h-4 w-4" />}
-                {saveAction.label}
-              </Button>
-            )}
-            {submitAction && (
-              <Button
-                onClick={submitAction.onClick}
-                disabled={submitAction.disabled}
-                className="flex items-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white"
-              >
-                {submitAction.icon || <Send className="h-4 w-4" />}
-                {submitAction.label}
-              </Button>
-            )}
-          </div>
+          {/* Zona C: Acciones - Guardar y Enviar (solo en desktop, en mobile van al footer) */}
+          {!isMobile && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {saveAction && (
+                <Button
+                  variant="outline"
+                  onClick={saveAction.onClick}
+                  disabled={saveAction.disabled}
+                  className="flex items-center gap-2 rounded-full"
+                >
+                  {saveAction.icon || <Save className="h-4 w-4" />}
+                  {saveAction.label}
+                </Button>
+              )}
+              {submitAction && (
+                <Button
+                  onClick={submitAction.onClick}
+                  disabled={submitAction.disabled}
+                  className="flex items-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white"
+                >
+                  {submitAction.icon || <ArrowRight className="h-4 w-4" />}
+                  {submitAction.label}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </nav>
 
-      {/* Footer sticky para mobile - mostrar cuando se hace scroll hacia arriba */}
+      {/* Footer sticky para mobile - siempre visible en mobile */}
       {isMobile && (
-        <div className={cn(
-          "fixed bottom-0 left-0 right-0 z-30 border-t bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-900)] px-4 py-3 md:hidden transition-transform duration-300",
-          showActionsInMobile ? "translate-y-full" : "translate-y-0"
-        )}>
-          <div className="flex items-center gap-2 w-full">
-            {saveAction && (
-              <Button
-                variant="outline"
-                onClick={saveAction.onClick}
-                disabled={saveAction.disabled}
-                className="flex-1 flex items-center justify-center gap-2 rounded-full"
-              >
-                {saveAction.icon || <Save className="h-4 w-4" />}
-                {saveAction.label}
-              </Button>
-            )}
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[var(--prophero-gray-900)] px-4 py-4 md:hidden border-t border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] shadow-[0_-2px_8px_rgba(0,0,0,0.1)]">
+          <div className="flex flex-col gap-3 w-full max-w-md mx-auto">
+            {/* Botón principal: Enviar a revisión */}
             {submitAction && (
               <Button
                 onClick={submitAction.onClick}
                 disabled={submitAction.disabled}
-                className="flex-1 flex items-center justify-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-12 text-base font-medium"
               >
-                {submitAction.icon || <Send className="h-4 w-4" />}
+                {submitAction.icon || <ArrowRight className="h-5 w-5" />}
                 {submitAction.label}
               </Button>
+            )}
+            {/* Link secundario: Guardar cambios */}
+            {saveAction && (
+              <button
+                onClick={saveAction.onClick}
+                disabled={saveAction.disabled}
+                className="w-full text-center text-[var(--prophero-blue-600)] hover:text-[var(--prophero-blue-700)] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium py-2"
+              >
+                {saveAction.icon || <Save className="h-4 w-4 inline mr-1" />}
+                {saveAction.label}
+              </button>
             )}
           </div>
         </div>
