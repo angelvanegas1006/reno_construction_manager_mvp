@@ -25,7 +25,6 @@ interface UseSupabaseChecklistBaseProps {
   propertyId: string;
   checklistType: ChecklistType;
   inspectionType: InspectionType; // Tipo fijo de inspección
-  onSyncToOther?: (sectionId: string, sectionData: Partial<ChecklistSection>, allFiles: FileUpload[]) => Promise<void>; // Callback para sincronizar al otro checklist
 }
 
 interface UseSupabaseChecklistBaseReturn {
@@ -49,7 +48,6 @@ export function useSupabaseChecklistBase({
   propertyId,
   checklistType,
   inspectionType, // Tipo fijo de inspección
-  onSyncToOther, // Callback opcional para sincronizar al otro checklist
 }: UseSupabaseChecklistBaseProps): UseSupabaseChecklistBaseReturn {
   const [checklist, setChecklist] = useState<ChecklistData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -609,18 +607,6 @@ export function useSupabaseChecklistBase({
       // Refetch para obtener los datos actualizados
       await refetchInspection();
 
-      // Sincronizar al otro checklist si existe el callback
-      if (onSyncToOther) {
-        try {
-          console.log(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Syncing section to other checklist:`, sectionId);
-          await onSyncToOther(sectionId, section, allFiles);
-          console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Section synced to other checklist successfully`);
-        } catch (syncError) {
-          console.error(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Error syncing to other checklist (non-critical):`, syncError);
-          // No mostrar error al usuario ya que el guardado principal fue exitoso
-        }
-      }
-
       console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Section saved successfully`);
       toast.success("Sección guardada correctamente");
     } catch (error) {
@@ -629,7 +615,7 @@ export function useSupabaseChecklistBase({
     } finally {
       savingRef.current = false;
     }
-  }, [checklist, inspection, supabaseProperty, checklistType, refetchInspection, inspectionType, onSyncToOther]);
+  }, [checklist, inspection, supabaseProperty, checklistType, refetchInspection, inspectionType]);
 
   // Actualizar sección en el estado local
   const updateSection = useCallback(async (sectionId: string, sectionData: Partial<ChecklistSection>) => {

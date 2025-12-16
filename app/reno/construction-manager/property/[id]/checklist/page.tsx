@@ -25,9 +25,6 @@ import { useSupabaseInspection } from "@/hooks/useSupabaseInspection";
 import { areAllActivitiesReported } from "@/lib/checklist-validation";
 import { calculateOverallChecklistProgress, getAllChecklistSectionsProgress } from "@/lib/checklist-progress";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
-import { convertSectionToElements } from "@/lib/supabase/checklist-converter";
-import { uploadFilesToStorage } from "@/lib/supabase/storage-upload";
-import type { ChecklistSection, FileUpload } from "@/lib/checklist-storage";
 
 // Checklist section components
 import { EntornoZonasComunesSection } from "@/components/checklist/sections/entorno-zonas-comunes-section";
@@ -158,173 +155,14 @@ export default function RenoChecklistPage() {
     loadAirtableFields();
   }, [propertyId, property, supabaseProperty, updateSupabaseProperty, refetchProperty, getPropertyRenoPhase]);
 
-  // Obtener ambas inspecciones para sincronización
-  const { inspection: initialInspection, zones: initialZones, createZone: createInitialZone, upsertElement: upsertInitialElement, refetch: refetchInitialInspection } = useSupabaseInspection(propertyId, "initial");
-  const { inspection: finalInspection, zones: finalZones, createZone: createFinalZone, upsertElement: upsertFinalElement, refetch: refetchFinalInspection } = useSupabaseInspection(propertyId, "final");
-
-  // Mapeo de secciones a zone_type para sincronización
-  const SECTION_TO_ZONE_TYPE: Record<string, string> = {
-    'entorno-zonas-comunes': 'entorno',
-    'estado-general': 'distribucion',
-    'entrada-pasillos': 'entrada',
-    'habitaciones': 'dormitorio',
-    'salon': 'salon',
-    'banos': 'bano',
-    'cocina': 'cocina',
-    'exteriores': 'exterior',
-  };
-
-  // Función para sincronizar cambios del checklist inicial al final
-  const syncInitialToFinal = useCallback(async (
-    sectionId: string,
-    sectionData: Partial<ChecklistSection>,
-    allFiles: FileUpload[]
-  ) => {
-    if (!finalInspection?.id || !supabaseProperty || !propertyId) {
-      console.log('[ChecklistPage] ⏸️ Cannot sync to final - missing final inspection or property');
-      return;
-    }
-
-    console.log('[ChecklistPage] 🔄 Syncing section from initial to final:', {
-      sectionId,
-      finalInspectionId: finalInspection.id,
-      filesCount: allFiles.length,
-    });
-
-    // Subir archivos a Supabase Storage (usando el ID de la inspección final)
-    if (allFiles.length > 0) {
-      await uploadFilesToStorage(allFiles, finalInspection.id);
-    }
-
-    // Encontrar o crear la zona correspondiente en la inspección final
-    const zoneType = SECTION_TO_ZONE_TYPE[sectionId];
-    if (!zoneType) {
-      console.warn('[ChecklistPage] ⚠️ Unknown section type:', sectionId);
-      return;
-    }
-
-    // Buscar zona existente o crear una nueva
-    let targetZone = finalZones.find(z => z.zone_type === zoneType);
-    if (!targetZone && createFinalZone) {
-      const zoneName = sectionId === 'habitaciones' ? 'Habitación' : 
-                       sectionId === 'banos' ? 'Baño' :
-                       sectionId === 'entorno-zonas-comunes' ? 'Entorno y Zonas Comunes' :
-                       sectionId === 'estado-general' ? 'Estado General' :
-                       sectionId === 'entrada-pasillos' ? 'Entrada y Pasillos' :
-                       sectionId === 'salon' ? 'Salón' :
-                       sectionId === 'cocina' ? 'Cocina' :
-                       sectionId === 'exteriores' ? 'Exteriores' : 'Zona';
-      
-      const newZone = await createFinalZone({
-        inspection_id: finalInspection.id,
-        zone_type: zoneType,
-        zone_name: zoneName,
-      });
-      if (newZone) {
-        targetZone = newZone;
-        await refetchFinalInspection();
-      }
-    }
-
-    if (!targetZone) {
-      console.warn('[ChecklistPage] ⚠️ Could not find or create zone for section:', sectionId);
-      return;
-    }
-
-    // Convertir sección a elementos usando las funciones existentes
-    const elementsToSave = convertSectionToElements(sectionId, sectionData as ChecklistSection, targetZone.id);
-
-    // Guardar elementos en la inspección final
-    if (upsertFinalElement) {
-      for (const elementData of elementsToSave) {
-        await upsertFinalElement(elementData);
-      }
-    }
-
-    console.log('[ChecklistPage] ✅ Section synced to final checklist successfully');
-  }, [finalInspection, finalZones, createFinalZone, upsertFinalElement, refetchFinalInspection, supabaseProperty, propertyId]);
-
-  // Función para sincronizar cambios del checklist final al inicial
-  const syncFinalToInitial = useCallback(async (
-    sectionId: string,
-    sectionData: Partial<ChecklistSection>,
-    allFiles: FileUpload[]
-  ) => {
-    if (!initialInspection?.id || !supabaseProperty || !propertyId) {
-      console.log('[ChecklistPage] ⏸️ Cannot sync to initial - missing initial inspection or property');
-      return;
-    }
-
-    console.log('[ChecklistPage] 🔄 Syncing section from final to initial:', {
-      sectionId,
-      initialInspectionId: initialInspection.id,
-      filesCount: allFiles.length,
-    });
-
-    // Subir archivos a Supabase Storage (usando el ID de la inspección inicial)
-    if (allFiles.length > 0) {
-      await uploadFilesToStorage(allFiles, initialInspection.id);
-    }
-
-    // Encontrar o crear la zona correspondiente en la inspección inicial
-    const zoneType = SECTION_TO_ZONE_TYPE[sectionId];
-    if (!zoneType) {
-      console.warn('[ChecklistPage] ⚠️ Unknown section type:', sectionId);
-      return;
-    }
-
-    // Buscar zona existente o crear una nueva
-    let targetZone = initialZones.find(z => z.zone_type === zoneType);
-    if (!targetZone && createInitialZone) {
-      const zoneName = sectionId === 'habitaciones' ? 'Habitación' : 
-                       sectionId === 'banos' ? 'Baño' :
-                       sectionId === 'entorno-zonas-comunes' ? 'Entorno y Zonas Comunes' :
-                       sectionId === 'estado-general' ? 'Estado General' :
-                       sectionId === 'entrada-pasillos' ? 'Entrada y Pasillos' :
-                       sectionId === 'salon' ? 'Salón' :
-                       sectionId === 'cocina' ? 'Cocina' :
-                       sectionId === 'exteriores' ? 'Exteriores' : 'Zona';
-      
-      const newZone = await createInitialZone({
-        inspection_id: initialInspection.id,
-        zone_type: zoneType,
-        zone_name: zoneName,
-      });
-      if (newZone) {
-        targetZone = newZone;
-        await refetchInitialInspection();
-      }
-    }
-
-    if (!targetZone) {
-      console.warn('[ChecklistPage] ⚠️ Could not find or create zone for section:', sectionId);
-      return;
-    }
-
-    // Convertir sección a elementos usando las funciones existentes
-    const elementsToSave = convertSectionToElements(sectionId, sectionData as ChecklistSection, targetZone.id);
-
-    // Guardar elementos en la inspección inicial
-    if (upsertInitialElement) {
-      for (const elementData of elementsToSave) {
-        await upsertInitialElement(elementData);
-      }
-    }
-
-    console.log('[ChecklistPage] ✅ Section synced to initial checklist successfully');
-  }, [initialInspection, initialZones, createInitialZone, upsertInitialElement, refetchInitialInspection, supabaseProperty, propertyId]);
-
   // Use Supabase checklist hook (for production)
   // Usar hooks separados para initial y final para mantener estados independientes
-  // Con funciones de sincronización para mantener ambos checklists actualizados
   const initialChecklist = useSupabaseInitialChecklist({
     propertyId: propertyId || "",
-    onSyncToFinal: syncInitialToFinal,
   });
   
   const finalChecklist = useSupabaseFinalChecklist({
     propertyId: propertyId || "",
-    onSyncToInitial: syncFinalToInitial,
   });
   
   // Seleccionar el hook apropiado según el tipo de checklist

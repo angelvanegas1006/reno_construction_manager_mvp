@@ -1,11 +1,10 @@
 "use client";
 
 import { useSupabaseChecklistBase } from "./useSupabaseChecklistBase";
-import type { ChecklistType, ChecklistSection, FileUpload } from "@/lib/checklist-storage";
+import type { ChecklistType } from "@/lib/checklist-storage";
 
 interface UseSupabaseInitialChecklistProps {
   propertyId: string;
-  onSyncToFinal?: (sectionId: string, sectionData: Partial<ChecklistSection>, allFiles: FileUpload[]) => Promise<void>;
 }
 
 /**
@@ -14,13 +13,11 @@ interface UseSupabaseInitialChecklistProps {
  */
 export function useSupabaseInitialChecklist({
   propertyId,
-  onSyncToFinal,
 }: UseSupabaseInitialChecklistProps) {
   return useSupabaseChecklistBase({
     propertyId,
     checklistType: "reno_initial" as ChecklistType,
     inspectionType: "initial",
-    onSyncToOther: onSyncToFinal,
   });
 }
 
