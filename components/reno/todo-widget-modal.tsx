@@ -68,6 +68,12 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
       // Formatear fecha para Supabase (YYYY-MM-DD)
       const supabaseDate = estimatedVisitDate || null;
       
+      console.log(`[Todo Widget] Starting Estimated Visit Date save:`, {
+        propertyId,
+        estimatedVisitDate,
+        supabaseDate,
+      });
+      
       // Obtener la fase actual de la propiedad
       const { data: currentProperty } = await supabase
         .from('properties')
@@ -101,10 +107,18 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
       if (supabaseError) {
         throw new Error(supabaseError.message);
       }
+      
+      console.log(`[Todo Widget] ✅ Successfully updated Supabase for property ${propertyId}`);
 
       // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
       // Actualizar en Airtable usando airtable_property_id (Record_ID)
       const AIRTABLE_TABLE_NAME = 'Transactions';
+      
+      console.log(`[Todo Widget] Starting Airtable sync:`, {
+        propertyId,
+        estimatedVisitDate,
+        tableName: AIRTABLE_TABLE_NAME,
+      });
       
       // Obtener airtable_property_id desde Supabase (Record_ID de Airtable)
       const { data: propertyData } = await supabase
@@ -118,31 +132,65 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
       // Validate that airtable_property_id exists (all properties should have it)
       if (!airtablePropertyId) {
         console.error(`[Todo Widget] Property ${propertyId} does not have airtable_property_id. All properties should have this field because they are created from Airtable.`);
+        console.error(`[Todo Widget] Property data:`, {
+          id: propertyId,
+          hasAirtablePropertyId: !!propertyData?.airtable_property_id,
+        });
         toast.error("Error: La propiedad no tiene ID de Airtable. Contacta al administrador.");
+        // Continue but don't update Airtable
+        toast.success("Visita estimada guardada en Supabase", {
+          description: currentPhase === 'upcoming-settlements' 
+            ? "La fecha de visita estimada se ha guardado y la propiedad se ha movido a Revisión Inicial. No se pudo sincronizar con Airtable."
+            : "La fecha de visita estimada se ha guardado correctamente. No se pudo sincronizar con Airtable.",
+        });
+        onOpenChange(false);
+        window.location.reload();
         return;
       }
       
       // Validate Record ID using findRecordByPropertyId (simplified to only use Record ID)
+      console.log(`[Todo Widget] Validating Record ID in Transactions:`, airtablePropertyId);
       const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, airtablePropertyId);
 
       if (!recordId) {
-        console.error(`[Todo Widget] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId}.`);
+        console.error(`[Todo Widget] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId} in table "Transactions".`);
+        console.error(`[Todo Widget] This could mean:`, {
+          recordIdDoesNotExist: 'The Record ID does not exist in Airtable',
+          recordIdInvalid: 'The Record ID format is invalid',
+          airtableConnectionIssue: 'There is a connection issue with Airtable',
+        });
         toast.error("Error: No se encontró el registro en Airtable. Contacta al administrador.");
+        // Continue but don't update Airtable
+        toast.success("Visita estimada guardada en Supabase", {
+          description: currentPhase === 'upcoming-settlements' 
+            ? "La fecha de visita estimada se ha guardado y la propiedad se ha movido a Revisión Inicial. No se pudo sincronizar con Airtable."
+            : "La fecha de visita estimada se ha guardado correctamente. No se pudo sincronizar con Airtable.",
+        });
+        onOpenChange(false);
+        window.location.reload();
         return;
       }
+      
+      console.log(`[Todo Widget] Record ID validated successfully in Transactions:`, recordId);
       
       // Formatear fecha para Airtable (YYYY-MM-DD)
       const airtableDate = estimatedVisitDate || null;
       
       // Update Est. visit date in Airtable (field ID: fldIhqPOAFL52MMBn)
+      // NOTE: "Set Up Status" field does not exist in "Transactions" table,
+      // so we only update the Estimated Visit Date here.
+      // The "Set Up Status" is already updated in Supabase, which is the source of truth.
       const airtableUpdates: Record<string, any> = {
         'fldIhqPOAFL52MMBn': airtableDate, // Est. visit date field ID
       };
       
-      // Si se cambió el Set Up Status, también actualizarlo en Airtable
-      if (supabaseUpdates['Set Up Status']) {
-        airtableUpdates['Set Up Status'] = 'Initial Check';
-      }
+      console.log(`[Todo Widget] Attempting to update Airtable (Transactions):`, {
+        tableName: AIRTABLE_TABLE_NAME,
+        recordId,
+        airtableFields: airtableUpdates,
+        propertyId,
+        airtablePropertyId,
+      });
       
       const airtableSuccess = await updateAirtableWithRetry(
         AIRTABLE_TABLE_NAME,
@@ -151,15 +199,23 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
       );
 
       if (airtableSuccess) {
-        toast.success("Visita estimada guardada", {
+        console.log(`[Todo Widget] ✅ Successfully updated Airtable (Transactions) for property ${propertyId}`);
+        toast.success("Visita estimada guardada y sincronizada con Airtable", {
           description: currentPhase === 'upcoming-settlements' 
-            ? "La fecha de visita estimada se ha guardado y la propiedad se ha movido a Revisión Inicial."
-            : "La fecha de visita estimada se ha guardado correctamente.",
+            ? "La fecha de visita estimada se ha guardado en Supabase y Airtable, y la propiedad se ha movido a Revisión Inicial."
+            : "La fecha de visita estimada se ha guardado correctamente en Supabase y Airtable.",
         });
         onOpenChange(false);
         // Recargar la página para reflejar los cambios
         window.location.reload();
       } else {
+        console.error(`[Todo Widget] Failed to update Airtable (Transactions) for property ${propertyId}`, {
+          tableName: AIRTABLE_TABLE_NAME,
+          recordId,
+          airtableFields: airtableUpdates,
+          airtablePropertyId,
+          propertyId,
+        });
         toast.error("Error: No se pudo actualizar Airtable", {
           description: "Se guardó en Supabase pero hubo un problema al sincronizar con Airtable. Contacta al administrador.",
         });

@@ -35,8 +35,8 @@ export function ChecklistQuestion({
 }: ChecklistQuestionProps) {
   const { t } = useI18n();
   
-  // Ensure question has a valid status
-  const questionStatus = question?.status || "buen_estado";
+  // No default status - questions should start unselected
+  const questionStatus = question?.status;
   const requiresDetails = questionStatus === "necesita_reparacion" || questionStatus === "necesita_reemplazo";
   
   const handleBadElementToggle = (elementId: string) => {
@@ -141,7 +141,7 @@ export function ChecklistQuestion({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {STATUS_OPTIONS.map((option) => {
           const Icon = option.icon;
-          const isSelected = questionStatus === option.value;
+          const isSelected = questionStatus !== undefined && questionStatus === option.value;
           
           return (
             <button
