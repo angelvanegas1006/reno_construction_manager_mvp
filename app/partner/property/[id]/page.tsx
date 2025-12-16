@@ -1,14 +1,16 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PartnerSidebar } from "@/components/partner/sidebar";
 import { getPropertyById, Property } from "@/lib/property-storage";
 
 export default function PropertyDetailPage() {
-  const params = useParams();
+  const paramsPromise = useParams();
+  // Unwrap params if it's a Promise (Next.js 16+)
+  const params = paramsPromise instanceof Promise ? use(paramsPromise) : paramsPromise;
   const router = useRouter();
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -665,7 +665,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                           type="range"
                           min={0}
                           max={100}
-                          step={5}
+                          step={1}
                           value={Math.max(0, Math.min(100, percentage))}
                           onChange={(e) => {
                             const newValue = parseInt(e.target.value, 10);

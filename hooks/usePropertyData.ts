@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, use } from "react";
 import { useParams } from "next/navigation";
 import {
   getPropertyById,
@@ -26,7 +26,10 @@ interface UsePropertyDataReturn {
 }
 
 export function usePropertyData(): UsePropertyDataReturn {
-  const params = useParams();
+  const paramsPromise = useParams();
+  // Unwrap params if it's a Promise (Next.js 16+)
+  const params = paramsPromise instanceof Promise ? use(paramsPromise) : paramsPromise;
+  
   const [property, setProperty] = useState<Property | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
