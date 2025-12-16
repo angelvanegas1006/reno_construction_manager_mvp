@@ -34,6 +34,18 @@ export function ChecklistUploadZone({
   maxSizeMB = DEFAULT_MAX_SIZE,
   hideTitle = false,
 }: ChecklistUploadZoneProps) {
+  // Detectar si estamos en mobile
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const handlePhotosChange = useCallback((files: FileUpload[]) => {
     // Use ref to get latest uploadZone value to avoid stale closure
     const currentUploadZone = uploadZoneRef.current;
@@ -359,6 +371,7 @@ export function ChecklistUploadZone({
           multiple
           accept={PHOTO_TYPES.join(",")}
           onChange={photosHook.handleFileSelect}
+          capture={isMobile ? "environment" : undefined}
           className="hidden"
         />
         <input
@@ -367,30 +380,108 @@ export function ChecklistUploadZone({
           multiple
           accept={VIDEO_TYPES.join(",")}
           onChange={videosHook.handleFileSelect}
+          capture={isMobile ? "environment" : undefined}
           className="hidden"
         />
 
-        <div className="flex gap-2 justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => photosHook.fileInputRef.current?.click()}
-            className="flex items-center gap-1"
-          >
-            <ImageIcon className="h-4 w-4" />
-            Subir fotos
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => videosHook.fileInputRef.current?.click()}
-            className="flex items-center gap-1"
-          >
-            <Video className="h-4 w-4" />
-            Subir videos
-          </Button>
+        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+          {isMobile ? (
+            <>
+              {/* Botones para mobile: captura directa desde cámara */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (photosHook.fileInputRef.current) {
+                    photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
+                    photosHook.fileInputRef.current.capture = "environment";
+                    photosHook.fileInputRef.current.multiple = true;
+                    photosHook.fileInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <Camera className="h-4 w-4" />
+                Tomar foto
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (photosHook.fileInputRef.current) {
+                    photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
+                    photosHook.fileInputRef.current.capture = undefined;
+                    photosHook.fileInputRef.current.multiple = true;
+                    photosHook.fileInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Galería
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (videosHook.fileInputRef.current) {
+                    videosHook.fileInputRef.current.accept = VIDEO_TYPES.join(",");
+                    videosHook.fileInputRef.current.capture = "environment";
+                    videosHook.fileInputRef.current.multiple = true;
+                    videosHook.fileInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <Video className="h-4 w-4" />
+                Grabar video
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (videosHook.fileInputRef.current) {
+                    videosHook.fileInputRef.current.accept = VIDEO_TYPES.join(",");
+                    videosHook.fileInputRef.current.capture = undefined;
+                    videosHook.fileInputRef.current.multiple = true;
+                    videosHook.fileInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <Video className="h-4 w-4" />
+                Video galería
+              </Button>
+            </>
+          ) : (
+            <>
+              {/* Botones para desktop: solo selección de archivos */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => photosHook.fileInputRef.current?.click()}
+                className="flex items-center gap-1"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Subir fotos
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => videosHook.fileInputRef.current?.click()}
+                className="flex items-center gap-1"
+              >
+                <Video className="h-4 w-4" />
+                Subir videos
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
