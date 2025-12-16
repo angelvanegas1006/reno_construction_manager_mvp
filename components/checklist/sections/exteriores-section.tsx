@@ -67,8 +67,6 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
       }));
     }, [section.systemsItems]);
 
-    // Get observaciones from questions
-    const observacionesQuestion = questions.find(q => q.id === "observaciones") || { id: "observaciones", notes: "" };
 
     const STATUS_OPTIONS: Array<{
       value: ChecklistStatus;
@@ -98,9 +96,6 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
       onUpdate({ questions: updatedQuestions });
     }, [section.questions, defaultQuestions, onUpdate]);
 
-    const handleObservacionesChange = useCallback((notes: string) => {
-      handleQuestionUpdate("observaciones", { notes });
-    }, [handleQuestionUpdate]);
 
     // Generic handler for quantity changes (works for security and systems)
     const handleQuantityChange = useCallback((
@@ -479,20 +474,6 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
           />
         </Card>
 
-        {/* Observaciones */}
-        <Card className="p-4 sm:p-6 space-y-4">
-          <div className="space-y-2">
-            <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words">
-              {t.checklist.sections.exteriores.observaciones.title}
-            </Label>
-            <Textarea
-              value={(observacionesQuestion as { id: string; notes?: string }).notes || ""}
-              onChange={(e) => handleObservacionesChange(e.target.value)}
-              placeholder={t.checklist.sections.exteriores.observaciones.placeholder}
-              className="min-h-[120px] text-xs sm:text-sm leading-relaxed w-full"
-            />
-          </div>
-        </Card>
       </div>
     );
   }
