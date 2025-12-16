@@ -121,6 +121,303 @@ export async function updateAirtableRecord(
  * Intenta múltiples campos para mayor compatibilidad
  */
 /**
+ * Encuentra el Record ID de Transactions usando el Record ID de Properties o el Unique ID
+ * Busca en Transactions el record que tiene el campo "Properties" vinculado al airtable_property_id dado
+ * También puede buscar por Unique ID si se proporciona
+ * 
+ * @param propertiesRecordId - El Record ID de la tabla "Properties" en Airtable
+ * @param uniqueId - Opcional: El Unique ID (From Engagements) para búsqueda alternativa
+ * @returns El Record ID de Transactions si se encuentra, null si no existe
+ */
+export async function findTransactionsRecordIdByPropertiesId(
+  propertiesRecordId: string,
+  uniqueId?: string
+): Promise<string | null> {
+  try {
+    const base = getBase();
+    if (!base) {
+      console.warn('[findTransactionsRecordIdByPropertiesId] Airtable base not configured');
+      return null;
+    }
+
+    // PRIORIDAD 1: Si tenemos Unique ID, buscar por Unique ID primero (más confiable)
+    if (uniqueId) {
+      console.log('[findTransactionsRecordIdByPropertiesId] 🔍 Searching by Unique ID first:', uniqueId);
+      try {
+        const uniqueIdRecords: any[] = [];
+        await base('Transactions')
+          .select({
+            filterByFormula: `OR({UNIQUEID (from Engagements)} = "${uniqueId}", {Unique ID (From Engagements)} = "${uniqueId}", {Unique ID From Engagements} = "${uniqueId}")`,
+            maxRecords: 1,
+          })
+          .eachPage((pageRecords, fetchNextPage) => {
+            pageRecords.forEach((record) => {
+              uniqueIdRecords.push(record);
+            });
+            fetchNextPage();
+          });
+
+        if (uniqueIdRecords.length > 0) {
+          const transactionsRecordId = uniqueIdRecords[0].id;
+          console.log('[findTransactionsRecordIdByPropertiesId] ✅ Found Transactions Record ID by Unique ID:', {
+            uniqueId,
+            transactionsRecordId,
+            totalMatches: uniqueIdRecords.length,
+          });
+          return transactionsRecordId;
+        }
+        
+        console.log('[findTransactionsRecordIdByPropertiesId] ⚠️ No records found by Unique ID search, trying Properties link search');
+      } catch (uniqueIdError: any) {
+        console.warn('[findTransactionsRecordIdByPropertiesId] Unique ID search failed, trying Properties link:', uniqueIdError.message);
+      }
+    }
+
+    // PRIORIDAD 2: Buscar por Properties link
+    // Validar que propertiesRecordId es un Record ID válido
+    if (!propertiesRecordId || !propertiesRecordId.startsWith('rec')) {
+      console.warn('[findTransactionsRecordIdByPropertiesId] Invalid properties Record ID:', propertiesRecordId);
+      return null;
+    }
+    
+    console.log('[findTransactionsRecordIdByPropertiesId] 🔍 Searching by Properties Record ID:', propertiesRecordId);
+
+    // Buscar en Transactions el record que tiene el campo "Properties" vinculado a este Record ID
+    // El campo "Properties" es un link field que contiene un array de Record IDs
+    // Usamos una búsqueda más directa: buscar todos los records y filtrar manualmente
+    // porque las fórmulas de filtro con link fields pueden ser problemáticas
+    const records: any[] = [];
+    
+    try {
+      // Intentar primero con una fórmula simple que funcione con link fields
+      // En Airtable, los link fields se pueden buscar usando el Record ID directamente
+      await base('Transactions')
+        .select({
+          filterByFormula: `SEARCH("${propertiesRecordId}", CONCATENATE({Properties})) > 0`,
+          maxRecords: 100, // Limitar a 100 para no sobrecargar
+        })
+        .eachPage((pageRecords, fetchNextPage) => {
+          pageRecords.forEach((record) => {
+            // Verificar que el record realmente tiene este Properties ID en su campo Properties
+            const propertiesField = record.fields['Properties'];
+            if (Array.isArray(propertiesField) && propertiesField.includes(propertiesRecordId)) {
+              records.push(record);
+            } else if (propertiesField === propertiesRecordId) {
+              records.push(record);
+            }
+          });
+          fetchNextPage();
+        });
+    } catch (formulaError: any) {
+      // Si la fórmula falla, buscar sin filtro y filtrar manualmente
+      console.debug('[findTransactionsRecordIdByPropertiesId] Formula search failed, trying manual search:', formulaError.message);
+      
+      await base('Transactions')
+        .select({
+          maxRecords: 1000, // Limitar para no sobrecargar
+        })
+        .eachPage((pageRecords, fetchNextPage) => {
+          pageRecords.forEach((record) => {
+            const propertiesField = record.fields['Properties'];
+            if (Array.isArray(propertiesField) && propertiesField.includes(propertiesRecordId)) {
+              records.push(record);
+            } else if (propertiesField === propertiesRecordId) {
+              records.push(record);
+            }
+          });
+          fetchNextPage();
+        });
+    }
+
+    if (records.length > 0) {
+      const transactionsRecordId = records[0].id;
+      console.log('[findTransactionsRecordIdByPropertiesId] ✅ Found Transactions Record ID:', {
+        propertiesRecordId,
+        transactionsRecordId,
+        totalMatches: records.length,
+      });
+      return transactionsRecordId;
+    }
+    
+    console.log('[findTransactionsRecordIdByPropertiesId] ⚠️ No records found by Properties link search');
+
+
+    console.warn('[findTransactionsRecordIdByPropertiesId] ❌ No Transactions record found for Properties ID:', {
+      propertiesRecordId,
+      uniqueId: uniqueId || 'not provided',
+      searchMethodsAttempted: ['Properties link search', uniqueId ? 'Unique ID search' : null].filter(Boolean),
+    });
+    return null;
+  } catch (error: any) {
+    console.error('[findTransactionsRecordIdByPropertiesId] Error:', error);
+    return null;
+  }
+}
+
+/**
+ * Busca el Record ID de Transactions usando el Unique ID (From Engagements)
+ * 
+ * @param uniqueId - El Unique ID From Engagements (ej: "SP-TJP-JXR-005643")
+ * @returns El Record ID de Transactions si se encuentra, null si no existe
+ */
+export async function findTransactionsRecordIdByUniqueId(
+  uniqueId: string
+): Promise<string | null> {
+  try {
+    const base = getBase();
+    if (!base) {
+      console.warn('[findTransactionsRecordIdByUniqueId] Airtable base not configured');
+      return null;
+    }
+
+    if (!uniqueId || typeof uniqueId !== 'string') {
+      console.warn('[findTransactionsRecordIdByUniqueId] Invalid Unique ID:', uniqueId);
+      return null;
+    }
+
+    console.log('[findTransactionsRecordIdByUniqueId] 🔍 Searching Transactions by Unique ID:', uniqueId);
+    
+    const records: any[] = [];
+    
+    try {
+      // Escapar comillas en el Unique ID para evitar problemas con la fórmula
+      const escapedUniqueId = uniqueId.replace(/"/g, '\\"');
+      
+      // Intentar primero con el field ID en la fórmula (si Airtable lo soporta)
+      // Field ID: fldrpCWcjaKEDCy4g para "UNIQUEID (from Engagements)"
+      try {
+        await base('Transactions')
+          .select({
+            filterByFormula: `{fldrpCWcjaKEDCy4g} = "${escapedUniqueId}"`,
+            maxRecords: 1,
+          })
+          .eachPage((pageRecords, fetchNextPage) => {
+            pageRecords.forEach((record) => {
+              records.push(record);
+            });
+            fetchNextPage();
+          });
+      } catch (formulaError: any) {
+        // Si la fórmula con field ID falla, buscar sin filtro y filtrar manualmente usando el field ID
+        console.log('[findTransactionsRecordIdByUniqueId] Formula with field ID failed, trying manual search:', formulaError?.message);
+        
+        await base('Transactions')
+          .select({
+            maxRecords: 1000, // Limitar para no sobrecargar
+          })
+          .eachPage((pageRecords, fetchNextPage) => {
+            pageRecords.forEach((record) => {
+              // Buscar usando el field ID directamente en los campos del record
+              // Field ID: fldrpCWcjaKEDCy4g
+              const uniqueIdValue = record.fields['fldrpCWcjaKEDCy4g'] || 
+                                   record.fields['UNIQUEID (from Engagements)'] ||
+                                   record.fields['Unique ID (From Engagements)'] ||
+                                   record.fields['Unique ID From Engagements'];
+              
+              // El campo puede ser un array o un string
+              const uniqueIdArray = Array.isArray(uniqueIdValue) ? uniqueIdValue : [uniqueIdValue];
+              
+              if (uniqueIdArray.includes(uniqueId)) {
+                records.push(record);
+              }
+            });
+            fetchNextPage();
+          });
+      }
+    } catch (selectError: any) {
+      // Capturar todos los detalles posibles del error
+      const errorInfo: any = {
+        message: selectError?.message || 'Unknown error',
+        name: selectError?.name,
+        uniqueId,
+      };
+      
+      // Intentar extraer más información del error
+      if (selectError?.error) {
+        errorInfo.error = selectError.error;
+      }
+      if (selectError?.statusCode) {
+        errorInfo.statusCode = selectError.statusCode;
+      }
+      if (selectError?.status) {
+        errorInfo.status = selectError.status;
+      }
+      if (selectError?.errorType) {
+        errorInfo.errorType = selectError.errorType;
+      }
+      
+      // Intentar serializar el error completo
+      try {
+        errorInfo.fullError = JSON.stringify(selectError, Object.getOwnPropertyNames(selectError));
+      } catch {
+        errorInfo.fullError = String(selectError);
+      }
+      
+      console.error('[findTransactionsRecordIdByUniqueId] Error during Airtable select:', errorInfo);
+      throw selectError; // Re-throw para que el catch externo lo maneje
+    }
+
+    if (records.length > 0) {
+      const transactionsRecordId = records[0].id;
+      console.log('[findTransactionsRecordIdByUniqueId] ✅ Found Transactions Record ID:', {
+        uniqueId,
+        transactionsRecordId,
+      });
+      return transactionsRecordId;
+    }
+
+    console.warn('[findTransactionsRecordIdByUniqueId] ❌ No Transactions record found for Unique ID:', uniqueId);
+    return null;
+  } catch (error: any) {
+    // Capturar todos los detalles posibles del error
+    const errorDetails: any = {
+      uniqueId,
+    };
+    
+    // Intentar extraer información del error de diferentes formas
+    try {
+      errorDetails.message = error?.message || String(error);
+      errorDetails.name = error?.name;
+      errorDetails.errorType = error?.errorType;
+      errorDetails.statusCode = error?.statusCode;
+      errorDetails.status = error?.status;
+      errorDetails.error = error?.error;
+      errorDetails.stack = error?.stack;
+      
+      // Intentar serializar el error completo
+      try {
+        errorDetails.fullError = JSON.stringify(error, Object.getOwnPropertyNames(error));
+      } catch (serializeError) {
+        errorDetails.fullError = String(error);
+      }
+      
+      // Intentar acceder a todas las propiedades del error
+      if (error && typeof error === 'object') {
+        try {
+          const errorKeys = Object.getOwnPropertyNames(error);
+          errorDetails.properties = errorKeys.reduce((acc: any, key: string) => {
+            try {
+              acc[key] = (error as any)[key];
+            } catch {
+              acc[key] = '[Cannot access]';
+            }
+            return acc;
+          }, {});
+        } catch {
+          // Ignorar errores al acceder a propiedades
+        }
+      }
+    } catch (extractError) {
+      errorDetails.extractionError = String(extractError);
+      errorDetails.originalError = String(error);
+    }
+    
+    console.error('[findTransactionsRecordIdByUniqueId] ❌ Error:', errorDetails);
+    return null;
+  }
+}
+
+/**
  * Encuentra el Record ID de Airtable usando airtable_property_id (Record_ID)
  * 
  * IMPORTANTE: Todas las propiedades deben tener airtable_property_id porque se crean desde Airtable.

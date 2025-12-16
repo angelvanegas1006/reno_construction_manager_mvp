@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Property } from "@/lib/property-storage";
 import { createClient } from "@/lib/supabase/client";
-import { findRecordByPropertyId, updateAirtableWithRetry } from "@/lib/airtable/client";
+import { findTransactionsRecordIdByUniqueId, updateAirtableWithRetry } from "@/lib/airtable/client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -120,14 +120,15 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         tableName: AIRTABLE_TABLE_NAME,
       });
       
-      // Obtener airtable_property_id desde Supabase (Record_ID de Airtable)
+      // Obtener airtable_property_id y Unique ID desde Supabase
       const { data: propertyData } = await supabase
         .from('properties')
-        .select('airtable_property_id')
+        .select('airtable_property_id, "Unique ID From Engagements"')
         .eq('id', propertyId)
         .single();
       
       const airtablePropertyId = propertyData?.airtable_property_id;
+      const uniqueId = propertyData?.['Unique ID From Engagements'];
       
       // Validate that airtable_property_id exists (all properties should have it)
       if (!airtablePropertyId) {
@@ -148,19 +149,27 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         return;
       }
       
-      // Validate Record ID using findRecordByPropertyId (simplified to only use Record ID)
-      console.log(`[Todo Widget] Validating Record ID in Transactions:`, airtablePropertyId);
-      const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, airtablePropertyId);
+      // IMPORTANTE: Usar Unique ID para buscar directamente en Transactions (método más confiable)
+      // El Unique ID corresponde al campo "UNIQUEID (from Engagements)" en Airtable Transactions
+      if (!uniqueId) {
+        console.error(`[Todo Widget] Property ${propertyId} does not have Unique ID From Engagements. Cannot update Airtable.`);
+        toast.error("Error: La propiedad no tiene Unique ID. Contacta al administrador.");
+        toast.success("Visita estimada guardada en Supabase", {
+          description: "La fecha de visita estimada se ha guardado correctamente. No se pudo sincronizar con Airtable.",
+        });
+        onOpenChange(false);
+        window.location.reload();
+        return;
+      }
+
+      console.log(`[Todo Widget] Searching Transactions by Unique ID:`, uniqueId);
+      
+      // Buscar el Record ID de Transactions usando el Unique ID
+      const recordId = await findTransactionsRecordIdByUniqueId(uniqueId);
 
       if (!recordId) {
-        console.error(`[Todo Widget] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId} in table "Transactions".`);
-        console.error(`[Todo Widget] This could mean:`, {
-          recordIdDoesNotExist: 'The Record ID does not exist in Airtable',
-          recordIdInvalid: 'The Record ID format is invalid',
-          airtableConnectionIssue: 'There is a connection issue with Airtable',
-        });
+        console.error(`[Todo Widget] Airtable Transactions record not found for Unique ID ${uniqueId}.`);
         toast.error("Error: No se encontró el registro en Airtable. Contacta al administrador.");
-        // Continue but don't update Airtable
         toast.success("Visita estimada guardada en Supabase", {
           description: currentPhase === 'upcoming-settlements' 
             ? "La fecha de visita estimada se ha guardado y la propiedad se ha movido a Revisión Inicial. No se pudo sincronizar con Airtable."
@@ -171,7 +180,15 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         return;
       }
       
-      console.log(`[Todo Widget] Record ID validated successfully in Transactions:`, recordId);
+      console.log(`[Todo Widget] ✅ Found Transactions Record ID:`, recordId);
+      console.log(`[Todo Widget] 📋 About to update Airtable with:`, {
+        tableName: AIRTABLE_TABLE_NAME,
+        recordId,
+        estimatedVisitDate,
+        propertyId,
+        airtablePropertyId,
+        uniqueId,
+      });
       
       // Formatear fecha para Airtable (YYYY-MM-DD)
       const airtableDate = estimatedVisitDate || null;
@@ -184,12 +201,13 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         'fldIhqPOAFL52MMBn': airtableDate, // Est. visit date field ID
       };
       
-      console.log(`[Todo Widget] Attempting to update Airtable (Transactions):`, {
+      console.log(`[Todo Widget] 🚀 Attempting to update Airtable (Transactions):`, {
         tableName: AIRTABLE_TABLE_NAME,
         recordId,
         airtableFields: airtableUpdates,
         propertyId,
         airtablePropertyId,
+        uniqueId,
       });
       
       const airtableSuccess = await updateAirtableWithRetry(
@@ -197,6 +215,13 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         recordId,
         airtableUpdates
       );
+      
+      console.log(`[Todo Widget] 📊 Airtable update result:`, {
+        success: airtableSuccess,
+        recordId,
+        tableName: AIRTABLE_TABLE_NAME,
+        fields: airtableUpdates,
+      });
 
       if (airtableSuccess) {
         console.log(`[Todo Widget] ✅ Successfully updated Airtable (Transactions) for property ${propertyId}`);
@@ -273,14 +298,15 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
       // Actualizar en Airtable
       const AIRTABLE_TABLE_NAME = 'Transactions';
       
-      // Obtener airtable_property_id desde Supabase (Record_ID de Airtable)
+      // Obtener airtable_property_id y Unique ID desde Supabase
       const { data: propertyData } = await supabase
         .from('properties')
-        .select('airtable_property_id')
+        .select('airtable_property_id, "Unique ID From Engagements"')
         .eq('id', propertyId)
         .single();
       
       const airtablePropertyId = propertyData?.airtable_property_id;
+      const uniqueId = propertyData?.['Unique ID From Engagements'];
       
       if (!airtablePropertyId) {
         console.error(`[Todo Widget] Property ${propertyId} does not have airtable_property_id. All properties should have this field because they are created from Airtable.`);
@@ -288,7 +314,19 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         return;
       }
       
-      const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, airtablePropertyId);
+      // Buscar el Record ID de Transactions usando el Record ID de Properties
+      let recordId = await findTransactionsRecordIdByPropertiesId(airtablePropertyId, uniqueId);
+      
+      // Si no se encontró, no intentar actualizar Airtable
+      if (!recordId) {
+        console.warn(`[Todo Widget] ⚠️ No Transactions record found for Properties Record ID ${airtablePropertyId}. Skipping Airtable update.`);
+        toast.success("Renovador guardado en Supabase", {
+          description: "El renovador se ha guardado correctamente. No se pudo sincronizar con Airtable (no se encontró el registro de Transactions).",
+        });
+        onOpenChange(false);
+        window.location.reload();
+        return;
+      }
 
       if (recordId) {
         const airtableSuccess = await updateAirtableWithRetry(
