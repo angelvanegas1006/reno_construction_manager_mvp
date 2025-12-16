@@ -55,8 +55,8 @@ export default function RenoChecklistPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Unwrap params if it's a Promise (Next.js 16+)
-  const unwrappedParams = params instanceof Promise ? use(params) : params;
+  // Unwrap params using React.use() (Next.js 16+)
+  const unwrappedParams = use(params);
 
   // Get property ID from params
   const propertyId = unwrappedParams.id && typeof unwrappedParams.id === "string" ? unwrappedParams.id : null;
