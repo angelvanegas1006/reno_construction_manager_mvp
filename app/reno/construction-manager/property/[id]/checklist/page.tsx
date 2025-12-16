@@ -15,7 +15,8 @@ import { toast } from "sonner";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { RenoKanbanPhase } from "@/lib/reno-kanban-config";
-import { useSupabaseChecklist } from "@/hooks/useSupabaseChecklist";
+import { useSupabaseInitialChecklist } from "@/hooks/useSupabaseInitialChecklist";
+import { useSupabaseFinalChecklist } from "@/hooks/useSupabaseFinalChecklist";
 import { ChecklistType } from "@/lib/checklist-storage";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
@@ -155,11 +156,18 @@ export default function RenoChecklistPage() {
   }, [propertyId, property, supabaseProperty, updateSupabaseProperty, refetchProperty, getPropertyRenoPhase]);
 
   // Use Supabase checklist hook (for production)
-  // Only initialize when we have a valid propertyId
-  const { checklist, updateSection, isLoading: checklistLoading, finalizeChecklist, saveCurrentSection } = useSupabaseChecklist({
+  // Usar hooks separados para initial y final para mantener estados independientes
+  const initialChecklist = useSupabaseInitialChecklist({
     propertyId: propertyId || "",
-    checklistType,
   });
+  
+  const finalChecklist = useSupabaseFinalChecklist({
+    propertyId: propertyId || "",
+  });
+  
+  // Seleccionar el hook apropiado según el tipo de checklist
+  const { checklist, updateSection, isLoading: checklistLoading, finalizeChecklist, saveCurrentSection } = 
+    checklistType === "reno_final" ? finalChecklist : initialChecklist;
 
   // Use Supabase inspection hook to get completeInspection function
   const inspectionType = checklistType === "reno_final" ? "final" : "initial";

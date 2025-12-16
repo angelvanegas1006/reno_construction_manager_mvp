@@ -47,7 +47,7 @@ export default function RenoConstructionManagerKanbanPage() {
       const foremanEmails = foremanParam.split(',').filter(Boolean);
       // Convertir emails de foreman a nombres de Technical construction
       const technicalConstructorNames = new Set<string>();
-      foremanEmails.forEach(email => {
+      foremanEmails.forEach((email: string) => {
         const names = getTechnicalConstructionNamesFromForemanEmail(email);
         names.forEach(name => technicalConstructorNames.add(name));
       });
