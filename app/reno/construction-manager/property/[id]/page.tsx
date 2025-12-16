@@ -49,16 +49,16 @@ import { useRenoProperties } from "@/contexts/reno-properties-context";
 type PropertyUpdate = Database['public']['Tables']['properties']['Update'];
 
 export default function RenoPropertyDetailPage() {
-  const params = useParams();
+  const paramsPromise = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParamsPromise = useSearchParams();
   const supabase = createClient();
   const { t, language } = useI18n();
   const { allProperties, refetchProperties } = useRenoProperties();
   
   // Unwrap params and searchParams if they're Promises (Next.js 16+)
-  const unwrappedParams = params instanceof Promise ? use(params) : params;
-  const unwrappedSearchParams = searchParams instanceof Promise ? use(searchParams) : searchParams;
+  const unwrappedParams = paramsPromise instanceof Promise ? use(paramsPromise) : paramsPromise;
+  const unwrappedSearchParams = searchParamsPromise instanceof Promise ? use(searchParamsPromise) : searchParamsPromise;
   
   // Get viewMode from query params (kanban or list)
   const viewMode = unwrappedSearchParams.get('viewMode') || 'kanban';

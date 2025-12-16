@@ -47,7 +47,7 @@ const CLIMATIZATION_ITEMS_SALON = [
 ] as const;
 
 export default function RenoChecklistPage() {
-  const params = useParams();
+  const paramsPromise = useParams();
   const router = useRouter();
   const sectionRefs = useRef<Record<string, HTMLDivElement>>({});
   const { t } = useI18n();
@@ -56,7 +56,7 @@ export default function RenoChecklistPage() {
 
   // Unwrap params if it's a Promise (Next.js 16+)
   // Using instanceof Promise to check without enumerating params
-  const unwrappedParams = params instanceof Promise ? use(params) : params;
+  const unwrappedParams = paramsPromise instanceof Promise ? use(paramsPromise) : paramsPromise;
   
   // Get property ID from params
   const propertyId = unwrappedParams?.id && typeof unwrappedParams.id === "string" ? unwrappedParams.id : null;
