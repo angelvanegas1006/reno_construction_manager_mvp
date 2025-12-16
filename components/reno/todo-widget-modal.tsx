@@ -102,8 +102,9 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         throw new Error(supabaseError.message);
       }
 
+      // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
       // Actualizar en Airtable usando airtable_property_id (Record_ID)
-      const AIRTABLE_TABLE_NAME = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
+      const AIRTABLE_TABLE_NAME = 'Transactions';
       
       // Obtener airtable_property_id desde Supabase (Record_ID de Airtable)
       const { data: propertyData } = await supabase
@@ -212,9 +213,26 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         throw new Error(supabaseError.message);
       }
 
+      // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
       // Actualizar en Airtable
-      const AIRTABLE_TABLE_NAME = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
-      const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, propertyId);
+      const AIRTABLE_TABLE_NAME = 'Transactions';
+      
+      // Obtener airtable_property_id desde Supabase (Record_ID de Airtable)
+      const { data: propertyData } = await supabase
+        .from('properties')
+        .select('airtable_property_id')
+        .eq('id', propertyId)
+        .single();
+      
+      const airtablePropertyId = propertyData?.airtable_property_id;
+      
+      if (!airtablePropertyId) {
+        console.error(`[Todo Widget] Property ${propertyId} does not have airtable_property_id. All properties should have this field because they are created from Airtable.`);
+        toast.error("Error: La propiedad no tiene ID de Airtable. Contacta al administrador.");
+        return;
+      }
+      
+      const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, airtablePropertyId);
 
       if (recordId) {
         const airtableSuccess = await updateAirtableWithRetry(

@@ -626,7 +626,22 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
       
       return [];
     })(),
-    airtable_property_id: airtableProperty.id,
+    // IMPORTANTE: airtable_property_id debe ser el Record ID de la tabla "Properties", no de "Transactions"
+    // El campo "Properties" es un link field que contiene los IDs de los registros relacionados en la tabla "Properties"
+    airtable_property_id: (() => {
+      const propertiesLinks = getFieldValue('Properties');
+      if (Array.isArray(propertiesLinks) && propertiesLinks.length > 0) {
+        // Si es un array, tomar el primer elemento (que es el Record ID de Properties)
+        return propertiesLinks[0];
+      } else if (typeof propertiesLinks === 'string') {
+        // Si es un string directo, usarlo
+        return propertiesLinks;
+      }
+      // Fallback: usar el Record ID de Transactions si no hay link a Properties
+      // Esto puede pasar en propiedades antiguas o mal configuradas
+      console.warn('[Airtable Sync] No Properties link found, using Transactions Record ID as fallback:', airtableProperty.id);
+      return airtableProperty.id;
+    })(),
     updated_at: new Date().toISOString(),
   };
 }

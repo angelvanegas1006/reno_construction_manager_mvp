@@ -197,12 +197,10 @@ export default function RenoPropertyDetailPage() {
         updated_at: new Date().toISOString(),
       };
       
-      // Auto-advance to initial-check if:
-      // 1. Explicitly requested via "Enviar" button (transitionToInitialCheck)
-      // 2. OR: Property is in upcoming-settlements AND a new date is being saved
+      // Auto-advance to initial-check ONLY when explicitly requested via "Enviar" button
+      // Do NOT auto-advance when just changing the date
       const shouldAutoAdvance = 
-        (transitionToInitialCheck && currentPhase === 'upcoming-settlements' && localEstimatedVisitDate) ||
-        (currentPhase === 'upcoming-settlements' && isNewDate && localEstimatedVisitDate);
+        transitionToInitialCheck && currentPhase === 'upcoming-settlements' && localEstimatedVisitDate;
       
       console.log('[Property Update] Transition check:', {
         propertyId,
@@ -237,14 +235,16 @@ export default function RenoPropertyDetailPage() {
         // Use airtable_property_id (Record_ID) as the key to match records
         if (localEstimatedVisitDate) {
           try {
-            const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
+            // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
+            // El airtable_property_id contiene el Record ID de la tabla "Transactions"
+            const tableName = 'Transactions';
             const airtablePropertyId = supabaseProperty?.airtable_property_id;
             
             console.log(`[Property Update] Starting Airtable sync:`, {
               propertyId,
               airtablePropertyId,
               localEstimatedVisitDate,
-              tableName,
+              tableName: 'Transactions',
             });
             
             // Validate that airtable_property_id exists (all properties should have it)
@@ -260,11 +260,11 @@ export default function RenoPropertyDetailPage() {
             }
             
             // Validate Record ID using findRecordByPropertyId (simplified to only use Record ID)
-            console.log(`[Property Update] Validating Record ID:`, airtablePropertyId);
+            console.log(`[Property Update] Validating Record ID in Transactions:`, airtablePropertyId);
             const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
             
             if (!recordId) {
-              console.error(`[Property Update] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId}.`);
+              console.error(`[Property Update] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId} in table "Transactions".`);
               console.error(`[Property Update] This could mean:`, {
                 recordIdDoesNotExist: 'The Record ID does not exist in Airtable',
                 recordIdInvalid: 'The Record ID format is invalid',
@@ -274,19 +274,22 @@ export default function RenoPropertyDetailPage() {
               return success; // Continue but show error
             }
             
-            console.log(`[Property Update] Record ID validated successfully:`, recordId);
+            console.log(`[Property Update] Record ID validated successfully in Transactions:`, recordId);
             
             // Update Est. visit date in Airtable (field ID: fldIhqPOAFL52MMBn)
+            // NOTE: "Set Up Status" field does not exist in "Transactions" table,
+            // so we only update the Estimated Visit Date here.
+            // The "Set Up Status" is already updated in Supabase, which is the source of truth.
             const airtableFields: Record<string, any> = {
               'fldIhqPOAFL52MMBn': localEstimatedVisitDate, // Est. visit date field ID
             };
             
-            // Only update Set Up Status when transitioning to initial-check
-            if (shouldAutoAdvance) {
-              airtableFields['Set Up Status'] = 'Initial Check';
-            }
+            // Note: We don't update "Set Up Status" in Transactions table because:
+            // 1. The field doesn't exist in Transactions
+            // 2. Supabase is already updated with the correct status
+            // 3. The status sync happens from Supabase to Airtable via other mechanisms if needed
             
-            console.log(`[Property Update] Attempting to update Airtable:`, {
+            console.log(`[Property Update] Attempting to update Airtable (Transactions):`, {
               tableName,
               recordId,
               airtableFields,
@@ -297,7 +300,7 @@ export default function RenoPropertyDetailPage() {
             const airtableSuccess = await updateAirtableWithRetry(tableName, recordId, airtableFields);
             
             if (!airtableSuccess) {
-              console.error(`[Property Update] Failed to update Airtable for property ${propertyId}`, {
+              console.error(`[Property Update] Failed to update Airtable (Transactions) for property ${propertyId}`, {
                 tableName,
                 recordId,
                 airtableFields,
@@ -306,7 +309,7 @@ export default function RenoPropertyDetailPage() {
               });
               toast.error("Error: No se pudo actualizar Airtable. La propiedad se guardó en Supabase pero puede haber un problema de sincronización.");
             } else {
-              console.log(`[Property Update] ✅ Successfully updated Airtable for property ${propertyId}`);
+              console.log(`[Property Update] ✅ Successfully updated Airtable (Transactions) for property ${propertyId}`);
             }
           } catch (airtableError: any) {
             console.error('[Property Update] Exception updating Airtable:', {

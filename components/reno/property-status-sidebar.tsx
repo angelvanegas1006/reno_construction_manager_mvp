@@ -60,12 +60,35 @@ export function PropertyStatusSidebar({
       const checklistType = renoPhase === "final-check" ? "final" : "initial";
       
       if (renoPhase === "initial-check" || renoPhase === "final-check") {
-        const { data, error } = await supabase
+        // Try to fetch with inspection_type first
+        let { data, error } = await supabase
           .from("property_inspections")
           .select("id, inspection_status, completed_at")
           .eq("property_id", propertyId)
           .eq("inspection_type", checklistType)
           .single();
+
+        // If the error is that the column doesn't exist, try without inspection_type
+        if (error && (error.code === '42883' || error.message?.includes('column') || error.message?.includes('does not exist'))) {
+          console.warn('Campo inspection_type no existe aún, buscando sin filtro:', error);
+          const { data: allData, error: allError } = await supabase
+            .from("property_inspections")
+            .select("id, inspection_status, completed_at")
+            .eq("property_id", propertyId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (allError && allError.code !== 'PGRST116') {
+            console.error('Error fetching checklist:', allError);
+            return;
+          }
+          data = allData;
+          error = null;
+        } else if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching checklist:', error);
+          return;
+        }
 
         if (data && !error) {
           setHasChecklist(true);
