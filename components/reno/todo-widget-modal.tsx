@@ -314,12 +314,24 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
         return;
       }
       
-      // Buscar el Record ID de Transactions usando el Record ID de Properties
-      let recordId = await findTransactionsRecordIdByPropertiesId(airtablePropertyId, uniqueId);
+      // Buscar el Record ID de Transactions usando el Unique ID
+      if (!uniqueId) {
+        console.error(`[Todo Widget] Property ${propertyId} does not have Unique ID From Engagements. Cannot update Airtable.`);
+        toast.error("Error: La propiedad no tiene Unique ID. Contacta al administrador.");
+        toast.success("Renovador guardado en Supabase", {
+          description: "El renovador se ha guardado correctamente. No se pudo sincronizar con Airtable.",
+        });
+        onOpenChange(false);
+        window.location.reload();
+        return;
+      }
+      
+      console.log(`[Todo Widget] Searching Transactions by Unique ID:`, uniqueId);
+      const recordId = await findTransactionsRecordIdByUniqueId(uniqueId);
       
       // Si no se encontró, no intentar actualizar Airtable
       if (!recordId) {
-        console.warn(`[Todo Widget] ⚠️ No Transactions record found for Properties Record ID ${airtablePropertyId}. Skipping Airtable update.`);
+        console.warn(`[Todo Widget] ⚠️ No Transactions record found for Unique ID ${uniqueId}. Skipping Airtable update.`);
         toast.success("Renovador guardado en Supabase", {
           description: "El renovador se ha guardado correctamente. No se pudo sincronizar con Airtable (no se encontró el registro de Transactions).",
         });
