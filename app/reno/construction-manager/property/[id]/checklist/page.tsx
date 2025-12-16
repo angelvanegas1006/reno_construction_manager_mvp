@@ -244,6 +244,25 @@ export default function RenoChecklistPage() {
     });
   }, []);
 
+  // Handle continue - Guarda los cambios y luego cambia de sección
+  const handleContinue = useCallback(async (nextSectionId: string) => {
+    if (!checklist) return;
+    try {
+      // Guardar cambios antes de continuar
+      await saveCurrentSection();
+      setHasUnsavedChanges(false);
+      
+      // Cambiar a la siguiente sección
+      handleSectionClick(nextSectionId);
+      
+      // Mostrar toast de confirmación
+      toast.success(t.messages.saveSuccess || "Cambios guardados");
+    } catch (error) {
+      console.error("Error al guardar antes de continuar:", error);
+      toast.error("Error al guardar cambios. Intenta nuevamente.");
+    }
+  }, [checklist, saveCurrentSection, handleSectionClick, t]);
+
   // Handle save
   const handleSave = useCallback(async () => {
     if (!checklist) return;
@@ -408,7 +427,7 @@ export default function RenoChecklistPage() {
             ref={(el) => {
               if (el) sectionRefs.current["checklist-entorno-zonas-comunes"] = el;
             }}
-            onContinue={() => handleSectionClick("checklist-estado-general")}
+            onContinue={() => handleContinue("checklist-estado-general")}
           />
         );
       case "checklist-estado-general":
@@ -436,7 +455,7 @@ export default function RenoChecklistPage() {
             ref={(el) => {
               if (el) sectionRefs.current["checklist-estado-general"] = el;
             }}
-            onContinue={() => handleSectionClick("checklist-entrada-pasillos")}
+            onContinue={() => handleContinue("checklist-entrada-pasillos")}
           />
         );
       case "checklist-entrada-pasillos":
@@ -471,7 +490,7 @@ export default function RenoChecklistPage() {
             ref={(el) => {
               if (el) sectionRefs.current["checklist-entrada-pasillos"] = el;
             }}
-            onContinue={() => handleSectionClick("checklist-habitaciones")}
+            onContinue={() => handleContinue("checklist-habitaciones")}
           />
         );
       case "checklist-habitaciones":
@@ -503,7 +522,7 @@ export default function RenoChecklistPage() {
             onNavigateToHabitacion={(index) => {
               handleSectionClick(`checklist-habitaciones-${index + 1}`);
             }}
-            onContinue={() => handleSectionClick("checklist-salon")}
+            onContinue={() => handleContinue("checklist-salon")}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-habitaciones"] = el;
             }}
@@ -527,7 +546,7 @@ export default function RenoChecklistPage() {
             onUpdate={(updates) => {
               updateChecklistSection("salon", updates);
             }}
-            onContinue={() => handleSectionClick("checklist-banos")}
+            onContinue={() => handleContinue("checklist-banos")}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-salon"] = el;
             }}
@@ -562,7 +581,7 @@ export default function RenoChecklistPage() {
             onNavigateToBano={(index) => {
               handleSectionClick(`checklist-banos-${index + 1}`);
             }}
-            onContinue={() => handleSectionClick("checklist-cocina")}
+            onContinue={() => handleContinue("checklist-cocina")}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-banos"] = el;
             }}
@@ -602,7 +621,7 @@ export default function RenoChecklistPage() {
             onUpdate={(updates) => {
               updateChecklistSection("cocina", updates);
             }}
-            onContinue={() => handleSectionClick("checklist-exteriores")}
+            onContinue={() => handleContinue("checklist-exteriores")}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-cocina"] = el;
             }}
@@ -616,7 +635,6 @@ export default function RenoChecklistPage() {
               uploadZones: [{ id: "fotos-video-exterior", photos: [], videos: [] }],
               questions: [
                 { id: "acabados-exteriores" },
-                { id: "observaciones", notes: "" },
               ],
               securityItems: [
                 { id: "barandillas", cantidad: 0 },
@@ -633,7 +651,17 @@ export default function RenoChecklistPage() {
             ref={(el) => {
               if (el) sectionRefs.current["checklist-exteriores"] = el;
             }}
-            onContinue={() => router.push("/reno/construction-manager/kanban")}
+            onContinue={async () => {
+              try {
+                await saveCurrentSection();
+                setHasUnsavedChanges(false);
+                toast.success(t.messages.saveSuccess || "Cambios guardados");
+                router.push("/reno/construction-manager/kanban");
+              } catch (error) {
+                console.error("Error al guardar antes de continuar:", error);
+                toast.error("Error al guardar cambios. Intenta nuevamente.");
+              }
+            }}
           />
         );
       default:
@@ -671,11 +699,19 @@ export default function RenoChecklistPage() {
                 onNavigateToHabitacion={(newIndex) => {
                   handleSectionClick(`checklist-habitaciones-${newIndex + 1}`);
                 }}
-                onContinue={() => {
-                  if (index + 1 < (habitacionesSection.dynamicCount || 0)) {
-                    handleSectionClick(`checklist-habitaciones-${index + 2}`);
-                  } else {
-                    handleSectionClick("checklist-salon");
+                onContinue={async () => {
+                  try {
+                    await saveCurrentSection();
+                    setHasUnsavedChanges(false);
+                    toast.success(t.messages.saveSuccess || "Cambios guardados");
+                    if (index + 1 < (habitacionesSection.dynamicCount || 0)) {
+                      handleSectionClick(`checklist-habitaciones-${index + 2}`);
+                    } else {
+                      handleSectionClick("checklist-salon");
+                    }
+                  } catch (error) {
+                    console.error("Error al guardar antes de continuar:", error);
+                    toast.error("Error al guardar cambios. Intenta nuevamente.");
                   }
                 }}
                 ref={(el) => {
@@ -717,11 +753,19 @@ export default function RenoChecklistPage() {
                 onNavigateToBano={(newIndex) => {
                   handleSectionClick(`checklist-banos-${newIndex + 1}`);
                 }}
-                onContinue={() => {
-                  if (index + 1 < (banosSection.dynamicCount || 0)) {
-                    handleSectionClick(`checklist-banos-${index + 2}`);
-                  } else {
-                    handleSectionClick("checklist-cocina");
+                onContinue={async () => {
+                  try {
+                    await saveCurrentSection();
+                    setHasUnsavedChanges(false);
+                    toast.success(t.messages.saveSuccess || "Cambios guardados");
+                    if (index + 1 < (banosSection.dynamicCount || 0)) {
+                      handleSectionClick(`checklist-banos-${index + 2}`);
+                    } else {
+                      handleSectionClick("checklist-cocina");
+                    }
+                  } catch (error) {
+                    console.error("Error al guardar antes de continuar:", error);
+                    toast.error("Error al guardar cambios. Intenta nuevamente.");
                   }
                 }}
                 ref={(el) => {
