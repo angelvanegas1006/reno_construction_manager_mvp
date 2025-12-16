@@ -825,34 +825,7 @@ export function useSupabaseChecklistBase({
 
       console.log(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving section:`, sectionId);
 
-      // Recopilar todos los archivos (fotos y videos) de la sección
-      const allFiles: FileUpload[] = [];
-      
-      // Archivos de uploadZones
-      if (section.uploadZones) {
-        section.uploadZones.forEach(zone => {
-          if (zone.photos) allFiles.push(...zone.photos);
-          if (zone.videos) allFiles.push(...zone.videos);
-        });
-      }
-
-      // Archivos de dynamicItems
-      if (section.dynamicItems) {
-        section.dynamicItems.forEach(item => {
-          if (item.uploadZone?.photos) allFiles.push(...item.uploadZone.photos);
-          if (item.uploadZone?.videos) allFiles.push(...item.uploadZone.videos);
-        });
-      }
-
-      // Subir archivos a Supabase Storage
-      // Note: uploadFilesToStorage signature may need adjustment
-      // For now, skip file upload if function signature doesn't match
-      // TODO: Fix uploadFilesToStorage call to match actual signature
-      // if (allFiles.length > 0) {
-      //   await uploadFilesToStorage(allFiles, inspection.id);
-      // }
-
-      // Encontrar zona correspondiente a la sección
+      // Encontrar zona correspondiente a la sección primero (necesaria para subir archivos)
       const expectedZoneType = sectionId === "habitaciones" ? "dormitorio" :
                               sectionId === "banos" ? "bano" :
                               sectionId === "entorno-zonas-comunes" ? "entorno" :
@@ -870,15 +843,212 @@ export function useSupabaseChecklistBase({
         return;
       }
 
-      // Convertir sección a elementos de Supabase (la función no es async)
-      const elementsToSave = convertSectionToElements(sectionId, section, zone.id);
+      // Recopilar todos los archivos (fotos y videos) que necesitan ser subidos (base64)
+      const filesToUpload: FileUpload[] = [];
+      
+      // Archivos de uploadZones que están en base64
+      if (section.uploadZones) {
+        section.uploadZones.forEach(zone => {
+          if (zone.photos) {
+            const base64Photos = zone.photos.filter(photo => 
+              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+            );
+            filesToUpload.push(...base64Photos);
+          }
+          if (zone.videos) {
+            const base64Videos = zone.videos.filter(video => 
+              video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
+            );
+            filesToUpload.push(...base64Videos);
+          }
+        });
+      }
+
+      // Archivos de dynamicItems que están en base64
+      if (section.dynamicItems) {
+        section.dynamicItems.forEach(item => {
+          if (item.uploadZone?.photos) {
+            const base64Photos = item.uploadZone.photos.filter(photo => 
+              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+            );
+            filesToUpload.push(...base64Photos);
+          }
+          if (item.uploadZone?.videos) {
+            const base64Videos = item.uploadZone.videos.filter(video => 
+              video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
+            );
+            filesToUpload.push(...base64Videos);
+          }
+        });
+      }
+
+      // Archivos de questions que están en base64
+      if (section.questions) {
+        section.questions.forEach(question => {
+          if (question.photos) {
+            const base64Photos = question.photos.filter(photo => 
+              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+            );
+            filesToUpload.push(...base64Photos);
+          }
+        });
+      }
+
+      // Crear una copia profunda de la sección para actualizar con URLs
+      const sectionToSave: ChecklistSection = JSON.parse(JSON.stringify(section));
+
+      // Subir archivos a Supabase Storage antes de guardar
+      if (filesToUpload.length > 0) {
+        console.log(`[useSupabaseChecklistBase:${inspectionType}] 📤 Uploading ${filesToUpload.length} files to Supabase Storage...`);
+        try {
+          const uploadedUrls = await uploadFilesToStorage(
+            filesToUpload,
+            propertyId,
+            inspection.id,
+            zone.id
+          );
+          
+          console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Uploaded ${uploadedUrls.length} files successfully`);
+          
+          // Actualizar las fotos en la copia de la sección con las URLs subidas
+          let urlIndex = 0;
+          
+          // Actualizar uploadZones
+          if (sectionToSave.uploadZones) {
+            sectionToSave.uploadZones.forEach(uploadZone => {
+              if (uploadZone.photos) {
+                uploadZone.photos.forEach(photo => {
+                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                    if (urlIndex < uploadedUrls.length) {
+                      photo.data = uploadedUrls[urlIndex];
+                      urlIndex++;
+                    }
+                  }
+                });
+              }
+            });
+          }
+          
+          // Actualizar dynamicItems
+          if (sectionToSave.dynamicItems) {
+            sectionToSave.dynamicItems.forEach(item => {
+              if (item.uploadZone?.photos) {
+                item.uploadZone.photos.forEach(photo => {
+                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                    if (urlIndex < uploadedUrls.length) {
+                      photo.data = uploadedUrls[urlIndex];
+                      urlIndex++;
+                    }
+                  }
+                });
+              }
+            });
+          }
+          
+          // Actualizar questions
+          if (sectionToSave.questions) {
+            sectionToSave.questions.forEach(question => {
+              if (question.photos) {
+                question.photos.forEach(photo => {
+                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
+                    if (urlIndex < uploadedUrls.length) {
+                      photo.data = uploadedUrls[urlIndex];
+                      urlIndex++;
+                    }
+                  }
+                });
+              }
+            });
+          }
+          
+          // Actualizar el estado del checklist con las URLs actualizadas
+          setChecklist(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              sections: {
+                ...prev.sections,
+                [sectionId]: sectionToSave,
+              },
+            };
+          });
+        } catch (uploadError) {
+          console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error uploading files:`, uploadError);
+          toast.error("Error al subir archivos. Intenta guardar nuevamente.");
+          savingRef.current = false;
+          return;
+        }
+      }
+
+      // Convertir sección a elementos de Supabase (usar sectionToSave que tiene las URLs actualizadas)
+      let elementsToSave: any[] = [];
+      
+      // Si es una sección dinámica (habitaciones, banos), procesar cada dynamic item con su zona correspondiente
+      if ((sectionId === "habitaciones" || sectionId === "banos") && sectionToSave.dynamicItems && sectionToSave.dynamicItems.length > 0) {
+        // Encontrar todas las zonas del tipo correcto para esta sección
+        const zonesOfType = zones.filter(z => z.zone_type === expectedZoneType);
+        
+        console.log(`[useSupabaseChecklistBase:${inspectionType}] Processing ${sectionToSave.dynamicItems.length} dynamic items with ${zonesOfType.length} zones`);
+        
+        // Procesar cada dynamic item con su zona correspondiente
+        sectionToSave.dynamicItems.forEach((dynamicItem, index) => {
+          const correspondingZone = zonesOfType[index];
+          if (correspondingZone) {
+            const dynamicElements = convertDynamicItemToElements(dynamicItem, correspondingZone.id);
+            elementsToSave.push(...dynamicElements);
+            console.log(`[useSupabaseChecklistBase:${inspectionType}] Processed dynamic item ${index + 1} (${dynamicItem.id}) with zone ${correspondingZone.id}: ${dynamicElements.length} elements`);
+          } else {
+            console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ No zone found for dynamic item ${index + 1} (${dynamicItem.id})`);
+          }
+        });
+      } else {
+        // Sección fija (no dinámica)
+        elementsToSave = convertSectionToElements(sectionId, sectionToSave, zone.id);
+      }
+      
+      console.log(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving ${elementsToSave.length} elements to Supabase:`, {
+        sectionId,
+        elementsCount: elementsToSave.length,
+        elementNames: elementsToSave.map(e => e.element_name),
+        elementsWithStatus: elementsToSave.filter(e => e.condition).map(e => ({ name: e.element_name, condition: e.condition, notes: e.notes?.substring(0, 50) })),
+        elementsWithNotes: elementsToSave.filter(e => e.notes).map(e => ({ name: e.element_name, notes: e.notes?.substring(0, 50) })),
+        elementsWithPhotos: elementsToSave.filter(e => e.image_urls && e.image_urls.length > 0).map(e => ({ name: e.element_name, photosCount: e.image_urls.length })),
+      });
       
       // Guardar elementos en Supabase
       const supabase = createClient();
       for (const element of elementsToSave) {
-        await supabase.from('inspection_elements').upsert(element, {
-          onConflict: 'id',
+        // Usar onConflict con la constraint única (zone_id, element_name) en lugar de 'id'
+        // porque los elementos nuevos no tienen 'id' (se genera automáticamente)
+        const { error: upsertError } = await supabase.from('inspection_elements').upsert(element, {
+          onConflict: 'zone_id,element_name',
         });
+        
+        if (upsertError) {
+          console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error upserting element ${element.element_name}:`, {
+            error: upsertError,
+            element_name: element.element_name,
+            zone_id: element.zone_id,
+            hasImageUrls: !!element.image_urls,
+            imageUrlsCount: element.image_urls?.length || 0,
+            condition: element.condition,
+            hasNotes: !!element.notes,
+            errorCode: (upsertError as any)?.code,
+            errorMessage: (upsertError as any)?.message,
+            errorDetails: (upsertError as any)?.details,
+            errorHint: (upsertError as any)?.hint,
+          });
+          toast.error(`Error al guardar elemento ${element.element_name}`);
+        } else {
+          console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Saved element:`, {
+            element_name: element.element_name,
+            zone_id: element.zone_id,
+            condition: element.condition,
+            hasNotes: !!element.notes,
+            notesPreview: element.notes?.substring(0, 50),
+            photosCount: element.image_urls?.length || 0,
+          });
+        }
       }
 
       // Refetch para obtener los datos actualizados

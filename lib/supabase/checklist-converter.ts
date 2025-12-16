@@ -193,23 +193,50 @@ export function convertQuestionsToElements(
   const elements: ElementInsert[] = [];
 
   questions.forEach((question) => {
-    const imageUrls = question.photos
-      ?.filter(photo => photo.data)
-      .map(photo => photo.data) || null;
+    // IMPORTANTE: Solo guardar URLs HTTP (fotos ya subidas), NO base64
+    // Las fotos en base64 se subirán primero y luego se guardarán con sus URLs
+    const photosWithHttp = question.photos?.filter(photo => photo.data && photo.data.startsWith('http')) || [];
+    const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
 
     // Nota: badElements se puede incluir en notes si es necesario
     const notesWithBadElements = question.badElements && question.badElements.length > 0
       ? `${question.notes || ''}\nBad elements: ${question.badElements.join(', ')}`.trim()
       : question.notes || null;
 
+    const condition = mapStatusToCondition(question.status);
+    
+    console.log(`[convertQuestionsToElements] Processing question "${question.id}":`, {
+      zoneId,
+      questionId: question.id,
+      status: question.status,
+      condition,
+      hasNotes: !!notesWithBadElements,
+      notesPreview: notesWithBadElements?.substring(0, 50),
+      totalPhotos: question.photos?.length || 0,
+      photosWithHttp: photosWithHttp.length,
+      photosWithBase64: question.photos?.filter(p => p.data?.startsWith('data:')).length || 0,
+      imageUrlsCount: imageUrls?.length || 0,
+      willCreateElement: true, // Siempre crear el elemento, incluso si no tiene estado o fotos
+    });
+
+    // IMPORTANTE: Siempre crear el elemento para cada pregunta, incluso si no tiene estado, notas o fotos
+    // Esto asegura que todas las preguntas se guarden y puedan cargarse después
     elements.push({
       zone_id: zoneId,
       element_name: question.id,
-      condition: mapStatusToCondition(question.status),
-      notes: notesWithBadElements,
-      image_urls: imageUrls && imageUrls.length > 0 ? imageUrls : null,
+      condition: condition, // Puede ser null si no hay estado seleccionado
+      notes: notesWithBadElements, // Puede ser null si no hay notas
+      image_urls: imageUrls, // Puede ser null si no hay fotos con URLs HTTP
       quantity: null,
       exists: null,
+    });
+    
+    console.log(`[convertQuestionsToElements] ✅ Created element for question "${question.id}":`, {
+      element_name: question.id,
+      zone_id: zoneId,
+      condition,
+      hasNotes: !!notesWithBadElements,
+      imageUrlsCount: imageUrls?.length || 0,
     });
   });
 
