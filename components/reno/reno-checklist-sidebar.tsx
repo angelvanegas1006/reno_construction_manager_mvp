@@ -22,6 +22,7 @@ interface RenoChecklistSidebarProps {
   onCompleteInspection?: () => void;
   canCompleteInspection?: boolean;
   isCompleting?: boolean;
+  isFinalCheck?: boolean; // Indica si es un final check para mostrar property-info
 }
 
 export function RenoChecklistSidebar({
@@ -37,6 +38,7 @@ export function RenoChecklistSidebar({
   onCompleteInspection,
   canCompleteInspection = false,
   isCompleting = false,
+  isFinalCheck = false,
 }: RenoChecklistSidebarProps) {
   const { t } = useI18n();
   const [expandedGroups, setExpandedGroups] = useState<string[]>([
@@ -164,21 +166,6 @@ export function RenoChecklistSidebar({
 
       {/* Sections List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
-        {/* Property Info Section - Only for final-check (will be filtered by parent) */}
-        {activeSection === "property-info" && (
-          <button
-            onClick={() => onSectionClick("property-info")}
-            className={cn(
-              "w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors",
-              activeSection === "property-info"
-                ? "bg-primary text-primary-foreground font-medium"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-          >
-            {t.sidebar.propertyInformation}
-          </button>
-        )}
-        
         {grupos.map((grupo) => {
           const isExpanded = expandedGroups.includes(grupo.id);
           

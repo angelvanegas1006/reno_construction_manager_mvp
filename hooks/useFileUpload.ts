@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { FileUpload } from "@/lib/property-storage";
 
 interface UseFileUploadProps {
@@ -45,6 +45,29 @@ export function useFileUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const onFilesChangeRef = useRef(onFilesChange);
+  const isInitialMountRef = useRef(true);
+  
+  // Keep ref updated with latest callback
+  useEffect(() => {
+    onFilesChangeRef.current = onFilesChange;
+  }, [onFilesChange]);
+  
+  // Call onFilesChange after files state updates (deferred to avoid render-time updates)
+  // Skip the initial mount to avoid calling with empty array
+  useEffect(() => {
+    // Skip initial mount
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    
+    // Use setTimeout to defer to next tick, preventing render-time updates
+    const timeoutId = setTimeout(() => {
+      onFilesChangeRef.current(files);
+    }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [files]);
 
   const validateFile = useCallback((file: File): string | null => {
     if (file.size > maxFileSize * 1024 * 1024) {
@@ -64,20 +87,30 @@ export function useFileUpload({
       
       reader.onload = () => {
         const base64 = reader.result as string;
-        resolve({
+        const fileUpload = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           name: file.name,
           type: file.type,
           size: file.size,
           data: base64,
           uploadedAt: new Date().toISOString(),
+        };
+        console.log('[useFileUpload] ✅ File processed:', {
+          id: fileUpload.id,
+          name: fileUpload.name,
+          hasData: !!fileUpload.data,
+          dataLength: fileUpload.data?.length || 0,
+          dataPreview: fileUpload.data?.substring(0, 50)
         });
+        resolve(fileUpload);
       };
       
-      reader.onerror = () => {
+      reader.onerror = (error) => {
+        console.error('[useFileUpload] ❌ Error processing file:', { name: file.name, error });
         reject(new Error("Error al procesar el archivo"));
       };
       
+      console.log('[useFileUpload] 🔄 Processing file:', { name: file.name, type: file.type, size: file.size });
       reader.readAsDataURL(file);
     });
   }, []);
@@ -113,12 +146,27 @@ export function useFileUpload({
         validFiles.map(file => processFile(file))
       );
 
+      console.log('[useFileUpload] ✅ All files processed:', {
+        count: processedFiles.length,
+        files: processedFiles.map(f => ({
+          id: f.id,
+          name: f.name,
+          hasData: !!f.data,
+          dataLength: f.data?.length || 0
+        }))
+      });
+
       // Use functional update to ensure we have the latest state
+      // onFilesChange will be called automatically via useEffect when files state updates
       setFiles(prev => {
-        const updatedFiles = [...prev, ...processedFiles];
-        // Call onFilesChange with updated files
-        onFilesChange(updatedFiles);
-        return updatedFiles;
+        const updated = [...prev, ...processedFiles];
+        console.log('[useFileUpload] 📝 Setting files state:', {
+          prevCount: prev.length,
+          newCount: processedFiles.length,
+          totalCount: updated.length,
+          allFiles: updated.map(f => ({ id: f.id, name: f.name, hasData: !!f.data }))
+        });
+        return updated;
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al procesar archivos");
@@ -175,15 +223,14 @@ export function useFileUpload({
   }, []);
 
   const removeFile = useCallback((index: number) => {
-    const newFiles = files.filter((_, i) => i !== index);
-    setFiles(newFiles);
-    onFilesChange(newFiles);
-  }, [files, onFilesChange]);
+    // onFilesChange will be called automatically via useEffect when files state updates
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
   const clearFiles = useCallback(() => {
+    // onFilesChange will be called automatically via useEffect when files state updates
     setFiles([]);
-    onFilesChange([]);
-  }, [onFilesChange]);
+  }, []);
 
   return {
     files,

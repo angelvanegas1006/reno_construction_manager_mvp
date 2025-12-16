@@ -38,16 +38,31 @@ interface UseSupabaseInspectionReturn {
 
 export function useSupabaseInspection(
   propertyId: string | null,
-  inspectionType: InspectionType
+  inspectionType: InspectionType,
+  enabled: boolean = true
 ): UseSupabaseInspectionReturn {
   const [inspection, setInspection] = useState<PropertyInspection | null>(null);
   const [zones, setZones] = useState<InspectionZone[]>([]);
   const [elements, setElements] = useState<InspectionElement[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
   const fetchInspection = useCallback(async () => {
+    if (!enabled) {
+      // Si el hook está deshabilitado, no hacer fetch
+      console.log(`[useSupabaseInspection:${inspectionType}] 🚫 Hook disabled, skipping fetch`, {
+        enabled,
+        inspectionType,
+        propertyId,
+      });
+      setInspection(null);
+      setZones([]);
+      setElements([]);
+      setLoading(false);
+      return;
+    }
+    
     if (!propertyId) {
       setInspection(null);
       setZones([]);
@@ -61,22 +76,27 @@ export function useSupabaseInspection(
       setError(null);
 
       // Buscar inspección existente por property_id e inspection_type
+      // Ordenar por created_at descendente para obtener la más reciente
       // Intentar primero con inspection_type, si falla (campo no existe), buscar sin él
       let { data: inspectionData, error: inspectionError } = await supabase
         .from('property_inspections')
         .select('*')
         .eq('property_id', propertyId)
         .eq('inspection_type', inspectionType)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       // Si el error es que la columna no existe (42883), buscar sin inspection_type
       if (inspectionError && (inspectionError.code === '42883' || inspectionError.message?.includes('column') || inspectionError.message?.includes('does not exist'))) {
         console.warn('Campo inspection_type no existe aún, buscando sin filtro:', inspectionError);
-        // Buscar sin filtro de inspection_type (solo por property_id)
+        // Buscar sin filtro de inspection_type (solo por property_id), ordenar por fecha descendente
         const { data: allInspections, error: allError } = await supabase
           .from('property_inspections')
           .select('*')
           .eq('property_id', propertyId)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
         
         if (allError && allError.code !== 'PGRST116') {
@@ -86,6 +106,17 @@ export function useSupabaseInspection(
         inspectionError = null;
       } else if (inspectionError && inspectionError.code !== 'PGRST116') {
         throw inspectionError;
+      }
+
+      // Log para debugging
+      if (inspectionData) {
+        console.log('[useSupabaseInspection] ✅ Found inspection:', {
+          id: inspectionData.id,
+          propertyId,
+          inspectionType,
+          createdAt: inspectionData.created_at,
+          status: inspectionData.inspection_status,
+        });
       }
 
       if (!inspectionData) {
@@ -108,14 +139,36 @@ export function useSupabaseInspection(
       if (zonesError) throw zonesError;
       setZones(zonesData || []);
 
+      console.log('[useSupabaseInspection] 📍 Loaded zones:', {
+        inspectionId: inspectionData.id,
+        inspectionType: (inspectionData as any).inspection_type,
+        zonesCount: zonesData?.length || 0,
+        zoneIds: zonesData?.map(z => ({ id: z.id, zone_type: z.zone_type, zone_name: z.zone_name })) || [],
+      });
+
       // Cargar elementos
+      const zoneIds = zonesData?.map(z => z.id) || [];
       const { data: elementsData, error: elementsError } = await supabase
         .from('inspection_elements')
         .select('*')
-        .in('zone_id', zonesData?.map(z => z.id) || [])
+        .in('zone_id', zoneIds)
         .order('created_at', { ascending: true });
 
       if (elementsError) throw elementsError;
+      
+      // También buscar elementos que puedan estar asociados a esta inspección pero con zone_id incorrecto
+      // Esto puede pasar si los elementos se guardaron con un zone_id de otra inspección
+      const photoElements = elementsData?.filter(e => e.element_name?.startsWith('fotos-') || e.element_name?.startsWith('videos-')) || [];
+      console.log('[useSupabaseInspection] 📸 Loaded elements:', {
+        inspectionId: inspectionData.id,
+        inspectionType: (inspectionData as any).inspection_type,
+        totalElementsCount: elementsData?.length || 0,
+        photoElementsCount: photoElements.length,
+        photoElementZoneIds: photoElements.map(e => e.zone_id),
+        zoneIds: zoneIds,
+        missingZones: photoElements.filter(e => !zoneIds.includes(e.zone_id)).map(e => e.zone_id),
+      });
+      
       setElements(elementsData || []);
     } catch (err) {
       // Mejorar el manejo de errores para mostrar información útil
@@ -166,7 +219,19 @@ export function useSupabaseInspection(
     } finally {
       setLoading(false);
     }
-  }, [propertyId, inspectionType, supabase]);
+  }, [propertyId, inspectionType, supabase, enabled]);
+
+  // Limpiar datos cuando inspectionType cambia para evitar usar datos del tipo incorrecto
+  useEffect(() => {
+    // Limpiar inmediatamente cuando inspectionType cambia
+    // Esto evita que se usen zonas/elementos de la inspección anterior mientras se carga la nueva
+    setInspection(null);
+    setZones([]);
+    setElements([]);
+    setLoading(true);
+    setError(null);
+    // fetchInspection se ejecutará después debido a las dependencias del useEffect anterior
+  }, [inspectionType]);
 
   const createInspection = useCallback(async (
     propertyId: string,
@@ -413,6 +478,15 @@ export function useSupabaseInspection(
     try {
       setError(null);
 
+      console.log('[useSupabaseInspection] 📤 Upserting element to Supabase:', {
+        element_name: elementData.element_name,
+        zone_id: elementData.zone_id,
+        image_urls: elementData.image_urls,
+        image_urls_count: elementData.image_urls?.length || 0,
+        video_urls: elementData.video_urls,
+        video_urls_count: elementData.video_urls?.length || 0,
+      });
+
       // Usar upsert con unique constraint en (zone_id, element_name)
       const { data, error: upsertError } = await supabase
         .from('inspection_elements')
@@ -422,14 +496,28 @@ export function useSupabaseInspection(
         .select()
         .single();
 
-      if (upsertError) throw upsertError;
+      if (upsertError) {
+        console.error('[useSupabaseInspection] ❌ Error upserting element:', {
+          error: upsertError,
+          element_name: elementData.element_name,
+          zone_id: elementData.zone_id,
+        });
+        throw upsertError;
+      }
+
+      console.log('[useSupabaseInspection] ✅ Element upserted successfully:', {
+        element_name: elementData.element_name,
+        result_id: data?.id,
+        result_image_urls: data?.image_urls,
+        result_image_urls_count: data?.image_urls?.length || 0,
+      });
 
       await fetchInspection();
       return data;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al guardar elemento';
       setError(errorMessage);
-      console.error('Error upserting element:', err);
+      console.error('[useSupabaseInspection] ❌ Error upserting element:', err);
       return null;
     }
   }, [supabase, fetchInspection]);
@@ -477,8 +565,17 @@ export function useSupabaseInspection(
   }, [supabase, fetchInspection]);
 
   useEffect(() => {
-    fetchInspection();
-  }, [fetchInspection]);
+    if (enabled) {
+      fetchInspection();
+    } else {
+      // Si está deshabilitado, limpiar el estado
+      setInspection(null);
+      setZones([]);
+      setElements([]);
+      setLoading(false);
+      setError(null);
+    }
+  }, [fetchInspection, enabled]);
 
   return {
     inspection,

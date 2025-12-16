@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowLeft, Menu } from "lucide-react";
+import { ArrowLeft, Menu, Save, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
 
 interface NavbarL3Props {
   /** Zona A: Botón de Retroceso */
@@ -48,74 +49,120 @@ export function NavbarL3({
   const saveAction = actions.find(a => a.variant === "outline");
   const submitAction = actions.find(a => a.variant === "default" || !a.variant);
 
+  // Detectar si estamos en mobile
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
-    <nav className="absolute top-0 left-0 right-0 z-20 border-b bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-3">
-      <div className="flex items-center justify-between gap-4">
-        {/* Zona A: Botón de Retroceso + Título del Formulario */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Button
-            variant="ghost"
-            onClick={onBack}
-            className="flex items-center gap-2 flex-shrink-0 hover:bg-muted hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden md:inline">{backLabel}</span>
-          </Button>
-          {/* Mobile menu button */}
-          {onMenuClick && (
+    <>
+      <nav className="absolute top-0 left-0 right-0 z-20 border-b bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-3">
+        <div className="flex items-center justify-between gap-4">
+          {/* Zona A: Botón de Retroceso + Título del Formulario */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <Button
               variant="ghost"
-              size="icon"
-              className="md:hidden flex-shrink-0 z-50 relative"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMenuClick();
-              }}
-              aria-label="Abrir menú"
+              onClick={onBack}
+              className="flex items-center gap-2 flex-shrink-0 hover:bg-muted hover:text-foreground"
             >
-              <Menu className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden md:inline">{backLabel}</span>
             </Button>
-          )}
+            {/* Mobile menu button */}
+            {onMenuClick && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden flex-shrink-0 z-50 relative"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMenuClick();
+                }}
+                aria-label="Abrir menú"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            )}
 
-          {/* Título del Formulario */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-semibold text-foreground truncate">
-              {formTitle}
-            </h1>
-            {statusText && (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {statusText}
-              </p>
+            {/* Título del Formulario */}
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-semibold text-foreground truncate">
+                {formTitle}
+              </h1>
+              {statusText && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {statusText}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Zona C: Acciones - Guardar y Enviar (solo en desktop, en mobile van al footer) */}
+          {!isMobile && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {saveAction && (
+                <Button
+                  variant="outline"
+                  onClick={saveAction.onClick}
+                  disabled={saveAction.disabled}
+                  className="flex items-center gap-2 rounded-full"
+                >
+                  {saveAction.icon}
+                  {saveAction.label}
+                </Button>
+              )}
+              {submitAction && (
+                <Button
+                  onClick={submitAction.onClick}
+                  disabled={submitAction.disabled}
+                  className="flex items-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white"
+                >
+                  {submitAction.icon}
+                  {submitAction.label}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </nav>
+
+      {/* Footer sticky para mobile - siempre visible en mobile */}
+      {isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[var(--prophero-gray-900)] px-4 py-4 md:hidden border-t border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] shadow-[0_-2px_8px_rgba(0,0,0,0.1)]">
+          <div className="flex flex-col gap-3 w-full max-w-md mx-auto">
+            {/* Botón principal: Enviar a revisión */}
+            {submitAction && (
+              <Button
+                onClick={submitAction.onClick}
+                disabled={submitAction.disabled}
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-12 text-base font-medium"
+              >
+                {submitAction.icon}
+                {submitAction.label}
+              </Button>
+            )}
+            {/* Link secundario: Guardar cambios */}
+            {saveAction && (
+              <button
+                onClick={saveAction.onClick}
+                disabled={saveAction.disabled}
+                className="w-full text-center text-[var(--prophero-blue-600)] hover:text-[var(--prophero-blue-700)] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium py-2"
+              >
+                {saveAction.icon}
+                {saveAction.label}
+              </button>
             )}
           </div>
         </div>
-
-        {/* Zona C: Acciones - Guardar y Enviar */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {saveAction && (
-            <Button
-              variant="outline"
-              onClick={saveAction.onClick}
-              disabled={saveAction.disabled}
-              className="flex items-center gap-2 rounded-full"
-            >
-              {saveAction.icon}
-              {saveAction.label}
-            </Button>
-          )}
-          {submitAction && (
-            <Button
-              onClick={submitAction.onClick}
-              disabled={submitAction.disabled}
-              className="flex items-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white"
-            >
-              {submitAction.icon}
-              {submitAction.label}
-            </Button>
-          )}
-        </div>
-      </div>
-    </nav>
+      )}
+    </>
   );
 }
 

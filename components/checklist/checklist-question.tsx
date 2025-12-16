@@ -71,17 +71,31 @@ export function ChecklistQuestion({
   ];
 
   const handleStatusChange = (status: ChecklistStatus) => {
+    console.log(`🖱️ [ChecklistQuestion] handleStatusChange CALLED:`, {
+      questionId,
+      status,
+      currentStatus: question.status,
+      hasOnUpdate: typeof onUpdate === 'function',
+      label,
+    });
+    
     // If status is "buen_estado" or "no_aplica", clear badElements, notes, and photos
     if (status === "buen_estado" || status === "no_aplica") {
-      onUpdate({ 
+      const updates = { 
         status, 
         badElements: undefined, 
         notes: undefined, 
         photos: undefined 
-      });
+      };
+      console.log(`📤 [ChecklistQuestion] Calling onUpdate with:`, updates);
+      onUpdate(updates);
+      console.log(`✅ [ChecklistQuestion] onUpdate called successfully`);
     } else {
       // For "necesita_reparacion" or "necesita_reemplazo", keep existing data but update status
-      onUpdate({ status });
+      const updates = { status };
+      console.log(`📤 [ChecklistQuestion] Calling onUpdate with:`, updates);
+      onUpdate(updates);
+      console.log(`✅ [ChecklistQuestion] onUpdate called successfully`);
     }
   };
 
@@ -114,14 +128,14 @@ export function ChecklistQuestion({
               type="button"
               onClick={() => handleStatusChange(option.value)}
               className={cn(
-                "flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-lg border-2 transition-colors w-full",
+                "flex flex-col items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2.5 sm:py-2 rounded-lg border-2 transition-colors w-full min-h-[60px] sm:min-h-0",
                 isSelected
                   ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
                   : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card"
               )}
             >
               <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
-              <span className={cn("text-xs sm:text-sm font-medium whitespace-nowrap text-center", isSelected ? "text-foreground" : "text-muted-foreground")}>
+              <span className={cn("text-xs sm:text-sm font-medium text-center leading-tight", isSelected ? "text-foreground" : "text-muted-foreground")}>
                 {option.label}
               </span>
             </button>

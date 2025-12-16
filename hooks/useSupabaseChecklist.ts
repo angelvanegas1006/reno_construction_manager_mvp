@@ -19,7 +19,7 @@ import {
 import { uploadFilesToStorage } from "@/lib/supabase/storage-upload";
 import type { FileUpload } from "@/lib/checklist-storage";
 import { toast } from "sonner";
-import { syncChecklistToAirtable, finalizeInitialCheckInAirtable } from "@/lib/airtable/initial-check-sync";
+import { finalizeInitialCheckInAirtable } from "@/lib/airtable/initial-check-sync";
 
 interface UseSupabaseChecklistProps {
   propertyId: string;
@@ -56,6 +56,12 @@ export function useSupabaseChecklist({
 
   // Determinar inspection_type basado en checklistType
   const inspectionType: InspectionType = checklistType === "reno_final" ? "final" : "initial";
+  
+  console.log('[useSupabaseChecklist] 🔍 Inspection type determination:', {
+    checklistType,
+    inspectionType,
+    propertyId,
+  });
 
   // Hook de Supabase para inspecciones
   const {
@@ -176,6 +182,8 @@ export function useSupabaseChecklist({
       hasSupabaseProperty: !!supabaseProperty,
       hasInspection: !!inspection,
       inspectionId: inspection?.id,
+      inspectionType: (inspection as any)?.inspection_type,
+      expectedInspectionType: inspectionType,
       zonesCount: zones.length,
       elementsCount: elements.length,
       checklistType,
@@ -197,6 +205,18 @@ export function useSupabaseChecklist({
         hasPropertyId: !!propertyId,
         inspectionLoading,
         hasSupabaseProperty: !!supabaseProperty,
+      });
+      setIsLoading(true);
+      return;
+    }
+
+    // Verificar que la inspección corresponde al tipo correcto
+    // Si tenemos una inspección pero es del tipo incorrecto, esperar a que se cargue la correcta
+    if (inspection && (inspection as any).inspection_type !== inspectionType) {
+      console.log('[useSupabaseChecklist] ⏳ Waiting for correct inspection type...', {
+        currentInspectionType: (inspection as any).inspection_type,
+        expectedInspectionType: inspectionType,
+        inspectionId: inspection.id,
       });
       setIsLoading(true);
       return;
@@ -226,14 +246,28 @@ export function useSupabaseChecklist({
     // Si ya tenemos checklist y no hay cambios significativos, no reinicializar
     const inspectionId = inspection?.id;
     const key = `${propertyId}-${checklistType}-${inspectionId || 'no-inspection'}`;
+    // Verificar si tenemos elementos con fotos que no se han cargado aún
+    const hasPhotoElements = elements.some(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0);
+    const checklistHasPhotos = checklist && Object.values(checklist.sections).some(section => 
+      section.uploadZones?.some(zone => zone.photos && zone.photos.length > 0)
+    );
+    
     if (initializationRef.current === key && checklist && zones.length > 0 && !inspectionLoading && inspectionId) {
-      console.log('[useSupabaseChecklist] ✅ Already initialized with same data, skipping...', { key });
-      // Si ya está inicializado completamente, asegurar que el flag esté en false
-      if (initializationInProgressRef.current) {
-        initializationInProgressRef.current = false;
+      // Si hay elementos con fotos en Supabase pero no en el checklist, forzar recarga
+      if (hasPhotoElements && !checklistHasPhotos) {
+        console.log('[useSupabaseChecklist] 🔄 Photo elements found in Supabase but not in checklist, forcing reload...', {
+          photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).length,
+        });
+        // No retornar aquí, continuar con la inicialización para recargar el checklist
+      } else {
+        console.log('[useSupabaseChecklist] ✅ Already initialized with same data, skipping...', { key });
+        // Si ya está inicializado completamente, asegurar que el flag esté en false
+        if (initializationInProgressRef.current) {
+          initializationInProgressRef.current = false;
+        }
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(false);
-      return;
     }
     
     // Si zones.length está aumentando durante la creación inicial, esperar a que termine el loading
@@ -280,38 +314,50 @@ export function useSupabaseChecklist({
           // Continuar con la inicialización normal (no retornar aquí)
         }
         
-        // Si no hay inspección, crear una nueva
-        if (!inspection && !inspectionCreationInProgressRef.current && functionsRef.current) {
-          inspectionCreationInProgressRef.current = true;
-          console.log('[useSupabaseChecklist] 📝 Creating new inspection...');
-          const newInspection = await functionsRef.current.createInspection(propertyId, inspectionType);
-          if (!newInspection) {
-            console.error('[useSupabaseChecklist] ❌ Failed to create inspection');
-            setIsLoading(false);
+        // Si no hay inspección, esperar primero a que termine el loading antes de crear una nueva
+        // Esto evita crear inspecciones duplicadas cuando la inspección existe pero aún no se ha cargado en el estado
+        if (!inspection && !inspectionCreationInProgressRef.current) {
+          // Si aún está cargando, esperar a que termine antes de crear una nueva inspección
+          if (inspectionLoading) {
+            console.log('[useSupabaseChecklist] ⏳ Waiting for inspection to load before creating new one...');
             initializationInProgressRef.current = false;
-            inspectionCreationInProgressRef.current = false;
+            setIsLoading(true);
             return;
           }
-          console.log('[useSupabaseChecklist] ✅ Inspection created, refetching...');
-          // Refetch para obtener zonas y elementos
-          await functionsRef.current.refetchInspection();
-          // Esperar un momento para que el estado se actualice después del refetch
-          // El estado de React puede tardar un momento en actualizarse después del refetch
-          await new Promise(resolve => setTimeout(resolve, 500));
-          // Después del refetch, crear un checklist vacío para que el usuario pueda ver algo
-          // El siguiente ciclo del efecto continuará cuando la inspección esté disponible
-          // Nota: Estamos dentro de un bloque donde !inspection era true, así que inspection puede ser null
-          // El refetch puede no haber actualizado el estado aún, así que creamos un checklist vacío
-          console.log('[useSupabaseChecklist] ⏳ Inspection not yet available after refetch, creating empty checklist...');
-          const emptyChecklist = createChecklist(propertyId, checklistType, {});
-          setChecklist(emptyChecklist);
-          const stableKey = `${propertyId}-${checklistType}-no-inspection-yet`;
-          initializationRef.current = stableKey;
-          // Resetear flags para permitir que el siguiente ciclo del efecto continúe
-          initializationInProgressRef.current = false;
-          inspectionCreationInProgressRef.current = false;
-          setIsLoading(false);
-          return;
+          
+          // Solo crear una nueva inspección si realmente no existe y no está cargando
+          if (functionsRef.current) {
+            inspectionCreationInProgressRef.current = true;
+            console.log('[useSupabaseChecklist] 📝 Creating new inspection...');
+            const newInspection = await functionsRef.current.createInspection(propertyId, inspectionType);
+            if (!newInspection) {
+              console.error('[useSupabaseChecklist] ❌ Failed to create inspection');
+              setIsLoading(false);
+              initializationInProgressRef.current = false;
+              inspectionCreationInProgressRef.current = false;
+              return;
+            }
+            console.log('[useSupabaseChecklist] ✅ Inspection created, refetching...');
+            // Refetch para obtener zonas y elementos
+            await functionsRef.current.refetchInspection();
+            // Esperar un momento para que el estado se actualice después del refetch
+            // El estado de React puede tardar un momento en actualizarse después del refetch
+            await new Promise(resolve => setTimeout(resolve, 500));
+            // Después del refetch, crear un checklist vacío para que el usuario pueda ver algo
+            // El siguiente ciclo del efecto continuará cuando la inspección esté disponible
+            // Nota: Estamos dentro de un bloque donde !inspection era true, así que inspection puede ser null
+            // El refetch puede no haber actualizado el estado aún, así que creamos un checklist vacío
+            console.log('[useSupabaseChecklist] ⏳ Inspection not yet available after refetch, creating empty checklist...');
+            const emptyChecklist = createChecklist(propertyId, checklistType, {});
+            setChecklist(emptyChecklist);
+            const stableKey = `${propertyId}-${checklistType}-no-inspection-yet`;
+            initializationRef.current = stableKey;
+            // Resetear flags para permitir que el siguiente ciclo del efecto continúe
+            initializationInProgressRef.current = false;
+            inspectionCreationInProgressRef.current = false;
+            setIsLoading(false);
+            return;
+          }
         }
 
         // Si hay inspección pero no hay zonas, crear zonas iniciales
@@ -337,11 +383,33 @@ export function useSupabaseChecklist({
 
         // Cargar checklist desde Supabase
         if (zones.length > 0) {
+          // Log detallado de todos los elementos
+          const allElementsDetails = elements.map(e => ({
+            id: e.id,
+            element_name: e.element_name,
+            zone_id: e.zone_id,
+            has_image_urls: !!e.image_urls,
+            image_urls_count: e.image_urls?.length || 0,
+            image_urls: e.image_urls, // Incluir las URLs para debugging
+          }));
+          
+          const photoElementsDetails = elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).map(e => ({
+            id: e.id,
+            element_name: e.element_name,
+            zone_id: e.zone_id,
+            image_urls_count: e.image_urls?.length || 0,
+            image_urls: e.image_urls,
+          }));
+          
           console.log('[useSupabaseChecklist] 📥 Loading checklist from Supabase...', {
             zonesCount: zones.length,
             elementsCount: elements.length,
             bedrooms: supabaseProperty.bedrooms,
             bathrooms: supabaseProperty.bathrooms,
+            photoElementsCount: photoElementsDetails.length,
+            photoElements: photoElementsDetails,
+            allElementsCount: allElementsDetails.length,
+            allElements: allElementsDetails,
           });
           
           const supabaseData = convertSupabaseToChecklist(
@@ -353,6 +421,10 @@ export function useSupabaseChecklist({
           
           console.log('[useSupabaseChecklist] ✅ Converted Supabase data:', {
             sectionsCount: Object.keys(supabaseData.sections || {}).length,
+            sectionsWithPhotos: Object.keys(supabaseData.sections || {}).filter(sectionId => {
+              const section = supabaseData.sections?.[sectionId];
+              return section?.uploadZones?.some(zone => zone.photos && zone.photos.length > 0);
+            }).length,
           });
           
           // Crear checklist con datos de Supabase
@@ -362,8 +434,21 @@ export function useSupabaseChecklist({
             const stableKey = `${propertyId}-${checklistType}-${inspection.id}`;
             initializationRef.current = stableKey; // Marcar como inicializado (sin zones.length)
             lastZonesCountRef.current = zones.length; // Actualizar contador
+            // Actualizar el ref de inspección procesada
+            lastProcessedInspectionIdRef.current = inspection.id;
+            lastProcessedZonesLengthRef.current = zones.length;
+            lastProcessedElementsLengthRef.current = elements.length;
           }
-          console.log('[useSupabaseChecklist] ✅ Checklist loaded and set');
+          console.log('[useSupabaseChecklist] ✅ Checklist loaded and set', {
+            inspectionId: inspection?.id,
+            zonesCount: zones.length,
+            elementsCount: elements.length,
+            photoElementsCount: photoElementsDetails.length,
+            sectionsWithPhotos: Object.keys(loadedChecklist.sections).filter(sectionId => {
+              const section = loadedChecklist.sections[sectionId];
+              return section?.uploadZones?.some(zone => zone.photos && zone.photos.length > 0);
+            }).length,
+          });
         } else {
           console.log('[useSupabaseChecklist] 📝 Creating empty checklist...');
           // Si no hay datos, crear checklist vacío
@@ -408,10 +493,25 @@ export function useSupabaseChecklist({
   const hasSupabaseProperty = !!supabaseProperty;
   const hasInspection = !!inspection;
   
-  // Efecto separado para manejar cambios en zones cuando están completamente cargadas
+  // Efecto separado para manejar cambios en zones y elements cuando están completamente cargadas
+  // Usar un ref para rastrear el último zones.length y elements.length procesados
+  const lastProcessedZonesLengthRef = useRef(0);
+  const lastProcessedElementsLengthRef = useRef(0);
+  const lastProcessedInspectionIdRef = useRef<string | null>(null);
+  
   useEffect(() => {
     // Solo procesar si no hay inicialización en progreso, tenemos datos básicos, y no estamos cargando
     if (initializationInProgressRef.current || !propertyId || !hasSupabaseProperty || !hasInspection || inspectionLoading) {
+      return;
+    }
+
+    // Verificar que la inspección corresponde al tipo correcto ANTES de procesar cualquier cambio
+    if (inspection && (inspection as any).inspection_type !== inspectionType) {
+      console.log('[useSupabaseChecklist] ⏸️ Ignoring all changes - inspection type mismatch:', {
+        currentInspectionType: (inspection as any).inspection_type,
+        expectedInspectionType: inspectionType,
+        inspectionId: inspection.id,
+      });
       return;
     }
 
@@ -420,29 +520,133 @@ export function useSupabaseChecklist({
       return;
     }
 
-    // Si ya tenemos checklist con el mismo número de zones, no recargar
-    const key = `${propertyId}-${checklistType}-${inspectionId || ''}`;
-    if (initializationRef.current === key && checklist && zones.length === lastZonesCountRef.current) {
+    // Verificar si la inspección cambió - si cambió, resetear los contadores y recargar
+    if (inspectionId !== lastProcessedInspectionIdRef.current) {
+      console.log('[useSupabaseChecklist] 🔄 Inspection changed, resetting counters and reloading...', {
+        oldInspectionId: lastProcessedInspectionIdRef.current,
+        newInspectionId: inspectionId,
+        zonesCount: zones.length,
+        elementsCount: elements.length,
+        hasChecklist: !!checklist,
+        inspectionType: (inspection as any)?.inspection_type,
+        expectedType: inspectionType,
+      });
+      
+      // Si es la primera vez que tenemos una inspección (pasó de null a un valor), recargar inmediatamente
+      const isFirstInspection = lastProcessedInspectionIdRef.current === null && inspectionId !== null;
+      
+      // SOLO procesar si la inspección es del tipo correcto
+      if (inspection && (inspection as any).inspection_type !== inspectionType) {
+        console.log('[useSupabaseChecklist] ⏸️ Ignoring inspection change - wrong type:', {
+          currentInspectionType: (inspection as any).inspection_type,
+          expectedInspectionType: inspectionType,
+          inspectionId: inspection.id,
+        });
+        // No actualizar lastProcessedInspectionIdRef para que se vuelva a intentar cuando cambie la inspección
+        return;
+      }
+      
+      lastProcessedInspectionIdRef.current = inspectionId;
+      lastProcessedZonesLengthRef.current = zones.length;
+      lastProcessedElementsLengthRef.current = elements.length;
+      
+      // Si es la primera inspección y tenemos datos, SIEMPRE recargar el checklist
+      // Esto asegura que las imágenes se carguen correctamente al navegar desde otra página
+      if (isFirstInspection && zones.length > 0) {
+        console.log('[useSupabaseChecklist] 🔄 First inspection detected, reloading checklist immediately...', {
+          zonesCount: zones.length,
+          elementsCount: elements.length,
+          photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).length,
+        });
+        initializationInProgressRef.current = true;
+        
+        // Recargar checklist con zonas y elementos actualizados
+        const supabaseData = convertSupabaseToChecklist(
+          zones,
+          elements,
+          bedroomsCount,
+          bathroomsCount
+        );
+        
+        const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
+        setChecklist(loadedChecklist);
+        if (inspectionId) {
+          const stableKey = `${propertyId}-${checklistType}-${inspectionId}`;
+          initializationRef.current = stableKey;
+        }
+        
+        console.log('[useSupabaseChecklist] ✅ Checklist reloaded for first inspection', {
+          inspectionId,
+          zonesCount: zones.length,
+          elementsCount: elements.length,
+          photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).length,
+        });
+        
+        // Resetear flag después de un breve delay
+        setTimeout(() => {
+          initializationInProgressRef.current = false;
+        }, 100);
+      }
       return;
     }
 
-    // Solo recargar si zones.length cambió Y es diferente del último valor conocido
-    // Y no estamos en proceso de inicialización
-    const zonesCountChanged = zones.length > 0 && zones.length !== lastZonesCountRef.current;
-    const shouldReload = zonesCountChanged && !initializationInProgressRef.current;
+    // Verificar que la inspección corresponde al tipo correcto antes de procesar cambios
+    // Si no hay inspección o es del tipo incorrecto, esperar a que se cargue la correcta
+    if (!inspection || (inspection as any).inspection_type !== inspectionType) {
+      if (inspection) {
+        console.log('[useSupabaseChecklist] ⏸️ Ignoring zones/elements changes - inspection type mismatch:', {
+          currentInspectionType: (inspection as any).inspection_type,
+          expectedInspectionType: inspectionType,
+          inspectionId: inspection.id,
+        });
+      } else {
+        console.log('[useSupabaseChecklist] ⏸️ Ignoring zones/elements changes - no inspection yet:', {
+          expectedInspectionType: inspectionType,
+          inspectionLoading,
+        });
+      }
+      // Limpiar refs para evitar usar datos incorrectos cuando se cargue la inspección correcta
+      lastProcessedInspectionIdRef.current = null;
+      lastProcessedZonesLengthRef.current = 0;
+      lastProcessedElementsLengthRef.current = 0;
+      return;
+    }
+
+    // Verificar si zones o elements cambiaron (solo si es la misma inspección)
+    const zonesCountChanged = zones.length > 0 && zones.length !== lastProcessedZonesLengthRef.current;
+    const elementsCountChanged = elements.length !== lastProcessedElementsLengthRef.current;
+    
+    // Verificar si hay elementos con fotos que no están en el checklist
+    const hasPhotoElements = elements.some(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0);
+    const checklistHasPhotos = checklist && Object.values(checklist.sections).some(section => 
+      section.uploadZones?.some(zone => zone.photos && zone.photos.length > 0)
+    );
+    const photosMissing = hasPhotoElements && !checklistHasPhotos;
+    
+    const shouldReload = (zonesCountChanged || elementsCountChanged || photosMissing) && !initializationInProgressRef.current && inspectionId === lastProcessedInspectionIdRef.current;
     
     if (shouldReload) {
-      console.log('[useSupabaseChecklist] 🔄 Zones stabilized, loading checklist...', {
-        oldCount: lastZonesCountRef.current,
-        newCount: zones.length,
+      console.log('[useSupabaseChecklist] 🔄 Zones/Elements changed, reloading checklist...', {
+        inspectionId,
+        oldZonesCount: lastProcessedZonesLengthRef.current,
+        newZonesCount: zones.length,
+        oldElementsCount: lastProcessedElementsLengthRef.current,
+        newElementsCount: elements.length,
+        photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-') && e.image_urls && e.image_urls.length > 0).length,
+        zonesCountChanged,
+        elementsCountChanged,
+        photosMissing,
+        hasPhotoElements,
+        checklistHasPhotos,
       });
       
       // Marcar que estamos recargando para evitar loops
       initializationInProgressRef.current = true;
       
-      lastZonesCountRef.current = zones.length;
+      lastProcessedZonesLengthRef.current = zones.length;
+      lastProcessedElementsLengthRef.current = elements.length;
       
-      // Recargar checklist con nuevas zonas
+      // Recargar checklist con zonas y elementos actualizados
       const supabaseData = convertSupabaseToChecklist(
         zones,
         elements,
@@ -455,7 +659,16 @@ export function useSupabaseChecklist({
       if (inspectionId) {
         const stableKey = `${propertyId}-${checklistType}-${inspectionId}`;
         initializationRef.current = stableKey;
+        // Actualizar el ref de inspección procesada
+        lastProcessedInspectionIdRef.current = inspectionId;
       }
+      
+      console.log('[useSupabaseChecklist] ✅ Checklist reloaded with updated zones/elements', {
+        inspectionId,
+        zonesCount: zones.length,
+        elementsCount: elements.length,
+        photoElementsCount: elements.filter(e => e.element_name?.startsWith('fotos-')).length,
+      });
       
       // Resetear flag después de un breve delay para permitir que el estado se estabilice
       setTimeout(() => {
@@ -463,32 +676,53 @@ export function useSupabaseChecklist({
       }, 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zones.length, propertyId, checklistType, bedroomsCount, bathroomsCount, inspectionId, inspectionLoading, hasSupabaseProperty, hasInspection]); // Fixed: Use stable boolean values to ensure consistent array size
+  }, [zones.length, elements.length, propertyId, checklistType, bedroomsCount, bathroomsCount, inspectionId, inspectionLoading, hasSupabaseProperty, hasInspection]); // Fixed: Use stable boolean values to ensure consistent array size
 
   // Guardar sección actual en Supabase
+  // Flag para prevenir múltiples ejecuciones simultáneas
+  const savingRef = useRef(false);
+
   const saveCurrentSection = useCallback(async () => {
-    if (!inspection?.id || !checklist || !currentSectionRef.current) return;
+    // Prevenir múltiples ejecuciones simultáneas
+    if (savingRef.current) {
+      console.log('[useSupabaseChecklist] ⏸️ Save already in progress, skipping...');
+      return;
+    }
 
-    const sectionId = currentSectionRef.current;
-    const section = checklist.sections[sectionId];
-    if (!section) return;
-
+    savingRef.current = true;
+    
     try {
+      if (!inspection?.id || !checklist || !currentSectionRef.current) {
+        return;
+      }
+
+      const sectionId = currentSectionRef.current;
+      const section = checklist.sections[sectionId];
+      if (!section) {
+        return;
+      }
       // Encontrar zona correspondiente
-      const zone = zones.find(z => {
-        const zoneType = sectionId === "habitaciones" ? "dormitorio" :
-                        sectionId === "banos" ? "bano" :
-                        sectionId === "entorno-zonas-comunes" ? "entorno" :
-                        sectionId === "estado-general" ? "distribucion" :
-                        sectionId === "entrada-pasillos" ? "entrada" :
-                        sectionId === "salon" ? "salon" :
-                        sectionId === "cocina" ? "cocina" :
-                        sectionId === "exteriores" ? "exterior" : null;
-        return z.zone_type === zoneType;
+      const expectedZoneType = sectionId === "habitaciones" ? "dormitorio" :
+                              sectionId === "banos" ? "bano" :
+                              sectionId === "entorno-zonas-comunes" ? "entorno" :
+                              sectionId === "estado-general" ? "distribucion" :
+                              sectionId === "entrada-pasillos" ? "entrada" :
+                              sectionId === "salon" ? "salon" :
+                              sectionId === "cocina" ? "cocina" :
+                              sectionId === "exteriores" ? "exterior" : null;
+      
+      const zone = zones.find(z => z.zone_type === expectedZoneType);
+
+      console.log(`[useSupabaseChecklist] 🔍 Finding zone for section "${sectionId}":`, {
+        sectionId,
+        expectedZoneType,
+        availableZones: zones.map(z => ({ id: z.id, zone_type: z.zone_type, zone_name: z.zone_name })),
+        foundZone: zone ? { id: zone.id, zone_type: zone.zone_type, zone_name: zone.zone_name } : null,
       });
 
       if (!zone) {
-        console.warn(`No se encontró zona para sección ${sectionId}`);
+        console.error(`[useSupabaseChecklist] ❌ No se encontró zona para sección ${sectionId} con zone_type ${expectedZoneType}`);
+        console.error(`[useSupabaseChecklist] Available zones:`, zones.map(z => ({ id: z.id, zone_type: z.zone_type, zone_name: z.zone_name })));
         return;
       }
 
@@ -522,7 +756,142 @@ export function useSupabaseChecklist({
               }
             });
           }
+          // Recopilar fotos de carpentryItems
+          if (item.carpentryItems) {
+            item.carpentryItems.forEach(carpentryItem => {
+              if (carpentryItem.photos) {
+                allFiles.push(...carpentryItem.photos);
+              }
+              // Fotos en units de carpentryItems
+              if (carpentryItem.units) {
+                carpentryItem.units.forEach(unit => {
+                  if (unit.photos) {
+                    allFiles.push(...unit.photos);
+                  }
+                });
+              }
+            });
+          }
+          // Recopilar fotos de climatizationItems
+          if (item.climatizationItems) {
+            item.climatizationItems.forEach(climatizationItem => {
+              if (climatizationItem.photos) {
+                allFiles.push(...climatizationItem.photos);
+              }
+              // Fotos en units de climatizationItems
+              if (climatizationItem.units) {
+                climatizationItem.units.forEach(unit => {
+                  if (unit.photos) {
+                    allFiles.push(...unit.photos);
+                  }
+                });
+              }
+            });
+          }
         });
+      }
+      
+      // Recopilar fotos de carpentryItems a nivel de sección
+      if (section.carpentryItems) {
+        section.carpentryItems.forEach(carpentryItem => {
+          if (carpentryItem.photos) {
+            allFiles.push(...carpentryItem.photos);
+          }
+          // Fotos en units de carpentryItems
+          if (carpentryItem.units) {
+            carpentryItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de climatizationItems a nivel de sección
+      if (section.climatizationItems) {
+        section.climatizationItems.forEach(climatizationItem => {
+          if (climatizationItem.photos) {
+            allFiles.push(...climatizationItem.photos);
+          }
+          // Fotos en units de climatizationItems
+          if (climatizationItem.units) {
+            climatizationItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de storageItems
+      if (section.storageItems) {
+        section.storageItems.forEach(storageItem => {
+          if (storageItem.photos) {
+            allFiles.push(...storageItem.photos);
+          }
+          if (storageItem.units) {
+            storageItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de appliancesItems
+      if (section.appliancesItems) {
+        section.appliancesItems.forEach(applianceItem => {
+          if (applianceItem.photos) {
+            allFiles.push(...applianceItem.photos);
+          }
+          if (applianceItem.units) {
+            applianceItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de securityItems
+      if (section.securityItems) {
+        section.securityItems.forEach(securityItem => {
+          if (securityItem.photos) {
+            allFiles.push(...securityItem.photos);
+          }
+          if (securityItem.units) {
+            securityItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de systemsItems
+      if (section.systemsItems) {
+        section.systemsItems.forEach(systemItem => {
+          if (systemItem.photos) {
+            allFiles.push(...systemItem.photos);
+          }
+          if (systemItem.units) {
+            systemItem.units.forEach(unit => {
+              if (unit.photos) {
+                allFiles.push(...unit.photos);
+              }
+            });
+          }
+        });
+      }
+      
+      // Recopilar fotos de mobiliario
+      if (section.mobiliario?.question?.photos) {
+        allFiles.push(...section.mobiliario.question.photos);
       }
 
       // Subir archivos y actualizar URLs
@@ -541,13 +910,24 @@ export function useSupabaseChecklist({
       let uploadedUrls: string[] = [];
       if (filesToUpload.length > 0) {
         console.log(`[useSupabaseChecklist] 📤 Uploading ${filesToUpload.length} files to storage...`);
-        uploadedUrls = await uploadFilesToStorage(
-          filesToUpload,
-          propertyId,
-          inspection.id,
-          zone.id
-        );
-        console.log(`[useSupabaseChecklist] ✅ Uploaded ${uploadedUrls.length} files successfully`);
+        try {
+          uploadedUrls = await uploadFilesToStorage(
+            filesToUpload,
+            propertyId,
+            inspection.id,
+            zone.id
+          );
+          console.log(`[useSupabaseChecklist] ✅ Uploaded ${uploadedUrls.length} files successfully`);
+        } catch (error: any) {
+          // Si el bucket no existe, continuar con base64 en lugar de fallar
+          if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
+            console.warn(`[useSupabaseChecklist] ⚠️ Bucket no encontrado. Las fotos se guardarán como base64 hasta que crees el bucket.`);
+            // Usar los datos base64 como URLs temporales
+            uploadedUrls = filesToUpload.map(f => f.data || '').filter(Boolean);
+          } else {
+            throw error;
+          }
+        }
       }
 
       // Crear mapa de archivos originales a URLs subidas
@@ -570,61 +950,125 @@ export function useSupabaseChecklist({
       if (updatedSection.uploadZones) {
         updatedSection.uploadZones = updatedSection.uploadZones.map(uploadZone => ({
           ...uploadZone,
-          photos: uploadZone.photos.map(photo => ({
-            ...photo,
-            data: fileUrlMap.get(photo.id) || photo.data,
-          })),
-          videos: uploadZone.videos.map(video => ({
-            ...video,
-            data: fileUrlMap.get(video.id) || video.data,
-          })),
+          photos: uploadZone.photos.map(photo => {
+            const updatedUrl = fileUrlMap.get(photo.id) || photo.data;
+            console.log(`[useSupabaseChecklist] 📸 Updating photo URL for ${uploadZone.id}:`, {
+              photoId: photo.id,
+              oldData: photo.data?.substring(0, 50),
+              newUrl: updatedUrl?.substring(0, 50),
+              hasHttp: updatedUrl?.startsWith('http'),
+            });
+            return {
+              ...photo,
+              data: updatedUrl,
+            };
+          }),
+          videos: uploadZone.videos.map(video => {
+            const updatedUrl = fileUrlMap.get(video.id) || video.data;
+            return {
+              ...video,
+              data: updatedUrl,
+            };
+          }),
         }));
       }
 
+      // Log de la sección antes de convertir
+      console.log(`[useSupabaseChecklist] 📋 Section data before conversion:`, {
+        sectionId,
+        uploadZonesCount: updatedSection.uploadZones?.length || 0,
+        uploadZones: updatedSection.uploadZones?.map(uz => ({
+          id: uz.id,
+          photosCount: uz.photos?.length || 0,
+          videosCount: uz.videos?.length || 0,
+          photos: uz.photos?.map(p => ({
+            id: p.id,
+            hasData: !!p.data,
+            dataType: p.data?.substring(0, 20) || 'no data',
+            startsWithHttp: p.data?.startsWith('http') || false,
+          })) || [],
+        })) || [],
+        zoneId: zone.id,
+        zoneType: zone.zone_type,
+      });
+
       // Convertir sección a elementos (con URLs actualizadas)
       const elementsToSave = convertSectionToElements(sectionId, updatedSection, zone.id);
+      
+      // Log elementos que se van a guardar
+      const photoElements = elementsToSave.filter(e => e.element_name?.startsWith('fotos-'));
+      console.log(`[useSupabaseChecklist] 💾 Saving ${photoElements.length} photo elements out of ${elementsToSave.length} total elements:`, 
+        photoElements.map(e => ({
+          element_name: e.element_name,
+          zone_id: e.zone_id,
+          image_urls_count: e.image_urls?.length || 0,
+          image_urls: e.image_urls,
+        }))
+      );
+      
+      // Log todos los elementos para debugging
+      console.log(`[useSupabaseChecklist] 📦 All elements to save (${elementsToSave.length}):`, 
+        elementsToSave.map(e => ({
+          element_name: e.element_name,
+          zone_id: e.zone_id,
+          has_image_urls: !!e.image_urls,
+          image_urls_count: e.image_urls?.length || 0,
+        }))
+      );
 
       // Guardar elementos
       for (const elementData of elementsToSave) {
-        await upsertElement(elementData);
+        console.log(`[useSupabaseChecklist] 💾 Upserting element:`, {
+          element_name: elementData.element_name,
+          zone_id: elementData.zone_id,
+          image_urls: elementData.image_urls,
+          image_urls_count: elementData.image_urls?.length || 0,
+          video_urls: elementData.video_urls,
+          video_urls_count: elementData.video_urls?.length || 0,
+        });
+        const result = await upsertElement(elementData);
+        console.log(`[useSupabaseChecklist] ✅ Upserted element result:`, {
+          element_name: elementData.element_name,
+          result_id: result?.id,
+          result_image_urls: result?.image_urls,
+          result_image_urls_count: result?.image_urls?.length || 0,
+        });
       }
 
-      // Sync to Airtable if in initial-check phase
-      try {
-        // Calculate progress (simplified - count sections with data)
-        const totalSections = Object.keys(checklist.sections || {}).length;
-        // Consider a section "completed" if it has been visited (has data)
-        let completedSections = 0;
-        for (const sid in checklist.sections) {
-          const section = checklist.sections[sid];
-          if (!section) continue;
-          // Consider completed if it has questions with notes, uploadZones with files, or dynamicItems
-          const hasQuestions = section.questions && section.questions.some((q: any) => q.notes);
-          const hasUploads = section.uploadZones && section.uploadZones.some((u: any) => 
-            (u.photos && u.photos.length > 0) || (u.videos && u.videos.length > 0)
-          );
-          const hasDynamicItems = section.dynamicItems && section.dynamicItems.length > 0;
-          if (hasQuestions || hasUploads || hasDynamicItems) {
-            completedSections++;
-          }
-        }
-        const progress = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0;
+      // NOTA: La sincronización con Airtable ahora solo ocurre al finalizar el checklist
+      // Esto evita múltiples llamadas innecesarias y errores si el Record ID no existe
 
-        await syncChecklistToAirtable(propertyId, {
-          progress,
-          completed: false, // Only complete when finalizing
-        });
-      } catch (airtableError) {
-        console.error('[useSupabaseChecklist] Error syncing to Airtable:', airtableError);
-        // Don't fail the save if Airtable sync fails
+      // Recargar elementos desde Supabase para asegurar que los elementos con fotos- se carguen
+      console.log('[useSupabaseChecklist] 🔄 Refetching inspection after save to reload elements...');
+      await refetchInspection();
+      
+      // Recargar checklist con los nuevos elementos
+      // Esperar un momento para que el estado se actualice
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Recargar checklist manualmente con los elementos actualizados
+      if (inspection?.id && zones.length > 0) {
+        console.log('[useSupabaseChecklist] 🔄 Reloading checklist with updated elements...');
+        const supabaseData = convertSupabaseToChecklist(
+          zones,
+          elements,
+          supabaseProperty?.bedrooms ?? null,
+          supabaseProperty?.bathrooms ?? null
+        );
+        
+        const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
+        setChecklist(loadedChecklist);
+        console.log('[useSupabaseChecklist] ✅ Checklist reloaded with updated elements');
       }
 
       toast.success("Sección guardada correctamente");
     } catch (error) {
       console.error("Error saving section:", error);
       toast.error("Error al guardar sección");
+    } finally {
+      savingRef.current = false;
     }
-  }, [inspection, checklist, zones, upsertElement, propertyId]);
+    }, [inspection, checklist, zones, upsertElement, propertyId]);
 
   // Actualizar sección (solo actualiza estado local, NO guarda automáticamente)
   const updateSection = useCallback(
@@ -632,26 +1076,59 @@ export function useSupabaseChecklist({
       // NO guardar automáticamente aquí - solo actualizar estado local
       // El guardado se hará al cambiar de sección o al finalizar
 
+      console.log('[useSupabaseChecklist] 🔄 updateSection called:', {
+        sectionId,
+        sectionData,
+        sectionDataKeys: Object.keys(sectionData),
+        uploadZones: sectionData.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+        uploadZonesLength: sectionData.uploadZones?.length || 0,
+        uploadZonesRaw: sectionData.uploadZones
+      });
+
       // Actualizar estado local
       setChecklist((prevChecklist) => {
-        if (!prevChecklist) return null;
+        if (!prevChecklist) {
+          console.warn('[useSupabaseChecklist] ⚠️ prevChecklist is null');
+          return null;
+        }
 
         const currentSection = prevChecklist.sections[sectionId] || {};
+        console.log('[useSupabaseChecklist] 📋 Merging sections:', {
+          sectionId,
+          currentSectionUploadZones: currentSection.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+          currentSectionUploadZonesLength: currentSection.uploadZones?.length || 0,
+          sectionDataUploadZones: sectionData.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+          sectionDataUploadZonesLength: sectionData.uploadZones?.length || 0,
+          sectionDataKeys: Object.keys(sectionData)
+        });
         const updatedSection: ChecklistSection = {
           ...currentSection,
           ...sectionData,
         };
+        console.log('[useSupabaseChecklist] ✅ Merged section:', {
+          sectionId,
+          updatedSectionUploadZones: updatedSection.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+          updatedSectionUploadZonesLength: updatedSection.uploadZones?.length || 0
+        });
 
         const updatedSections = {
           ...prevChecklist.sections,
           [sectionId]: updatedSection,
         };
 
-        return {
+        const updatedChecklist = {
           ...prevChecklist,
           sections: updatedSections,
           lastUpdated: new Date().toISOString(),
         };
+
+        console.log('[useSupabaseChecklist] ✅ Checklist updated:', {
+          sectionId,
+          updatedSectionUploadZones: updatedSection.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+          allSections: Object.keys(updatedSections)
+        });
+
+        return updatedChecklist;
       });
 
       // Actualizar referencia de sección actual
@@ -668,11 +1145,29 @@ export function useSupabaseChecklist({
 
   // Finalizar checklist
   const finalizeChecklist = useCallback(async (data?: { estimatedVisitDate?: string; autoVisitDate?: string; nextRenoSteps?: string }) => {
-    if (!propertyId) return false;
+    if (!propertyId || !checklist) return false;
 
     try {
       // Guardar sección actual antes de finalizar
       await saveCurrentSection();
+
+      // Calcular progreso final del checklist
+      const totalSections = Object.keys(checklist.sections || {}).length;
+      let completedSections = 0;
+      for (const sid in checklist.sections) {
+        const section = checklist.sections[sid];
+        if (!section) continue;
+        // Consider completed if it has questions with notes, uploadZones with files, or dynamicItems
+        const hasQuestions = section.questions && section.questions.some((q: any) => q.notes);
+        const hasUploads = section.uploadZones && section.uploadZones.some((u: any) => 
+          (u.photos && u.photos.length > 0) || (u.videos && u.videos.length > 0)
+        );
+        const hasDynamicItems = section.dynamicItems && section.dynamicItems.length > 0;
+        if (hasQuestions || hasUploads || hasDynamicItems) {
+          completedSections++;
+        }
+      }
+      const progress = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 100;
 
       // Obtener datos de la propiedad para completar los campos
       const supabase = createClient();
@@ -697,6 +1192,7 @@ export function useSupabaseChecklist({
         estimatedVisitDate,
         autoVisitDate,
         nextRenoSteps,
+        progress, // Incluir progreso al finalizar
       });
 
       if (success) {
@@ -711,7 +1207,7 @@ export function useSupabaseChecklist({
       toast.error("Error al finalizar checklist");
       return false;
     }
-  }, [propertyId, checklistType, saveCurrentSection]);
+  }, [propertyId, checklistType, checklist, saveCurrentSection]);
 
   // Si no tenemos checklist pero estamos inicializando, mantener isLoading en true
   const finalIsLoading = isLoading || inspectionLoading || (!checklist && (initializationInProgressRef.current || inspectionCreationInProgressRef.current));

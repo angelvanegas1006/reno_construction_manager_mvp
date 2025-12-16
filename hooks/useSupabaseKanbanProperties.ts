@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { mapSetUpStatusToKanbanPhase } from '@/lib/supabase/kanban-mapping';
 import { matchesTechnicalConstruction, extractNameFromEmail } from '@/lib/supabase/user-name-utils';
 import { useAppAuth } from '@/lib/auth/app-auth-context';
+import { logger } from '@/lib/utils/logger';
 import type { Database } from '@/lib/supabase/types';
 import type { RenoKanbanPhase } from '@/lib/reno-kanban-config';
 import type { Property } from '@/lib/property-storage';
+
+const log = logger.tagged('useSupabaseKanbanProperties');
 
 type SupabaseProperty = Database['public']['Tables']['properties']['Row'];
 
@@ -151,19 +154,13 @@ export function useSupabaseKanbanProperties() {
       
       // Skip if already fetching with the same key
       if (fetchInProgressRef.current && lastFetchKeyRef.current === fetchKey) {
-        console.log('[useSupabaseKanbanProperties] ⏸️ Fetch already in progress with same key, skipping...', {
-          fetchKey,
-          timestamp: new Date().toISOString(),
-        });
+        log.debug('Fetch already in progress with same key, skipping...', { fetchKey });
         return;
       }
       
       // Skip if we already fetched with this exact key
       if (lastFetchKeyRef.current === fetchKey && !loading) {
-        console.log('[useSupabaseKanbanProperties] ✅ Already fetched with this key, skipping...', {
-          fetchKey,
-          timestamp: new Date().toISOString(),
-        });
+        log.debug('Already fetched with this key, skipping...', { fetchKey });
         return;
       }
       
@@ -172,13 +169,7 @@ export function useSupabaseKanbanProperties() {
       lastFetchKeyRef.current = fetchKey;
       
       try {
-        console.log('[useSupabaseKanbanProperties] 🔄 Starting fetch...', {
-          role,
-          userEmail: user?.email,
-          userId: user?.id,
-          fetchKey,
-          timestamp: new Date().toISOString(),
-        });
+        log.debug('Starting fetch...', { role, userEmail: user?.email, userId: user?.id, fetchKey });
         
         setLoading(true);
         setError(null);
@@ -201,154 +192,66 @@ export function useSupabaseKanbanProperties() {
         }
         // Admin, construction_manager and other roles: no filter needed (fetch all)
 
-        console.log('[useSupabaseKanbanProperties] 📡 Executing query...', {
-          role,
-          userEmail: user?.email,
-        });
+        log.debug('Executing query...', { role, userEmail: user?.email });
 
         const { data, error: fetchError } = await query.order('created_at', { ascending: false });
 
-        console.log('[useSupabaseKanbanProperties] 📥 Query response:', {
-          dataCount: data?.length || 0,
-          error: fetchError ? {
-            message: fetchError.message,
-            code: fetchError.code,
-            details: fetchError.details,
-          } : null,
-          timestamp: new Date().toISOString(),
-        });
-
         if (fetchError) {
-          console.error('[useSupabaseKanbanProperties] ❌ Error fetching properties:', fetchError);
+          log.error('Error fetching properties:', fetchError);
           throw fetchError;
         }
 
-        // Log initial-check, furnishing, and cleaning properties BEFORE filtering
-        const initialCheckProperties = data?.filter(p => p.reno_phase === 'initial-check') || [];
-        const furnishingProperties = data?.filter(p => p.reno_phase === 'furnishing') || [];
-        const cleaningProperties = data?.filter(p => p.reno_phase === 'cleaning') || [];
-        console.log('[useSupabaseKanbanProperties] ✅ Raw data from Supabase:', {
+        log.debug('Query response:', { dataCount: data?.length || 0 });
+
+        // Debug: Log phase counts (only in development)
+        log.debug('Raw data from Supabase:', {
           count: data?.length || 0,
-          sample: data?.[0] ? {
-            id: data[0].id,
-            name: data[0].name,
-            address: data[0].address,
-            'Set Up Status': data[0]['Set Up Status'],
-            reno_phase: data[0].reno_phase,
-          } : null,
-          allStatuses: data?.map(p => p['Set Up Status']).filter(Boolean) || [],
-          initialCheckCount: initialCheckProperties.length,
-          furnishingCount: furnishingProperties.length,
-          cleaningCount: cleaningProperties.length,
-          initialCheckIds: initialCheckProperties.map(p => p.id).slice(0, 10),
-          furnishingIds: furnishingProperties.map(p => p.id).slice(0, 10),
-          cleaningIds: cleaningProperties.map(p => p.id).slice(0, 10),
-          initialCheckSample: initialCheckProperties.slice(0, 3).map(p => ({
-            id: p.id,
-            reno_phase: p.reno_phase,
-            setUpStatus: p['Set Up Status'],
-            technicalConstruction: p['Technical construction'],
-          })),
-          furnishingSample: furnishingProperties.slice(0, 3).map(p => ({
-            id: p.id,
-            reno_phase: p.reno_phase,
-            setUpStatus: p['Set Up Status'],
-            technicalConstruction: p['Technical construction'],
-          })),
+          initialCheckCount: data?.filter(p => p.reno_phase === 'initial-check').length || 0,
+          furnishingCount: data?.filter(p => p.reno_phase === 'furnishing').length || 0,
+          cleaningCount: data?.filter(p => p.reno_phase === 'cleaning').length || 0,
         });
 
         // Apply client-side filtering for foreman
         let filteredData = data || [];
         if (role === 'foreman' && user?.email) {
-          console.log('[useSupabaseKanbanProperties] 🔍 Starting foreman filter...', {
-            userEmail: user.email,
-            totalProperties: data?.length || 0,
-          });
-          
-          const filterResults: Array<{ id: string; technicalConstruction: any; matched: boolean }> = [];
+          log.debug('Starting foreman filter...', { userEmail: user.email, totalProperties: data?.length || 0 });
           
           filteredData = filteredData.filter((property) => {
             const technicalConstruction = property['Technical construction'];
-            const matched = matchesTechnicalConstruction(technicalConstruction, user.email);
-            
-            // Log first 5 properties for debugging
-            if (filterResults.length < 5) {
-              filterResults.push({
-                id: property.id,
-                technicalConstruction: technicalConstruction,
-                matched: matched,
-              });
-            }
-            
-            return matched;
+            return matchesTechnicalConstruction(technicalConstruction, user.email);
           });
           
-          console.log('[useSupabaseKanbanProperties] 🔍 Filtered for foreman:', {
+          log.debug('Filtered for foreman:', {
             originalCount: data?.length || 0,
             filteredCount: filteredData.length,
             userEmail: user.email,
-            sampleMatches: filterResults,
           });
           
-          // If no properties match, log a warning
+          // If no properties match, log a warning and show all (dev mode)
           if (filteredData.length === 0 && (data?.length || 0) > 0) {
-            // Get unique Technical construction values for debugging
-            const uniqueTechnicalConstructions = Array.from(
-              new Set(
-                (data || [])
-                  .map(p => p['Technical construction'])
-                  .filter(Boolean)
-              )
-            ).slice(0, 10);
-            
-            console.warn('[useSupabaseKanbanProperties] ⚠️ No properties matched foreman filter!', {
+            log.warn('No properties matched foreman filter!', {
               userEmail: user.email,
               extractedName: extractNameFromEmail(user.email),
-              uniqueTechnicalConstructions: uniqueTechnicalConstructions,
-              sampleTechnicalConstruction: data?.slice(0, 5).map(p => ({
-                id: p.id,
-                name: p.name,
-                technicalConstruction: p['Technical construction'],
-              })),
             });
-            
             // TEMPORARY: For development, if no matches, show all properties
             // TODO: Remove this in production or adjust user role to 'admin'
-            console.warn('[useSupabaseKanbanProperties] ⚠️ TEMPORARY: Showing all properties for foreman (dev mode)');
+            log.warn('TEMPORARY: Showing all properties for foreman (dev mode)');
             filteredData = data || [];
-            
-            // Log initial-check properties after resetting filter
-            const initialCheckAfterReset = filteredData.filter(p => p.reno_phase === 'initial-check');
-            console.log('[useSupabaseKanbanProperties] 🔍 Initial-check properties after filter reset:', {
-              count: initialCheckAfterReset.length,
-              ids: initialCheckAfterReset.map(p => p.id).slice(0, 10),
-            });
           }
         }
 
-        console.log('[useSupabaseKanbanProperties] 💾 Setting properties state:', {
+        log.debug('Setting properties state:', {
           count: filteredData.length,
           role,
           userEmail: user?.email,
-          initialCheckAfterFilter: filteredData.filter(p => p.reno_phase === 'initial-check').length,
-          furnishingAfterFilter: filteredData.filter(p => p.reno_phase === 'furnishing').length,
-          cleaningAfterFilter: filteredData.filter(p => p.reno_phase === 'cleaning').length,
-          initialCheckIdsAfterFilter: filteredData.filter(p => p.reno_phase === 'initial-check').map(p => p.id).slice(0, 5),
-          furnishingIdsAfterFilter: filteredData.filter(p => p.reno_phase === 'furnishing').map(p => p.id).slice(0, 5),
-          cleaningIdsAfterFilter: filteredData.filter(p => p.reno_phase === 'cleaning').map(p => p.id).slice(0, 5),
-          timestamp: new Date().toISOString(),
         });
 
         setSupabaseProperties(filteredData);
         setLoading(false);
         
-        console.log('[useSupabaseKanbanProperties] ✅ Fetch completed:', {
-          propertiesCount: filteredData.length,
-          loading: false,
-          timestamp: new Date().toISOString(),
-        });
+        log.debug('Fetch completed:', { propertiesCount: filteredData.length });
       } catch (err) {
-        console.error('[useSupabaseKanbanProperties] ❌ Unexpected error:', err);
+        log.error('Unexpected error:', err);
         setError(err instanceof Error ? err.message : 'Error fetching properties');
         setLoading(false);
       } finally {
@@ -357,42 +260,41 @@ export function useSupabaseKanbanProperties() {
       }
     }
 
-    // Only fetch if we have role information
-    console.log('[useSupabaseKanbanProperties] 🎯 Effect trigger:', {
-      role,
-      user: user ? { id: user.id, email: user.email } : null,
-      shouldFetch: role !== null && user !== null,
-      fetchInProgress: fetchInProgressRef.current,
-      lastFetchKey: lastFetchKeyRef.current,
-      timestamp: new Date().toISOString(),
-    });
-
     // Only fetch if we have both role and user, and we're not already fetching
     if (role !== null && user !== null && !fetchInProgressRef.current) {
       fetchProperties();
     } else if (role === null || user === null) {
-      console.log('[useSupabaseKanbanProperties] ⏳ Waiting for role/user...', {
-        hasRole: role !== null,
-        hasUser: user !== null,
-      });
+      log.debug('Waiting for role/user...', { hasRole: role !== null, hasUser: user !== null });
     }
   }, [role, user?.id, user?.email]); // Removed supabase from deps to avoid re-fetching
 
   // Convert and group properties by kanban phase
+  // Memoized to avoid unnecessary recalculations
+  // Using supabaseProperties.length as dependency to detect actual changes
   const propertiesByPhase = useMemo(() => {
-    // Log initial-check, furnishing, and cleaning properties BEFORE conversion
-    const initialCheckBeforeConversion = supabaseProperties.filter(p => p.reno_phase === 'initial-check');
-    const furnishingBeforeConversion = supabaseProperties.filter(p => p.reno_phase === 'furnishing');
-    const cleaningBeforeConversion = supabaseProperties.filter(p => p.reno_phase === 'cleaning');
-    console.log('[useSupabaseKanbanProperties] 🔄 Converting properties by phase...', {
+    if (supabaseProperties.length === 0) {
+      // Return empty structure if no properties
+      return {
+        'upcoming-settlements': [],
+        'initial-check': [],
+        'reno-budget-renovator': [],
+        'reno-budget-client': [],
+        'reno-budget-start': [],
+        'reno-budget': [],
+        'upcoming': [],
+        'reno-in-progress': [],
+        'furnishing': [],
+        'final-check': [],
+        'cleaning': [],
+        'furnishing-cleaning': [],
+        'reno-fixes': [],
+        'done': [],
+        'orphaned': [],
+      } as Record<RenoKanbanPhase, Property[]>;
+    }
+
+    log.debug('Converting properties by phase...', {
       supabasePropertiesCount: supabaseProperties.length,
-      initialCheckCount: initialCheckBeforeConversion.length,
-      furnishingCount: furnishingBeforeConversion.length,
-      cleaningCount: cleaningBeforeConversion.length,
-      initialCheckIds: initialCheckBeforeConversion.map(p => p.id).slice(0, 10),
-      furnishingIds: furnishingBeforeConversion.map(p => p.id).slice(0, 10),
-      cleaningIds: cleaningBeforeConversion.map(p => p.id).slice(0, 10),
-      timestamp: new Date().toISOString(),
     });
 
     const grouped: Record<RenoKanbanPhase, Property[]> = {
@@ -421,33 +323,14 @@ export function useSupabaseKanbanProperties() {
     supabaseProperties.forEach((supabaseProperty) => {
       // Skip if we've already processed this property ID (avoid duplicates)
       if (propertyIdsSeen.has(supabaseProperty.id)) {
-        console.warn('[useSupabaseKanbanProperties] ⚠️ Duplicate property ID detected:', {
+        log.warn('Duplicate property ID detected:', {
           id: supabaseProperty.id,
           address: supabaseProperty.address,
         });
         return;
       }
       
-      // Debug: log initial-check and furnishing properties before conversion
-      if (supabaseProperty.reno_phase === 'initial-check' || supabaseProperty.reno_phase === 'furnishing' || supabaseProperty.reno_phase === 'cleaning') {
-        console.log('[useSupabaseKanbanProperties] 🔍 Found property before conversion:', {
-          id: supabaseProperty.id,
-          reno_phase: supabaseProperty.reno_phase,
-          setUpStatus: supabaseProperty['Set Up Status'],
-        });
-      }
-      
       const kanbanProperty = convertSupabasePropertyToKanbanProperty(supabaseProperty);
-      
-      // Debug: log initial-check and furnishing properties after conversion
-      if (supabaseProperty.reno_phase === 'initial-check' || supabaseProperty.reno_phase === 'furnishing' || supabaseProperty.reno_phase === 'cleaning') {
-        console.log('[useSupabaseKanbanProperties] 🔍 After conversion:', {
-          id: supabaseProperty.id,
-          kanbanPropertyExists: !!kanbanProperty,
-          kanbanRenoPhase: kanbanProperty?.renoPhase,
-          willBeAdded: kanbanProperty && kanbanProperty.renoPhase && kanbanProperty.renoPhase in grouped,
-        });
-      }
       
       if (kanbanProperty && kanbanProperty.renoPhase) {
         // Use the renoPhase that was already assigned during conversion
@@ -461,92 +344,33 @@ export function useSupabaseKanbanProperties() {
           phaseCounts[phase] = (phaseCounts[phase] || 0) + 1;
           convertedCount++;
           
-          // Debug log for initial-check, furnishing, and cleaning phases
-          if (phase === 'initial-check' || phase === 'furnishing' || phase === 'cleaning') {
-            console.log(`[useSupabaseKanbanProperties] ✅ Added to ${phase}:`, {
-              id: kanbanProperty.id,
-              renoPhase: kanbanProperty.renoPhase,
-              supabaseRenoPhase: supabaseProperty.reno_phase,
-              setUpStatus: supabaseProperty['Set Up Status'],
-            });
-          }
         } else {
-          console.warn('[useSupabaseKanbanProperties] ⚠️ Property without valid phase:', {
+          log.warn('Property without valid phase:', {
             id: supabaseProperty.id,
             status: supabaseProperty['Set Up Status'],
             renoPhase: kanbanProperty.renoPhase,
             mappedPhase: phase,
-            phaseInGrouped: phase ? phase in grouped : false,
-            availablePhases: Object.keys(grouped),
           });
           skippedCount++;
         }
       } else {
-        // Debug log for properties that couldn't be converted
-        if (supabaseProperty.reno_phase === 'initial-check' || supabaseProperty.reno_phase === 'furnishing' || supabaseProperty.reno_phase === 'cleaning') {
-          console.warn('[useSupabaseKanbanProperties] ⚠️ Property not converted:', {
-            id: supabaseProperty.id,
-            reno_phase: supabaseProperty.reno_phase,
-            setUpStatus: supabaseProperty['Set Up Status'],
-            kanbanProperty: kanbanProperty ? 'exists but no renoPhase' : 'null',
-          });
-        }
         skippedCount++;
       }
     });
 
-    console.log('[useSupabaseKanbanProperties] ✅ Properties grouped by phase:', {
+    log.debug('Properties grouped by phase:', {
       total: supabaseProperties.length,
       converted: convertedCount,
       skipped: skippedCount,
       byPhase: phaseCounts,
-      groupedCounts: Object.entries(grouped).reduce((acc, [phase, props]) => {
-        acc[phase] = props.length;
-        return acc;
-      }, {} as Record<string, number>),
-      initialCheckDetails: {
-        count: grouped['initial-check'].length,
-        sampleIds: grouped['initial-check'].slice(0, 3).map(p => ({
-          id: p.id,
-          renoPhase: p.renoPhase,
-        })),
-        allRenoPhases: supabaseProperties
-          .filter(p => p.reno_phase === 'initial-check')
-          .slice(0, 5)
-          .map(p => ({
-            id: p.id,
-            reno_phase: p.reno_phase,
-            setUpStatus: p['Set Up Status'],
-          })),
-      },
-      timestamp: new Date().toISOString(),
     });
 
     return grouped;
   }, [supabaseProperties]);
 
   const totalProperties = useMemo(() => {
-    const total = Object.values(propertiesByPhase).reduce((sum, props) => sum + props.length, 0);
-    console.log('[useSupabaseKanbanProperties] 📊 Total properties calculated:', {
-      total,
-      timestamp: new Date().toISOString(),
-    });
-    return total;
+    return Object.values(propertiesByPhase).reduce((sum, props) => sum + props.length, 0);
   }, [propertiesByPhase]);
-
-  // Log whenever the hook returns new values
-  useEffect(() => {
-    console.log('[useSupabaseKanbanProperties] 🎯 Hook return values:', {
-      loading,
-      error,
-      totalProperties,
-      propertiesByPhaseCounts: Object.entries(propertiesByPhase).reduce((acc, [phase, props]) => {
-        acc[phase] = props.length;
-        return acc;
-      }, {} as Record<string, number>),
-      timestamp: new Date().toISOString(),
-    });
-  }, [loading, error, totalProperties, propertiesByPhase]);
 
   return {
     propertiesByPhase,

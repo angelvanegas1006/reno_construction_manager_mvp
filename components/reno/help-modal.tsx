@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { PropertyCombobox } from "@/components/reno/property-combobox";
-import { useSupabaseKanbanProperties } from "@/hooks/useSupabaseKanbanProperties";
+import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
 import { createClient } from "@/lib/supabase/client";
 import type { Property } from "@/lib/property-storage";
@@ -49,8 +49,19 @@ export function HelpModal({
   const { user: supabaseUser } = useSupabaseAuthContext();
   const supabase = createClient();
 
-  // Get properties from kanban
-  const { propertiesByPhase, loading: propertiesLoading } = useSupabaseKanbanProperties();
+  // Get properties from context (shared with kanban)
+  // Use try-catch to handle case where component is used outside provider
+  let propertiesByPhase: Record<string, Property[]> = {};
+  let propertiesLoading = false;
+  try {
+    const context = useRenoProperties();
+    propertiesByPhase = context.propertiesByPhase as any;
+    propertiesLoading = context.loading;
+  } catch (e) {
+    // Component used outside provider, use empty state
+    propertiesByPhase = {};
+    propertiesLoading = false;
+  }
 
   // Flatten all properties from all phases
   const allProperties = useMemo(() => {

@@ -47,14 +47,51 @@ export async function updateAirtableRecord(
     console.log(`✅ Updated Airtable record ${recordId} in ${tableName}`, { fields });
     return true;
   } catch (error: any) {
-    console.error('Error updating Airtable:', {
-      error: error?.message || error,
-      statusCode: error?.statusCode,
-      errorType: error?.errorType,
-      tableName,
-      recordId,
-      fields,
-    });
+    // Extraer toda la información posible del error
+    let errorDetails: any = {};
+    
+    // Intentar extraer información del error de diferentes formas
+    try {
+      errorDetails = {
+        // Propiedades comunes de errores
+        message: error?.message,
+        name: error?.name,
+        stack: error?.stack,
+        // Propiedades específicas de Airtable
+        statusCode: error?.statusCode || error?.status,
+        status: error?.status,
+        errorType: error?.errorType || error?.type,
+        error: error?.error,
+        code: error?.code,
+        details: error?.details,
+        errorDetails: error?.errorDetails,
+        // Información del contexto
+        tableName,
+        recordId,
+        fields,
+        // Serializar el error completo si es posible
+        stringified: JSON.stringify(error, Object.getOwnPropertyNames(error)),
+        // Todas las propiedades del error
+        allProperties: error ? Object.getOwnPropertyNames(error).reduce((acc: any, key: string) => {
+          try {
+            acc[key] = (error as any)[key];
+          } catch {
+            acc[key] = '[Cannot access]';
+          }
+          return acc;
+        }, {}) : null,
+      };
+    } catch (serializationError) {
+      errorDetails = {
+        error: 'Failed to serialize error',
+        originalError: String(error),
+        tableName,
+        recordId,
+        fields,
+      };
+    }
+
+    console.error('[Airtable] ❌ Error updating record:', errorDetails);
     return false;
   }
 }
@@ -73,34 +110,102 @@ export async function findRecordByPropertyId(
       return null;
     }
 
+    // Si el propertyId ya es un Record ID de Airtable (empieza con "rec"), validar que existe
+    if (propertyId && propertyId.startsWith('rec')) {
+      console.debug('[findRecordByPropertyId] Property ID is already an Airtable Record ID, validating:', propertyId);
+      try {
+        // Intentar obtener el registro para validar que existe
+        await base(tableName).find(propertyId);
+        console.debug('[findRecordByPropertyId] ✅ Record ID validated:', propertyId);
+        return propertyId;
+      } catch (validationError: any) {
+        // Si el Record ID no existe, NO retornarlo - buscar por Property ID en su lugar
+        const errorMessage = validationError?.message || String(validationError);
+        console.warn('[findRecordByPropertyId] ⚠️ Record ID does not exist, will search by Property ID instead:', {
+          recordId: propertyId,
+          error: errorMessage,
+        });
+        // NO retornar aquí - continuar con la búsqueda normal abajo
+        // Si el Record ID no existe, debemos buscar el registro correcto por Property ID
+      }
+    }
+
     // Intentar buscar por diferentes campos posibles
+    // Priorizar "UNIQUEID (from Engagements)" como especificado
+    // Nota: "UNIQUEID (from Engagements)" es un campo Lookup que busca en "Engagements" el campo "UNIQUEID"
+    // Los campos Lookup en Airtable pueden requerir sintaxis especial
     const possibleFields = [
-      'Property ID',
+      'UNIQUEID (from Engagements)', // Nombre exacto según usuario (campo Lookup)
       'Unique ID (From Engagements)',
       'Unique ID From Engagements',
-      'UNIQUEID (from Engagements)',
+      'Property ID',
       'Unique ID'
     ];
 
     for (const fieldName of possibleFields) {
       try {
-        const records = await base(tableName)
-          .select({
-            filterByFormula: `{${fieldName}} = "${propertyId}"`,
-            maxRecords: 1,
-          })
-          .firstPage();
+        console.log(`[findRecordByPropertyId] Trying field "${fieldName}" with value "${propertyId}"`);
         
-        if (records.length > 0) {
-          return records[0].id;
+        // Escapar comillas dobles en el valor para evitar problemas con filterByFormula
+        const escapedValue = propertyId.replace(/"/g, '\\"');
+        
+        // Intentar con diferentes formatos de fórmula
+        // Para campos Lookup, Airtable puede devolver arrays o strings
+        const formulaVariations = [
+          `{${fieldName}} = "${escapedValue}"`, // Formato estándar
+          `{${fieldName}}="${escapedValue}"`, // Sin espacios
+          `FIND("${escapedValue}", {${fieldName}})`, // Usar FIND para campos que pueden ser arrays
+          `SEARCH("${escapedValue}", {${fieldName}})`, // Usar SEARCH como alternativa
+          `{${fieldName}} = "${escapedValue}" & ""`, // Forzar conversión a string
+        ];
+        
+        for (const formula of formulaVariations) {
+          try {
+            const records = await base(tableName)
+              .select({
+                filterByFormula: formula,
+                maxRecords: 1,
+              })
+              .firstPage();
+            
+            console.log(`[findRecordByPropertyId] Field "${fieldName}" with formula "${formula}" returned ${records.length} records`);
+            if (records.length > 0) {
+              // Verificar que el valor realmente coincide (por si FIND devuelve coincidencias parciales)
+              const record = records[0];
+              const fieldValue = record.fields[fieldName];
+              const matches = Array.isArray(fieldValue) 
+                ? fieldValue.includes(propertyId) || fieldValue[0] === propertyId
+                : fieldValue === propertyId;
+              
+              if (matches) {
+                console.log(`[findRecordByPropertyId] ✅ Found record with ID: ${record.id}`);
+                return record.id;
+              }
+            }
+          } catch (formulaError: any) {
+            // Si esta fórmula falla, intentar la siguiente
+            if (formulaError?.status === 422 || formulaError?.statusCode === 422) {
+              continue; // Intentar siguiente fórmula
+            }
+            throw formulaError; // Si es otro error, propagarlo
+          }
         }
       } catch (fieldError: any) {
-        // Si el campo no existe, continuar con el siguiente
-        if (fieldError?.message?.includes('Unknown field') || fieldError?.message?.includes('does not exist')) {
+        // Si el campo no existe o hay un error de sintaxis (422), continuar con el siguiente
+        const isFieldError = fieldError?.message?.includes('Unknown field') || 
+            fieldError?.message?.includes('does not exist') ||
+            fieldError?.status === 422 ||
+            fieldError?.statusCode === 422;
+        
+        if (isFieldError) {
+          console.debug(`[findRecordByPropertyId] Field "${fieldName}" not found or invalid (422), trying next...`);
           continue;
         }
         // Si es otro error, loguearlo pero continuar
-        console.debug(`Field ${fieldName} search failed:`, fieldError?.message);
+        console.debug(`[findRecordByPropertyId] Field ${fieldName} search failed:`, {
+          message: fieldError?.message,
+          status: fieldError?.status || fieldError?.statusCode,
+        });
       }
     }
     

@@ -122,20 +122,45 @@ export function convertUploadZonesToElements(
 
   uploadZones.forEach((uploadZone) => {
     // Crear elemento para fotos (siempre crear el elemento, incluso si está vacío)
-    const imageUrls = uploadZone.photos
-      ?.filter(photo => photo.data && photo.data.startsWith('http')) // Solo URLs ya subidas (no base64)
-      .map(photo => photo.data) || [];
+    const allPhotos = uploadZone.photos || [];
+    // IMPORTANTE: Solo guardar URLs HTTP (fotos ya subidas), NO base64
+    // Las fotos en base64 se subirán primero y luego se guardarán con sus URLs
+    const photosWithHttp = allPhotos.filter(photo => photo.data && photo.data.startsWith('http'));
+    const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
+    
+    console.log(`[convertUploadZonesToElements] Processing upload zone "${uploadZone.id}":`, {
+      zoneId,
+      uploadZoneId: uploadZone.id,
+      totalPhotos: allPhotos.length,
+      photosWithHttp: photosWithHttp.length,
+      photosWithBase64: allPhotos.filter(p => p.data?.startsWith('data:')).length,
+      photosWithoutData: allPhotos.filter(p => !p.data).length,
+      imageUrls: imageUrls,
+      imageUrlsCount: imageUrls?.length || 0,
+      willCreateElement: true, // Siempre crear el elemento
+    });
 
-    // Crear elemento siempre, incluso si no hay fotos todavía (para mantener la estructura)
-    elements.push({
+    // IMPORTANTE: Siempre crear el elemento, incluso si no hay fotos todavía
+    // Esto asegura que la estructura se mantenga y que las fotos se puedan cargar después
+    const photoElement = {
       zone_id: zoneId,
       element_name: `fotos-${uploadZone.id}`,
       condition: null,
-      image_urls: imageUrls.length > 0 ? imageUrls : null,
+      image_urls: imageUrls, // null si no hay URLs HTTP
       notes: null,
       quantity: null,
       exists: null,
+    };
+    
+    console.log(`[convertUploadZonesToElements] ✅ Created photo element:`, {
+      element_name: photoElement.element_name,
+      zone_id: photoElement.zone_id,
+      image_urls: photoElement.image_urls,
+      image_urls_count: photoElement.image_urls?.length || 0,
+      willBeSaved: true,
     });
+    
+    elements.push(photoElement);
 
     // Crear elemento para videos (siempre crear el elemento, incluso si está vacío)
     const videoUrls = uploadZone.videos
@@ -462,6 +487,58 @@ export function convertSupabaseToChecklist(
 ): Partial<ChecklistData> {
   const sections: Record<string, ChecklistSection> = {};
 
+  // Log todos los elementos antes de procesar
+  const allElementDetails = elements.map(e => ({
+    id: e.id,
+    element_name: e.element_name,
+    zone_id: e.zone_id,
+    has_image_urls: !!e.image_urls,
+    image_urls_count: e.image_urls?.length || 0,
+    image_urls: e.image_urls,
+    video_urls_count: e.video_urls?.length || 0,
+    video_urls: e.video_urls,
+  }));
+  
+  console.log('[convertSupabaseToChecklist] 🔍 Starting conversion:', {
+    zonesCount: zones.length,
+    elementsCount: elements.length,
+    allElementNames: allElementDetails,
+  });
+  
+  // Log detallado de cada elemento individualmente para facilitar debugging
+  allElementDetails.forEach((element, index) => {
+    console.log(`[convertSupabaseToChecklist] Element ${index + 1}/${allElementDetails.length}:`, element);
+  });
+
+  // Log todas las zonas
+  console.log('[convertSupabaseToChecklist] 📍 All zones:', zones.map(z => ({
+    id: z.id,
+    zone_type: z.zone_type,
+    zone_name: z.zone_name,
+    inspection_id: z.inspection_id,
+  })));
+  
+  // Log zonas específicas que tienen elementos de fotos
+  const photoElementZoneIds = elements
+    .filter(e => e.element_name?.startsWith('fotos-'))
+    .map(e => e.zone_id);
+  const uniquePhotoZoneIds = [...new Set(photoElementZoneIds)];
+  console.log('[convertSupabaseToChecklist] 🔍 Photo element zone IDs:', {
+    photoElementZoneIds: uniquePhotoZoneIds,
+    zonesForPhotoElements: uniquePhotoZoneIds.map(zoneId => {
+      const zone = zones.find(z => z.id === zoneId);
+      return {
+        zoneId,
+        zoneFound: !!zone,
+        zoneType: zone?.zone_type,
+        zoneName: zone?.zone_name,
+        inspectionId: zone?.inspection_id,
+      };
+    }),
+    allZonesWithIds: zones.map(z => ({ id: z.id, zone_type: z.zone_type, inspection_id: z.inspection_id })),
+    missingZones: uniquePhotoZoneIds.filter(zoneId => !zones.find(z => z.id === zoneId)),
+  });
+
   // Agrupar elementos por zona
   const elementsByZone = new Map<string, InspectionElement[]>();
   elements.forEach(element => {
@@ -469,7 +546,34 @@ export function convertSupabaseToChecklist(
       elementsByZone.set(element.zone_id, []);
     }
     elementsByZone.get(element.zone_id)!.push(element);
+    
+    // Log detallado para elementos con fotos
+    if (element.element_name.startsWith('fotos-')) {
+      const zone = zones.find(z => z.id === element.zone_id);
+      console.log(`[convertSupabaseToChecklist] 📸 Photo element found:`, {
+        element_name: element.element_name,
+        element_id: element.id,
+        element_zone_id: element.zone_id,
+        zone_found: zone ? { id: zone.id, zone_type: zone.zone_type, zone_name: zone.zone_name } : 'NOT FOUND',
+        image_urls_count: element.image_urls?.length || 0,
+        image_urls: element.image_urls,
+      });
+    }
   });
+
+  // Log elementos agrupados por zona
+  console.log('[convertSupabaseToChecklist] 🔗 Elements grouped by zone:', 
+    Array.from(elementsByZone.entries()).map(([zoneId, zoneElements]) => ({
+      zone_id: zoneId,
+      elements_count: zoneElements.length,
+      elements: zoneElements.map(e => ({
+        id: e.id,
+        element_name: e.element_name,
+        has_image_urls: !!e.image_urls,
+        image_urls_count: e.image_urls?.length || 0,
+      })),
+    }))
+  );
 
   // Agrupar zonas por tipo para manejar dinámicas (habitaciones, banos)
   const zonesByType = new Map<string, InspectionZone[]>();
@@ -479,6 +583,19 @@ export function convertSupabaseToChecklist(
     }
     zonesByType.get(zone.zone_type)!.push(zone);
   });
+
+  // Log zonas agrupadas por tipo
+  console.log('[convertSupabaseToChecklist] 📂 Zones grouped by type:', 
+    Array.from(zonesByType.entries()).map(([zoneType, zonesOfType]) => ({
+      zone_type: zoneType,
+      zones_count: zonesOfType.length,
+      zones: zonesOfType.map(z => ({
+        id: z.id,
+        zone_name: z.zone_name,
+        elements_count: elementsByZone.get(z.id)?.length || 0,
+      })),
+    }))
+  );
 
   // Procesar cada tipo de zona
   zonesByType.forEach((zonesOfType, zoneType) => {
@@ -523,7 +640,14 @@ export function convertSupabaseToChecklist(
           if (element.element_name.startsWith('fotos-')) {
             const uploadZoneId = element.element_name.replace('fotos-', '');
             if (dynamicItem.uploadZone && dynamicItem.uploadZone.id === uploadZoneId) {
-              dynamicItem.uploadZone.photos = element.image_urls?.map(url => urlToFileUpload(url)) || [];
+              const photoUrls = element.image_urls || [];
+              console.log(`[convertSupabaseToChecklist] Loading photos for dynamic item ${dynamicItem.id}:`, {
+                dynamicItemId: dynamicItem.id,
+                elementName: element.element_name,
+                photoUrlsCount: photoUrls.length,
+                photoUrls: photoUrls,
+              });
+              dynamicItem.uploadZone.photos = photoUrls.map(url => urlToFileUpload(url)) || [];
             }
           } else if (element.element_name.startsWith('videos-')) {
             const uploadZoneId = element.element_name.replace('videos-', '');
@@ -576,20 +700,113 @@ export function convertSupabaseToChecklist(
       });
     } else {
       // Sección fija (no dinámica)
-      const zone = zonesOfType[0]; // Solo debería haber una zona por tipo
-      const zoneElements = elementsByZone.get(zone.id) || [];
+      // Para secciones fijas, buscar elementos por zone_id directamente
+      // Primero, obtener todos los IDs de zonas del tipo correcto
+      const zoneIdsOfType = zones
+        .filter(z => z.zone_type === zoneType)
+        .map(z => z.id);
+      
+      console.log(`[convertSupabaseToChecklist] 🔍 Processing fixed section "${sectionId}":`, {
+        zoneType,
+        zoneIdsOfType,
+        zoneIdsOfTypeCount: zoneIdsOfType.length,
+        allZoneIds: zones.map(z => ({ id: z.id, zone_type: z.zone_type })),
+        elementsByZoneKeys: Array.from(elementsByZone.keys()),
+        elementsByZoneDetails: Array.from(elementsByZone.entries()).map(([zoneId, zoneElements]) => ({
+          zoneId,
+          zoneFound: zones.find(z => z.id === zoneId) ? 'YES' : 'NO',
+          zoneType: zones.find(z => z.id === zoneId)?.zone_type,
+          elementsCount: zoneElements.length,
+          elementNames: zoneElements.map(e => e.element_name),
+        })),
+      });
+      
+      // Buscar elementos que pertenecen a zonas del tipo correcto
+      // Primero, obtener todos los elementos de zonas que tienen el zone_type correcto
+      const allZoneElements = Array.from(elementsByZone.entries())
+        .filter(([zoneId, _]) => {
+          const zone = zones.find(z => z.id === zoneId);
+          const matches = zone && zone.zone_type === zoneType;
+          console.log(`[convertSupabaseToChecklist] 🔍 Checking zone ${zoneId}:`, {
+            zoneFound: !!zone,
+            zoneType: zone?.zone_type,
+            expectedZoneType: zoneType,
+            matches,
+          });
+          return matches;
+        })
+        .flatMap(([_, elements]) => elements);
+      
+      // También buscar elementos directamente por zone_id si no se encontraron en el filtro anterior
+      // Esto es necesario porque los elementos pueden tener zone_id que no está en zonesOfType
+      const directElements = elements.filter(element => {
+        const zone = zones.find(z => z.id === element.zone_id);
+        const matches = zone && zone.zone_type === zoneType;
+        if (element.element_name.startsWith('fotos-') || element.element_name.startsWith('videos-')) {
+          console.log(`[convertSupabaseToChecklist] 🔍 Checking direct element ${element.element_name}:`, {
+            elementZoneId: element.zone_id,
+            zoneFound: !!zone,
+            zoneType: zone?.zone_type,
+            expectedZoneType: zoneType,
+            matches,
+          });
+        }
+        return matches;
+      });
+      
+      // Combinar ambos conjuntos de elementos, evitando duplicados
+      const combinedElements = [...allZoneElements];
+      directElements.forEach(element => {
+        if (!combinedElements.find(e => e.id === element.id)) {
+          combinedElements.push(element);
+        }
+      });
+      
+      console.log(`[convertSupabaseToChecklist] 📦 Elements for section "${sectionId}":`, {
+        allZoneElementsCount: allZoneElements.length,
+        directElementsCount: directElements.length,
+        combinedElementsCount: combinedElements.length,
+        elementNames: combinedElements.map(e => e.element_name),
+      });
+      
+      // Usar combinedElements en lugar de allZoneElements
+      const finalElements = combinedElements;
 
-      zoneElements.forEach(element => {
+      finalElements.forEach(element => {
         // Upload zones
         if (element.element_name.startsWith('fotos-')) {
           const uploadZoneId = element.element_name.replace('fotos-', '');
-          let uploadZone = section.uploadZones?.find(uz => uz.id === uploadZoneId);
+          // Asegurar que section.uploadZones existe
+          if (!section.uploadZones) {
+            section.uploadZones = [];
+            console.log(`[convertSupabaseToChecklist] 🔧 Initialized uploadZones array for section "${sectionId}"`);
+          }
+          let uploadZone = section.uploadZones.find(uz => uz.id === uploadZoneId);
           if (!uploadZone) {
             uploadZone = { id: uploadZoneId, photos: [], videos: [] };
-            if (!section.uploadZones) section.uploadZones = [];
             section.uploadZones.push(uploadZone);
+            console.log(`[convertSupabaseToChecklist] ➕ Created new uploadZone "${uploadZoneId}" in section "${sectionId}"`);
           }
-          uploadZone.photos = element.image_urls?.map(url => urlToFileUpload(url)) || [];
+          const photoUrls = element.image_urls || [];
+          console.log(`[convertSupabaseToChecklist] Loading photos for upload zone "${uploadZoneId}" in section "${sectionId}":`, {
+            elementName: element.element_name,
+            elementId: element.id,
+            elementZoneId: element.zone_id,
+            photoUrlsCount: photoUrls.length,
+            photoUrls: photoUrls,
+            uploadZoneId: uploadZoneId,
+            sectionId: sectionId,
+            zoneFound: zones.find(z => z.id === element.zone_id) ? 'YES' : 'NO',
+            sectionUploadZonesCount: section.uploadZones.length,
+            uploadZoneExists: !!uploadZone,
+          });
+          uploadZone.photos = photoUrls.length > 0 ? photoUrls.map(url => urlToFileUpload(url)) : [];
+          console.log(`[convertSupabaseToChecklist] ✅ Loaded ${uploadZone.photos.length} photos for zone ${uploadZoneId}`, {
+            uploadZoneId,
+            photosCount: uploadZone.photos.length,
+            sectionUploadZonesCount: section.uploadZones.length,
+            sectionUploadZones: section.uploadZones.map(z => ({ id: z.id, photosCount: z.photos.length })),
+          });
         } else if (element.element_name.startsWith('videos-')) {
           const uploadZoneId = element.element_name.replace('videos-', '');
           let uploadZone = section.uploadZones?.find(uz => uz.id === uploadZoneId);
@@ -644,6 +861,20 @@ export function convertSupabaseToChecklist(
       });
     }
   });
+
+  // Log final de secciones con fotos antes de retornar
+  console.log('[convertSupabaseToChecklist] 📊 Final sections summary:', 
+    Object.entries(sections).map(([sectionId, section]) => ({
+      sectionId,
+      uploadZonesCount: section.uploadZones?.length || 0,
+      uploadZones: section.uploadZones?.map(z => ({
+        id: z.id,
+        photosCount: z.photos.length,
+        videosCount: z.videos.length,
+      })) || [],
+      hasPhotos: section.uploadZones?.some(z => z.photos.length > 0) || false,
+    }))
+  );
 
   return { sections };
 }

@@ -18,11 +18,14 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
     const { t } = useI18n();
 
     // Initialize upload zones if they don't exist
-    const uploadZones = section.uploadZones || [
-      { id: "portal", photos: [], videos: [] },
-      { id: "fachada", photos: [], videos: [] },
-      { id: "entorno", photos: [], videos: [] },
-    ];
+    // Use section.uploadZones if available, otherwise use defaults
+    const uploadZones = section.uploadZones && section.uploadZones.length > 0
+      ? section.uploadZones
+      : [
+          { id: "portal", photos: [], videos: [] },
+          { id: "fachada", photos: [], videos: [] },
+          { id: "entorno", photos: [], videos: [] },
+        ];
 
     // Default questions for initialization
     const defaultQuestions = [
@@ -40,10 +43,40 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
       : defaultQuestions;
 
     const handleUploadZoneUpdate = useCallback((zoneId: string, updates: ChecklistUploadZone) => {
-      const currentZones = section.uploadZones || uploadZones;
-      const updatedZones = currentZones.map(zone => 
-        zone.id === zoneId ? updates : zone
-      );
+      // Always use section.uploadZones if available, otherwise use defaults
+      const currentZones = (section.uploadZones && section.uploadZones.length > 0) 
+        ? section.uploadZones 
+        : uploadZones;
+      
+      console.log('[EntornoZonasComunesSection] 🔄 handleUploadZoneUpdate called:', {
+        zoneId,
+        updatesPhotosCount: updates.photos.length,
+        updatesVideosCount: updates.videos.length,
+        currentZonesCount: currentZones.length,
+        currentZones: currentZones.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+        sectionUploadZones: section.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+        defaultUploadZones: uploadZones.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length }))
+      });
+      
+      // Find if zone exists, if not add it
+      const zoneIndex = currentZones.findIndex(zone => zone.id === zoneId);
+      let updatedZones: ChecklistUploadZone[];
+      
+      if (zoneIndex >= 0) {
+        // Update existing zone
+        updatedZones = currentZones.map(zone => 
+          zone.id === zoneId ? updates : zone
+        );
+      } else {
+        // Add new zone if it doesn't exist
+        updatedZones = [...currentZones, updates];
+      }
+      
+      console.log('[EntornoZonasComunesSection] ✅ Updated zones:', {
+        updatedZones: updatedZones.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
+        updatedZonesLength: updatedZones.length
+      });
+      
       onUpdate({ uploadZones: updatedZones });
     }, [section.uploadZones, uploadZones, onUpdate]);
 
@@ -86,9 +119,10 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
             <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">
                 <ChecklistUploadZoneComponent
+                  key={`portal-${(section.uploadZones || uploadZones).find(z => z.id === "portal")?.photos.length || 0}-${(section.uploadZones || uploadZones).find(z => z.id === "portal")?.photos.map(p => p.id || p.data?.substring(0, 20)).join(',') || ''}`}
                   title={t.checklist.sections.entornoZonasComunes.portal}
                   description={t.checklist.addPhotos}
-                  uploadZone={uploadZones.find(z => z.id === "portal") || { id: "portal", photos: [], videos: [] }}
+                  uploadZone={(section.uploadZones || uploadZones).find(z => z.id === "portal") || { id: "portal", photos: [], videos: [] }}
                   onUpdate={(updates) => handleUploadZoneUpdate("portal", updates)}
                   isRequired={true}
                   hideTitle={true}
@@ -105,9 +139,10 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
             <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">
                 <ChecklistUploadZoneComponent
+                  key={`fachada-${(section.uploadZones || uploadZones).find(z => z.id === "fachada")?.photos.length || 0}-${(section.uploadZones || uploadZones).find(z => z.id === "fachada")?.photos.map(p => p.id || p.data?.substring(0, 20)).join(',') || ''}`}
                   title={t.checklist.sections.entornoZonasComunes.fachada}
                   description={t.checklist.addPhotos}
-                  uploadZone={uploadZones.find(z => z.id === "fachada") || { id: "fachada", photos: [], videos: [] }}
+                  uploadZone={(section.uploadZones || uploadZones).find(z => z.id === "fachada") || { id: "fachada", photos: [], videos: [] }}
                   onUpdate={(updates) => handleUploadZoneUpdate("fachada", updates)}
                   isRequired={true}
                   hideTitle={true}
@@ -124,9 +159,10 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
             <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">
                 <ChecklistUploadZoneComponent
+                  key={`entorno-${(section.uploadZones || uploadZones).find(z => z.id === "entorno")?.photos.length || 0}-${(section.uploadZones || uploadZones).find(z => z.id === "entorno")?.photos.map(p => p.id || p.data?.substring(0, 20)).join(',') || ''}`}
                   title={t.checklist.sections.entornoZonasComunes.entorno}
                   description={t.checklist.addPhotos}
-                  uploadZone={uploadZones.find(z => z.id === "entorno") || { id: "entorno", photos: [], videos: [] }}
+                  uploadZone={(section.uploadZones || uploadZones).find(z => z.id === "entorno") || { id: "entorno", photos: [], videos: [] }}
                   onUpdate={(updates) => handleUploadZoneUpdate("entorno", updates)}
                   isRequired={true}
                   hideTitle={true}

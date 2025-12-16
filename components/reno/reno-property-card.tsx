@@ -33,26 +33,33 @@ export function RenoPropertyCard({
   const { track } = useMixpanel();
   const isExpired = isPropertyExpired(property);
 
-  // Calculate proximaActualizacion if it doesn't exist (from base date)
+  // Calculate proximaActualizacion if it doesn't exist (from reno start date)
+  const renoStartDate = property.inicio || (property as any).supabaseProperty?.["Reno Start Date"] || (property as any).supabaseProperty?.start_date;
   const proximaActualizacionCalculada = property.proximaActualizacion || 
-    (stage === "reno-in-progress" ? calculateNextUpdateDate(null, property.renoType) : null);
+    (stage === "reno-in-progress" ? calculateNextUpdateDate(null, property.renoType, renoStartDate) : null);
 
   const needsUpdateToday = proximaActualizacionCalculada
     ? new Date(proximaActualizacionCalculada).toDateString() === new Date().toDateString()
     : false;
 
   // Check if property needs an update (for reno-in-progress phase)
-  const needsUpdateBadge = stage === "reno-in-progress" && proximaActualizacionCalculada && needsUpdate(proximaActualizacionCalculada, property.renoType);
+  const needsUpdateBadge = stage === "reno-in-progress" && proximaActualizacionCalculada && needsUpdate(proximaActualizacionCalculada, property.renoType, renoStartDate);
   
-  // Debug log (remove after testing)
-  if (stage === "reno-in-progress" && property.id === "SP-6KR-YCK-003058") {
-    console.log('[RenoPropertyCard] Debug for property:', {
-      id: property.id,
-      stage,
+  // Debug log for all reno-in-progress properties to understand the issue
+  if (stage === "reno-in-progress") {
+    const daysSinceStart = renoStartDate ? Math.floor((new Date().getTime() - new Date(renoStartDate).getTime()) / (1000 * 60 * 60 * 24)) : null;
+    const intervalDays = property.renoType?.toLowerCase().includes('light') ? 7 : 
+                        property.renoType?.toLowerCase().includes('medium') ? 14 : 
+                        property.renoType?.toLowerCase().includes('major') ? 30 : 7;
+    
+    console.log(`[RenoPropertyCard] ${property.id}:`, {
       renoType: property.renoType,
-      proximaActualizacionCalculada,
-      needsUpdateResult: proximaActualizacionCalculada ? needsUpdate(proximaActualizacionCalculada, property.renoType) : false,
+      renoStartDate,
+      daysSinceStart,
+      intervalDays,
+      needsUpdate: daysSinceStart !== null ? daysSinceStart >= intervalDays : 'no start date',
       needsUpdateBadge,
+      proximaActualizacionCalculada,
     });
   }
 

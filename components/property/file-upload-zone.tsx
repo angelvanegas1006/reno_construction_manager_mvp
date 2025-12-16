@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
-import { Upload, X, Camera, File } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Upload, X, Camera, File, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { FileUpload } from "@/lib/property-storage";
@@ -37,6 +37,22 @@ export function FileUploadZone({
   maxSizeMB = DEFAULT_MAX_SIZE,
   acceptedTypes = DEFAULT_ACCEPTED_TYPES,
 }: FileUploadZoneProps) {
+  // Detectar si estamos en mobile o tablet (no desktop)
+  const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
+  
+  useEffect(() => {
+    const checkMobileOrTablet = () => {
+      // Considerar mobile/tablet si el ancho es menor a 1024px (lg breakpoint) o si es un dispositivo móvil/tablet
+      const isSmallScreen = window.innerWidth < 1024;
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobileOrTablet(isSmallScreen || isMobileDevice);
+    };
+    
+    checkMobileOrTablet();
+    window.addEventListener('resize', checkMobileOrTablet);
+    return () => window.removeEventListener('resize', checkMobileOrTablet);
+  }, []);
+
   const uploadHook = useFileUpload({
     maxFileSize: maxSizeMB,
     acceptedTypes,
@@ -46,6 +62,9 @@ export function FileUploadZone({
   const handleRemoveFile = useCallback((index: number) => {
     uploadHook.removeFile(index);
   }, [uploadHook]);
+
+  // Verificar si acepta imágenes para mostrar opciones de cámara
+  const acceptsImages = acceptedTypes.some(type => type.startsWith('image/'));
 
   return (
     <div className="space-y-3">
@@ -86,20 +105,58 @@ export function FileUploadZone({
           multiple
           accept={acceptedTypes.join(",")}
           onChange={uploadHook.handleFileSelect}
+          capture={isMobileOrTablet && acceptsImages ? "environment" : undefined}
           className="hidden"
         />
 
         <div className="flex gap-2 justify-center mt-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => uploadHook.fileInputRef.current?.click()}
-            className="flex items-center gap-1"
-          >
-            <Camera className="h-4 w-4" />
-            Subir archivo
-          </Button>
+          {isMobileOrTablet && acceptsImages ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (uploadHook.fileInputRef.current) {
+                    uploadHook.fileInputRef.current.accept = "image/*";
+                    uploadHook.fileInputRef.current.capture = "environment";
+                    uploadHook.fileInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <Camera className="h-4 w-4" />
+                Tomar foto
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (uploadHook.fileInputRef.current) {
+                    uploadHook.fileInputRef.current.accept = acceptedTypes.join(",");
+                    uploadHook.fileInputRef.current.removeAttribute('capture');
+                    uploadHook.fileInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <File className="h-4 w-4" />
+                Galería
+              </Button>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => uploadHook.fileInputRef.current?.click()}
+              className="flex items-center gap-1"
+            >
+              <Upload className="h-4 w-4" />
+              Subir archivo
+            </Button>
+          )}
         </div>
       </div>
 

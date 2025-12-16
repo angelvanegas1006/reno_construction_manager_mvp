@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import * as React from "react";
 import { Upload, X, Camera, Video, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,19 +34,49 @@ export function ChecklistUploadZone({
   maxSizeMB = DEFAULT_MAX_SIZE,
   hideTitle = false,
 }: ChecklistUploadZoneProps) {
+  // Detectar si estamos en mobile o tablet (no desktop)
+  const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
+  
+  useEffect(() => {
+    const checkMobileOrTablet = () => {
+      // Considerar mobile/tablet si el ancho es menor a 1024px (lg breakpoint) o si es un dispositivo móvil/tablet
+      const isSmallScreen = window.innerWidth < 1024;
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      setIsMobileOrTablet(isSmallScreen || isMobileDevice);
+    };
+    
+    checkMobileOrTablet();
+    window.addEventListener('resize', checkMobileOrTablet);
+    return () => window.removeEventListener('resize', checkMobileOrTablet);
+  }, []);
   const handlePhotosChange = useCallback((files: FileUpload[]) => {
-    onUpdate({
-      ...uploadZone,
-      photos: files,
+    // Use ref to get latest uploadZone value to avoid stale closure
+    const currentUploadZone = uploadZoneRef.current;
+    console.log('[ChecklistUploadZone] 📝 handlePhotosChange called:', {
+      filesCount: files.length,
+      files: files.map(f => ({ id: f.id, name: f.name, hasData: !!f.data, dataLength: f.data?.length || 0 })),
+      currentUploadZonePhotos: currentUploadZone.photos.length
     });
-  }, [uploadZone, onUpdate]);
+    const updatedZone = {
+      ...currentUploadZone,
+      photos: files,
+    };
+    console.log('[ChecklistUploadZone] 📤 Calling onUpdate with:', {
+      zoneId: updatedZone.id,
+      photosCount: updatedZone.photos.length,
+      photos: updatedZone.photos.map(p => ({ id: p.id, name: p.name, hasData: !!p.data }))
+    });
+    onUpdate(updatedZone);
+  }, [onUpdate]);
 
   const handleVideosChange = useCallback((files: FileUpload[]) => {
+    // Use ref to get latest uploadZone value to avoid stale closure
+    const currentUploadZone = uploadZoneRef.current;
     onUpdate({
-      ...uploadZone,
+      ...currentUploadZone,
       videos: files,
     });
-  }, [uploadZone, onUpdate]);
+  }, [onUpdate]);
 
   // Track processed file IDs to avoid duplicates
   const processedPhotoIdsRef = React.useRef<Set<string>>(new Set());
@@ -59,12 +89,20 @@ export function ChecklistUploadZone({
   }, [uploadZone]);
 
   // Initialize refs with existing file IDs and sync when uploadZone changes
+  // Also sync when uploadZone itself changes (not just length) to catch when photos are loaded from Supabase
   React.useEffect(() => {
     processedPhotoIdsRef.current.clear();
     processedVideoIdsRef.current.clear();
     uploadZone.photos.forEach(p => processedPhotoIdsRef.current.add(p.id));
     uploadZone.videos.forEach(v => processedVideoIdsRef.current.add(v.id));
-  }, [uploadZone.photos.length, uploadZone.videos.length]);
+    console.log('[ChecklistUploadZone] 🔄 Synced processed IDs:', {
+      photosCount: uploadZone.photos.length,
+      videosCount: uploadZone.videos.length,
+      photoIds: Array.from(processedPhotoIdsRef.current),
+      videoIds: Array.from(processedVideoIdsRef.current),
+      photosWithData: uploadZone.photos.filter(p => p.data).length,
+    });
+  }, [uploadZone.photos.length, uploadZone.videos.length, uploadZone]);
 
   const photosHook = useFileUpload({
     maxFileSize: maxSizeMB,
@@ -91,7 +129,26 @@ export function ChecklistUploadZone({
       
       // Only update if there are new photos
       if (newPhotos.length > 0) {
-        handlePhotosChange([...currentUploadZone.photos, ...newPhotos]);
+        const updatedPhotos = [...currentUploadZone.photos, ...newPhotos];
+        console.log('[ChecklistUploadZone] 📸 Adding new photos:', {
+          newCount: newPhotos.length,
+          totalCount: updatedPhotos.length,
+          newPhotos: newPhotos.map(p => ({ 
+            id: p.id, 
+            name: p.name, 
+            hasData: !!p.data, 
+            dataLength: p.data?.length || 0,
+            dataPreview: p.data?.substring(0, 100),
+            type: p.type,
+            size: p.size
+          })),
+          currentPhotos: currentUploadZone.photos.map(p => ({ id: p.id, name: p.name, hasData: !!p.data }))
+        });
+        console.log('[ChecklistUploadZone] 🔄 Calling handlePhotosChange with', updatedPhotos.length, 'photos');
+        handlePhotosChange(updatedPhotos);
+      } else if (photos.length === 0 && currentUploadZone.photos.length > 0) {
+        // Don't overwrite existing photos if hook returns empty array
+        console.log('[ChecklistUploadZone] ⚠️ Hook returned empty array but uploadZone has photos, skipping update');
       }
     }, [handlePhotosChange]),
   });
@@ -121,7 +178,11 @@ export function ChecklistUploadZone({
       
       // Only update if there are new videos
       if (newVideos.length > 0) {
+        console.log('[ChecklistUploadZone] 🎥 Adding new videos:', newVideos.length, 'Total videos:', currentUploadZone.videos.length + newVideos.length);
         handleVideosChange([...currentUploadZone.videos, ...newVideos]);
+      } else if (videos.length === 0 && currentUploadZone.videos.length > 0) {
+        // Don't overwrite existing videos if hook returns empty array
+        console.log('[ChecklistUploadZone] ⚠️ Hook returned empty array but uploadZone has videos, skipping update');
       }
     }, [handleVideosChange]),
   });
@@ -313,6 +374,7 @@ export function ChecklistUploadZone({
           multiple
           accept={PHOTO_TYPES.join(",")}
           onChange={photosHook.handleFileSelect}
+          capture={isMobileOrTablet ? "environment" : undefined}
           className="hidden"
         />
         <input
@@ -321,80 +383,185 @@ export function ChecklistUploadZone({
           multiple
           accept={VIDEO_TYPES.join(",")}
           onChange={videosHook.handleFileSelect}
+          capture={isMobileOrTablet ? "environment" : undefined}
           className="hidden"
         />
 
-        <div className="flex gap-2 justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => photosHook.fileInputRef.current?.click()}
-            className="flex items-center gap-1"
-          >
-            <ImageIcon className="h-4 w-4" />
-            Subir fotos
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => videosHook.fileInputRef.current?.click()}
-            className="flex items-center gap-1"
-          >
-            <Video className="h-4 w-4" />
-            Subir videos
-          </Button>
+        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+          {isMobileOrTablet ? (
+            <>
+              {/* Botones para mobile: captura directa desde cámara */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (photosHook.fileInputRef.current) {
+                    photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
+                    photosHook.fileInputRef.current.capture = "environment";
+                    photosHook.fileInputRef.current.multiple = true;
+                    photosHook.fileInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <Camera className="h-4 w-4" />
+                Tomar foto
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (photosHook.fileInputRef.current) {
+                    photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
+                    photosHook.fileInputRef.current.removeAttribute('capture');
+                    photosHook.fileInputRef.current.multiple = true;
+                    photosHook.fileInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Galería
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (videosHook.fileInputRef.current) {
+                    videosHook.fileInputRef.current.accept = VIDEO_TYPES.join(",");
+                    videosHook.fileInputRef.current.capture = "environment";
+                    videosHook.fileInputRef.current.multiple = true;
+                    videosHook.fileInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <Video className="h-4 w-4" />
+                Grabar video
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (videosHook.fileInputRef.current) {
+                    videosHook.fileInputRef.current.accept = VIDEO_TYPES.join(",");
+                    videosHook.fileInputRef.current.removeAttribute('capture');
+                    videosHook.fileInputRef.current.multiple = true;
+                    videosHook.fileInputRef.current.click();
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                <Video className="h-4 w-4" />
+                Video galería
+              </Button>
+            </>
+          ) : (
+            <>
+              {/* Botones para desktop: solo selección de archivos */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => photosHook.fileInputRef.current?.click()}
+                className="flex items-center gap-1"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Subir fotos
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => videosHook.fileInputRef.current?.click()}
+                className="flex items-center gap-1"
+              >
+                <Video className="h-4 w-4" />
+                Subir videos
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       {/* File Grid */}
-      {(uploadZone.photos.length > 0 || uploadZone.videos.length > 0) && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
-          {/* Photos */}
-          {uploadZone.photos.map((file, index) => (
-            <div
-              key={file.id || `photo-${index}`}
-              className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-            >
-              {file.data && (
-                <img
-                  src={file.data}
-                  alt={file.name}
-                  className="w-full h-full object-cover"
-                />
-              )}
-              <button
-                type="button"
-                onClick={() => handleRemovePhoto(index)}
-                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
+      {(() => {
+        console.log('[ChecklistUploadZone] 🖼️ Rendering file grid:', {
+          photosCount: uploadZone.photos.length,
+          videosCount: uploadZone.videos.length,
+          photos: uploadZone.photos.map(p => ({ id: p.id, name: p.name, hasData: !!p.data, dataLength: p.data?.length || 0 }))
+        });
+        return (uploadZone.photos.length > 0 || uploadZone.videos.length > 0) && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+            {/* Photos */}
+            {uploadZone.photos.map((file, index) => {
+              // Debug: Log file data
+              if (!file.data) {
+                console.log('[ChecklistUploadZone] ⚠️ Photo without data:', { id: file.id, name: file.name, index, file });
+              } else {
+                console.log('[ChecklistUploadZone] ✅ Photo with data:', { id: file.id, name: file.name, index, dataLength: file.data.length, dataPreview: file.data.substring(0, 50) });
+              }
+              return (
+                <div
+                  key={file.id || `photo-${index}`}
+                  className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                >
+                  {file.data ? (
+                    <img
+                      src={file.data}
+                      alt={file.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('[ChecklistUploadZone] ❌ Error loading image:', { id: file.id, name: file.name, data: file.data?.substring(0, 50) });
+                      }}
+                      onLoad={() => {
+                        console.log('[ChecklistUploadZone] ✅ Image loaded:', { id: file.id, name: file.name });
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center flex-col">
+                      <ImageIcon className="h-8 w-8 text-[var(--prophero-gray-400)]" />
+                      <span className="text-xs text-[var(--prophero-gray-400)] mt-2 text-center px-2">{file.name}</span>
+                      <span className="text-xs text-red-500 mt-1">No data</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(index)}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
           
-          {/* Videos */}
-          {uploadZone.videos.map((file, index) => (
-            <div
-              key={file.id || `video-${index}`}
-              className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center"
-            >
-              <Video className="h-8 w-8 text-[var(--prophero-gray-400)]" />
-              <div className="absolute bottom-2 left-2 right-2">
-                <p className="text-xs text-foreground truncate bg-black/50 text-white px-1 py-0.5 rounded">{file.name}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleRemoveVideo(index)}
-                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+            {/* Videos */}
+            {uploadZone.videos.map((file, index) => (
+              <div
+                key={file.id || `video-${index}`}
+                className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center"
               >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+                <Video className="h-8 w-8 text-[var(--prophero-gray-400)]" />
+                <div className="absolute bottom-2 left-2 right-2">
+                  <p className="text-xs text-foreground truncate bg-black/50 text-white px-1 py-0.5 rounded">{file.name}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveVideo(index)}
+                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {localError && (
         <p className="text-sm text-red-500 mt-2">{localError}</p>

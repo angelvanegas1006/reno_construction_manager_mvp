@@ -39,7 +39,17 @@ export async function uploadFileToStorage(
     });
 
   if (error) {
-    console.error('Error uploading file:', error);
+    console.error('[storage-upload] ❌ Error uploading file:', error);
+    // Si el bucket no existe, proporcionar instrucciones claras
+    if (error.message?.includes('Bucket not found') || error.message?.includes('bucket')) {
+      console.error(`[storage-upload] ⚠️ Bucket '${STORAGE_BUCKET}' no encontrado. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
+      throw new Error(`Bucket '${STORAGE_BUCKET}' no encontrado. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
+    }
+    // Si es un error de RLS, proporcionar instrucciones claras
+    if (error.message?.includes('row-level security') || error.message?.includes('RLS') || error.message?.includes('policy')) {
+      console.error(`[storage-upload] ⚠️ Error de Row Level Security. Por favor ejecuta las políticas SQL en Supabase Dashboard → SQL Editor. Ver docs/SUPABASE_STORAGE_POLICIES.md`);
+      throw new Error(`Error de Row Level Security. Por favor ejecuta las políticas SQL en Supabase Dashboard → SQL Editor. Ver docs/SUPABASE_STORAGE_POLICIES.md`);
+    }
     throw new Error(`Error al subir archivo: ${error.message}`);
   }
 
@@ -97,14 +107,34 @@ export async function uploadFilesToStorage(
       const mimeMatch = file.data.match(/data:([^;]+);/);
       const mimeType = mimeMatch ? mimeMatch[1] : file.type || 'image/jpeg';
       
-      const fileObj = base64ToFile(file.data, file.name, mimeType);
-      return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
+      try {
+        const fileObj = base64ToFile(file.data, file.name, mimeType);
+        return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
+      } catch (error: any) {
+        // Si el bucket no existe, mantener el base64 en lugar de fallar
+        if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
+          console.warn(`[storage-upload] ⚠️ Bucket '${STORAGE_BUCKET}' no encontrado. Manteniendo archivo como base64. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
+          // Retornar el base64 como "URL" temporal para que el flujo continúe
+          return file.data;
+        }
+        throw error;
+      }
     }
 
     // Si es base64 sin prefijo data:, intentar con el tipo del archivo
     if (file.data && !file.data.startsWith('http') && !file.data.startsWith('data:')) {
-      const fileObj = base64ToFile(file.data, file.name, file.type || 'image/jpeg');
-      return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
+      try {
+        const fileObj = base64ToFile(file.data, file.name, file.type || 'image/jpeg');
+        return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
+      } catch (error: any) {
+        // Si el bucket no existe, mantener el base64 en lugar de fallar
+        if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
+          console.warn(`[storage-upload] ⚠️ Bucket '${STORAGE_BUCKET}' no encontrado. Manteniendo archivo como base64. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
+          // Retornar el base64 como "URL" temporal para que el flujo continúe
+          return file.data;
+        }
+        throw error;
+      }
     }
 
     // Si no tiene data, retornar null (archivo no válido)

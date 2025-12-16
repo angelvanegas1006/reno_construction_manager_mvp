@@ -455,7 +455,7 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                   <p className="text-sm font-medium text-primary hover:underline">
                     {formatDate(
                       property.next_update || 
-                      calculateNextUpdateDate(null, property.renovation_type)
+                      calculateNextUpdateDate(null, property.renovation_type, property.start_date || (property as any).inicio)
                     ) || "No definida"}
                   </p>
                 </div>

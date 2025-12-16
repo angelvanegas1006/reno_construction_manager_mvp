@@ -189,18 +189,51 @@ export async function syncChecklistToAirtable(
       return false;
     }
 
-    const airtablePropertyId = property.airtable_property_id || property['Unique ID From Engagements'];
+    // Priorizar "Unique ID From Engagements" para buscar por "UNIQUEID (from Engagements)" en Airtable
+    // Solo usar airtable_property_id si es un Record ID válido
+    let recordId: string | null = null;
     
-    if (!airtablePropertyId) {
-      console.warn('Property has no Airtable ID, skipping sync:', propertyId);
-      return false;
+    // Primero intentar con "Unique ID From Engagements" (corresponde a "UNIQUEID (from Engagements)" en Airtable)
+    if (property['Unique ID From Engagements']) {
+      console.log('[syncChecklistToAirtable] Searching by Unique ID From Engagements:', property['Unique ID From Engagements']);
+      recordId = await findRecordByPropertyId(tableName, property['Unique ID From Engagements']);
     }
-
-    const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
-
+    
+    // Si no se encontró y hay airtable_property_id, validar si es un Record ID válido
+    if (!recordId && property.airtable_property_id) {
+      // Si es un Record ID (empieza con "rec"), validarlo primero
+      if (property.airtable_property_id.startsWith('rec')) {
+        console.log('[syncChecklistToAirtable] Validating Record ID:', property.airtable_property_id);
+        // findRecordByPropertyId ya valida Record IDs, pero si no existe, buscará por Property ID
+        const validatedRecordId = await findRecordByPropertyId(tableName, property.airtable_property_id);
+        // Solo usar el Record ID si es válido (no null y es el mismo Record ID)
+        if (validatedRecordId && validatedRecordId === property.airtable_property_id) {
+          recordId = validatedRecordId;
+        } else {
+          console.warn('[syncChecklistToAirtable] Record ID is invalid or not found, will search by Property ID instead:', {
+            invalidRecordId: property.airtable_property_id,
+            foundRecordId: validatedRecordId,
+          });
+          // Si findRecordByPropertyId encontró un registro diferente, usarlo
+          if (validatedRecordId && validatedRecordId !== property.airtable_property_id) {
+            recordId = validatedRecordId;
+          }
+        }
+      } else {
+        // Si no es un Record ID, buscar por ese valor como Property ID
+        console.log('[syncChecklistToAirtable] Searching by airtable_property_id:', property.airtable_property_id);
+        recordId = await findRecordByPropertyId(tableName, property.airtable_property_id);
+      }
+    }
+    
     if (!recordId) {
-      console.warn('Airtable record not found, skipping sync:', airtablePropertyId);
-      return false;
+      console.warn('[syncChecklistToAirtable] ⚠️ Airtable record not found, skipping sync:', {
+        propertyId,
+        uniqueIdFromEngagements: property['Unique ID From Engagements'],
+        airtablePropertyId: property.airtable_property_id,
+      });
+      // No retornar false aquí - permitir que el checklist se guarde en Supabase aunque no se sincronice con Airtable
+      return true; // Retornar true para no bloquear el guardado en Supabase
     }
 
     // Actualizar campos de checklist en Airtable
@@ -249,6 +282,7 @@ export async function finalizeInitialCheckInAirtable(
     estimatedVisitDate?: string;
     autoVisitDate?: string;
     nextRenoSteps?: string;
+    progress?: number; // Progreso del checklist (0-100)
   }
 ): Promise<boolean> {
   const supabase = createClient();
@@ -285,6 +319,14 @@ export async function finalizeInitialCheckInAirtable(
       'Set Up Status': 'Pending to budget (from Renovator)',
       'Initial Check Complete': true,
     };
+
+    // Incluir progreso del checklist (100% al finalizar)
+    if (data.progress !== undefined) {
+      updates['Checklist Progress'] = data.progress;
+    } else {
+      // Si no se proporciona progreso, asumir 100% al finalizar
+      updates['Checklist Progress'] = 100;
+    }
 
     // Field IDs específicos de Airtable
     if (data.estimatedVisitDate) {
