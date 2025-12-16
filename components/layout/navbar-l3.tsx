@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Menu, Save, Send } from "lucide-react";
+import { ArrowLeft, Menu, Save, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
