@@ -179,6 +179,7 @@ export function calculateSectionProgress(section: ChecklistSection | undefined):
 
 /**
  * Calcula el progreso general del checklist
+ * Calcula el promedio de TODAS las secciones, incluyendo las que tienen 0%
  */
 export function calculateOverallChecklistProgress(checklist: ChecklistData | null): number {
   if (!checklist || !checklist.sections) return 0;
@@ -200,14 +201,17 @@ export function calculateOverallChecklistProgress(checklist: ChecklistData | nul
     const section = checklist.sections[sectionId];
     if (section) {
       const progress = calculateSectionProgress(section);
-      if (progress > 0) {
-        progressValues.push(progress);
-      }
+      // Incluir TODAS las secciones en el cálculo, incluso las que tienen 0%
+      progressValues.push(progress);
+    } else {
+      // Si la sección no existe, contar como 0%
+      progressValues.push(0);
     }
   });
 
   if (progressValues.length === 0) return 0;
 
+  // Calcular el promedio de todas las secciones
   const average = progressValues.reduce((sum, prog) => sum + prog, 0) / progressValues.length;
   return Math.round(average);
 }
