@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import * as React from "react";
 import { Upload, X, Camera, Video, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
