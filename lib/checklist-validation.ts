@@ -73,9 +73,10 @@ function areAllRequiredElementsReported(section: ChecklistSection): boolean {
         }
       }
 
-      // Verificar carpentryItems del item dinámico
+      // Verificar carpentryItems del item dinámico - solo los que tienen cantidad > 0 deben tener datos
       if (item.carpentryItems && item.carpentryItems.length > 0) {
-        for (const carpentry of item.carpentryItems) {
+        const itemsWithQuantity = item.carpentryItems.filter(carpentry => (carpentry.cantidad || 0) > 0);
+        for (const carpentry of itemsWithQuantity) {
           if (!hasElementData(carpentry)) {
             return false;
           }
@@ -90,9 +91,10 @@ function areAllRequiredElementsReported(section: ChecklistSection): boolean {
         }
       }
 
-      // Verificar climatizationItems del item dinámico
+      // Verificar climatizationItems del item dinámico - solo los que tienen cantidad > 0 deben tener datos
       if (item.climatizationItems && item.climatizationItems.length > 0) {
-        for (const climatization of item.climatizationItems) {
+        const itemsWithQuantity = item.climatizationItems.filter(climatization => (climatization.cantidad || 0) > 0);
+        for (const climatization of itemsWithQuantity) {
           if (!hasElementData(climatization)) {
             return false;
           }
@@ -118,9 +120,10 @@ function areAllRequiredElementsReported(section: ChecklistSection): boolean {
     }
   }
 
-  // Verificar climatization items - todos deben tener datos
+  // Verificar climatization items - solo los que tienen cantidad > 0 deben tener datos
   if (section.climatizationItems && section.climatizationItems.length > 0) {
-    for (const item of section.climatizationItems) {
+    const itemsWithQuantity = section.climatizationItems.filter(item => (item.cantidad || 0) > 0);
+    for (const item of itemsWithQuantity) {
       if (!hasElementData(item)) {
         return false;
       }
@@ -135,9 +138,10 @@ function areAllRequiredElementsReported(section: ChecklistSection): boolean {
     }
   }
 
-  // Verificar carpentry items - todos deben tener datos
+  // Verificar carpentry items - solo los que tienen cantidad > 0 deben tener datos
   if (section.carpentryItems && section.carpentryItems.length > 0) {
-    for (const item of section.carpentryItems) {
+    const itemsWithQuantity = section.carpentryItems.filter(item => (item.cantidad || 0) > 0);
+    for (const item of itemsWithQuantity) {
       if (!hasElementData(item)) {
         return false;
       }
@@ -152,9 +156,10 @@ function areAllRequiredElementsReported(section: ChecklistSection): boolean {
     }
   }
 
-  // Verificar storage items - todos deben tener datos
+  // Verificar storage items - solo los que tienen cantidad > 0 deben tener datos
   if (section.storageItems && section.storageItems.length > 0) {
-    for (const item of section.storageItems) {
+    const itemsWithQuantity = section.storageItems.filter(item => (item.cantidad || 0) > 0);
+    for (const item of itemsWithQuantity) {
       if (!hasElementData(item)) {
         return false;
       }
@@ -169,9 +174,10 @@ function areAllRequiredElementsReported(section: ChecklistSection): boolean {
     }
   }
 
-  // Verificar appliances items - todos deben tener datos
+  // Verificar appliances items - solo los que tienen cantidad > 0 deben tener datos
   if (section.appliancesItems && section.appliancesItems.length > 0) {
-    for (const item of section.appliancesItems) {
+    const itemsWithQuantity = section.appliancesItems.filter(item => (item.cantidad || 0) > 0);
+    for (const item of itemsWithQuantity) {
       if (!hasElementData(item)) {
         return false;
       }
@@ -186,9 +192,10 @@ function areAllRequiredElementsReported(section: ChecklistSection): boolean {
     }
   }
 
-  // Verificar security items - todos deben tener datos
+  // Verificar security items - solo los que tienen cantidad > 0 deben tener datos
   if (section.securityItems && section.securityItems.length > 0) {
-    for (const item of section.securityItems) {
+    const itemsWithQuantity = section.securityItems.filter(item => (item.cantidad || 0) > 0);
+    for (const item of itemsWithQuantity) {
       if (!hasElementData(item)) {
         return false;
       }
@@ -203,9 +210,10 @@ function areAllRequiredElementsReported(section: ChecklistSection): boolean {
     }
   }
 
-  // Verificar systems items - todos deben tener datos
+  // Verificar systems items - solo los que tienen cantidad > 0 deben tener datos
   if (section.systemsItems && section.systemsItems.length > 0) {
-    for (const item of section.systemsItems) {
+    const itemsWithQuantity = section.systemsItems.filter(item => (item.cantidad || 0) > 0);
+    for (const item of itemsWithQuantity) {
       if (!hasElementData(item)) {
         return false;
       }

@@ -20,6 +20,7 @@ import { useSupabaseFinalChecklist } from "@/hooks/useSupabaseFinalChecklist";
 import { ChecklistType } from "@/lib/checklist-storage";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
+import { createClient } from "@/lib/supabase/client";
 import { useSupabaseInspection } from "@/hooks/useSupabaseInspection";
 import { areAllActivitiesReported } from "@/lib/checklist-validation";
 import { calculateOverallChecklistProgress, getAllChecklistSectionsProgress } from "@/lib/checklist-progress";
@@ -515,9 +516,30 @@ export default function RenoChecklistPage() {
             onUpdate={(updates) => {
               updateChecklistSection("habitaciones", updates);
             }}
-            onPropertyUpdate={async () => {
-              // Reload property to get updated data from Supabase
-              await refetchProperty();
+            onPropertyUpdate={async (updates: { habitaciones: number }) => {
+              // Update property in Supabase
+              const supabase = createClient();
+              const { error } = await supabase
+                .from('properties')
+                .update({ bedrooms: updates.habitaciones })
+                .eq('id', propertyId);
+              
+              if (error) {
+                console.error('Error updating habitaciones:', {
+                  error,
+                  message: error.message,
+                  details: error.details,
+                  hint: error.hint,
+                  code: error.code,
+                  habitaciones: updates.habitaciones,
+                  propertyId,
+                });
+                toast.error(`Error al actualizar número de habitaciones: ${error.message || 'Error desconocido'}`);
+              } else {
+                console.log('✅ Updated habitaciones (bedrooms) in Supabase:', updates.habitaciones);
+                // Reload property to get updated data
+                await refetchProperty();
+              }
             }}
             onNavigateToHabitacion={(index) => {
               handleSectionClick(`checklist-habitaciones-${index + 1}`);
@@ -574,9 +596,22 @@ export default function RenoChecklistPage() {
             onUpdate={(updates) => {
               updateChecklistSection("banos", updates);
             }}
-            onPropertyUpdate={async () => {
-              // Reload property to get updated data from Supabase
-              await refetchProperty();
+            onPropertyUpdate={async (updates: { banos: number }) => {
+              // Update property in Supabase
+              const supabase = createClient();
+              const { error } = await supabase
+                .from('properties')
+                .update({ bathrooms: updates.banos })
+                .eq('id', propertyId);
+              
+              if (error) {
+                console.error('Error updating banos:', error);
+                toast.error('Error al actualizar número de baños');
+              } else {
+                console.log('✅ Updated banos in Supabase:', updates.banos);
+                // Reload property to get updated data
+                await refetchProperty();
+              }
             }}
             onNavigateToBano={(index) => {
               handleSectionClick(`checklist-banos-${index + 1}`);

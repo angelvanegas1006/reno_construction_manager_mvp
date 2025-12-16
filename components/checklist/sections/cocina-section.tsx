@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useMemo } from "react";
+import { forwardRef, useCallback, useMemo, useEffect } from "react";
 import { Minus, Plus } from "lucide-react";
 import { ChecklistSection, ChecklistCarpentryItem, ChecklistStorageItem, ChecklistApplianceItem, ChecklistStatus, ChecklistQuestion, ChecklistUploadZone, FileUpload } from "@/lib/checklist-storage";
 import { ChecklistQuestion as ChecklistQuestionComponent } from "../checklist-question";
@@ -44,6 +44,18 @@ const MAX_QUANTITY = 20;
 export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
   ({ section, onUpdate, onContinue }, ref) => {
     const { t } = useI18n();
+    
+    // Debug: Log section changes
+    useEffect(() => {
+      console.log(`🏠 [CocinaSection] Section updated:`, {
+        sectionId: section.id,
+        appliancesItemsLength: section.appliancesItems?.length,
+        appliancesItems: section.appliancesItems?.map(i => ({ id: i.id, cantidad: i.cantidad })),
+        storageItemsLength: section.storageItems?.length,
+        carpentryItemsLength: section.carpentryItems?.length,
+        sectionReference: section,
+      });
+    }, [section]);
 
     // Initialize upload zone for kitchen photos/video
     const uploadZone = section.uploadZones?.[0] || { id: "fotos-video-cocina", photos: [], videos: [] };
@@ -59,38 +71,29 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
     // Always use section.questions if available and not empty, otherwise use defaults
     const questions = (section.questions && section.questions.length > 0) ? section.questions : defaultQuestions;
 
-    // Initialize carpentry items
-    const carpentryItems = useMemo(() => {
-      if (section.carpentryItems && section.carpentryItems.length > 0) {
-        return section.carpentryItems;
-      }
-      return CARPENTRY_ITEMS.map(item => ({
-        id: item.id,
-        cantidad: 0,
-      }));
-    }, [section.carpentryItems]);
+    // Initialize carpentry items - always use section directly, don't memoize
+    const carpentryItems = section.carpentryItems && section.carpentryItems.length > 0
+      ? section.carpentryItems
+      : CARPENTRY_ITEMS.map(item => ({
+          id: item.id,
+          cantidad: 0,
+        }));
 
-    // Initialize storage items
-    const storageItems = useMemo(() => {
-      if (section.storageItems && section.storageItems.length > 0) {
-        return section.storageItems;
-      }
-      return STORAGE_ITEMS.map(item => ({
-        id: item.id,
-        cantidad: 0,
-      }));
-    }, [section.storageItems]);
+    // Initialize storage items - always use section directly, don't memoize
+    const storageItems = section.storageItems && section.storageItems.length > 0
+      ? section.storageItems
+      : STORAGE_ITEMS.map(item => ({
+          id: item.id,
+          cantidad: 0,
+        }));
 
-    // Initialize appliances items
-    const appliancesItems = useMemo(() => {
-      if (section.appliancesItems && section.appliancesItems.length > 0) {
-        return section.appliancesItems;
-      }
-      return APPLIANCES_ITEMS.map(item => ({
-        id: item.id,
-        cantidad: 0,
-      }));
-    }, [section.appliancesItems]);
+    // Initialize appliances items - always use section directly, don't memoize
+    const appliancesItems = section.appliancesItems && section.appliancesItems.length > 0
+      ? section.appliancesItems
+      : APPLIANCES_ITEMS.map(item => ({
+          id: item.id,
+          cantidad: 0,
+        }));
 
     const STATUS_OPTIONS: Array<{
       value: ChecklistStatus;
@@ -124,13 +127,42 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
     const handleQuantityChange = useCallback((
       itemId: string,
       delta: number,
-      items: (ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem)[],
       itemsKey: "carpentryItems" | "storageItems" | "appliancesItems"
     ) => {
-      const updatedItems = items.map(item => {
+      console.log(`🔢 [CocinaSection] handleQuantityChange CALLED:`, {
+        itemId,
+        delta,
+        itemsKey,
+      });
+      
+      // Always get the latest items directly from section
+      const currentItems = (() => {
+        if (itemsKey === "carpentryItems") {
+          return section.carpentryItems || [];
+        } else if (itemsKey === "storageItems") {
+          return section.storageItems || [];
+        } else if (itemsKey === "appliancesItems") {
+          return section.appliancesItems || [];
+        }
+        return [];
+      })();
+      
+      console.log(`📦 [CocinaSection] currentItems BEFORE update:`, {
+        length: currentItems.length,
+        items: currentItems.map(i => ({ id: i.id, cantidad: i.cantidad })),
+      });
+      
+      const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const currentCantidad = item.cantidad || 0;
           const newCantidad = Math.max(0, Math.min(MAX_QUANTITY, currentCantidad + delta));
+          
+          console.log(`🔄 [CocinaSection] Updating item:`, {
+            itemId,
+            currentCantidad,
+            newCantidad,
+            delta,
+          });
           
           let units = item.units || [];
           
@@ -153,18 +185,38 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         }
         return item;
       });
+      
+      console.log(`📤 [CocinaSection] Calling onUpdate with:`, {
+        itemsKey,
+        updatedItemsLength: updatedItems.length,
+        updatedItems: updatedItems.map(i => ({ id: i.id, cantidad: i.cantidad })),
+      });
+      
       onUpdate({ [itemsKey]: updatedItems });
-    }, [onUpdate]);
+      
+      console.log(`✅ [CocinaSection] onUpdate called`);
+    }, [section, onUpdate]);
 
     // Generic handler for status changes
     const handleStatusChange = useCallback((
       itemId: string,
       unitIndex: number | null,
       status: ChecklistStatus,
-      items: (ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem)[],
       itemsKey: "carpentryItems" | "storageItems" | "appliancesItems"
     ) => {
-      const updatedItems = items.map(item => {
+      // Always get the latest items directly from section
+      const currentItems = (() => {
+        if (itemsKey === "carpentryItems") {
+          return section.carpentryItems || [];
+        } else if (itemsKey === "storageItems") {
+          return section.storageItems || [];
+        } else if (itemsKey === "appliancesItems") {
+          return section.appliancesItems || [];
+        }
+        return [];
+      })();
+      
+      const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
@@ -178,7 +230,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         return item;
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [onUpdate]);
+    }, [section, onUpdate]);
 
     // Generic handler for bad elements changes
     const handleBadElementsChange = useCallback((
@@ -209,10 +261,21 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       itemId: string,
       unitIndex: number | null,
       notes: string,
-      items: (ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem)[],
       itemsKey: "carpentryItems" | "storageItems" | "appliancesItems"
     ) => {
-      const updatedItems = items.map(item => {
+      // Always get the latest items directly from section
+      const currentItems = (() => {
+        if (itemsKey === "carpentryItems") {
+          return section.carpentryItems || [];
+        } else if (itemsKey === "storageItems") {
+          return section.storageItems || [];
+        } else if (itemsKey === "appliancesItems") {
+          return section.appliancesItems || [];
+        }
+        return [];
+      })();
+      
+      const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
@@ -226,17 +289,28 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         return item;
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [onUpdate]);
+    }, [section, onUpdate]);
 
     // Generic handler for photos changes
     const handlePhotosChange = useCallback((
       itemId: string,
       unitIndex: number | null,
       photos: FileUpload[],
-      items: (ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem)[],
       itemsKey: "carpentryItems" | "storageItems" | "appliancesItems"
     ) => {
-      const updatedItems = items.map(item => {
+      // Always get the latest items directly from section
+      const currentItems = (() => {
+        if (itemsKey === "carpentryItems") {
+          return section.carpentryItems || [];
+        } else if (itemsKey === "storageItems") {
+          return section.storageItems || [];
+        } else if (itemsKey === "appliancesItems") {
+          return section.appliancesItems || [];
+        }
+        return [];
+      })();
+      
+      const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
@@ -250,7 +324,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         return item;
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [onUpdate]);
+    }, [section, onUpdate]);
 
     // Render function for items with quantity (carpentry, storage, appliances)
     const renderQuantityItems = (
@@ -306,7 +380,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                   <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <button
                       type="button"
-                      onClick={() => handleQuantityChange(item.id, -1, latestItems, itemsKey)}
+                      onClick={() => handleQuantityChange(item.id, -1, itemsKey)}
                       disabled={cantidad === 0}
                       className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                       aria-label="Decrementar cantidad"
@@ -318,7 +392,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleQuantityChange(item.id, 1, latestItems, itemsKey)}
+                      onClick={() => handleQuantityChange(item.id, 1, itemsKey)}
                       disabled={cantidad >= MAX_QUANTITY}
                       className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                       aria-label="Incrementar cantidad"
@@ -361,7 +435,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                     <button
                                       key={option.value}
                                       type="button"
-                                      onClick={() => handleStatusChange(item.id, index, option.value, latestItems, itemsKey)}
+                                      onClick={() => handleStatusChange(item.id, index, option.value, itemsKey)}
                                       className={cn(
                                         "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                         isSelected
@@ -388,7 +462,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                     </Label>
                                     <Textarea
                                       value={unit.notes || ""}
-                                        onChange={(e) => handleNotesChange(item.id, index, e.target.value, latestItems, itemsKey)}
+                                        onChange={(e) => handleNotesChange(item.id, index, e.target.value, itemsKey)}
                                       placeholder={t.checklist.observationsPlaceholder}
                                       className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
                                       required={unitRequiresDetails}
@@ -402,7 +476,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                       description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
                                       uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
                                       onUpdate={(updates) => {
-                                        handlePhotosChange(item.id, index, updates.photos, latestItems, itemsKey);
+                                        handlePhotosChange(item.id, index, updates.photos, itemsKey);
                                       }}
                                       isRequired={unitRequiresDetails}
                                       maxFiles={10}
@@ -427,7 +501,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                               <button
                                 key={option.value}
                                 type="button"
-                                onClick={() => handleStatusChange(latestItem.id, null, option.value, latestItems, itemsKey)}
+                                onClick={() => handleStatusChange(latestItem.id, null, option.value, itemsKey)}
                                 className={cn(
                                   "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                   isSelected
@@ -456,7 +530,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                               </Label>
                               <Textarea
                                 value={latestItem.notes || ""}
-                                onChange={(e) => handleNotesChange(latestItem.id, null, e.target.value, latestItems, itemsKey)}
+                                onChange={(e) => handleNotesChange(latestItem.id, null, e.target.value, itemsKey)}
                                 placeholder={t.checklist.observationsPlaceholder}
                                 className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
                                 required={true}
@@ -470,7 +544,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                 description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
                                 uploadZone={{ id: `${latestItem.id}-photos`, photos: latestItem.photos || [], videos: [] }}
                                 onUpdate={(updates) => {
-                                  handlePhotosChange(latestItem.id, null, updates.photos, latestItems, itemsKey);
+                                  handlePhotosChange(latestItem.id, null, updates.photos, itemsKey);
                                 }}
                                 isRequired={true}
                                 maxFiles={10}
@@ -568,7 +642,12 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             </p>
           </div>
 
-          {renderQuantityItems(carpentryItems, CARPENTRY_ITEMS, "carpentryItems", "carpinteria")}
+          {renderQuantityItems(
+            section.carpentryItems || carpentryItems, 
+            CARPENTRY_ITEMS, 
+            "carpentryItems", 
+            "carpinteria"
+          )}
 
           {/* Puerta de entrada - Status selector (not quantity) */}
           <div className="space-y-4 pt-4 border-t">
@@ -590,7 +669,12 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             </Label>
           </div>
 
-          {renderQuantityItems(storageItems, STORAGE_ITEMS, "storageItems", "almacenamiento")}
+          {renderQuantityItems(
+            section.storageItems || storageItems, 
+            STORAGE_ITEMS, 
+            "storageItems", 
+            "almacenamiento"
+          )}
         </Card>
 
         {/* Electrodomésticos */}
@@ -601,7 +685,12 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             </Label>
           </div>
 
-          {renderQuantityItems(appliancesItems, APPLIANCES_ITEMS, "appliancesItems", "electrodomesticos")}
+          {renderQuantityItems(
+            section.appliancesItems || appliancesItems, 
+            APPLIANCES_ITEMS, 
+            "appliancesItems", 
+            "electrodomesticos"
+          )}
         </Card>
 
         {/* Navigation */}
