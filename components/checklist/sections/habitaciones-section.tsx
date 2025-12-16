@@ -120,18 +120,22 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
     }, [dynamicItems, habitacion, habitacionIndex, onUpdate]);
 
     const handleQuestionUpdate = useCallback((questionId: string, updates: Partial<ChecklistQuestion>) => {
-      if (habitacionIndex === undefined || !habitacion) return;
-      const currentQuestions = habitacion?.questions || defaultQuestions;
+      if (habitacionIndex === undefined) return;
+      // Always get the latest habitacion from section.dynamicItems to ensure we have the most up-to-date data
+      const latestDynamicItems = section.dynamicItems || dynamicItems;
+      const latestHabitacion = latestDynamicItems[habitacionIndex] || habitacion;
+      if (!latestHabitacion) return;
+      const currentQuestions = latestHabitacion.questions || defaultQuestions;
       const updatedQuestions = currentQuestions.map(q =>
         q.id === questionId ? { ...q, ...updates } : q
       );
-      const updatedItems = [...dynamicItems];
+      const updatedItems = [...latestDynamicItems];
       updatedItems[habitacionIndex] = {
-        ...habitacion,
+        ...latestHabitacion,
         questions: updatedQuestions,
       };
       onUpdate({ dynamicItems: updatedItems });
-    }, [habitacion, defaultQuestions, dynamicItems, habitacionIndex, onUpdate]);
+    }, [habitacion, defaultQuestions, dynamicItems, habitacionIndex, onUpdate, section.dynamicItems]);
 
     const handleCarpentryQuantityChange = useCallback((itemId: string, delta: number) => {
       if (habitacionIndex === undefined) {
@@ -847,13 +851,16 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
               label={t.checklist.sections.habitaciones.acabados.title}
               description={t.checklist.sections.habitaciones.acabados.description}
               onUpdate={(updates) => {
-                const currentQuestions = currentHabitacion.questions || effectiveQuestions;
+                // Always get the latest habitacion from section.dynamicItems to ensure we have the most up-to-date data
+                const latestDynamicItems = section.dynamicItems || dynamicItems;
+                const latestHabitacion = latestDynamicItems[0] || currentHabitacion;
+                const currentQuestions = latestHabitacion.questions || effectiveQuestions;
                 const updatedQuestions = currentQuestions.map(q =>
                   q.id === "acabados" ? { ...q, ...updates } : q
                 );
-                const updatedItems = [...dynamicItems];
+                const updatedItems = [...latestDynamicItems];
                 updatedItems[0] = {
-                  ...currentHabitacion,
+                  ...latestHabitacion,
                   questions: updatedQuestions,
                 };
                 onUpdate({ dynamicItems: updatedItems });

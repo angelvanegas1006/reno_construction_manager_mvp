@@ -625,6 +625,7 @@ export function useSupabaseChecklistBase({
       sectionDataKeys: Object.keys(sectionData),
       uploadZones: sectionData.uploadZones?.map(z => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
       uploadZonesLength: sectionData.uploadZones?.length || 0,
+      dynamicItemsLength: sectionData.dynamicItems?.length || 0,
     });
 
     // Actualizar estado local
@@ -634,12 +635,34 @@ export function useSupabaseChecklistBase({
         return null;
       }
       
+      const currentSection = prev.sections[sectionId] || {};
+      
+      // Crear nueva sección con merge profundo para arrays
+      const updatedSection: ChecklistSection = {
+        ...currentSection,
+        ...sectionData,
+      };
+      
+      // Asegurar nuevas referencias para arrays para que React detecte cambios
+      if (sectionData.dynamicItems !== undefined) {
+        updatedSection.dynamicItems = [...sectionData.dynamicItems];
+      }
+      if (sectionData.uploadZones !== undefined) {
+        updatedSection.uploadZones = [...sectionData.uploadZones];
+      }
+      if (sectionData.questions !== undefined) {
+        updatedSection.questions = [...sectionData.questions];
+      }
+      if (sectionData.carpentryItems !== undefined) {
+        updatedSection.carpentryItems = [...sectionData.carpentryItems];
+      }
+      if (sectionData.climatizationItems !== undefined) {
+        updatedSection.climatizationItems = [...sectionData.climatizationItems];
+      }
+      
       const updatedSections = {
         ...prev.sections,
-        [sectionId]: {
-          ...prev.sections[sectionId],
-          ...sectionData,
-        },
+        [sectionId]: updatedSection,
       };
 
       return {
