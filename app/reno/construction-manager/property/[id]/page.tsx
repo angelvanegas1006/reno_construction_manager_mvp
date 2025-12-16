@@ -44,6 +44,7 @@ import { appendSetUpNotesToAirtable } from "@/lib/airtable/initial-check-sync";
 import { updateAirtableWithRetry, findRecordByPropertyId } from "@/lib/airtable/client";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
 import { createClient } from "@/lib/supabase/client";
+import { useRenoProperties } from "@/contexts/reno-properties-context";
 
 type PropertyUpdate = Database['public']['Tables']['properties']['Update'];
 
@@ -53,6 +54,7 @@ export default function RenoPropertyDetailPage() {
   const searchParams = useSearchParams();
   const supabase = createClient();
   const { t, language } = useI18n();
+  const { allProperties } = useRenoProperties();
   
   // Unwrap params and searchParams if they're Promises (Next.js 16+)
   const unwrappedParams = params instanceof Promise ? use(params) : params;
@@ -412,6 +414,7 @@ export default function RenoPropertyDetailPage() {
                 property={property} 
                 supabaseProperty={supabaseProperty} 
                 propertyId={propertyId}
+                allProperties={allProperties}
                 onUpdateRenovatorName={async (newName: string) => {
                   return await updateSupabaseProperty({
                     'Renovator name': newName || null,
@@ -472,6 +475,7 @@ export default function RenoPropertyDetailPage() {
                 property={property} 
                 supabaseProperty={supabaseProperty} 
                 propertyId={propertyId}
+                allProperties={allProperties}
                 onUpdateRenovatorName={async (newName: string) => {
                   return await updateSupabaseProperty({
                     'Renovator name': newName || null,
@@ -722,6 +726,7 @@ export default function RenoPropertyDetailPage() {
                 property={property} 
                 supabaseProperty={supabaseProperty} 
                 propertyId={propertyId}
+                allProperties={allProperties}
                 onUpdateRenovatorName={async (newName: string) => {
                   return await updateSupabaseProperty({
                     'Renovator name': newName || null,
@@ -741,6 +746,7 @@ export default function RenoPropertyDetailPage() {
             property={property} 
             supabaseProperty={supabaseProperty} 
             propertyId={propertyId}
+            allProperties={allProperties}
             onUpdateRenovatorName={async (newName: string) => {
               return await updateSupabaseProperty({
                 'Renovator name': newName || null,

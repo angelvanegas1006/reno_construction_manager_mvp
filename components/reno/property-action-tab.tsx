@@ -10,12 +10,14 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { findRecordByPropertyId, updateAirtableWithRetry } from "@/lib/airtable/client";
 import { getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
+import { RenovatorCombobox } from "@/components/reno/renovator-combobox";
 
 interface PropertyActionTabProps {
   property: Property;
   supabaseProperty?: any;
   propertyId?: string | null;
   onUpdateRenovatorName?: (newName: string) => Promise<boolean>;
+  allProperties?: Property[]; // Lista de todas las propiedades para el combobox
 }
 
 /**
@@ -29,6 +31,7 @@ export function PropertyActionTab({
   supabaseProperty,
   propertyId,
   onUpdateRenovatorName,
+  allProperties = [],
 }: PropertyActionTabProps) {
   const { t, language } = useI18n();
 
@@ -211,25 +214,42 @@ export function PropertyActionTab({
             <User className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
             <span className="break-words">{t.propertyAction.renovator || "Renovador"}</span>
           </h3>
-          <Input
-            type="text"
-            value={localRenovatorName}
-            onChange={(e) => setLocalRenovatorName(e.target.value)}
-            onBlur={(e) => {
-              const newValue = e.target.value.trim();
-              if (newValue !== (renovatorNameFromSupabase || "")) {
-                handleRenovatorNameChange(newValue);
-              }
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.currentTarget.blur();
-              }
-            }}
-            placeholder="Nombre del renovador"
-            disabled={isSavingRenovatorName}
-            className="w-full"
-          />
+          {allProperties.length > 0 ? (
+            <RenovatorCombobox
+              properties={allProperties}
+              value={localRenovatorName}
+              onValueChange={(newValue) => {
+                const trimmedValue = newValue?.trim() || "";
+                setLocalRenovatorName(trimmedValue);
+                // Guardar automáticamente cuando se selecciona un renovador del combobox
+                if (trimmedValue && trimmedValue !== (renovatorNameFromSupabase || "")) {
+                  handleRenovatorNameChange(trimmedValue);
+                }
+              }}
+              placeholder="Buscar renovador..."
+              disabled={isSavingRenovatorName}
+            />
+          ) : (
+            <Input
+              type="text"
+              value={localRenovatorName}
+              onChange={(e) => setLocalRenovatorName(e.target.value)}
+              onBlur={(e) => {
+                const newValue = e.target.value.trim();
+                if (newValue !== (renovatorNameFromSupabase || "")) {
+                  handleRenovatorNameChange(newValue);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder="Nombre del renovador"
+              disabled={isSavingRenovatorName}
+              className="w-full"
+            />
+          )}
           {isSavingRenovatorName && (
             <p className="text-xs text-muted-foreground mt-2">Guardando...</p>
           )}
