@@ -206,6 +206,18 @@ export function useSupabaseInspection(
     }
   }, [propertyId, inspectionType, supabase]);
 
+  // Limpiar datos cuando inspectionType cambia para evitar usar datos del tipo incorrecto
+  useEffect(() => {
+    // Limpiar inmediatamente cuando inspectionType cambia
+    // Esto evita que se usen zonas/elementos de la inspección anterior mientras se carga la nueva
+    setInspection(null);
+    setZones([]);
+    setElements([]);
+    setLoading(true);
+    setError(null);
+    // fetchInspection se ejecutará después debido a las dependencias del useEffect anterior
+  }, [inspectionType]);
+
   const createInspection = useCallback(async (
     propertyId: string,
     type: InspectionType

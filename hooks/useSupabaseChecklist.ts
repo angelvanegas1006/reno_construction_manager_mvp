@@ -591,12 +591,24 @@ export function useSupabaseChecklist({
     }
 
     // Verificar que la inspección corresponde al tipo correcto antes de procesar cambios
-    if (inspection && inspection.inspection_type !== inspectionType) {
-      console.log('[useSupabaseChecklist] ⏸️ Ignoring zones/elements changes - inspection type mismatch:', {
-        currentInspectionType: inspection.inspection_type,
-        expectedInspectionType: inspectionType,
-        inspectionId: inspection.id,
-      });
+    // Si no hay inspección o es del tipo incorrecto, esperar a que se cargue la correcta
+    if (!inspection || inspection.inspection_type !== inspectionType) {
+      if (inspection) {
+        console.log('[useSupabaseChecklist] ⏸️ Ignoring zones/elements changes - inspection type mismatch:', {
+          currentInspectionType: inspection.inspection_type,
+          expectedInspectionType: inspectionType,
+          inspectionId: inspection.id,
+        });
+      } else {
+        console.log('[useSupabaseChecklist] ⏸️ Ignoring zones/elements changes - no inspection yet:', {
+          expectedInspectionType: inspectionType,
+          inspectionLoading,
+        });
+      }
+      // Limpiar refs para evitar usar datos incorrectos cuando se cargue la inspección correcta
+      lastProcessedInspectionIdRef.current = null;
+      lastProcessedZonesLengthRef.current = 0;
+      lastProcessedElementsLengthRef.current = 0;
       return;
     }
 
