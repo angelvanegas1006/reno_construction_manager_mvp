@@ -190,25 +190,53 @@ export async function updateAirtableWithRetry(
   fields: Record<string, any>,
   maxRetries = 3
 ): Promise<boolean> {
+  console.log(`[updateAirtableWithRetry] Starting update attempt:`, {
+    tableName,
+    recordId,
+    fields,
+    maxRetries,
+  });
+  
   for (let i = 0; i < maxRetries; i++) {
     try {
+      console.log(`[updateAirtableWithRetry] Attempt ${i + 1}/${maxRetries}`);
       const success = await updateAirtableRecord(tableName, recordId, fields);
-      if (success) return true;
+      if (success) {
+        console.log(`[updateAirtableWithRetry] ✅ Success on attempt ${i + 1}`);
+        return true;
+      }
+      console.warn(`[updateAirtableWithRetry] updateAirtableRecord returned false on attempt ${i + 1}`);
     } catch (error: any) {
       // Si es un error de rate limit, esperar antes de reintentar
       if (error?.statusCode === 429 || error?.message?.includes('rate limit')) {
         const waitTime = Math.pow(2, i) * 1000; // Exponential backoff
-        console.log(`Rate limit hit, waiting ${waitTime}ms before retry ${i + 1}/${maxRetries}`);
+        console.log(`[updateAirtableWithRetry] Rate limit hit, waiting ${waitTime}ms before retry ${i + 1}/${maxRetries}`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }
       
+      console.error(`[updateAirtableWithRetry] Error on attempt ${i + 1}:`, {
+        error: error?.message || error,
+        statusCode: error?.statusCode,
+        tableName,
+        recordId,
+        fields,
+      });
+      
       if (i === maxRetries - 1) {
-        console.error('Failed to update Airtable after retries:', error);
+        console.error('[updateAirtableWithRetry] Failed to update Airtable after all retries:', {
+          error: error?.message || error,
+          statusCode: error?.statusCode,
+          tableName,
+          recordId,
+          fields,
+        });
         return false;
       }
     }
   }
+  
+  console.error('[updateAirtableWithRetry] All retries exhausted, returning false');
   return false;
 }
 

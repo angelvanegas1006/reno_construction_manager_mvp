@@ -240,21 +240,41 @@ export default function RenoPropertyDetailPage() {
             const tableName = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
             const airtablePropertyId = supabaseProperty?.airtable_property_id;
             
+            console.log(`[Property Update] Starting Airtable sync:`, {
+              propertyId,
+              airtablePropertyId,
+              localEstimatedVisitDate,
+              tableName,
+            });
+            
             // Validate that airtable_property_id exists (all properties should have it)
             if (!airtablePropertyId) {
               console.error(`[Property Update] Property ${propertyId} does not have airtable_property_id. All properties should have this field because they are created from Airtable.`);
+              console.error(`[Property Update] Property data:`, {
+                id: propertyId,
+                address: supabaseProperty?.address,
+                hasAirtablePropertyId: !!supabaseProperty?.airtable_property_id,
+              });
               toast.error("Error: La propiedad no tiene ID de Airtable. Contacta al administrador.");
               return success; // Continue but show error
             }
             
             // Validate Record ID using findRecordByPropertyId (simplified to only use Record ID)
+            console.log(`[Property Update] Validating Record ID:`, airtablePropertyId);
             const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
             
             if (!recordId) {
               console.error(`[Property Update] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId}.`);
+              console.error(`[Property Update] This could mean:`, {
+                recordIdDoesNotExist: 'The Record ID does not exist in Airtable',
+                recordIdInvalid: 'The Record ID format is invalid',
+                airtableConnectionIssue: 'There is a connection issue with Airtable',
+              });
               toast.error("Error: No se encontró el registro en Airtable. Contacta al administrador.");
               return success; // Continue but show error
             }
+            
+            console.log(`[Property Update] Record ID validated successfully:`, recordId);
             
             // Update Est. visit date in Airtable (field ID: fldIhqPOAFL52MMBn)
             const airtableFields: Record<string, any> = {
@@ -266,14 +286,35 @@ export default function RenoPropertyDetailPage() {
               airtableFields['Set Up Status'] = 'Initial Check';
             }
             
+            console.log(`[Property Update] Attempting to update Airtable:`, {
+              tableName,
+              recordId,
+              airtableFields,
+              propertyId,
+              airtablePropertyId,
+            });
+            
             const airtableSuccess = await updateAirtableWithRetry(tableName, recordId, airtableFields);
             
             if (!airtableSuccess) {
-              console.error(`[Property Update] Failed to update Airtable for property ${propertyId}`);
+              console.error(`[Property Update] Failed to update Airtable for property ${propertyId}`, {
+                tableName,
+                recordId,
+                airtableFields,
+                airtablePropertyId,
+                propertyId,
+              });
               toast.error("Error: No se pudo actualizar Airtable. La propiedad se guardó en Supabase pero puede haber un problema de sincronización.");
+            } else {
+              console.log(`[Property Update] ✅ Successfully updated Airtable for property ${propertyId}`);
             }
           } catch (airtableError: any) {
-            console.error('[Property Update] Error updating Airtable:', airtableError?.message || airtableError);
+            console.error('[Property Update] Exception updating Airtable:', {
+              error: airtableError?.message || airtableError,
+              stack: airtableError?.stack,
+              propertyId,
+              airtablePropertyId: supabaseProperty?.airtable_property_id,
+            });
             toast.error("Error: No se pudo actualizar Airtable. La propiedad se guardó en Supabase pero puede haber un problema de sincronización.");
             // Don't fail the whole operation if Airtable update fails
             // La propiedad ya fue actualizada en Supabase, que es lo importante
