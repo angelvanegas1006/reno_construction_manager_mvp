@@ -620,7 +620,6 @@ export function convertSupabaseToChecklist(
     missingZones: uniquePhotoZoneIds.filter(zoneId => !zones.find(z => z.id === zoneId)),
     });
   }
-  }
 
   // Agrupar elementos por zona
   const elementsByZone = new Map<string, InspectionElement[]>();
@@ -645,7 +644,7 @@ export function convertSupabaseToChecklist(
   });
 
   // Log elementos agrupados por zona
-  console.log('[convertSupabaseToChecklist] 🔗 Elements grouped by zone:', 
+  debugLog('[convertSupabaseToChecklist] 🔗 Elements grouped by zone:', 
     Array.from(elementsByZone.entries()).map(([zoneId, zoneElements]) => ({
       zone_id: zoneId,
       elements_count: zoneElements.length,
@@ -1328,19 +1327,21 @@ export function convertSupabaseToChecklist(
     }
   });
 
-  // Log final de secciones con fotos antes de retornar
-  console.log('[convertSupabaseToChecklist] 📊 Final sections summary:', 
-    Object.entries(sections).map(([sectionId, section]) => ({
-      sectionId,
-      uploadZonesCount: section.uploadZones?.length || 0,
-      uploadZones: section.uploadZones?.map(z => ({
-        id: z.id,
-        photosCount: z.photos.length,
-        videosCount: z.videos.length,
-      })) || [],
-      hasPhotos: section.uploadZones?.some(z => z.photos.length > 0) || false,
-    }))
-  );
+  // Log final de secciones con fotos antes de retornar (solo en desarrollo)
+  if (DEBUG) {
+    debugLog('[convertSupabaseToChecklist] 📊 Final sections summary:', 
+      Object.entries(sections).map(([sectionId, section]) => ({
+        sectionId,
+        uploadZonesCount: section.uploadZones?.length || 0,
+        uploadZones: section.uploadZones?.map(z => ({
+          id: z.id,
+          photosCount: z.photos.length,
+          videosCount: z.videos.length,
+        })) || [],
+        hasPhotos: section.uploadZones?.some(z => z.photos.length > 0) || false,
+      }))
+    );
+  }
 
   return { sections };
 }
