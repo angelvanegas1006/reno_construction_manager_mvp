@@ -775,11 +775,7 @@ export async function generateChecklistPDF(
         doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
         doc.text(itemLabel, margin + cardPadding, yPosition);
         
-        // Badge de cantidad si aplica
-        if (dynamicItem.cantidad) {
-          doc.setFillColor(COLORS.slate100[0], COLORS.slate100[1], COLORS.slate100[2]);
-          const cantidadText = `${dynamicItem.cantidad} ud.`;
-          const cantidadWidth = doc.getTextWidth(cantidadText) + 4;
+        // Dynamic items no tienen cantidad, se identifican por su número en el título
           doc.roundedRect(margin + cardPadding, yPosition - 3, cantidadWidth, 5, 2, 2, 'F');
           doc.setFontSize(7);
           doc.setFont('helvetica', 'normal');
