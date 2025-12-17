@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
+// Importar suppressores de errores ANTES que cualquier otro código
+import "@/lib/supabase/suppress-auth-errors";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FaviconSwitcher } from "@/components/favicon-switcher";
