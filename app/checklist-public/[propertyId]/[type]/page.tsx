@@ -39,8 +39,8 @@ export default function PublicChecklistPage({
           return;
         }
 
-        // Obtener la URL del HTML
-        const url = await getChecklistPDFUrl(propertyId, checklistType);
+        // Obtener la URL del HTML usando cliente anónimo (sin autenticación)
+        const url = await getChecklistPDFUrl(propertyId, checklistType, true);
         
         if (url) {
           setHtmlUrl(url);
