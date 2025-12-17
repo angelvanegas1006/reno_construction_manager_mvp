@@ -47,21 +47,10 @@ export default function RootLayout({
         <ThemeProvider>
           <FaviconSwitcher />
           <I18nProvider>
-            {/* Auth0Provider para Auth0 SDK */}
-            <Auth0ProviderWrapper>
-              {/* AuthProvider original para compatibilidad con código existente */}
-              <AuthProvider>
-                {/* Providers de Supabase para nueva funcionalidad */}
-                <SupabaseAuthProvider>
-                  <AppAuthProvider>
-                    <MixpanelProvider>
-                      {children}
-                      <Toaster />
-                    </MixpanelProvider>
-                  </AppAuthProvider>
-                </SupabaseAuthProvider>
-              </AuthProvider>
-            </Auth0ProviderWrapper>
+            <ConditionalAuthProviders>
+              {children}
+              <Toaster />
+            </ConditionalAuthProviders>
           </I18nProvider>
         </ThemeProvider>
       </body>
