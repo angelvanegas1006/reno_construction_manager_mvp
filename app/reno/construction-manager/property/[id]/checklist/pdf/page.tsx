@@ -73,12 +73,39 @@ export default function ChecklistPDFViewerPage() {
           setHtmlUrl(url);
         } else {
           // Si no existe en property_inspections, intentar construir URL desde storage
-          const url = await getChecklistPDFUrl(propertyId, checklistType);
+          let url = await getChecklistPDFUrl(propertyId, checklistType);
+          
+          if (!url) {
+            // Si no existe el HTML, intentar regenerarlo
+            console.log('[ChecklistPDFViewer] HTML no encontrado, intentando regenerar...');
+            try {
+              const regenerateResponse = await fetch('/api/regenerate-checklist-html', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  propertyId,
+                  checklistType,
+                }),
+              });
+
+              if (regenerateResponse.ok) {
+                const regenerateData = await regenerateResponse.json();
+                url = regenerateData.storageUrl;
+                console.log('[ChecklistPDFViewer] ✅ HTML regenerado exitosamente');
+              } else {
+                console.warn('[ChecklistPDFViewer] No se pudo regenerar el HTML');
+              }
+            } catch (regenerateError) {
+              console.error('[ChecklistPDFViewer] Error al regenerar HTML:', regenerateError);
+            }
+          }
           
           if (url) {
             setHtmlUrl(url);
           } else {
-            setError("Checklist no encontrado. El checklist puede no haber sido finalizado aún.");
+            setError("Checklist no encontrado. El checklist puede no haber sido finalizado aún o no se pudo generar el informe.");
           }
         }
       } catch (err: any) {
@@ -137,7 +164,7 @@ export default function ChecklistPDFViewerPage() {
           </h1>
         </div>
         <a
-          href={htmlUrl}
+          href={`/api/proxy-html?url=${encodeURIComponent(htmlUrl)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors flex items-center gap-2"

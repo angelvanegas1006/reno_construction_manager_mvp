@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
+import { getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
 
 interface ChecklistHistory {
   id: string;
@@ -30,6 +32,12 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
   const { t, language } = useI18n();
   const [checklists, setChecklists] = useState<ChecklistHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const { property: supabaseProperty } = useSupabaseProperty(propertyId);
+
+  // Calcular fase actual de la propiedad de forma estable
+  const currentPhase = supabaseProperty 
+    ? getPropertyRenoPhaseFromSupabase(supabaseProperty) 
+    : null;
 
   useEffect(() => {
     const fetchChecklists = async () => {
@@ -40,7 +48,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
       let rawData: any[] | null = null;
       
       // Try to fetch with inspection_type first
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('property_inspections')
         .select('id, inspection_type, inspection_status, created_at, completed_at, created_by, pdf_url')
         .eq('property_id', propertyId)
@@ -70,19 +78,46 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
       } else {
         rawData = data;
       }
+      
+      // Log para debugging
+      if (rawData && rawData.length > 0) {
+        console.log('[PropertyStatusTab] Fetched inspections:', rawData.map(item => ({
+          id: item.id,
+          inspection_type: item.inspection_type,
+          inspection_status: item.inspection_status,
+          completed_at: item.completed_at,
+        })));
+      }
 
       // Type guard to ensure data is an array and handle potential type issues
       if (Array.isArray(rawData)) {
         // Convert to ChecklistHistory format, defaulting inspection_type if missing
-        const checklists: ChecklistHistory[] = rawData.map((item: any) => ({
-          id: item.id,
-          inspection_type: item.inspection_type || 'initial', // Default to 'initial' if missing
-          inspection_status: item.inspection_status || 'in_progress',
-          created_at: item.created_at,
-          completed_at: item.completed_at,
-          created_by: item.created_by,
-          pdf_url: item.pdf_url || null,
-        }));
+        const checklists: ChecklistHistory[] = rawData.map((item: any, index: number) => {
+          // Si falta inspection_type, intentar inferirlo:
+          // - Si la propiedad está en cleaning/final-check y es la más reciente, probablemente es 'final'
+          // - Si hay múltiples inspecciones, la más reciente podría ser 'final' si la fase lo indica
+          let inferredType: 'initial' | 'final' = 'initial';
+          if (!item.inspection_type) {
+            if (currentPhase === 'cleaning' || currentPhase === 'final-check') {
+              // Si estamos en cleaning o final-check, la inspección más reciente probablemente es final
+              inferredType = index === 0 ? 'final' : 'initial';
+            } else if (rawData.length > 1 && index === 0) {
+              // Si hay múltiples inspecciones y esta es la más reciente, podría ser final
+              // Pero por defecto asumimos initial si no hay más contexto
+              inferredType = 'initial';
+            }
+          }
+          
+          return {
+            id: item.id,
+            inspection_type: item.inspection_type || inferredType,
+            inspection_status: item.inspection_status || 'in_progress',
+            created_at: item.created_at,
+            completed_at: item.completed_at,
+            created_by: item.created_by,
+            pdf_url: item.pdf_url || null,
+          };
+        });
         setChecklists(checklists);
       } else {
         setChecklists([]);
@@ -91,7 +126,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
     };
 
     fetchChecklists();
-  }, [propertyId]);
+  }, [propertyId, currentPhase]);
 
   if (loading) {
     return (
@@ -112,7 +147,20 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
   return (
     <div className="space-y-4">
       {checklists.map((checklist) => {
-        const isCompleted = checklist.completed_at !== null;
+        // Considerar completado si tiene completed_at O si inspection_status es 'completed'
+        const isCompleted = checklist.completed_at !== null || checklist.inspection_status === 'completed';
+        
+        // Debug log para ver qué valores tiene
+        if (checklist.inspection_type === 'final') {
+          console.log('[PropertyStatusTab] Final checklist status:', {
+            id: checklist.id,
+            inspection_type: checklist.inspection_type,
+            inspection_status: checklist.inspection_status,
+            completed_at: checklist.completed_at,
+            isCompleted,
+          });
+        }
+        
         const checklistType = checklist.inspection_type === 'initial' 
           ? t.kanban.initialCheck 
           : t.kanban.finalCheck;
@@ -177,7 +225,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
               </div>
 
               <div className="flex items-center justify-center">
-                {isCompleted && checklist.pdf_url && (
+                {isCompleted && (
                   <Link
                     href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=${checklist.inspection_type === 'initial' ? 'reno_initial' : 'reno_final'}&from=status`}
                     className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors flex items-center gap-2"
