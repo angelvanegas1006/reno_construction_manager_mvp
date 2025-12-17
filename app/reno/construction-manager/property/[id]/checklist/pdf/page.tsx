@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getChecklistPDFUrl } from "@/lib/pdf/checklist-pdf-storage";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 export default function ChecklistPDFViewerPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const propertyId = params?.id as string;
   const checklistType = searchParams?.get('type') as 'reno_initial' | 'reno_final' | null;
   const from = searchParams?.get('from') as string | null;
@@ -96,12 +97,13 @@ export default function ChecklistPDFViewerPage() {
       <div className="min-h-screen bg-[var(--prophero-gray-50)] dark:bg-[#000000] flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-red-600 dark:text-red-400">{error || "Checklist no encontrado"}</p>
-          <Link href={from === 'status' ? `/reno/construction-manager/property/${propertyId}?tab=estado` : `/reno/construction-manager/property/${propertyId}`}>
-            <Button variant="outline">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
-          </Link>
+          <Button 
+            variant="outline"
+            onClick={handleBack}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver
+          </Button>
         </div>
       </div>
     );
@@ -112,12 +114,14 @@ export default function ChecklistPDFViewerPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-card dark:bg-[var(--prophero-gray-900)] border-b p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href={from === 'status' ? `/reno/construction-manager/property/${propertyId}?tab=estado` : `/reno/construction-manager/property/${propertyId}`}>
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleBack}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver
+          </Button>
           <h1 className="text-lg font-semibold">
             Checklist {checklistType === 'reno_initial' ? 'Inicial' : 'Final'}
           </h1>
