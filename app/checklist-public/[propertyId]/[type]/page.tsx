@@ -43,7 +43,19 @@ export default function PublicChecklistPage({
         const url = await getChecklistPDFUrl(propertyId, checklistType, true);
         
         if (url) {
-          setHtmlUrl(url);
+          // Verificar que la URL sea accesible antes de establecerla
+          try {
+            const testResponse = await fetch(url, { method: 'HEAD' });
+            if (!testResponse.ok && testResponse.status === 400) {
+              setError(`El checklist para esta propiedad aún no ha sido generado. Por favor, finaliza el checklist primero desde la aplicación.`);
+            } else {
+              setHtmlUrl(url);
+            }
+          } catch (fetchError) {
+            // Si falla el fetch, aún así intentar mostrar la URL (puede ser un problema de CORS)
+            console.warn('[PublicChecklistPage] Error verificando URL:', fetchError);
+            setHtmlUrl(url);
+          }
         } else {
           setError("Checklist no encontrado. El checklist puede no haber sido finalizado aún.");
         }
