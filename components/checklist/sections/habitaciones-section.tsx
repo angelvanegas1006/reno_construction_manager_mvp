@@ -42,27 +42,20 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
     // Use useMemo to ensure we always get the latest dynamicItems and trigger re-render when it changes
     const dynamicItems = useMemo(() => {
       const items = section.dynamicItems || [];
-      console.log("🔄 [HabitacionesSection] RENDER - dynamicItems memoized:", items.length, "items, habitacionIndex:", habitacionIndex);
-      if (items.length > 0 && habitacionIndex !== undefined) {
-        const habitacion = items[habitacionIndex];
-        console.log("🏠 [HabitacionesSection] habitacion:", habitacion);
-        if (habitacion?.carpentryItems) {
-          const ventanas = habitacion.carpentryItems.find(i => i.id === "ventanas");
-          console.log("🪵 [HabitacionesSection] ventanas:", {
-            estado: ventanas?.estado,
-            cantidad: ventanas?.cantidad,
-            unitsCount: ventanas?.units?.length,
-            units: ventanas?.units?.map(u => ({ id: u.id, estado: u.estado })),
-          });
-        }
-        if (habitacion?.climatizationItems) {
-          const radiadores = habitacion.climatizationItems.find(i => i.id === "radiadores");
-          console.log("🌡️ [HabitacionesSection] radiadores:", {
-            estado: radiadores?.estado,
-            cantidad: radiadores?.cantidad,
-            unitsCount: radiadores?.units?.length,
-            units: radiadores?.units?.map(u => ({ id: u.id, estado: u.estado })),
-          });
+      // Logs solo en desarrollo para mejor rendimiento
+      if (process.env.NODE_ENV === 'development') {
+        if (items.length > 0 && habitacionIndex !== undefined) {
+          const habitacion = items[habitacionIndex];
+          if (habitacion?.carpentryItems) {
+            const ventanas = habitacion.carpentryItems.find(i => i.id === "ventanas");
+            if (ventanas) {
+              console.log("🪵 [HabitacionesSection] ventanas:", {
+                estado: ventanas.estado,
+                cantidad: ventanas.cantidad,
+                unitsCount: ventanas.units?.length,
+              });
+            }
+          }
         }
       }
       return items;

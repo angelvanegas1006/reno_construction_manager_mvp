@@ -361,16 +361,14 @@ export default function RenoChecklistPage() {
   const entornoSection = useMemo(() => {
     if (!checklist) return null;
     const section = checklist.sections["entorno-zonas-comunes"];
-    console.log('[RenoChecklistPage] 🔍 entornoSection useMemo:', {
-      hasChecklist: !!checklist,
-      hasSection: !!section,
-      sectionUploadZonesCount: section?.uploadZones?.length || 0,
-      sectionUploadZones: section?.uploadZones?.map(z => ({
-        id: z.id,
-        photosCount: z.photos.length,
-        photos: z.photos.map(p => ({ id: p.id, hasData: !!p.data, dataPreview: p.data?.substring(0, 50) })),
-      })) || [],
-    });
+    // Logs solo en desarrollo para mejor rendimiento
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[RenoChecklistPage] 🔍 entornoSection useMemo:', {
+        hasChecklist: !!checklist,
+        hasSection: !!section,
+        sectionUploadZonesCount: section?.uploadZones?.length || 0,
+      });
+    }
     if (section) {
       return section;
     }
@@ -400,12 +398,13 @@ export default function RenoChecklistPage() {
 
   // Memoizar callback de update para evitar re-renders
   const handleEntornoUpdate = useCallback((updates: any) => {
-    console.log('[RenoChecklistPage] 📝 onUpdate called for entorno-zonas-comunes:', {
-      updates,
-      uploadZones: updates.uploadZones?.map((z: any) => ({ id: z.id, photosCount: z.photos.length, videosCount: z.videos.length })),
-      uploadZonesLength: updates.uploadZones?.length || 0,
-      updatesKeys: Object.keys(updates)
-    });
+    // Logs solo en desarrollo
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[RenoChecklistPage] 📝 onUpdate called for entorno-zonas-comunes:', {
+        updatesKeys: Object.keys(updates),
+        uploadZonesLength: updates.uploadZones?.length || 0,
+      });
+    }
     updateChecklistSection("entorno-zonas-comunes", updates);
   }, [updateChecklistSection]);
 

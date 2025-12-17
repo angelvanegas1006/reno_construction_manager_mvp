@@ -1,6 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+
+// Helper para condicionar logs solo en desarrollo
+const DEBUG = process.env.NODE_ENV === 'development';
+const debugLog = (...args: any[]) => {
+  if (DEBUG) console.log(...args);
+};
+const debugWarn = (...args: any[]) => {
+  if (DEBUG) console.warn(...args);
+};
+const debugError = (...args: any[]) => {
+  // Los errores siempre se muestran, pero con menos detalle en producción
+  if (DEBUG) {
+    console.error(...args);
+  } else {
+    // En producción, solo mostrar mensaje básico
+    const [message, ...rest] = args;
+    if (typeof message === 'string') {
+      console.error(message);
+    }
+  }
+};
 import {
   ChecklistData,
   ChecklistSection,
@@ -64,11 +85,27 @@ export function useSupabaseChecklistBase({
   const checklistRef = useRef<ChecklistData | null>(null);
   const lastInspectionLoadingRef = useRef<boolean>(true);
   const lastInspectionIdRef = useRef<string | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const functionsRef = useRef<{
     createInspection: (propertyId: string, type: InspectionType) => Promise<any>;
     refetchInspection: () => Promise<void>;
     createInitialZones: (inspectionId: string) => Promise<void>;
   } | null>(null);
+  
+  // Helper para debounce - agrupa múltiples guardados en uno solo
+  const debouncedSave = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (pendingSaveRef.current && !savingRef.current) {
+        const { sectionId } = pendingSaveRef.current;
+        currentSectionRef.current = sectionId;
+        await saveCurrentSection();
+        // No limpiar pendingSaveRef aquí porque saveCurrentSection lo maneja
+      }
+    }, 2000); // 2 segundos de debounce - agrupa cambios rápidos
+  }, [saveCurrentSection]);
   
   // Keep checklistRef in sync with checklist state
   useEffect(() => {
@@ -78,7 +115,7 @@ export function useSupabaseChecklistBase({
   // Log initialization only once per mount (using ref to track)
   const hasLoggedRef = useRef(false);
   if (!hasLoggedRef.current) {
-    console.log(`[useSupabaseChecklistBase:${inspectionType}] 🔍 Initialized:`, {
+    debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔍 Initialized:`, {
       checklistType,
       inspectionType,
       propertyId,
@@ -550,13 +587,12 @@ export function useSupabaseChecklistBase({
             image_urls: e.image_urls,
           }));
           
-          console.log(`[useSupabaseChecklistBase:${inspectionType}] 📥 Loading checklist from Supabase...`, {
+          debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📥 Loading checklist from Supabase...`, {
             zonesCount: zones.length,
             elementsCount: elements.length,
             bedrooms: supabaseProperty.bedrooms,
             bathrooms: supabaseProperty.bathrooms,
             photoElementsCount: photoElementsDetails.length,
-            photoElements: photoElementsDetails,
           });
           
           const supabaseData = convertSupabaseToChecklist(
@@ -573,7 +609,7 @@ export function useSupabaseChecklistBase({
             initializationRef.current = stableKey;
             lastZonesCountRef.current = zones.length;
           }
-          console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Checklist loaded and set`, {
+          debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Checklist loaded and set`, {
             inspectionId: inspection?.id,
             zonesCount: zones.length,
             elementsCount: elements.length,
@@ -764,6 +800,8 @@ export function useSupabaseChecklistBase({
       lastProcessedZonesLengthRef.current = zones.length;
       lastProcessedElementsLengthRef.current = elements.length;
       
+      // Memoizar conversión para evitar recálculos innecesarios
+      // Solo convertir si realmente hay cambios en los datos
       const supabaseData = convertSupabaseToChecklist(
         zones,
         elements,
@@ -794,12 +832,12 @@ export function useSupabaseChecklistBase({
   // Guardar sección actual en Supabase
   const saveCurrentSection = useCallback(async () => {
     if (savingRef.current) {
-      console.log(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Save already in progress, skipping...`);
+      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Save already in progress, skipping...`);
       return;
     }
 
     if (!checklist || !inspection?.id || !supabaseProperty) {
-      console.log(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Cannot save - missing data:`, {
+      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Cannot save - missing data:`, {
         hasChecklist: !!checklist,
         hasInspection: !!inspection?.id,
         hasProperty: !!supabaseProperty,
@@ -809,7 +847,7 @@ export function useSupabaseChecklistBase({
 
     const sectionId = currentSectionRef.current;
     if (!sectionId) {
-      console.log(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ No current section to save`);
+      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ No current section to save`);
       return;
     }
 
@@ -823,7 +861,7 @@ export function useSupabaseChecklistBase({
         return;
       }
 
-      console.log(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving section:`, sectionId);
+      debugLog(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving section:`, sectionId);
 
       // Encontrar zona correspondiente a la sección primero (necesaria para subir archivos)
       const expectedZoneType = sectionId === "habitaciones" ? "dormitorio" :
@@ -838,7 +876,7 @@ export function useSupabaseChecklistBase({
       const zone = zones.find(z => z.zone_type === expectedZoneType);
       
       if (!zone) {
-        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Zone not found for section:`, sectionId);
+        debugWarn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Zone not found for section:`, sectionId);
         savingRef.current = false;
         return;
       }
@@ -1471,49 +1509,51 @@ export function useSupabaseChecklistBase({
         elementsWithPhotos: elementsToSave.filter(e => e.image_urls && e.image_urls.length > 0).map(e => ({ name: e.element_name, photosCount: e.image_urls.length })),
       });
       
-      // Guardar elementos en Supabase
+      // Guardar elementos en Supabase usando batch upsert (mucho más rápido)
       const supabase = createClient();
-      for (const element of elementsToSave) {
-        // Usar onConflict con la constraint única (zone_id, element_name) en lugar de 'id'
-        // porque los elementos nuevos no tienen 'id' (se genera automáticamente)
-        const { error: upsertError } = await supabase.from('inspection_elements').upsert(element, {
-          onConflict: 'zone_id,element_name',
-        });
+      
+      if (elementsToSave.length > 0) {
+        // Batch upsert: guardar todos los elementos en una sola operación
+        const { data: upsertedElements, error: batchUpsertError } = await supabase
+          .from('inspection_elements')
+          .upsert(elementsToSave, {
+            onConflict: 'zone_id,element_name',
+          })
+          .select();
         
-        if (upsertError) {
-          console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error upserting element ${element.element_name}:`, {
-            error: upsertError,
-            element_name: element.element_name,
-            zone_id: element.zone_id,
-            hasImageUrls: !!element.image_urls,
-            imageUrlsCount: element.image_urls?.length || 0,
-            condition: element.condition,
-            hasNotes: !!element.notes,
-            errorCode: (upsertError as any)?.code,
-            errorMessage: (upsertError as any)?.message,
-            errorDetails: (upsertError as any)?.details,
-            errorHint: (upsertError as any)?.hint,
+        if (batchUpsertError) {
+          debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error batch upserting elements:`, {
+            error: batchUpsertError,
+            elementsCount: elementsToSave.length,
+            errorCode: (batchUpsertError as any)?.code,
+            errorMessage: (batchUpsertError as any)?.message,
           });
-          toast.error(`Error al guardar elemento ${element.element_name}`);
+          toast.error(`Error al guardar ${elementsToSave.length} elementos`);
         } else {
-          console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Saved element:`, {
-            element_name: element.element_name,
-            zone_id: element.zone_id,
-            condition: element.condition,
-            hasNotes: !!element.notes,
-            notesPreview: element.notes?.substring(0, 50),
-            photosCount: element.image_urls?.length || 0,
-          });
+          debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Batch saved ${elementsToSave.length} elements successfully`);
+          
+          // Optimización: Solo refetch si hay elementos con fotos que necesitan URLs actualizadas
+          // Esto evita el refetch completo innecesario que puede tomar 1-3 segundos
+          const hasPhotosToUpdate = elementsToSave.some(e => 
+            e.image_urls && e.image_urls.length > 0 && 
+            e.image_urls.some(url => url.startsWith('data:') || !url.startsWith('http'))
+          );
+          
+          if (hasPhotosToUpdate) {
+            // Refetch solo si hay fotos que necesitan URLs actualizadas desde Storage
+            debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Refetching to update photo URLs...`);
+            await refetchInspection();
+          } else {
+            // No refetch necesario - el estado local ya está actualizado
+            debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping refetch - no photos to update`);
+          }
         }
       }
 
-      // Refetch para obtener los datos actualizados
-      await refetchInspection();
-
-      console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Section saved successfully`);
+      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Section saved successfully`);
       toast.success("Sección guardada correctamente");
     } catch (error) {
-      console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error saving section:`, error);
+      debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error saving section:`, error);
       toast.error("Error al guardar sección");
     } finally {
       savingRef.current = false;
@@ -1522,7 +1562,7 @@ export function useSupabaseChecklistBase({
 
   // Actualizar sección en el estado local
   const updateSection = useCallback(async (sectionId: string, sectionData: Partial<ChecklistSection>) => {
-    console.log(`🔄 [useSupabaseChecklistBase:${inspectionType}] updateSection CALLED:`, {
+    debugLog(`🔄 [useSupabaseChecklistBase:${inspectionType}] updateSection CALLED:`, {
       sectionId,
       sectionDataKeys: Object.keys(sectionData),
       dynamicItemsLength: sectionData.dynamicItems?.length || 0,
@@ -1701,8 +1741,12 @@ export function useSupabaseChecklistBase({
 
     currentSectionRef.current = sectionId;
     pendingSaveRef.current = { sectionId, sectionData };
-    console.log(`✅ [useSupabaseChecklistBase:${inspectionType}] updateSection COMPLETED`);
-  }, [inspectionType]);
+    
+    // Guardado automático con debounce (agrupa múltiples cambios en un solo guardado)
+    debouncedSave();
+    
+    debugLog(`✅ [useSupabaseChecklistBase:${inspectionType}] updateSection COMPLETED`);
+  }, [inspectionType, debouncedSave]);
 
   // Finalizar checklist
   const finalizeChecklist = useCallback(async (data?: {
