@@ -332,23 +332,20 @@ export async function finalizeInitialCheckInAirtable(
     // 1. Cargar checklist desde Supabase
     const inspectionType = checklistType === 'reno_initial' ? 'initial' : 'final';
     
-    // Intentar primero con inspection_status = 'completed'
+    // Buscar la inspección más reciente del tipo correcto
     let { data: inspection, error: inspectionError } = await supabase
       .from('property_inspections')
-      .select('id')
+      .select('id, inspection_status, completed_at')
       .eq('property_id', propertyId)
-      .eq('inspection_status', 'completed')
-      .order('completed_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    // Si no se encuentra con inspection_status = 'completed', buscar la más reciente
-    // (puede que aún no se haya actualizado el status)
-    if (inspectionError || !inspection) {
-      console.warn('[Initial Check Sync] No completed inspection found, searching for latest inspection');
+    // Si hay un error o no se encuentra, intentar sin filtro de inspection_type (por compatibilidad)
+    if (inspectionError && (inspectionError.code === '42883' || inspectionError.message?.includes('column'))) {
       const { data: latestInspection, error: latestError } = await supabase
         .from('property_inspections')
-        .select('id')
+        .select('id, inspection_status, completed_at')
         .eq('property_id', propertyId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -357,7 +354,24 @@ export async function finalizeInitialCheckInAirtable(
       if (!latestError && latestInspection) {
         inspection = latestInspection;
         inspectionError = null;
-        console.log('[Initial Check Sync] Using latest inspection:', latestInspection.id);
+      }
+    }
+
+    // Si encontramos una inspección pero no está completada, completarla ahora
+    if (!inspectionError && inspection && inspection.inspection_status !== 'completed') {
+      console.log('[Initial Check Sync] Inspection not completed, completing it now:', inspection.id);
+      const { error: completeError } = await supabase
+        .from('property_inspections')
+        .update({
+          inspection_status: 'completed',
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', inspection.id);
+      
+      if (completeError) {
+        console.error('[Initial Check Sync] Error completing inspection:', completeError);
+      } else {
+        console.log('[Initial Check Sync] ✅ Inspection completed successfully');
       }
     }
 
@@ -421,13 +435,24 @@ export async function finalizeInitialCheckInAirtable(
     }
 
     // Preparar actualizaciones según la lógica especificada:
-    // 1. Set up status: "Pending to budget (from renovator)"
-    // 2. Visit Date: fecha del día que se envía
-    // 3. Reno checklist form: link público del PDF del checklist
+    // Para reno_initial:
+    //   1. Set up status: "Pending to budget (from renovator)"
+    //   2. Visit Date: fecha del día que se envía
+    //   3. Reno checklist form: link público del PDF del checklist
+    // Para reno_final:
+    //   1. Set up status: "Cleaning" (pasa de Final check -> Cleaning)
+    //   2. Visit Date: fecha del día que se envía
+    //   3. Reno checklist form: link público del PDF del checklist
     const updates: Record<string, any> = {};
 
-    // 1. Set Up Status: fldE95fZPdw45XV2J -> "Pending to budget (from renovator)"
-    updates['fldE95fZPdw45XV2J'] = 'Pending to budget (from renovator)';
+    // 1. Set Up Status: fldE95fZPdw45XV2J
+    //    - reno_initial -> "Pending to budget (from renovator)"
+    //    - reno_final -> "Cleaning" (pasa de Final check -> Cleaning)
+    if (checklistType === 'reno_final') {
+      updates['fldE95fZPdw45XV2J'] = 'Cleaning';
+    } else {
+      updates['fldE95fZPdw45XV2J'] = 'Pending to budget (from renovator)';
+    }
 
     // 2. Visit Date: flddFKqUl6WiDe97c -> fecha del día que se envía
     const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -460,10 +485,10 @@ export async function finalizeInitialCheckInAirtable(
           renoPhase: 'reno-budget-renovator',
         });
       } else if (checklistType === 'reno_final') {
-        // Checklist final: mover a done (o la fase que corresponda)
-        // Por ahora, dejamos que el Set Up Status determine la fase
+        // Checklist final: pasar de Final Check -> Cleaning
         await updatePropertyPhaseConsistent(propertyId, {
-          setUpStatus: 'Final Check Complete',
+          setUpStatus: 'Cleaning',
+          renoPhase: 'cleaning',
         });
       }
     } else {
