@@ -1,4 +1,4 @@
-import { ChecklistData } from '@/lib/checklist-storage';
+import { ChecklistData, ChecklistStatus } from '@/lib/checklist-storage';
 
 /**
  * Helper para obtener el label traducido de un elemento
