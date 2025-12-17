@@ -18,6 +18,7 @@ interface ChecklistUploadZoneProps {
   maxFiles?: number;
   maxSizeMB?: number;
   hideTitle?: boolean; // Para ocultar el título cuando se muestra fuera del Card
+  readOnly?: boolean; // Si es true, el componente es solo lectura
 }
 
 const DEFAULT_MAX_SIZE = 5; // MB
@@ -33,6 +34,7 @@ export function ChecklistUploadZone({
   maxFiles = 10,
   maxSizeMB = DEFAULT_MAX_SIZE,
   hideTitle = false,
+  readOnly = false,
 }: ChecklistUploadZoneProps) {
   // Detectar si estamos en mobile o tablet (no desktop)
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
@@ -195,6 +197,7 @@ export function ChecklistUploadZone({
   // Unified drop handler that routes files to the correct hook
   const handleUnifiedDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
+    if (readOnly) return;
     photosHook.handleDragLeave(e);
     videosHook.handleDragLeave(e);
     
@@ -361,7 +364,7 @@ export function ChecklistUploadZone({
           photosHook.handleDragLeave(e);
           videosHook.handleDragLeave(e);
         }}
-        onDrop={handleUnifiedDrop}
+        onDrop={readOnly ? undefined : handleUnifiedDrop}
       >
         <Upload className="h-8 w-8 mx-auto text-[var(--prophero-gray-400)] mb-2" />
         <p className="text-sm text-[var(--prophero-gray-600)] dark:text-[var(--prophero-gray-400)] mb-2">
@@ -399,13 +402,14 @@ export function ChecklistUploadZone({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (photosHook.fileInputRef.current) {
+                  if (!readOnly && photosHook.fileInputRef.current) {
                     photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
                     photosHook.fileInputRef.current.capture = "environment";
                     photosHook.fileInputRef.current.multiple = true;
                     photosHook.fileInputRef.current.click();
                   }
                 }}
+                disabled={readOnly}
                 className="flex items-center gap-1"
               >
                 <Camera className="h-4 w-4" />
@@ -416,13 +420,14 @@ export function ChecklistUploadZone({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (photosHook.fileInputRef.current) {
+                  if (!readOnly && photosHook.fileInputRef.current) {
                     photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
                     photosHook.fileInputRef.current.removeAttribute('capture');
                     photosHook.fileInputRef.current.multiple = true;
                     photosHook.fileInputRef.current.click();
                   }
                 }}
+                disabled={readOnly}
                 className="flex items-center gap-1"
               >
                 <ImageIcon className="h-4 w-4" />
@@ -433,13 +438,14 @@ export function ChecklistUploadZone({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (videosHook.fileInputRef.current) {
+                  if (!readOnly && videosHook.fileInputRef.current) {
                     videosHook.fileInputRef.current.accept = VIDEO_TYPES.join(",");
                     videosHook.fileInputRef.current.capture = "environment";
                     videosHook.fileInputRef.current.multiple = true;
                     videosHook.fileInputRef.current.click();
                   }
                 }}
+                disabled={readOnly}
                 className="flex items-center gap-1"
               >
                 <Video className="h-4 w-4" />
@@ -450,13 +456,14 @@ export function ChecklistUploadZone({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (videosHook.fileInputRef.current) {
+                  if (!readOnly && videosHook.fileInputRef.current) {
                     videosHook.fileInputRef.current.accept = VIDEO_TYPES.join(",");
                     videosHook.fileInputRef.current.removeAttribute('capture');
                     videosHook.fileInputRef.current.multiple = true;
                     videosHook.fileInputRef.current.click();
                   }
                 }}
+                disabled={readOnly}
                 className="flex items-center gap-1"
               >
                 <Video className="h-4 w-4" />
@@ -470,7 +477,8 @@ export function ChecklistUploadZone({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => photosHook.fileInputRef.current?.click()}
+                onClick={() => !readOnly && photosHook.fileInputRef.current?.click()}
+                disabled={readOnly}
                 className="flex items-center gap-1"
               >
                 <ImageIcon className="h-4 w-4" />
@@ -480,7 +488,8 @@ export function ChecklistUploadZone({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => videosHook.fileInputRef.current?.click()}
+                onClick={() => !readOnly && videosHook.fileInputRef.current?.click()}
+                disabled={readOnly}
                 className="flex items-center gap-1"
               >
                 <Video className="h-4 w-4" />
@@ -532,13 +541,15 @@ export function ChecklistUploadZone({
                       <span className="text-xs text-red-500 mt-1">No data</span>
                     </div>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => handleRemovePhoto(index)}
-                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePhoto(index)}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -553,13 +564,15 @@ export function ChecklistUploadZone({
                 <div className="absolute bottom-2 left-2 right-2">
                   <p className="text-xs text-foreground truncate bg-black/50 text-white px-1 py-0.5 rounded">{file.name}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveVideo(index)}
-                  className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveVideo(index)}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
