@@ -122,23 +122,8 @@ export async function getChecklistPDFUrl(
     // Crear cliente anónimo solo para generar URL pública
     const anonymousClient = createAnonymousClient();
     
-    // Primero verificar si el archivo existe
-    const { data: fileData, error: fileError } = await anonymousClient.storage
-      .from(STORAGE_BUCKET)
-      .list(`${propertyId}/${type}`, {
-        limit: 1,
-        search: 'checklist.html'
-      });
-
-    if (fileError) {
-      console.warn('[checklist-html-storage] Error checking file existence:', fileError.message);
-    }
-
-    if (!fileData || fileData.length === 0) {
-      console.warn('[checklist-html-storage] File not found in Storage:', path);
-      return null;
-    }
-
+    // Generar URL pública directamente (no verificamos existencia porque puede fallar por permisos)
+    // Si el archivo no existe, el proxy mostrará un error 400 que ya está manejado
     const { data: publicUrlData } = anonymousClient.storage
       .from(STORAGE_BUCKET)
       .getPublicUrl(path);
