@@ -48,8 +48,30 @@ export async function PATCH(
 
     // Actualizar rol si se especificó
     if (role) {
-      // Actualizar en Supabase
-      await syncAuth0RoleToSupabase(userId, [role], { role });
+      console.log('[PATCH /api/admin/users] Updating role:', { userId, role });
+      
+      // Actualizar en Supabase usando cliente admin
+      try {
+        const { error: upsertError } = await adminSupabase
+          .from('user_roles')
+          .upsert({
+            user_id: userId,
+            role: role,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id',
+          });
+
+        if (upsertError) {
+          console.error('[PATCH /api/admin/users] ❌ Error updating role in Supabase:', upsertError);
+          throw new Error(`Failed to update role in Supabase: ${upsertError.message}`);
+        } else {
+          console.log('[PATCH /api/admin/users] ✅ Role updated in Supabase:', role);
+        }
+      } catch (supabaseError: any) {
+        console.error('[PATCH /api/admin/users] ❌ Error updating role:', supabaseError);
+        throw supabaseError;
+      }
 
       // Actualizar en Auth0 (si el usuario tiene auth0_user_id)
       try {
@@ -57,10 +79,12 @@ export async function PATCH(
         const auth0UserId = supabaseUser?.user?.app_metadata?.auth0_user_id;
         
         if (auth0UserId) {
+          console.log('[PATCH /api/admin/users] Updating Auth0 role:', { auth0UserId, role });
           const auth0Client = getAuth0ManagementClient();
           
           // Obtener roles actuales
           const currentRoles = await auth0Client.getUserRoles(auth0UserId);
+          console.log('[PATCH /api/admin/users] Current Auth0 roles:', currentRoles.map(r => r.name));
           
           // Remover todos los roles actuales
           for (const currentRole of currentRoles) {
@@ -69,6 +93,9 @@ export async function PATCH(
           
           // Asignar nuevo rol
           await auth0Client.assignRoleToUser(auth0UserId, role);
+          console.log('[PATCH /api/admin/users] ✅ Auth0 role updated:', role);
+        } else {
+          console.log('[PATCH /api/admin/users] No Auth0 user ID found, skipping Auth0 update');
         }
       } catch (auth0Error) {
         console.warn('[PATCH /api/admin/users] Auth0 update failed:', auth0Error);
