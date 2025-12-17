@@ -93,21 +93,6 @@ export function useSupabaseChecklistBase({
     createInitialZones: (inspectionId: string) => Promise<void>;
   } | null>(null);
   
-  // Helper para debounce - agrupa múltiples guardados en uno solo
-  const debouncedSave = useCallback(() => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    saveTimeoutRef.current = setTimeout(async () => {
-      if (pendingSaveRef.current && !savingRef.current) {
-        const { sectionId } = pendingSaveRef.current;
-        currentSectionRef.current = sectionId;
-        await saveCurrentSection();
-        // No limpiar pendingSaveRef aquí porque saveCurrentSection lo maneja
-      }
-    }, 2000); // 2 segundos de debounce - agrupa cambios rápidos
-  }, [saveCurrentSection]);
-  
   // Keep checklistRef in sync with checklist state
   useEffect(() => {
     checklistRef.current = checklist;
@@ -1594,6 +1579,22 @@ export function useSupabaseChecklistBase({
       savingRef.current = false;
     }
   }, [checklist, inspection, supabaseProperty, checklistType, refetchInspection, inspectionType]);
+
+  // Helper para debounce - agrupa múltiples guardados en uno solo
+  // Se declara después de saveCurrentSection para evitar error de "used before declaration"
+  const debouncedSave = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (pendingSaveRef.current && !savingRef.current) {
+        const { sectionId } = pendingSaveRef.current;
+        currentSectionRef.current = sectionId;
+        await saveCurrentSection();
+        // No limpiar pendingSaveRef aquí porque saveCurrentSection lo maneja
+      }
+    }, 2000); // 2 segundos de debounce - agrupa cambios rápidos
+  }, [saveCurrentSection]);
 
   // Actualizar sección en el estado local
   const updateSection = useCallback(async (sectionId: string, sectionData: Partial<ChecklistSection>) => {
