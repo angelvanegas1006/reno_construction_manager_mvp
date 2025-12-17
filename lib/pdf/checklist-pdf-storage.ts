@@ -95,13 +95,27 @@ export async function uploadChecklistPDFToStorage(
 }
 
 /**
+ * Crea un cliente Supabase anónimo para acceso público (sin autenticación)
+ */
+function createAnonymousClient() {
+  const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+
+/**
  * Obtiene la URL pública del HTML del checklist si existe
+ * Versión pública que no requiere autenticación
  */
 export async function getChecklistPDFUrl(
   propertyId: string,
-  checklistType: 'reno_initial' | 'reno_final'
+  checklistType: 'reno_initial' | 'reno_final',
+  isPublic: boolean = false
 ): Promise<string | null> {
-  const supabase = createClient();
+  // Para rutas públicas, usar cliente anónimo directamente
+  const supabase = isPublic ? createAnonymousClient() : createClient();
 
   // Primero intentar obtener desde property_inspections
   const inspectionType = checklistType === 'reno_initial' ? 'initial' : 'final';
