@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function updateSession(request: NextRequest) {
+  // Skip authentication checks for public routes
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith('/checklist-public') || pathname.startsWith('/api/proxy-html')) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
