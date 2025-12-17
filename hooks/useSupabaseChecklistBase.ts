@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 // Helper para condicionar logs solo en desarrollo
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -86,6 +86,7 @@ export function useSupabaseChecklistBase({
   const lastInspectionLoadingRef = useRef<boolean>(true);
   const lastInspectionIdRef = useRef<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastConversionRef = useRef<{ key: string; data: Partial<ChecklistData> } | null>(null);
   const functionsRef = useRef<{
     createInspection: (propertyId: string, type: InspectionType) => Promise<any>;
     refetchInspection: () => Promise<void>;
@@ -595,12 +596,31 @@ export function useSupabaseChecklistBase({
             photoElementsCount: photoElementsDetails.length,
           });
           
-          const supabaseData = convertSupabaseToChecklist(
-            zones,
-            elements,
-            supabaseProperty.bedrooms || null,
-            supabaseProperty.bathrooms || null
-          );
+          // Memoizar conversión usando cache key basada en los datos
+          // Crear una key única basada en los datos de entrada para cachear
+          const zonesKey = zones.map(z => `${z.id}-${z.zone_type}`).join(',');
+          const elementsKey = elements.map(e => `${e.id}-${e.element_name}-${e.zone_id}`).join(',');
+          const bedroomsKey = supabaseProperty.bedrooms || 'null';
+          const bathroomsKey = supabaseProperty.bathrooms || 'null';
+          const conversionCacheKey = `${zonesKey}|${elementsKey}|${bedroomsKey}|${bathroomsKey}`;
+          
+          // Usar ref para cachear la última conversión y evitar recalcular si los datos no cambiaron
+          let supabaseData: Partial<ChecklistData>;
+          if (lastConversionRef.current?.key === conversionCacheKey) {
+            // Reutilizar datos cacheados si la key no cambió
+            supabaseData = lastConversionRef.current.data;
+            debugLog(`[useSupabaseChecklistBase:${inspectionType}] ♻️ Using cached conversion data`);
+          } else {
+            // Recalcular solo si los datos cambiaron
+            supabaseData = convertSupabaseToChecklist(
+              zones,
+              elements,
+              supabaseProperty.bedrooms || null,
+              supabaseProperty.bathrooms || null
+            );
+            lastConversionRef.current = { key: conversionCacheKey, data: supabaseData };
+            debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Recalculated conversion data`);
+          }
           
           const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
           setChecklist(loadedChecklist);
@@ -801,13 +821,28 @@ export function useSupabaseChecklistBase({
       lastProcessedElementsLengthRef.current = elements.length;
       
       // Memoizar conversión para evitar recálculos innecesarios
-      // Solo convertir si realmente hay cambios en los datos
-      const supabaseData = convertSupabaseToChecklist(
-        zones,
-        elements,
-        bedroomsCount,
-        bathroomsCount
-      );
+      // Crear cache key basada en los datos de entrada
+      const zonesKey = zones.map(z => `${z.id}-${z.zone_type}`).join(',');
+      const elementsKey = elements.map(e => `${e.id}-${e.element_name}-${e.zone_id}`).join(',');
+      const conversionCacheKey = `${zonesKey}|${elementsKey}|${bedroomsCount}|${bathroomsCount}`;
+      
+      // Usar ref para cachear la última conversión
+      let supabaseData: Partial<ChecklistData>;
+      if (lastConversionRef.current?.key === conversionCacheKey) {
+        // Reutilizar datos cacheados si la key no cambió
+        supabaseData = lastConversionRef.current.data;
+        debugLog(`[useSupabaseChecklistBase:${inspectionType}] ♻️ Using cached conversion data in reload`);
+      } else {
+        // Recalcular solo si los datos cambiaron
+        supabaseData = convertSupabaseToChecklist(
+          zones,
+          elements,
+          bedroomsCount,
+          bathroomsCount
+        );
+        lastConversionRef.current = { key: conversionCacheKey, data: supabaseData };
+        debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Recalculated conversion data in reload`);
+      }
       
       const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
       setChecklist(loadedChecklist);
