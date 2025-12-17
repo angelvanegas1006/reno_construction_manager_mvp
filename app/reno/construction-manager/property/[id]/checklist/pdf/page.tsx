@@ -13,6 +13,7 @@ export default function ChecklistPDFViewerPage() {
   const searchParams = useSearchParams();
   const propertyId = params?.id as string;
   const checklistType = searchParams?.get('type') as 'reno_initial' | 'reno_final' | null;
+  const from = searchParams?.get('from') as string | null;
   
   const [htmlUrl, setHtmlUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,10 +96,10 @@ export default function ChecklistPDFViewerPage() {
       <div className="min-h-screen bg-[var(--prophero-gray-50)] dark:bg-[#000000] flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-red-600 dark:text-red-400">{error || "Checklist no encontrado"}</p>
-          <Link href={`/reno/construction-manager/property/${propertyId}`}>
+          <Link href={from === 'status' ? `/reno/construction-manager/property/${propertyId}?tab=estado` : `/reno/construction-manager/property/${propertyId}`}>
             <Button variant="outline">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver a la propiedad
+              Volver
             </Button>
           </Link>
         </div>
@@ -111,7 +112,7 @@ export default function ChecklistPDFViewerPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-card dark:bg-[var(--prophero-gray-900)] border-b p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href={`/reno/construction-manager/property/${propertyId}`}>
+          <Link href={from === 'status' ? `/reno/construction-manager/property/${propertyId}?tab=estado` : `/reno/construction-manager/property/${propertyId}`}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
