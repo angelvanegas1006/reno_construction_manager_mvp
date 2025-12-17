@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    const checklistType = type === 'initial' ? 'reno_initial' : 'reno_final';
+    const checklistType: 'reno_initial' | 'reno_final' = type === 'initial' ? 'reno_initial' : 'reno_final';
     const inspectionType = type;
 
     // 1. Obtener la propiedad
