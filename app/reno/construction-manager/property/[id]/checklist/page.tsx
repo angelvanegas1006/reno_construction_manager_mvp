@@ -6,7 +6,7 @@ import { NavbarL3 } from "@/components/layout/navbar-l3";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
-import { ArrowLeft, Menu } from "lucide-react";
+import { ArrowLeft, Menu, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileSidebarMenu } from "@/components/property/mobile-sidebar-menu";
 import { CompleteInspectionDialog } from "@/components/reno/complete-inspection-dialog";
@@ -141,6 +141,11 @@ export default function RenoChecklistPage() {
     inspectionType
   );
 
+  // Check if checklist is completed (read-only mode)
+  const isChecklistCompleted = useMemo(() => {
+    return inspection?.inspection_status === 'completed' || inspection?.completed_at !== null;
+  }, [inspection]);
+
   // Get dynamic categories for reno-in-progress phase
   const { categories: dynamicCategories } = useDynamicCategories(propertyId);
 
@@ -192,13 +197,17 @@ export default function RenoChecklistPage() {
   // Combine loading states - also check if checklist is null when we have a property
   const isFullyLoading = isLoading || checklistLoading || (property && !checklist);
 
-  // Update checklist section
+  // Update checklist section (disabled if completed)
   const updateChecklistSection = useCallback(
     (sectionId: string, updates: any) => {
+      if (isChecklistCompleted) {
+        toast.info("Este checklist está completado y es solo lectura");
+        return;
+      }
       updateSection(sectionId, updates);
       setHasUnsavedChanges(true);
     },
-    [updateSection]
+    [updateSection, isChecklistCompleted]
   );
 
   // Handle section click - NO guardar automáticamente, solo cambiar de sección
@@ -959,30 +968,34 @@ export default function RenoChecklistPage() {
         formTitle={formTitle}
         statusText={hasUnsavedChanges ? undefined : "Cambios guardados"}
         onMenuClick={() => setIsMobileSidebarOpen(true)}
-        actions={[
-          {
-            label: t.property.save,
-            onClick: handleSave,
-            variant: "outline",
-            disabled: !hasUnsavedChanges,
-          },
-          {
-            label: t.checklist.submitChecklist,
-            onClick: async () => {
-              if (!property) return;
-              await finalizeChecklist({
-                estimatedVisitDate: property.estimatedVisitDate,
-                autoVisitDate: new Date().toISOString().split('T')[0],
-                nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
-              });
-              setTimeout(() => {
-                router.push("/reno/construction-manager/kanban");
-              }, 2000);
-            },
-            variant: "default" as const,
-            disabled: !canComplete || isCompleting,
-          },
-        ]}
+        actions={
+          isChecklistCompleted
+            ? [] // No actions when completed (read-only)
+            : [
+                {
+                  label: t.property.save,
+                  onClick: handleSave,
+                  variant: "outline",
+                  disabled: !hasUnsavedChanges,
+                },
+                {
+                  label: t.checklist.submitChecklist,
+                  onClick: async () => {
+                    if (!property) return;
+                    await finalizeChecklist({
+                      estimatedVisitDate: property.estimatedVisitDate,
+                      autoVisitDate: new Date().toISOString().split('T')[0],
+                      nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
+                    });
+                    setTimeout(() => {
+                      router.push("/reno/construction-manager/kanban");
+                    }, 2000);
+                  },
+                  variant: "default" as const,
+                  disabled: !canComplete || isCompleting,
+                },
+              ]
+        }
       />
 
       {/* L3: Sidebar de contenido (navegación de pasos del formulario) */}
@@ -1008,6 +1021,18 @@ export default function RenoChecklistPage() {
         <div className="flex-1 overflow-y-auto bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
           <div className="pt-32 px-4 md:px-6 pb-24 md:pb-6">
             <div className="max-w-4xl mx-auto">
+              {/* Banner de solo lectura cuando está completado */}
+              {isChecklistCompleted && (
+                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Este checklist está completado y es solo lectura. Puedes revisar la información pero no realizar cambios.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               {/* Título y descripción fuera del contenedor */}
               {sectionInfo.title && (
                 <div className="mb-6 space-y-2">

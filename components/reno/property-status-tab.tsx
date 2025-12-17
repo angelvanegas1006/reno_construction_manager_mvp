@@ -1,10 +1,11 @@
 "use client";
 
-import { Calendar, CheckCircle2, Clock, FileText } from "lucide-react";
+import { Calendar, CheckCircle2, Clock, FileText, Download, ExternalLink } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface ChecklistHistory {
   id: string;
@@ -13,6 +14,7 @@ interface ChecklistHistory {
   created_at: string;
   completed_at: string | null;
   created_by: string | null;
+  pdf_url: string | null;
 }
 
 interface PropertyStatusTabProps {
@@ -40,7 +42,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
       // Try to fetch with inspection_type first
       const { data, error } = await supabase
         .from('property_inspections')
-        .select('id, inspection_type, inspection_status, created_at, completed_at, created_by')
+        .select('id, inspection_type, inspection_status, created_at, completed_at, created_by, pdf_url')
         .eq('property_id', propertyId)
         .order('created_at', { ascending: false });
 
@@ -49,7 +51,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
         console.warn('Campo inspection_type no existe aún, buscando sin filtro:', error);
         const { data: allData, error: allError } = await supabase
           .from('property_inspections')
-          .select('id, inspection_status, created_at, completed_at, created_by')
+          .select('id, inspection_status, created_at, completed_at, created_by, pdf_url')
           .eq('property_id', propertyId)
           .order('created_at', { ascending: false });
         
@@ -79,6 +81,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
           created_at: item.created_at,
           completed_at: item.completed_at,
           created_by: item.created_by,
+          pdf_url: item.pdf_url || null,
         }));
         setChecklists(checklists);
       } else {
@@ -173,15 +176,28 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
                 </div>
               </div>
 
-              <button
-                className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors"
-                onClick={() => {
-                  // Navigate to checklist view
-                  window.location.href = `/reno/construction-manager/property/${propertyId}/checklist?type=${checklist.inspection_type}`;
-                }}
-              >
-                {t.propertyStatusTab.viewDetails} →
-              </button>
+              <div className="flex items-center gap-2">
+                {isCompleted && checklist.pdf_url && (
+                  <Link
+                    href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=${checklist.inspection_type === 'initial' ? 'reno_initial' : 'reno_final'}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Ver PDF
+                  </Link>
+                )}
+                <button
+                  className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors"
+                  onClick={() => {
+                    // Navigate to checklist view
+                    window.location.href = `/reno/construction-manager/property/${propertyId}/checklist?type=${checklist.inspection_type}`;
+                  }}
+                >
+                  {t.propertyStatusTab.viewDetails} →
+                </button>
+              </div>
             </div>
           </div>
         );

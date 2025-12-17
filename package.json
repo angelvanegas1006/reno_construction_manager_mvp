@@ -65,7 +65,8 @@
     "verify:days-fields": "tsx scripts/verify-days-fields.ts",
     "find:missing-fields": "tsx scripts/find-missing-fields.ts",
     "clear:properties": "tsx scripts/clear-properties-table.ts",
-    "verify:table-empty": "tsx scripts/verify-table-empty.ts"
+    "verify:table-empty": "tsx scripts/verify-table-empty.ts",
+    "test:pdf-generation": "tsx scripts/test-pdf-generation.ts"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.10.0",
@@ -86,6 +87,8 @@
     "clsx": "^2.1.1",
     "cookie": "^0.6.0",
     "date-fns": "^4.1.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.4",
     "lucide-react": "^0.556.0",
     "mixpanel-browser": "^2.72.0",
     "next": "^16.0.10",
@@ -108,6 +111,7 @@
     "dotenv": "^17.2.3",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.10",
+    "canvas": "^3.2.0",
     "jsdom": "^24.0.0",
     "tailwindcss": "^4.1.17",
     "tsx": "^4.21.0",

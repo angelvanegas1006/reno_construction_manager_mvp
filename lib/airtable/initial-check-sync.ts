@@ -1,8 +1,11 @@
 "use client";
 
-import { updateAirtableWithRetry, findRecordByPropertyId } from './client';
+import { updateAirtableWithRetry, findRecordByPropertyId, findTransactionsRecordIdByUniqueId } from './client';
 import { createClient } from '@/lib/supabase/client';
 import { mapSetUpStatusToKanbanPhase } from '@/lib/supabase/kanban-mapping';
+import { uploadChecklistPDFToStorage } from '@/lib/pdf/checklist-pdf-storage';
+import { convertSupabaseToChecklist } from '@/lib/supabase/checklist-converter';
+import { ChecklistData } from '@/lib/checklist-storage';
 
 /**
  * Actualiza SetUpnotes en Airtable agregando una nueva línea con timestamp
@@ -264,15 +267,17 @@ export async function syncChecklistToAirtable(
 }
 
 /**
- * Genera URL pública del checklist
+ * Genera URL pública del PDF del checklist
  */
 export function generateChecklistPublicUrl(propertyId: string, checklistType: 'reno_initial' | 'reno_final'): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://dev.vistral.io';
   const publicBaseUrl = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
   
-  // URL pública del checklist (sin autenticación requerida)
-  // Esto debería ser una ruta pública que muestre el checklist en modo lectura
-  return `${publicBaseUrl}/reno/construction-manager/property/${propertyId}/checklist/public?type=${checklistType}`;
+  // Convertir tipo de checklist a formato de ruta pública
+  const type = checklistType === 'reno_initial' ? 'initial' : 'final';
+  
+  // URL pública del checklist HTML (compartible sin autenticación)
+  return `${publicBaseUrl}/checklist-public/${propertyId}/${type}`;
 }
 
 /**
@@ -293,64 +298,131 @@ export async function finalizeInitialCheckInAirtable(
   const tableName = 'Transactions';
   
   try {
-    const { data: property, error } = await supabase
+    // Obtener información completa de la propiedad de Supabase
+    const { data: property, error: propertyError } = await supabase
       .from('properties')
-      .select('airtable_property_id')
+      .select('"Unique ID From Engagements", address, "Renovator name", bedrooms, bathrooms')
       .eq('id', propertyId)
       .single();
 
-    if (error || !property) {
-      console.error('Property not found in Supabase:', propertyId);
+    if (propertyError || !property) {
+      console.error('[Initial Check Sync] Property not found in Supabase:', propertyId);
       return false;
     }
 
-    // Use airtable_property_id (Record_ID) as the key to match records
-    const airtablePropertyId = property.airtable_property_id;
+    const uniqueId = property['Unique ID From Engagements'];
     
-    // Validate that airtable_property_id exists (all properties should have it)
-    if (!airtablePropertyId) {
-      console.error(`[Initial Check Sync] Property ${propertyId} does not have airtable_property_id. All properties should have this field because they are created from Airtable.`);
+    if (!uniqueId) {
+      console.error(`[Initial Check Sync] Property ${propertyId} does not have Unique ID From Engagements. Cannot update Airtable.`);
       return false;
     }
 
-    // Validate Record ID using findRecordByPropertyId (simplified to only use Record ID)
-    const recordId = await findRecordByPropertyId(tableName, airtablePropertyId);
+    console.log(`[Initial Check Sync] Searching Transactions by Unique ID:`, uniqueId);
+
+    // Buscar Record ID usando Unique ID From Engagements
+    const recordId = await findTransactionsRecordIdByUniqueId(uniqueId);
 
     if (!recordId) {
-      console.error(`[Initial Check Sync] Airtable record not found for property ${propertyId} with Record ID ${airtablePropertyId}.`);
+      console.error(`[Initial Check Sync] Airtable Transactions record not found for Unique ID ${uniqueId}.`);
       return false;
     }
 
-    // Preparar actualizaciones
-    const updates: Record<string, any> = {
-      'Set Up Status': 'Pending to budget (from Renovator)',
-      'Initial Check Complete': true,
-    };
+    console.log(`[Initial Check Sync] ✅ Found Transactions Record ID:`, recordId);
 
-    // Incluir progreso del checklist (100% al finalizar)
-    if (data.progress !== undefined) {
-      updates['Checklist Progress'] = data.progress;
-    } else {
-      // Si no se proporciona progreso, asumir 100% al finalizar
-      updates['Checklist Progress'] = 100;
+    // 1. Cargar checklist desde Supabase
+    const inspectionType = checklistType === 'reno_initial' ? 'initial' : 'final';
+    const { data: inspection, error: inspectionError } = await supabase
+      .from('property_inspections')
+      .select('id')
+      .eq('property_id', propertyId)
+      .eq('inspection_status', 'completed')
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    let pdfUrl: string | null = null;
+
+    if (!inspectionError && inspection) {
+      // Cargar zonas y elementos del checklist
+      const { data: zones } = await supabase
+        .from('inspection_zones')
+        .select('*')
+        .eq('inspection_id', inspection.id);
+
+      const { data: elements } = await supabase
+        .from('inspection_elements')
+        .select('*')
+        .in('zone_id', zones?.map(z => z.id) || []);
+
+      if (zones && elements) {
+        // Convertir a formato ChecklistData
+        const checklistData = convertSupabaseToChecklist(
+          zones,
+          elements,
+          property.bedrooms,
+          property.bathrooms
+        );
+
+        // Crear ChecklistData completo
+        const fullChecklist: ChecklistData = {
+          propertyId,
+          checklistType,
+          sections: checklistData.sections || {},
+          completedAt: new Date().toISOString(),
+          createdAt: checklistData.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        // 2. Generar y subir PDF
+        try {
+          console.log('[Initial Check Sync] 📄 Generating PDF...');
+          pdfUrl = await uploadChecklistPDFToStorage(
+            fullChecklist,
+            {
+              address: property.address || propertyId,
+              propertyId,
+              renovatorName: property['Renovator name'] || undefined,
+            },
+            'es' // Por ahora siempre en español
+          );
+          console.log('[Initial Check Sync] ✅ PDF generated and uploaded:', pdfUrl);
+
+          // Guardar URL del PDF en property_inspections
+          await supabase
+            .from('property_inspections')
+            .update({ pdf_url: pdfUrl })
+            .eq('id', inspection.id);
+        } catch (pdfError: any) {
+          console.error('[Initial Check Sync] ❌ Error generating PDF:', pdfError);
+          // Continuar aunque falle la generación del PDF
+        }
+      }
     }
 
-    // Field IDs específicos de Airtable
-    if (data.estimatedVisitDate) {
-      updates['fldIhqPOAFL52MMBn'] = data.estimatedVisitDate; // Estimated visit date
-    }
-    
-    if (data.autoVisitDate) {
-      updates['Auto Visit Date'] = data.autoVisitDate;
-    }
-    
-    if (data.nextRenoSteps) {
-      updates['fldwzJJY5jWtaUvl'] = data.nextRenoSteps; // Next Reno Steps
-    }
-    
-    // Generar URL pública del checklist
-    const checklistPublicUrl = generateChecklistPublicUrl(propertyId, checklistType);
-    updates['fldBOpKEktOI2GnZK'] = checklistPublicUrl; // Reno Checklist form
+    // Preparar actualizaciones según la lógica especificada:
+    // 1. Set up status: "Pending to budget (from renovator)"
+    // 2. Visit Date: fecha del día que se envía
+    // 3. Reno checklist form: link público del PDF del checklist
+    const updates: Record<string, any> = {};
+
+    // 1. Set Up Status: fldE95fZPdw45XV2J -> "Pending to budget (from renovator)"
+    updates['fldE95fZPdw45XV2J'] = 'Pending to budget (from renovator)';
+
+    // 2. Visit Date: flddFKqUl6WiDe97c -> fecha del día que se envía
+    const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    updates['flddFKqUl6WiDe97c'] = todayDate;
+
+    // 3. Reno checklist form: fldBOpKEktOI2GnZK -> link público del PDF del checklist
+    const checklistPublicUrl = pdfUrl || generateChecklistPublicUrl(propertyId, checklistType);
+    updates['fldBOpKEktOI2GnZK'] = checklistPublicUrl;
+
+    console.log(`[Initial Check Sync] 📋 About to update Airtable with:`, {
+      tableName,
+      recordId,
+      updates,
+      propertyId,
+      uniqueId,
+    });
 
     const success = await updateAirtableWithRetry(tableName, recordId, updates);
 
@@ -363,7 +435,7 @@ export async function finalizeInitialCheckInAirtable(
       if (checklistType === 'reno_initial') {
         // Checklist inicial: mover a reno-budget-renovator
         await updatePropertyPhaseConsistent(propertyId, {
-          setUpStatus: 'Pending to budget (from Renovator)',
+          setUpStatus: 'Pending to budget (from renovator)',
           renoPhase: 'reno-budget-renovator',
         });
       } else if (checklistType === 'reno_final') {
@@ -373,11 +445,17 @@ export async function finalizeInitialCheckInAirtable(
           setUpStatus: 'Final Check Complete',
         });
       }
+    } else {
+      console.error(`[Initial Check Sync] Failed to update Airtable for property ${propertyId}`);
     }
 
     return success;
-  } catch (error) {
-    console.error('Error finalizing initial check in Airtable:', error);
+  } catch (error: any) {
+    console.error('[Initial Check Sync] Error finalizing initial check in Airtable:', {
+      error: error?.message || error,
+      stack: error?.stack,
+      propertyId,
+    });
     return false;
   }
 }

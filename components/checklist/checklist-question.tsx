@@ -19,6 +19,7 @@ interface ChecklistQuestionProps {
   showPhotos?: boolean;
   showNotes?: boolean;
   elements?: Array<{ id: string; label: string }>; // Specific elements for this question
+  readOnly?: boolean; // Si es true, el componente es solo lectura
 }
 
 // Status options will be created using translations
@@ -32,6 +33,7 @@ export function ChecklistQuestion({
   showPhotos = true,
   showNotes = true,
   elements = [],
+  readOnly = false,
 }: ChecklistQuestionProps) {
   const { t } = useI18n();
   
@@ -147,12 +149,14 @@ export function ChecklistQuestion({
             <button
               key={option.value}
               type="button"
-              onClick={() => handleStatusChange(option.value)}
+              onClick={() => !readOnly && handleStatusChange(option.value)}
+              disabled={readOnly}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2.5 sm:py-2 rounded-lg border-2 transition-colors w-full min-h-[60px] sm:min-h-0",
                 isSelected
                   ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                  : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card"
+                  : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card",
+                readOnly && "opacity-60 cursor-not-allowed"
               )}
             >
               <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -198,10 +202,12 @@ export function ChecklistQuestion({
           </Label>
           <Textarea
             value={question?.notes || ""}
-            onChange={(e) => handleNotesChange(e.target.value)}
+            onChange={(e) => !readOnly && handleNotesChange(e.target.value)}
             placeholder={t.checklist.observationsPlaceholder}
             className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
             required={requiresDetails}
+            disabled={readOnly}
+            readOnly={readOnly}
           />
         </div>
       )}
@@ -217,6 +223,7 @@ export function ChecklistQuestion({
             isRequired={requiresDetails}
             maxFiles={10}
             maxSizeMB={5}
+            readOnly={readOnly}
           />
         </div>
       )}
