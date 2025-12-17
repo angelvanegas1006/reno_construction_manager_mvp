@@ -447,10 +447,6 @@ ${escapeHtml(statusLabel)}
 <div class="flex items-center gap-3">
 <h4 class="text-xl font-semibold text-slate-900 dark:text-white">${escapeHtml(itemLabel)}</h4>`;
 
-        if (dynamicItem.cantidad) {
-          html += `<span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium">${dynamicItem.cantidad} ud.</span>`;
-        }
-
         html += `</div>
 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-status-good-bg text-status-good-text ring-1 ring-inset ring-status-good-border">
 <span class="material-symbols-outlined text-sm">check_circle</span>
