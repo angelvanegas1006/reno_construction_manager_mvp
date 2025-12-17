@@ -185,16 +185,24 @@ export default function AdminUsersPage() {
     if (!selectedUser) return;
 
     try {
+      console.log('[AdminUsersPage] Updating user:', { userId: selectedUser.id, formData });
+      
       const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
+      console.log('[AdminUsersPage] Update response status:', response.status);
+
       if (!response.ok) {
         const error = await response.json();
+        console.error('[AdminUsersPage] Update error:', error);
         throw new Error(error.error || "Failed to update user");
       }
+
+      const result = await response.json();
+      console.log('[AdminUsersPage] Update success:', result);
 
       toast.success("Usuario actualizado exitosamente");
       setEditDialogOpen(false);
@@ -202,6 +210,7 @@ export default function AdminUsersPage() {
       setFormData({ email: "", password: "", name: "", role: "user" });
       loadUsers();
     } catch (error: any) {
+      console.error('[AdminUsersPage] Error updating user:', error);
       toast.error("Error actualizando usuario: " + error.message);
     }
   };
