@@ -6,13 +6,48 @@ export async function GET() {
     const supabase = await createClient();
 
     // Buscar inspecciones completadas con pdf_url
-    const { data: inspections, error } = await supabase
-      .from('property_inspections')
-      .select('property_id, inspection_type, pdf_url, completed_at')
-      .eq('inspection_status', 'completed')
-      .not('pdf_url', 'is', null)
-      .order('completed_at', { ascending: false })
-      .limit(20);
+    // Intentar primero con inspection_type, si falla buscar sin él
+    let inspections: any[] = [];
+    let error: any = null;
+
+    try {
+      const { data, error: queryError } = await supabase
+        .from('property_inspections')
+        .select('property_id, inspection_type, pdf_url, completed_at')
+        .eq('inspection_status', 'completed')
+        .not('pdf_url', 'is', null)
+        .order('completed_at', { ascending: false })
+        .limit(20);
+
+      if (queryError) {
+        // Si el error es que la columna no existe, intentar sin inspection_type
+        if (queryError.message?.includes('inspection_type') || queryError.code === '42883') {
+          console.warn('[find-completed-checklists] inspection_type column does not exist, querying without it');
+          const { data: dataWithoutType, error: errorWithoutType } = await supabase
+            .from('property_inspections')
+            .select('property_id, pdf_url, completed_at')
+            .eq('inspection_status', 'completed')
+            .not('pdf_url', 'is', null)
+            .order('completed_at', { ascending: false })
+            .limit(20);
+
+          if (errorWithoutType) {
+            error = errorWithoutType;
+          } else {
+            inspections = (dataWithoutType || []).map((insp: any) => ({
+              ...insp,
+              inspection_type: null // Marcar como null para detectarlo después
+            }));
+          }
+        } else {
+          error = queryError;
+        }
+      } else {
+        inspections = data || [];
+      }
+    } catch (err: any) {
+      error = err;
+    }
 
     if (error) {
       console.error('[find-completed-checklists] Error:', error);
@@ -33,7 +68,20 @@ export async function GET() {
     const validChecklists = [];
 
     for (const inspection of inspections) {
-      const type = inspection.inspection_type === 'initial' ? 'initial' : 'final';
+      // Intentar determinar el tipo desde inspection_type o desde la URL del PDF
+      let type: 'initial' | 'final' = 'initial';
+      
+      if (inspection.inspection_type) {
+        type = inspection.inspection_type === 'initial' ? 'initial' : 'final';
+      } else if (inspection.pdf_url) {
+        // Intentar inferir el tipo desde la URL del PDF
+        if (inspection.pdf_url.includes('/initial/')) {
+          type = 'initial';
+        } else if (inspection.pdf_url.includes('/final/')) {
+          type = 'final';
+        }
+      }
+
       const path = `${inspection.property_id}/${type}`;
       
       // Verificar si el archivo existe en Storage
@@ -50,8 +98,8 @@ export async function GET() {
         
         validChecklists.push({
           propertyId: inspection.property_id,
-          type: inspection.inspection_type,
-          typeLabel: inspection.inspection_type === 'initial' ? 'Inicial' : 'Final',
+          type: type,
+          typeLabel: type === 'initial' ? 'Inicial' : 'Final',
           completedAt: inspection.completed_at,
           publicUrl,
           storageUrl: inspection.pdf_url
