@@ -176,27 +176,16 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center">
                 {isCompleted && checklist.pdf_url && (
                   <Link
-                    href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=${checklist.inspection_type === 'initial' ? 'reno_initial' : 'reno_final'}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=${checklist.inspection_type === 'initial' ? 'reno_initial' : 'reno_final'}&from=status`}
                     className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors flex items-center gap-2"
                   >
                     <FileText className="h-4 w-4" />
-                    Ver PDF
+                    Ver informe
                   </Link>
                 )}
-                <button
-                  className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors"
-                  onClick={() => {
-                    // Navigate to checklist view
-                    window.location.href = `/reno/construction-manager/property/${propertyId}/checklist?type=${checklist.inspection_type}`;
-                  }}
-                >
-                  {t.propertyStatusTab.viewDetails} →
-                </button>
               </div>
             </div>
           </div>
