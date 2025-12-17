@@ -17,7 +17,16 @@ export async function POST(request: NextRequest) {
     console.log(`🔍 Buscando inspecciones para la propiedad: ${propertyId}`);
 
     // Buscar todas las inspecciones de la propiedad
-    let { data: inspections, error } = await supabase
+    type InspectionData = {
+      id: string;
+      inspection_type?: string | null;
+      inspection_status: string | null;
+      completed_at: string | null;
+      created_at: string;
+    };
+
+    let inspections: InspectionData[] | null = null;
+    let { data: inspectionsData, error } = await supabase
       .from('property_inspections')
       .select('id, inspection_type, inspection_status, completed_at, created_at')
       .eq('property_id', propertyId)
@@ -39,13 +48,15 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      inspections = allInspections;
+      inspections = allInspections as InspectionData[];
     } else if (error) {
       console.error('❌ Error al buscar inspecciones:', error);
       return NextResponse.json(
         { error: 'Error fetching inspections', details: error.message },
         { status: 500 }
       );
+    } else {
+      inspections = inspectionsData;
     }
 
     if (!inspections || inspections.length === 0) {
