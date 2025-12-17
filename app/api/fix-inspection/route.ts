@@ -48,15 +48,18 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      inspections = allInspections as InspectionData[];
+      inspections = (allInspections || []).map(insp => ({
+        ...insp,
+        inspection_type: undefined,
+      })) as InspectionData[];
     } else if (error) {
       console.error('❌ Error al buscar inspecciones:', error);
       return NextResponse.json(
         { error: 'Error fetching inspections', details: error.message },
         { status: 500 }
       );
-    } else {
-      inspections = inspectionsData;
+    } else if (inspectionsData) {
+      inspections = inspectionsData as InspectionData[];
     }
 
     if (!inspections || inspections.length === 0) {
