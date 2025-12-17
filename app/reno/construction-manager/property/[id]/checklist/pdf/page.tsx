@@ -20,6 +20,16 @@ export default function ChecklistPDFViewerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const handleBack = () => {
+    if (from === 'status') {
+      // Si viene desde el tab de estado, volver allí
+      router.push(`/reno/construction-manager/property/${propertyId}?tab=estado`);
+    } else {
+      // Si viene desde otro lugar (kanban, home, etc.), usar router.back() para volver a la página anterior
+      router.back();
+    }
+  };
+
   useEffect(() => {
     const loadHTML = async () => {
       if (!propertyId || !checklistType) {
