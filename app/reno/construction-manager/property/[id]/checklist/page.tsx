@@ -669,7 +669,8 @@ export default function RenoChecklistPage() {
         );
       case "checklist-cocina":
         return (
-          <CocinaSection
+          <Suspense fallback={<SectionLoader />}>
+            <CocinaSection
             section={checklist.sections["cocina"] || {
               id: "cocina",
               uploadZones: [{ id: "fotos-video-cocina", photos: [], videos: [] }],
@@ -710,7 +711,8 @@ export default function RenoChecklistPage() {
         );
       case "checklist-exteriores":
         return (
-          <ExterioresSection
+          <Suspense fallback={<SectionLoader />}>
+            <ExterioresSection
             section={checklist.sections["exteriores"] || {
               id: "exteriores",
               uploadZones: [{ id: "fotos-video-exterior", photos: [], videos: [] }],
