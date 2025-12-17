@@ -994,12 +994,13 @@ export default function RenoPropertyDetailPage() {
         {/* Navbar L2: Botón atrás + Acciones críticas */}
         <NavbarL2
           onBack={() => {
-            // Use browser history to go back to previous page (home or kanban)
-            if (window.history.length > 1) {
-              router.back();
+            // Siempre redirigir a home o kanban, no usar router.back()
+            // Si hay viewMode en la URL, ir a kanban con ese modo, sino ir a home
+            if (viewMode === 'list') {
+              router.push('/reno/construction-manager/kanban?viewMode=list');
             } else {
-              // Fallback to kanban if no history
-              router.push(`/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`);
+              // Por defecto ir a home (kanban es la vista por defecto)
+              router.push('/reno/construction-manager');
             }
           }}
           classNameTitle={t.propertyPage.property}
