@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { generateChecklistHTML } from '@/lib/html/checklist-html-generator';
 import { translations } from '@/lib/i18n/translations';
 import { convertSupabaseToChecklist } from '@/lib/supabase/checklist-converter';
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
       .from('inspection_zones')
       .select('*')
       .eq('inspection_id', inspection.id)
-      .order('order_index');
+      .order('created_at', { ascending: true });
 
     if (zonesError) {
       return NextResponse.json(
@@ -79,10 +80,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Obtener elementos a través de las zonas
+    const zoneIds = zones?.map(z => z.id) || [];
     const { data: elements, error: elementsError } = await supabase
       .from('inspection_elements')
       .select('*')
-      .eq('inspection_id', inspection.id);
+      .in('zone_id', zoneIds.length > 0 ? zoneIds : ['00000000-0000-0000-0000-000000000000']); // Usar un UUID inválido si no hay zonas para evitar error
 
     if (elementsError) {
       return NextResponse.json(
@@ -118,11 +121,12 @@ export async function POST(request: NextRequest) {
       translations.es
     );
 
-    // 6. Subir a Storage
+    // 6. Subir a Storage usando cliente admin para evitar RLS
     const htmlBuffer = Buffer.from(htmlContent, 'utf-8');
     const storagePath = `${propertyId}/${type}/checklist.html`;
+    const adminSupabase = createAdminClient();
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await adminSupabase.storage
       .from('checklists')
       .upload(storagePath, htmlBuffer, {
         contentType: 'text/html',
@@ -137,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Obtener URL pública
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = adminSupabase.storage
       .from('checklists')
       .getPublicUrl(uploadData.path);
 
