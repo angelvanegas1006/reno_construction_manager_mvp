@@ -7,11 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FaviconSwitcher } from "@/components/favicon-switcher";
 import { I18nProvider } from "@/lib/i18n";
-import { AuthProvider } from "@/lib/auth";
-import { SupabaseAuthProvider } from "@/lib/auth/supabase-auth-context";
-import { AppAuthProvider } from "@/lib/auth/app-auth-context";
-import { Auth0ProviderWrapper } from "@/components/auth/auth0-provider";
-import { MixpanelProvider } from "@/components/providers/mixpanel-provider";
+import { ConditionalAuthProviders } from "@/components/providers/conditional-auth-providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
