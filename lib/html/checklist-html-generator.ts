@@ -299,7 +299,8 @@ tailwind.config = {
     if (section.uploadZones && section.uploadZones.length > 0) {
       for (const uploadZone of section.uploadZones) {
         const zoneLabel = getUploadZoneLabel(translations, sectionId, uploadZone.id);
-        const zoneStatus = uploadZone.status || 'buen_estado';
+        // Upload zones no tienen status, siempre se muestran como "Buen Estado"
+        const zoneStatus: ChecklistStatus = 'buen_estado';
         const zoneStatusLabel = getStatusLabel(zoneStatus, translations);
         const zoneStatusClasses = getStatusBadgeClasses(zoneStatus);
         html += `
