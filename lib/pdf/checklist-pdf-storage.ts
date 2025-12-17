@@ -114,10 +114,28 @@ export async function getChecklistPDFUrl(
   checklistType: 'reno_initial' | 'reno_final',
   isPublic: boolean = false
 ): Promise<string | null> {
-  // Para rutas públicas, usar cliente anónimo directamente
-  const supabase = isPublic ? createAnonymousClient() : createClient();
+  // Para rutas públicas, construir directamente la URL desde Storage sin consultar BD
+  if (isPublic) {
+    const type = checklistType === 'reno_initial' ? 'initial' : 'final';
+    const path = `${propertyId}/${type}/checklist.html`;
+    
+    // Crear cliente anónimo solo para generar URL pública
+    const anonymousClient = createAnonymousClient();
+    const { data: publicUrlData } = anonymousClient.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(path);
 
-  // Primero intentar obtener desde property_inspections
+    if (!publicUrlData || !publicUrlData.publicUrl) {
+      console.warn('[checklist-html-storage] No se pudo generar URL pública para:', path);
+      return null;
+    }
+
+    console.log(`[checklist-html-storage] ✅ Public URL generated from Storage: ${publicUrlData.publicUrl}`);
+    return publicUrlData.publicUrl;
+  }
+
+  // Para rutas autenticadas, intentar obtener desde property_inspections primero
+  const supabase = createClient();
   const inspectionType = checklistType === 'reno_initial' ? 'initial' : 'final';
   const { data: inspection, error: inspectionError } = await supabase
     .from('property_inspections')
