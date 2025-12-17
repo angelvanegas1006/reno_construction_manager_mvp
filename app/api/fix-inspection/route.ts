@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
         { error: 'Error fetching inspections', details: error.message },
         { status: 500 }
       );
-    } else if (inspectionsData) {
-      inspections = inspectionsData as InspectionData[];
+    } else if (inspectionsData && Array.isArray(inspectionsData)) {
+      inspections = inspectionsData as unknown as InspectionData[];
     }
 
     if (!inspections || inspections.length === 0) {
