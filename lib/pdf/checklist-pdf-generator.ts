@@ -776,12 +776,6 @@ export async function generateChecklistPDF(
         doc.text(itemLabel, margin + cardPadding, yPosition);
         
         // Dynamic items no tienen cantidad, se identifican por su número en el título
-          doc.roundedRect(margin + cardPadding, yPosition - 3, cantidadWidth, 5, 2, 2, 'F');
-          doc.setFontSize(7);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(COLORS.slate500[0], COLORS.slate500[1], COLORS.slate500[2]);
-          doc.text(cantidadText, margin + cardPadding + 2, yPosition - 0.5);
-        }
         
         // Badge de estado
         const statusBadgeWidth = doc.getTextWidth('Buen Estado') + 10;
