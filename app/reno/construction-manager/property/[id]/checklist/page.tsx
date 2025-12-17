@@ -288,7 +288,7 @@ export default function RenoChecklistPage() {
 
   // Handle complete inspection
   const handleCompleteInspection = useCallback(async () => {
-    if (!inspection || !canComplete) {
+    if (!inspection || !canComplete || !property) {
       toast.error("No se puede completar la inspección. Asegúrate de que todas las actividades estén reportadas.");
       return;
     }
@@ -298,18 +298,36 @@ export default function RenoChecklistPage() {
       // Guardar sección actual antes de completar
       await saveCurrentSection();
       
-      const success = await completeInspection();
-      if (success && inspection.public_link_id) {
+      // 1. Primero marcar la inspección como completada
+      const inspectionSuccess = await completeInspection();
+      if (!inspectionSuccess) {
+        toast.error("Error al completar la inspección");
+        return;
+      }
+
+      // 2. Esperar un momento para que la base de datos se actualice
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 3. Refetch inspection para obtener el estado actualizado
+      await refetchInspection();
+
+      // 4. Luego finalizar el checklist (genera HTML y actualiza Airtable)
+      const finalizeSuccess = await finalizeChecklist({
+        estimatedVisitDate: property.estimatedVisitDate,
+        autoVisitDate: new Date().toISOString().split('T')[0],
+        nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
+      });
+
+      if (finalizeSuccess) {
         // Generate public URL
-        const url = `${window.location.origin}/inspection/${inspection.public_link_id}`;
+        const type = checklistType === "reno_final" ? "final" : "initial";
+        const url = `${window.location.origin}/checklist-public/${propertyId}/${type}`;
         setPublicUrl(url);
         setShowCompleteDialog(true);
-        toast.success("Inspección completada exitosamente");
-        // Refetch inspection to get updated status
-        await refetchInspection();
+        toast.success("Checklist completado exitosamente");
         setHasUnsavedChanges(false);
       } else {
-        toast.error("Error al completar la inspección");
+        toast.error("Error al finalizar checklist en Airtable");
       }
     } catch (error) {
       console.error("Error completing inspection:", error);
@@ -317,7 +335,7 @@ export default function RenoChecklistPage() {
     } finally {
       setIsCompleting(false);
     }
-  }, [inspection, canComplete, completeInspection, refetchInspection, saveCurrentSection]);
+  }, [inspection, canComplete, completeInspection, refetchInspection, saveCurrentSection, finalizeChecklist, property, propertyId, checklistType, supabaseProperty]);
 
   // Format address (main line)
   const formatAddress = () => {

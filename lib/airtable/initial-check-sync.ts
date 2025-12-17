@@ -331,14 +331,35 @@ export async function finalizeInitialCheckInAirtable(
 
     // 1. Cargar checklist desde Supabase
     const inspectionType = checklistType === 'reno_initial' ? 'initial' : 'final';
-    const { data: inspection, error: inspectionError } = await supabase
+    
+    // Intentar primero con inspection_status = 'completed'
+    let { data: inspection, error: inspectionError } = await supabase
       .from('property_inspections')
       .select('id')
       .eq('property_id', propertyId)
       .eq('inspection_status', 'completed')
       .order('completed_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
+
+    // Si no se encuentra con inspection_status = 'completed', buscar la más reciente
+    // (puede que aún no se haya actualizado el status)
+    if (inspectionError || !inspection) {
+      console.warn('[Initial Check Sync] No completed inspection found, searching for latest inspection');
+      const { data: latestInspection, error: latestError } = await supabase
+        .from('property_inspections')
+        .select('id')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (!latestError && latestInspection) {
+        inspection = latestInspection;
+        inspectionError = null;
+        console.log('[Initial Check Sync] Using latest inspection:', latestInspection.id);
+      }
+    }
 
     let pdfUrl: string | null = null;
 
