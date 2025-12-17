@@ -1556,7 +1556,7 @@ export function useSupabaseChecklistBase({
           // Esto evita el refetch completo innecesario que puede tomar 1-3 segundos
           const hasPhotosToUpdate = elementsToSave.some(e => 
             e.image_urls && e.image_urls.length > 0 && 
-            e.image_urls.some(url => url.startsWith('data:') || !url.startsWith('http'))
+            e.image_urls.some((url: string) => url.startsWith('data:') || !url.startsWith('http'))
           );
           
           if (hasPhotosToUpdate) {
