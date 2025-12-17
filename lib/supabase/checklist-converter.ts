@@ -558,44 +558,54 @@ export function convertSupabaseToChecklist(
 ): Partial<ChecklistData> {
   const sections: Record<string, ChecklistSection> = {};
 
-  // Log todos los elementos antes de procesar
-  const allElementDetails = elements.map(e => ({
-    id: e.id,
-    element_name: e.element_name,
-    zone_id: e.zone_id,
-    has_image_urls: !!e.image_urls,
-    image_urls_count: e.image_urls?.length || 0,
-    image_urls: e.image_urls,
-    video_urls_count: e.video_urls?.length || 0,
-    video_urls: e.video_urls,
-  }));
+  // Helper para condicionar logs solo en desarrollo
+  const DEBUG = process.env.NODE_ENV === 'development';
+  const debugLog = (...args: any[]) => {
+    if (DEBUG) console.log(...args);
+  };
   
-  console.log('[convertSupabaseToChecklist] 🔍 Starting conversion:', {
-    zonesCount: zones.length,
-    elementsCount: elements.length,
-    allElementNames: allElementDetails,
-  });
-  
-  // Log detallado de cada elemento individualmente para facilitar debugging
-  allElementDetails.forEach((element, index) => {
-    console.log(`[convertSupabaseToChecklist] Element ${index + 1}/${allElementDetails.length}:`, element);
-  });
+  // Log todos los elementos antes de procesar (solo en desarrollo)
+  if (DEBUG) {
+    const allElementDetails = elements.map(e => ({
+      id: e.id,
+      element_name: e.element_name,
+      zone_id: e.zone_id,
+      has_image_urls: !!e.image_urls,
+      image_urls_count: e.image_urls?.length || 0,
+      image_urls: e.image_urls,
+      video_urls_count: e.video_urls?.length || 0,
+      video_urls: e.video_urls,
+    }));
+    
+    debugLog('[convertSupabaseToChecklist] 🔍 Starting conversion:', {
+      zonesCount: zones.length,
+      elementsCount: elements.length,
+    });
+    
+    // Log detallado de cada elemento individualmente para facilitar debugging (solo primeros 5 en dev)
+    allElementDetails.slice(0, 5).forEach((element, index) => {
+      debugLog(`[convertSupabaseToChecklist] Element ${index + 1}:`, element);
+    });
+    
+    if (allElementDetails.length > 5) {
+      debugLog(`[convertSupabaseToChecklist] ... and ${allElementDetails.length - 5} more elements`);
+    }
 
-  // Log todas las zonas
-  console.log('[convertSupabaseToChecklist] 📍 All zones:', zones.map(z => ({
-    id: z.id,
-    zone_type: z.zone_type,
-    zone_name: z.zone_name,
-    inspection_id: z.inspection_id,
-  })));
-  
-  // Log zonas específicas que tienen elementos de fotos
-  const photoElementZoneIds = elements
-    .filter(e => e.element_name?.startsWith('fotos-'))
-    .map(e => e.zone_id);
-  const uniquePhotoZoneIds = [...new Set(photoElementZoneIds)];
-  console.log('[convertSupabaseToChecklist] 🔍 Photo element zone IDs:', {
-    photoElementZoneIds: uniquePhotoZoneIds,
+    // Log todas las zonas (solo en desarrollo)
+    debugLog('[convertSupabaseToChecklist] 📍 All zones:', zones.map(z => ({
+      id: z.id,
+      zone_type: z.zone_type,
+      zone_name: z.zone_name,
+      inspection_id: z.inspection_id,
+    })));
+    
+    // Log zonas específicas que tienen elementos de fotos
+    const photoElementZoneIds = elements
+      .filter(e => e.element_name?.startsWith('fotos-'))
+      .map(e => e.zone_id);
+    const uniquePhotoZoneIds = [...new Set(photoElementZoneIds)];
+    debugLog('[convertSupabaseToChecklist] 🔍 Photo element zone IDs:', {
+      photoElementZoneIds: uniquePhotoZoneIds,
     zonesForPhotoElements: uniquePhotoZoneIds.map(zoneId => {
       const zone = zones.find(z => z.id === zoneId);
       return {
@@ -608,7 +618,9 @@ export function convertSupabaseToChecklist(
     }),
     allZonesWithIds: zones.map(z => ({ id: z.id, zone_type: z.zone_type, inspection_id: z.inspection_id })),
     missingZones: uniquePhotoZoneIds.filter(zoneId => !zones.find(z => z.id === zoneId)),
-  });
+    });
+  }
+  }
 
   // Agrupar elementos por zona
   const elementsByZone = new Map<string, InspectionElement[]>();
@@ -621,7 +633,7 @@ export function convertSupabaseToChecklist(
     // Log detallado para elementos con fotos
     if (element.element_name.startsWith('fotos-')) {
       const zone = zones.find(z => z.id === element.zone_id);
-      console.log(`[convertSupabaseToChecklist] 📸 Photo element found:`, {
+      debugLog(`[convertSupabaseToChecklist] 📸 Photo element found:`, {
         element_name: element.element_name,
         element_id: element.id,
         element_zone_id: element.zone_id,

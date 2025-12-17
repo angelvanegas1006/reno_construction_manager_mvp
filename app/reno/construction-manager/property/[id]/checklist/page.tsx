@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useRef, startTransition, useEffect, useCallback, useMemo, useState, use } from "react";
+import { useRef, startTransition, useEffect, useCallback, useMemo, useState, use, lazy, Suspense } from "react";
 import { NavbarL3 } from "@/components/layout/navbar-l3";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
@@ -26,15 +26,22 @@ import { areAllActivitiesReported } from "@/lib/checklist-validation";
 import { calculateOverallChecklistProgress, getAllChecklistSectionsProgress } from "@/lib/checklist-progress";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
 
-// Checklist section components
-import { EntornoZonasComunesSection } from "@/components/checklist/sections/entorno-zonas-comunes-section";
-import { EstadoGeneralSection } from "@/components/checklist/sections/estado-general-section";
-import { EntradaPasillosSection } from "@/components/checklist/sections/entrada-pasillos-section";
-import { HabitacionesSection } from "@/components/checklist/sections/habitaciones-section";
-import { SalonSection } from "@/components/checklist/sections/salon-section";
-import { BanosSection } from "@/components/checklist/sections/banos-section";
-import { CocinaSection } from "@/components/checklist/sections/cocina-section";
-import { ExterioresSection } from "@/components/checklist/sections/exteriores-section";
+// Checklist section components - Lazy loading para code splitting y mejor rendimiento inicial
+const EntornoZonasComunesSection = lazy(() => import("@/components/checklist/sections/entorno-zonas-comunes-section").then(m => ({ default: m.EntornoZonasComunesSection })));
+const EstadoGeneralSection = lazy(() => import("@/components/checklist/sections/estado-general-section").then(m => ({ default: m.EstadoGeneralSection })));
+const EntradaPasillosSection = lazy(() => import("@/components/checklist/sections/entrada-pasillos-section").then(m => ({ default: m.EntradaPasillosSection })));
+const HabitacionesSection = lazy(() => import("@/components/checklist/sections/habitaciones-section").then(m => ({ default: m.HabitacionesSection })));
+const SalonSection = lazy(() => import("@/components/checklist/sections/salon-section").then(m => ({ default: m.SalonSection })));
+const BanosSection = lazy(() => import("@/components/checklist/sections/banos-section").then(m => ({ default: m.BanosSection })));
+const CocinaSection = lazy(() => import("@/components/checklist/sections/cocina-section").then(m => ({ default: m.CocinaSection })));
+const ExterioresSection = lazy(() => import("@/components/checklist/sections/exteriores-section").then(m => ({ default: m.ExterioresSection })));
+
+// Loading fallback para componentes lazy
+const SectionLoader = () => (
+  <div className="bg-card rounded-lg border p-6 shadow-sm">
+    <p className="text-muted-foreground">Cargando sección...</p>
+  </div>
+);
 
 const CARPENTRY_ITEMS_SALON = [
   { id: "ventanas", translationKey: "ventanas" },
@@ -448,18 +455,21 @@ export default function RenoChecklistPage() {
           checklistSections: Object.keys(checklist?.sections || {})
         });
         return (
-          <EntornoZonasComunesSection
-            section={entornoSection}
-            onUpdate={handleEntornoUpdate}
-            ref={(el) => {
-              if (el) sectionRefs.current["checklist-entorno-zonas-comunes"] = el;
-            }}
-            onContinue={() => handleContinue("checklist-estado-general")}
-          />
+          <Suspense fallback={<SectionLoader />}>
+            <EntornoZonasComunesSection
+              section={entornoSection}
+              onUpdate={handleEntornoUpdate}
+              ref={(el) => {
+                if (el) sectionRefs.current["checklist-entorno-zonas-comunes"] = el;
+              }}
+              onContinue={() => handleContinue("checklist-estado-general")}
+            />
+          </Suspense>
         );
       case "checklist-estado-general":
         return (
-          <EstadoGeneralSection
+          <Suspense fallback={<SectionLoader />}>
+            <EstadoGeneralSection
             section={checklist.sections["estado-general"] || {
               id: "estado-general",
               uploadZones: [
@@ -484,10 +494,12 @@ export default function RenoChecklistPage() {
             }}
             onContinue={() => handleContinue("checklist-entrada-pasillos")}
           />
+          </Suspense>
         );
       case "checklist-entrada-pasillos":
         return (
-          <EntradaPasillosSection
+          <Suspense fallback={<SectionLoader />}>
+            <EntradaPasillosSection
             section={checklist.sections["entrada-pasillos"] || {
               id: "entrada-pasillos",
               uploadZones: [
@@ -519,6 +531,7 @@ export default function RenoChecklistPage() {
             }}
             onContinue={() => handleContinue("checklist-habitaciones")}
           />
+          </Suspense>
         );
       case "checklist-habitaciones":
         const habitacionesSectionRaw = checklist.sections["habitaciones"] || {
@@ -537,7 +550,8 @@ export default function RenoChecklistPage() {
           };
 
         return (
-          <HabitacionesSection
+          <Suspense fallback={<SectionLoader />}>
+            <HabitacionesSection
             section={habitacionesSection}
             onUpdate={(updates) => {
               updateChecklistSection("habitaciones", updates);
@@ -575,10 +589,12 @@ export default function RenoChecklistPage() {
               if (el) sectionRefs.current["checklist-habitaciones"] = el;
             }}
           />
+          </Suspense>
         );
       case "checklist-salon":
         return (
-          <SalonSection
+          <Suspense fallback={<SectionLoader />}>
+            <SalonSection
             section={checklist.sections["salon"] || {
               id: "salon",
               uploadZones: [{ id: "fotos-video-salon", photos: [], videos: [] }],
@@ -599,6 +615,7 @@ export default function RenoChecklistPage() {
               if (el) sectionRefs.current["checklist-salon"] = el;
             }}
           />
+          </Suspense>
         );
       case "checklist-banos":
         const banosSectionRaw = checklist.sections["banos"] || {
@@ -617,7 +634,8 @@ export default function RenoChecklistPage() {
           };
 
         return (
-          <BanosSection
+          <Suspense fallback={<SectionLoader />}>
+            <BanosSection
             section={banosSection}
             onUpdate={(updates) => {
               updateChecklistSection("banos", updates);
@@ -647,6 +665,7 @@ export default function RenoChecklistPage() {
               if (el) sectionRefs.current["checklist-banos"] = el;
             }}
           />
+          </Suspense>
         );
       case "checklist-cocina":
         return (
@@ -687,6 +706,7 @@ export default function RenoChecklistPage() {
               if (el) sectionRefs.current["checklist-cocina"] = el;
             }}
           />
+          </Suspense>
         );
       case "checklist-exteriores":
         return (
@@ -724,6 +744,7 @@ export default function RenoChecklistPage() {
               }
             }}
           />
+          </Suspense>
         );
       default:
         // Handle individual habitaciones/banos routes
@@ -747,9 +768,10 @@ export default function RenoChecklistPage() {
               };
 
             return (
-              <HabitacionesSection
-                section={habitacionesSection}
-                habitacionIndex={index}
+              <Suspense fallback={<SectionLoader />}>
+                <HabitacionesSection
+                  section={habitacionesSection}
+                  habitacionIndex={index}
                 onUpdate={(updates) => {
                   updateChecklistSection("habitaciones", updates);
                 }}
@@ -779,6 +801,7 @@ export default function RenoChecklistPage() {
                   if (el) sectionRefs.current[activeSection] = el;
                 }}
               />
+              </Suspense>
             );
           }
         } else if (activeSection.startsWith("checklist-banos-")) {
@@ -801,9 +824,10 @@ export default function RenoChecklistPage() {
               };
 
             return (
-              <BanosSection
-                section={banosSection}
-                banoIndex={index}
+              <Suspense fallback={<SectionLoader />}>
+                <BanosSection
+                  section={banosSection}
+                  banoIndex={index}
                 onUpdate={(updates) => {
                   updateChecklistSection("banos", updates);
                 }}
@@ -833,6 +857,7 @@ export default function RenoChecklistPage() {
                   if (el) sectionRefs.current[activeSection] = el;
                 }}
               />
+              </Suspense>
             );
           }
         }

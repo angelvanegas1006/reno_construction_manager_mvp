@@ -527,11 +527,17 @@ export function ChecklistUploadZone({
                       src={file.data}
                       alt={file.name}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                       onError={(e) => {
-                        console.error('[ChecklistUploadZone] ❌ Error loading image:', { id: file.id, name: file.name, data: file.data?.substring(0, 50) });
+                        if (process.env.NODE_ENV === 'development') {
+                          console.error('[ChecklistUploadZone] ❌ Error loading image:', { id: file.id, name: file.name, data: file.data?.substring(0, 50) });
+                        }
                       }}
                       onLoad={() => {
-                        console.log('[ChecklistUploadZone] ✅ Image loaded:', { id: file.id, name: file.name });
+                        if (process.env.NODE_ENV === 'development') {
+                          console.log('[ChecklistUploadZone] ✅ Image loaded:', { id: file.id, name: file.name });
+                        }
                       }}
                     />
                   ) : (
