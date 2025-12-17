@@ -43,14 +43,44 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Obtener la inspección
-    const { data: inspection, error: inspError } = await supabase
-      .from('property_inspections')
-      .select('id, inspection_type, inspection_status')
-      .eq('property_id', propertyId)
-      .eq('inspection_type', inspectionType)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Intentar primero con inspection_type, si falla buscar sin él
+    let inspection: any = null;
+    let inspError: any = null;
+
+    try {
+      let { data: inspectionData, error: inspectionQueryError } = await supabase
+        .from('property_inspections')
+        .select('id, inspection_type, inspection_status')
+        .eq('property_id', propertyId)
+        .eq('inspection_type', inspectionType)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Si el error es que la columna no existe, buscar sin inspection_type
+      if (inspectionQueryError && (inspectionQueryError.code === '42883' || inspectionQueryError.message?.includes('column') || inspectionQueryError.message?.includes('does not exist'))) {
+        console.warn('[regenerate-checklist-html] inspection_type column does not exist, querying without it');
+        const { data: allInspections, error: allError } = await supabase
+          .from('property_inspections')
+          .select('id, inspection_status')
+          .eq('property_id', propertyId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (allError && allError.code !== 'PGRST116') {
+          inspError = allError;
+        } else {
+          inspection = allInspections;
+        }
+      } else if (inspectionQueryError && inspectionQueryError.code !== 'PGRST116') {
+        inspError = inspectionQueryError;
+      } else {
+        inspection = inspectionData;
+      }
+    } catch (err: any) {
+      inspError = err;
+    }
 
     if (inspError) {
       return NextResponse.json(
