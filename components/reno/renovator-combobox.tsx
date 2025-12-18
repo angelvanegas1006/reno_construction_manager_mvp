@@ -154,7 +154,7 @@ export function RenovatorCombobox({
       {open && filteredRenovators.length > 0 && (
         <div
           ref={listRef}
-          className="absolute z-50 w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-md max-h-60 overflow-y-auto"
+          className="absolute z-[100] w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-lg max-h-60 overflow-y-auto"
         >
           {filteredRenovators.map((renovator, index) => {
             const isSelected = value === renovator;
@@ -183,7 +183,7 @@ export function RenovatorCombobox({
       )}
 
       {open && searchQuery && filteredRenovators.length === 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-md p-3">
+        <div className="absolute z-[100] w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-md p-3">
           <p className="text-sm text-muted-foreground">No se encontraron renovadores</p>
         </div>
       )}
