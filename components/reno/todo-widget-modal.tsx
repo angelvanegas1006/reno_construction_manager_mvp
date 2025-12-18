@@ -400,7 +400,7 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md overflow-visible">
         <DialogHeader>
           <DialogTitle>
             {widgetType === 'estimated-visit' && 'Definir Visita Estimada'}
@@ -414,7 +414,7 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-visible">
           {/* Información básica */}
           <div className="space-y-2">
             <div>
@@ -459,10 +459,10 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
           )}
 
           {widgetType === 'renovator' && (
-            <div className="space-y-2">
+            <div className="space-y-2 relative" style={{ zIndex: 100 }}>
               <Label htmlFor="renovator-name">Nombre del Renovador</Label>
               {allProperties.length > 0 ? (
-                <>
+                <div className="relative" style={{ zIndex: 100 }}>
                   <RenovatorCombobox
                     properties={allProperties}
                     value={renovatorName}
@@ -480,9 +480,9 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
                     disabled={isSaving}
                   />
                   {isSaving && (
-                    <p className="text-xs text-muted-foreground">Guardando...</p>
+                    <p className="text-xs text-muted-foreground mt-2">Guardando...</p>
                   )}
-                </>
+                </div>
               ) : (
                 <>
                   <Input
