@@ -28,6 +28,7 @@ export function RenovatorCombobox({
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -62,6 +63,23 @@ export function RenovatorCombobox({
   useEffect(() => {
     setSelectedIndex(0);
   }, [filteredRenovators.length, searchQuery]);
+
+  // Calcular posición del dropdown (arriba o abajo) basado en espacio disponible
+  useEffect(() => {
+    if (open && containerRef.current && inputRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownHeight = 240; // max-h-60 = 240px
+      
+      // Si hay menos espacio abajo que arriba, mostrar hacia arriba
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        setDropdownPosition('top');
+      } else {
+        setDropdownPosition('bottom');
+      }
+    }
+  }, [open]);
 
   // Handle click outside
   useEffect(() => {
