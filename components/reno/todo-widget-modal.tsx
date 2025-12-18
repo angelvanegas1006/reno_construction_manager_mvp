@@ -13,15 +13,17 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { mapSetUpStatusToKanbanPhase } from "@/lib/supabase/kanban-mapping";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
+import { RenovatorCombobox } from "@/components/reno/renovator-combobox";
 
 interface TodoWidgetModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   property: Property | null;
   widgetType: 'estimated-visit' | 'initial-check' | 'renovator' | 'work-update' | 'final-check' | null;
+  allProperties?: Property[]; // Lista de todas las propiedades para el combobox de renovadores
 }
 
-export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: TodoWidgetModalProps) {
+export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allProperties = [] }: TodoWidgetModalProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isSaving, setIsSaving] = useState(false);
@@ -256,10 +258,13 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
   };
 
   // Manejar guardado de Renovator Name
-  const handleSaveRenovatorName = async () => {
+  const handleSaveRenovatorName = async (valueToSave?: string) => {
     if (!propertyId) return;
 
     setIsSaving(true);
+    // Usar el valor pasado como parámetro o el estado actual
+    const valueToUpdate = valueToSave !== undefined ? valueToSave : renovatorName;
+    
     try {
       // Obtener la fase actual de la propiedad
       const { data: currentProperty } = await supabase
@@ -273,7 +278,7 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
       
       // Preparar actualizaciones
       const supabaseUpdates: Record<string, any> = {
-        'Renovator name': renovatorName || null,
+        'Renovator name': valueToUpdate || null,
         updated_at: new Date().toISOString(),
       };
       
@@ -345,7 +350,7 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
           AIRTABLE_TABLE_NAME,
           recordId,
           {
-            'Renovator Name': renovatorName || null,
+            'Renovator Name': valueToUpdate || null,
           }
         );
 
@@ -456,21 +461,47 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType }: To
           {widgetType === 'renovator' && (
             <div className="space-y-2">
               <Label htmlFor="renovator-name">Nombre del Renovador</Label>
-              <Input
-                id="renovator-name"
-                type="text"
-                value={renovatorName}
-                onChange={(e) => setRenovatorName(e.target.value)}
-                placeholder="Ingrese el nombre del renovador"
-                disabled={isSaving}
-              />
-              <Button
-                onClick={handleSaveRenovatorName}
-                disabled={isSaving}
-                className="w-full"
-              >
-                {isSaving ? "Guardando..." : "Guardar"}
-              </Button>
+              {allProperties.length > 0 ? (
+                <>
+                  <RenovatorCombobox
+                    properties={allProperties}
+                    value={renovatorName}
+                    onValueChange={async (newValue) => {
+                      const trimmedValue = newValue?.trim() || "";
+                      setRenovatorName(trimmedValue);
+                      // Guardar automáticamente cuando se selecciona un renovador del combobox
+                      const currentRenovator = property?.renovador || (property as any)?.supabaseProperty?.['Renovator name'] || "";
+                      if (trimmedValue && trimmedValue !== currentRenovator) {
+                        // Guardar inmediatamente con el nuevo valor
+                        await handleSaveRenovatorName(trimmedValue);
+                      }
+                    }}
+                    placeholder="Buscar renovador..."
+                    disabled={isSaving}
+                  />
+                  {isSaving && (
+                    <p className="text-xs text-muted-foreground">Guardando...</p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Input
+                    id="renovator-name"
+                    type="text"
+                    value={renovatorName}
+                    onChange={(e) => setRenovatorName(e.target.value)}
+                    placeholder="Ingrese el nombre del renovador"
+                    disabled={isSaving}
+                  />
+                  <Button
+                    onClick={() => handleSaveRenovatorName()}
+                    disabled={isSaving}
+                    className="w-full"
+                  >
+                    {isSaving ? "Guardando..." : "Guardar"}
+                  </Button>
+                </>
+              )}
             </div>
           )}
 

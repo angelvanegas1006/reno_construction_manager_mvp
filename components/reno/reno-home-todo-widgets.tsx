@@ -34,6 +34,12 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
   const [selectedWidgetType, setSelectedWidgetType] = useState<'estimated-visit' | 'initial-check' | 'renovator' | 'work-update' | 'final-check' | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Obtener todas las propiedades para el combobox de renovadores
+  const allProperties = useMemo(() => {
+    if (!propertiesByPhase) return [];
+    return Object.values(propertiesByPhase).flat();
+  }, [propertiesByPhase]);
+
   const todoWidgets = useMemo(() => {
     if (!propertiesByPhase) {
       return [];
@@ -515,6 +521,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         }}
         property={selectedProperty}
         widgetType={selectedWidgetType}
+        allProperties={allProperties}
       />
     </div>
   );
