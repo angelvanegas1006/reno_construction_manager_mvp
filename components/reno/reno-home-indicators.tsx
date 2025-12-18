@@ -29,7 +29,7 @@ export function RenoHomeIndicators({
     description: string;
     icon: typeof Building2;
   }) => (
-    <Card className="bg-card">
+    <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2 min-w-0">
           <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />

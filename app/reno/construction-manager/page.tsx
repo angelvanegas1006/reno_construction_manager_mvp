@@ -218,11 +218,11 @@ export default function RenoConstructionManagerHomePage() {
         <RenoHomeHeader />
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-3 md:px-4 lg:px-6 py-3 md:py-4 lg:py-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
           {supabaseLoading ? (
             <RenoHomeLoader className="min-h-[400px]" />
           ) : (
-            <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
+            <div className="max-w-[1600px] mx-auto space-y-4 md:space-y-6 px-4 lg:px-8">
               {/* Foreman Filter - Solo para construction_manager */}
               {role === 'construction_manager' && (
                 <div className="bg-card border rounded-lg p-4">
