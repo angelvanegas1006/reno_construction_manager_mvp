@@ -28,6 +28,7 @@ export function RenovatorCombobox({
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [dropdownPosition, setDropdownPosition] = useState<'bottom' | 'top'>('bottom');
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -62,6 +63,23 @@ export function RenovatorCombobox({
   useEffect(() => {
     setSelectedIndex(0);
   }, [filteredRenovators.length, searchQuery]);
+
+  // Calcular posición del dropdown (arriba o abajo) basado en espacio disponible
+  useEffect(() => {
+    if (open && containerRef.current && inputRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownHeight = 240; // max-h-60 = 240px
+      
+      // Si hay menos espacio abajo que arriba, mostrar hacia arriba
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        setDropdownPosition('top');
+      } else {
+        setDropdownPosition('bottom');
+      }
+    }
+  }, [open]);
 
   // Handle click outside
   useEffect(() => {
@@ -154,7 +172,10 @@ export function RenovatorCombobox({
       {open && filteredRenovators.length > 0 && (
         <div
           ref={listRef}
-          className="absolute z-[100] w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-lg max-h-60 overflow-y-auto"
+          className={cn(
+            "absolute z-[100] w-full bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-lg max-h-60 overflow-y-auto",
+            dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+          )}
         >
           {filteredRenovators.map((renovator, index) => {
             const isSelected = value === renovator;
@@ -183,7 +204,10 @@ export function RenovatorCombobox({
       )}
 
       {open && searchQuery && filteredRenovators.length === 0 && (
-        <div className="absolute z-[100] w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-md p-3">
+        <div className={cn(
+          "absolute z-[100] w-full bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-md p-3",
+          dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+        )}>
           <p className="text-sm text-muted-foreground">No se encontraron renovadores</p>
         </div>
       )}
