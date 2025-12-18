@@ -227,47 +227,47 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
 
   // Helper para renderizar información relevante según el tipo de widget
   const renderPropertyInfo = (property: Property, widgetId: string) => {
-    const address = property.address || property.fullAddress || '';
+    const address = property.address || property.fullAddress || 'Sin dirección';
     const supabaseProperty = (property as any)?.supabaseProperty;
     
     switch (widgetId) {
       case 'estimated-visit':
         return (
-          <div className="space-y-1">
-            <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="space-y-1.5">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
               {address}
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
               {property.daysToVisit !== null && property.daysToVisit !== undefined && (
-                <span>{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
+                <span className="whitespace-nowrap">{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
               )}
-              {property.region && <span>• {property.region}</span>}
+              {property.region && <span className="whitespace-nowrap">• {property.region}</span>}
             </div>
           </div>
         );
       
       case 'initial-check':
         return (
-          <div className="space-y-1">
-            <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="space-y-1.5">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
               {address}
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
               {property.daysToVisit !== null && property.daysToVisit !== undefined && (
-                <span>{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
+                <span className="whitespace-nowrap">{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
               )}
-              {property.renovador && <span>• {property.renovador}</span>}
+              {property.renovador && <span className="whitespace-nowrap">• {property.renovador}</span>}
             </div>
           </div>
         );
       
       case 'renovator':
         return (
-          <div className="space-y-1">
-            <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="space-y-1.5">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
               {address}
             </div>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
               {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
                 <span className="whitespace-nowrap">{t.dashboard?.todoWidgets?.daysToStart || "Días para empezar"}: {property.daysToStartRenoSinceRSD}</span>
               )}
@@ -277,14 +277,14 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       
       case 'work-update':
         return (
-          <div className="space-y-1">
-            <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="space-y-1.5">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
               {address}
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-              {property.renovador && <span>{property.renovador}</span>}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+              {property.renovador && <span className="whitespace-nowrap">{property.renovador}</span>}
               {property.renoType && (
-                <span>• {property.renoType}</span>
+                <span className="whitespace-nowrap">• {property.renoType}</span>
               )}
             </div>
           </div>
@@ -292,14 +292,14 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       
       case 'final-check':
         return (
-          <div className="space-y-1">
-            <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="space-y-1.5">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
               {address}
             </div>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-              {property.renovador && <span>{property.renovador}</span>}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+              {property.renovador && <span className="whitespace-nowrap">{property.renovador}</span>}
               {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
-                <span>• {t.dashboard?.todoWidgets?.daysToReady || "Días para lista"}: {property.daysToPropertyReady}</span>
+                <span className="whitespace-nowrap">• {t.dashboard?.todoWidgets?.daysToReady || "Días para lista"}: {property.daysToPropertyReady}</span>
               )}
             </div>
           </div>
@@ -307,7 +307,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       
       default:
         return (
-          <div className="text-xs font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
             {address}
           </div>
         );
@@ -321,7 +321,8 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     return (
       <Card 
         className={cn(
-          "relative overflow-hidden border h-full flex flex-col min-h-[400px] max-h-[600px]",
+          "relative overflow-hidden border-2 h-full flex flex-col min-h-[400px] max-h-[600px]",
+          "bg-card shadow-sm hover:shadow-md transition-shadow duration-200",
           hasItems 
             ? "border-border" 
             : "border-border/50 opacity-75"
@@ -350,10 +351,10 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
           </div>
         </CardHeader>
         
-        <CardContent className="relative z-10 flex-1 flex flex-col pt-4 pb-4 min-h-0">
+        <CardContent className="relative z-10 flex-1 flex flex-col pt-4 pb-4 px-4 min-h-0">
           {/* Lista de propiedades pendientes */}
           {hasItems && widget.properties.length > 0 && (
-            <div className="space-y-2 flex-1 overflow-y-auto max-h-[500px] pr-1 scrollbar-overlay">
+            <div className="space-y-3 flex-1 overflow-y-auto max-h-[500px] pr-2 scrollbar-overlay">
               {widget.properties.map((property, index) => {
                 // Verificar si la propiedad está overdue (debería haberse actualizado antes)
                 const isOverdue = (property as any).isOverdue === true;
@@ -363,12 +364,13 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                     key={property.id}
                     onClick={(e) => handlePropertyClick(e, property, widget.id)}
                     className={cn(
-                      "p-2.5 rounded-lg cursor-pointer",
-                      "hover:bg-muted/30",
-                      "border",
+                      "p-3 rounded-lg cursor-pointer transition-all duration-150",
+                      "bg-white dark:bg-[#0a0a0a]",
+                      "hover:bg-muted/40 hover:shadow-sm",
+                      "border-2",
                       isOverdue 
                         ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
-                        : "border-border/50"
+                        : "border-border/60 hover:border-border"
                     )}
                   >
                     {renderPropertyInfo(property, widget.id)}
@@ -408,8 +410,8 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         </Badge>
       </div>
       
-      {/* Desktop: Grid de cards mejorado */}
-      <div className="hidden md:grid md:grid-cols-5 gap-4 lg:gap-5 min-h-[400px]">
+      {/* Desktop: Grid de cards mejorado con mejor aprovechamiento del espacio */}
+      <div className="hidden md:grid md:grid-cols-5 gap-5 lg:gap-6 xl:gap-7 min-h-[400px]">
         {todoWidgets.map((widget) => (
           <WidgetCard key={widget.id} widget={widget} />
         ))}
@@ -464,7 +466,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                   
                   {hasItems && widget.properties.length > 0 && (
                     <CollapsibleContent className="px-4 pb-4">
-                      <div className="pt-3 space-y-2">
+                      <div className="pt-3 space-y-3">
                         {widget.properties.map((property) => {
                           // Verificar si la propiedad está overdue (debería haberse actualizado antes)
                           const isOverdue = (property as any).isOverdue === true;
@@ -474,12 +476,13 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                               key={property.id}
                               onClick={(e) => handlePropertyClick(e, property, widget.id)}
                               className={cn(
-                                "p-2.5 rounded-lg cursor-pointer",
-                                "hover:bg-muted/30",
-                                "border",
+                                "p-3 rounded-lg cursor-pointer transition-all duration-150",
+                                "bg-white dark:bg-[#0a0a0a]",
+                                "hover:bg-muted/40 hover:shadow-sm",
+                                "border-2",
                                 isOverdue 
                                   ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
-                                  : "border-border/50"
+                                  : "border-border/60 hover:border-border"
                               )}
                             >
                               {renderPropertyInfo(property, widget.id)}
