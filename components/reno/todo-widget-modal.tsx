@@ -350,7 +350,7 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
           AIRTABLE_TABLE_NAME,
           recordId,
           {
-            'Renovator Name': valueToUpdate || null,
+            'fldSgzZxPcfZGjTFF': valueToUpdate || null, // Renovator name field ID
           }
         );
 

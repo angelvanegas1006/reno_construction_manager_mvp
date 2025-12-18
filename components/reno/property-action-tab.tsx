@@ -92,7 +92,7 @@ export function PropertyActionTab({
             AIRTABLE_TABLE_NAME,
             recordId,
             {
-              'Renovator Name': newValue || null,
+              'fldSgzZxPcfZGjTFF': newValue || null, // Renovator name field ID
             }
           );
           
