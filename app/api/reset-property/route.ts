@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         if (recordId) {
           const airtableSuccess = await updateAirtableWithRetry(tableName, recordId, {
             'Set Up Status': 'Pending to visit',
-            'Renovator Name': null,
+            'fldSgzZxPcfZGjTFF': null, // Renovator name field ID
             'Estimated Visit Date': null,
             'Reno Start Date': null,
             'Estimated Reno End Date': null,
