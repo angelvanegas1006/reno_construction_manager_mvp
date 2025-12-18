@@ -8,7 +8,8 @@ import { PropertyCommentsSection } from "@/components/reno/property-comments-sec
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { findRecordByPropertyId, updateAirtableWithRetry } from "@/lib/airtable/client";
+import { findTransactionsRecordIdByUniqueId, updateAirtableWithRetry } from "@/lib/airtable/client";
+import { createClient } from "@/lib/supabase/client";
 import { getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
 import { RenovatorCombobox } from "@/components/reno/renovator-combobox";
 
@@ -34,6 +35,7 @@ export function PropertyActionTab({
   allProperties = [],
 }: PropertyActionTabProps) {
   const { t, language } = useI18n();
+  const supabase = createClient();
 
   // Determinar la fase correctamente usando el mapeo de Set Up Status si es necesario
   const renoPhase = supabaseProperty 
@@ -82,10 +84,29 @@ export function PropertyActionTab({
       const success = await onUpdateRenovatorName(newValue);
       
       if (success) {
-        // Luego actualizar en Airtable
-        // Usar el nombre de tabla correcto (el mismo que se usa en otros lugares)
-        const AIRTABLE_TABLE_NAME = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || 'Properties';
-        const recordId = await findRecordByPropertyId(AIRTABLE_TABLE_NAME, propertyId);
+        // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
+        // Actualizar en Airtable usando Transactions table
+        const AIRTABLE_TABLE_NAME = 'Transactions';
+        
+        // Obtener Unique ID desde Supabase para buscar en Transactions
+        const { data: propertyData } = await supabase
+          .from('properties')
+          .select('"Unique ID From Engagements"')
+          .eq('id', propertyId)
+          .single();
+        
+        const uniqueId = propertyData?.['Unique ID From Engagements'];
+        
+        if (!uniqueId) {
+          console.warn(`[PropertyActionTab] Property ${propertyId} does not have Unique ID From Engagements. Cannot update Airtable.`);
+          toast.warning("Actualizado parcialmente", {
+            description: "Se actualizó en Supabase pero no se encontró el Unique ID para sincronizar con Airtable.",
+          });
+          return;
+        }
+        
+        // Buscar el Record ID de Transactions usando el Unique ID
+        const recordId = await findTransactionsRecordIdByUniqueId(uniqueId);
         
         if (recordId) {
           const airtableSuccess = await updateAirtableWithRetry(
@@ -107,7 +128,7 @@ export function PropertyActionTab({
           }
         } else {
           toast.warning("Actualizado parcialmente", {
-            description: "Se actualizó en Supabase pero no se encontró el registro en Airtable.",
+            description: "Se actualizó en Supabase pero no se encontró el registro en Airtable Transactions.",
           });
         }
       } else {
