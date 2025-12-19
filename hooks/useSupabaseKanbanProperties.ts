@@ -202,8 +202,19 @@ export function useSupabaseKanbanProperties() {
       const { data, error: fetchError } = await query.order('created_at', { ascending: false });
 
       if (fetchError) {
-        log.error('Error fetching properties:', fetchError);
-        throw fetchError;
+        const errorMessage = fetchError.message || JSON.stringify(fetchError) || 'Unknown error';
+        const errorDetails = {
+          message: errorMessage,
+          code: fetchError.code,
+          details: fetchError.details,
+          hint: fetchError.hint,
+          fullError: fetchError,
+        };
+        log.error('Error fetching properties:', errorDetails);
+        setError(errorMessage);
+        setLoading(false);
+        fetchInProgressRef.current = false;
+        return;
       }
 
       log.debug('Query response:', { dataCount: data?.length || 0 });

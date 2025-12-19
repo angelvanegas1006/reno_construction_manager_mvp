@@ -32,7 +32,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { email, name, role } = body;
+    const { email, name, role, banned } = body;
     const { userId } = await params;
 
     // Actualizar en Supabase usando cliente admin
@@ -40,6 +40,48 @@ export async function PATCH(
     const updates: any = {};
     if (email) updates.email = email;
     if (name) updates.user_metadata = { name };
+    
+    // Manejar desactivación/activación de usuario
+    if (banned !== undefined) {
+      if (banned) {
+        // Desactivar usuario (ban) - usar ban_duration con duración muy larga
+        // Formato: '876000h' = ~100 años en horas
+        console.log('[PATCH /api/admin/users] Banning user:', userId);
+        const { error: banError, data: banData } = await adminSupabase.auth.admin.updateUserById(userId, {
+          ban_duration: '876000h', // ~100 años
+        });
+        if (banError) {
+          console.error('[PATCH /api/admin/users] Ban error:', banError);
+          throw banError;
+        }
+        console.log('[PATCH /api/admin/users] ✅ User banned successfully', banData);
+        
+        // Verificar que el ban se aplicó correctamente
+        const { data: verifyUser } = await adminSupabase.auth.admin.getUserById(userId);
+        console.log('[PATCH /api/admin/users] Verified banned user:', {
+          email: verifyUser?.user?.email,
+          banned_until: verifyUser?.user?.banned_until,
+        });
+      } else {
+        // Activar usuario (unban) - establecer ban_duration a '0h' para remover el ban
+        console.log('[PATCH /api/admin/users] Unbanning user:', userId);
+        const { error: unbanError, data: unbanData } = await adminSupabase.auth.admin.updateUserById(userId, {
+          ban_duration: '0h',
+        });
+        if (unbanError) {
+          console.error('[PATCH /api/admin/users] Unban error:', unbanError);
+          throw unbanError;
+        }
+        console.log('[PATCH /api/admin/users] ✅ User unbanned successfully', unbanData);
+        
+        // Verificar que el unban se aplicó correctamente
+        const { data: verifyUser } = await adminSupabase.auth.admin.getUserById(userId);
+        console.log('[PATCH /api/admin/users] Verified unbanned user:', {
+          email: verifyUser?.user?.email,
+          banned_until: verifyUser?.user?.banned_until,
+        });
+      }
+    }
 
     if (Object.keys(updates).length > 0) {
       const { error: updateError } = await adminSupabase.auth.admin.updateUserById(userId, updates);
