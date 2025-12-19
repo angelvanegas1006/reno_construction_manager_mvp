@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useRef, startTransition, useEffect, useCallback, useMemo, useState, use, lazy, Suspense } from "react";
 import { NavbarL3 } from "@/components/layout/navbar-l3";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
@@ -57,26 +57,34 @@ const CLIMATIZATION_ITEMS_SALON = [
 export default function RenoChecklistPage() {
   const paramsPromise = useParams();
   const router = useRouter();
+  const searchParamsPromise = useSearchParams();
   const sectionRefs = useRef<Record<string, HTMLDivElement>>({});
   const { t } = useI18n();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Unwrap params if it's a Promise (Next.js 16+)
-  // Using instanceof Promise to check without enumerating params
+  // Unwrap params and searchParams if they're Promises (Next.js 16+)
   const unwrappedParams = paramsPromise instanceof Promise ? use(paramsPromise) : paramsPromise;
+  const unwrappedSearchParams = searchParamsPromise instanceof Promise ? use(searchParamsPromise) : searchParamsPromise;
   
   // Get property ID from params
   const propertyId = unwrappedParams?.id && typeof unwrappedParams.id === "string" ? unwrappedParams.id : null;
+  
+  // Get source page and viewMode from query params to know where to redirect back
+  const sourcePage = unwrappedSearchParams?.get('from') || null;
+  const viewMode = unwrappedSearchParams?.get('viewMode') || 'kanban';
 
-  // Debug: Log propertyId
+  // Debug: Log propertyId and navigation params
   useEffect(() => {
     if (propertyId) {
       console.log("🔍 Checklist Page - Property ID:", propertyId);
+      console.log("🔍 Checklist Page - Source Page:", sourcePage);
+      console.log("🔍 Checklist Page - View Mode:", viewMode);
+      console.log("🔍 Checklist Page - All search params:", Object.fromEntries(unwrappedSearchParams?.entries() || []));
     } else {
       console.warn("⚠️ Checklist Page - No property ID found in params");
     }
-  }, [propertyId]);
+  }, [propertyId, sourcePage, viewMode, unwrappedSearchParams]);
 
   // Load property from Supabase
   const { property: supabaseProperty, loading: supabaseLoading, error: propertyError, refetch: refetchProperty } = useSupabaseProperty(propertyId);
@@ -1000,11 +1008,17 @@ export default function RenoChecklistPage() {
       {/* Navbar L3: Header único sobrepuesto sobre todo (sidebar y contenido) */}
       <NavbarL3
         onBack={() => {
-          // Use browser history to go back to previous page (property detail, home, or kanban)
-          if (window.history.length > 1) {
-            router.back();
+          console.log("🔙 Back button clicked - Source:", sourcePage, "ViewMode:", viewMode);
+          // Si viene del kanban, redirigir al kanban con el viewMode correspondiente
+          if (sourcePage === 'kanban') {
+            const kanbanUrl = viewMode === 'list' 
+              ? '/reno/construction-manager/kanban?viewMode=list'
+              : '/reno/construction-manager/kanban';
+            console.log("🔙 Redirecting to kanban:", kanbanUrl);
+            router.push(kanbanUrl);
           } else {
-            // Fallback to property detail page if no history
+            // Si no viene del kanban, volver a la página de detalle de propiedad
+            console.log("🔙 Redirecting to property detail:", `/reno/construction-manager/property/${property?.id}`);
             router.push(`/reno/construction-manager/property/${property?.id}`);
           }
         }}
