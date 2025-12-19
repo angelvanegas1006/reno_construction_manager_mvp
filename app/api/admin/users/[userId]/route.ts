@@ -60,7 +60,7 @@ export async function PATCH(
         const { data: verifyUser } = await adminSupabase.auth.admin.getUserById(userId);
         console.log('[PATCH /api/admin/users] Verified banned user:', {
           email: verifyUser?.user?.email,
-          banned_until: verifyUser?.user?.banned_until,
+          banned_until: (verifyUser?.user as any)?.banned_until,
         });
       } else {
         // Activar usuario (unban) - establecer ban_duration a '0h' para remover el ban
@@ -78,7 +78,7 @@ export async function PATCH(
         const { data: verifyUser } = await adminSupabase.auth.admin.getUserById(userId);
         console.log('[PATCH /api/admin/users] Verified unbanned user:', {
           email: verifyUser?.user?.email,
-          banned_until: verifyUser?.user?.banned_until,
+          banned_until: (verifyUser?.user as any)?.banned_until,
         });
       }
     }
