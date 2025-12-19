@@ -294,13 +294,19 @@ export function VisitsCalendar({
       // Obtener último comentario para cada propiedad
       const visitsWithComments = await Promise.all(
         filteredVisits.map(async (visit: any) => {
-          const { data: comments } = await supabase
+          // Usar maybeSingle() en lugar de single() para manejar casos sin comentarios
+          const { data: comments, error: commentsError } = await supabase
             .from("property_comments")
             .select("comment_text, created_at")
             .eq("property_id", visit.property_id)
             .order("created_at", { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
+
+          // Log error solo si no es un error esperado (sin comentarios)
+          if (commentsError && commentsError.code !== 'PGRST116') {
+            console.warn(`Error fetching comments for property ${visit.property_id}:`, commentsError);
+          }
 
           // Find property from propertiesByPhase to include full Property object
           let property: Property | undefined;
