@@ -23,9 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Edit, RefreshCw, Search, Calendar, CalendarCheck } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit, RefreshCw, Search, Calendar, CalendarCheck, UserX, UserCheck } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
+import { cn } from "@/lib/utils";
 
 interface User {
   id: string;
@@ -35,10 +36,11 @@ interface User {
   created_at: string;
   last_sign_in_at: string | null;
   google_calendar_connected?: boolean;
+  banned?: boolean;
 }
 
 export default function AdminUsersPage() {
-  const { user, role, isLoading: authLoading } = useAppAuth();
+  const { user: currentUser, role, isLoading: authLoading } = useAppAuth();
   const { t } = useI18n();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,14 +63,15 @@ export default function AdminUsersPage() {
     password: "",
     name: "",
     role: "user",
+    banned: false,
   });
 
   // Verificar que sea admin o construction_manager
   useEffect(() => {
-    if (!authLoading && (!user || (role !== "admin" && role !== "construction_manager"))) {
+    if (!authLoading && (!currentUser || (role !== "admin" && role !== "construction_manager"))) {
       router.push("/login");
     }
-  }, [user, role, authLoading, router]);
+  }, [currentUser, role, authLoading, router]);
 
   // Cargar usuarios
   const loadUsers = async () => {
@@ -173,7 +176,7 @@ export default function AdminUsersPage() {
 
       toast.success("Usuario creado exitosamente");
       setCreateDialogOpen(false);
-      setFormData({ email: "", password: "", name: "", role: "user" });
+      setFormData({ email: "", password: "", name: "", role: "user", banned: false });
       loadUsers();
     } catch (error: any) {
       toast.error("Error creando usuario: " + error.message);
@@ -207,7 +210,7 @@ export default function AdminUsersPage() {
       toast.success("Usuario actualizado exitosamente");
       setEditDialogOpen(false);
       setSelectedUser(null);
-      setFormData({ email: "", password: "", name: "", role: "user" });
+      setFormData({ email: "", password: "", name: "", role: "user", banned: false });
       loadUsers();
     } catch (error: any) {
       console.error('[AdminUsersPage] Error updating user:', error);
@@ -246,11 +249,49 @@ export default function AdminUsersPage() {
       password: "",
       name: user.name,
       role: user.role,
+      banned: user.banned || false,
     });
     setEditDialogOpen(true);
   };
 
-  if (authLoading || (!user || (role !== "admin" && role !== "construction_manager"))) {
+  // Desactivar/Activar usuario
+  const handleToggleUserStatus = async (userId: string, currentBanned: boolean) => {
+    const action = currentBanned ? "activar" : "desactivar";
+    if (!confirm(`¿Estás seguro de que quieres ${action} este usuario?`)) {
+      return;
+    }
+
+    try {
+      console.log('[AdminUsersPage] Toggling user status:', { userId, currentBanned, newStatus: !currentBanned });
+      
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ banned: !currentBanned }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('[AdminUsersPage] Error response:', error);
+        throw new Error(error.error || `Failed to ${action} user`);
+      }
+
+      const result = await response.json();
+      console.log('[AdminUsersPage] Toggle success:', result);
+
+      toast.success(`Usuario ${currentBanned ? "activado" : "desactivado"} exitosamente`);
+      
+      // Esperar un momento antes de recargar para asegurar que Supabase haya actualizado
+      setTimeout(() => {
+        loadUsers();
+      }, 500);
+    } catch (error: any) {
+      console.error('[AdminUsersPage] Error toggling user status:', error);
+      toast.error(`Error ${action === "activar" ? "activando" : "desactivando"} usuario: ` + error.message);
+    }
+  };
+
+  if (authLoading || (!currentUser || (role !== "admin" && role !== "construction_manager"))) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -428,6 +469,7 @@ export default function AdminUsersPage() {
                   <th className="px-4 py-3 text-left text-sm font-medium">Email</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Nombre</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Rol</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">Estado</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Google Calendar</th>
                   <th className="px-4 py-3 text-left text-sm font-medium">Último Acceso</th>
                   <th className="px-4 py-3 text-right text-sm font-medium">Acciones</th>
@@ -435,9 +477,18 @@ export default function AdminUsersPage() {
               </thead>
               <tbody>
                 {paginatedUsers.map((user) => (
-                  <tr key={user.id} className="border-t hover:bg-muted/50 transition-colors">
+                  <tr key={user.id} className={cn("border-t hover:bg-muted/50 transition-colors", user.banned && "opacity-60")}>
                     <td className="px-4 py-3 text-sm">{user.email}</td>
-                    <td className="px-4 py-3 text-sm">{user.name}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        {user.name}
+                        {user.banned && (
+                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                            Desactivado
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${
@@ -450,6 +501,19 @@ export default function AdminUsersPage() {
                       >
                         {t.roles[user.role as keyof typeof t.roles] || user.role}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {user.banned ? (
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 flex items-center gap-1 w-fit">
+                          <UserX className="h-3 w-3" />
+                          Desactivado
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1 w-fit">
+                          <UserCheck className="h-3 w-3" />
+                          Activo
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {user.google_calendar_connected ? (
@@ -482,8 +546,21 @@ export default function AdminUsersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => handleToggleUserStatus(user.id, user.banned || false)}
+                          disabled={user.id === currentUser?.id}
+                          title={user.banned ? "Activar usuario" : "Desactivar usuario"}
+                        >
+                          {user.banned ? (
+                            <UserCheck className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <UserX className="h-4 w-4 text-orange-600" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleDeleteUser(user.id)}
-                          disabled={user.id === user?.id}
+                          disabled={user.id === currentUser?.id}
                           title="Eliminar usuario"
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
@@ -499,10 +576,17 @@ export default function AdminUsersPage() {
           {/* Mobile Card View */}
           <div className="md:hidden space-y-3">
             {paginatedUsers.map((user) => (
-              <div key={user.id} className="border rounded-lg p-4 bg-card space-y-3">
+              <div key={user.id} className={cn("border rounded-lg p-4 bg-card space-y-3", user.banned && "opacity-60")}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold truncate">{user.name || user.email}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold truncate">{user.name || user.email}</h3>
+                      {user.banned && (
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                          Desactivado
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground truncate mt-1">{user.email}</p>
                   </div>
                   <div className="flex gap-2 ml-2">
@@ -518,8 +602,22 @@ export default function AdminUsersPage() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => handleToggleUserStatus(user.id, user.banned || false)}
+                      disabled={user.id === currentUser?.id}
+                      title={user.banned ? "Activar usuario" : "Desactivar usuario"}
+                      className="h-8 w-8 p-0"
+                    >
+                      {user.banned ? (
+                        <UserCheck className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <UserX className="h-4 w-4 text-orange-600" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleDeleteUser(user.id)}
-                      disabled={user.id === user?.id}
+                      disabled={user.id === currentUser?.id}
                       title="Eliminar usuario"
                       className="h-8 w-8 p-0"
                     >

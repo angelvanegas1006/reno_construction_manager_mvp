@@ -58,6 +58,19 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[GET /api/admin/users] Found', supabaseUsers?.users?.length || 0, 'users');
+    
+    // Debug: Log banned status for first few users
+    if (supabaseUsers?.users && supabaseUsers.users.length > 0) {
+      const sampleUsers = supabaseUsers.users.slice(0, 3);
+      sampleUsers.forEach(u => {
+        console.log('[GET /api/admin/users] Sample user:', {
+          email: u.email,
+          banned_until: u.banned_until,
+          banned: (u as any).banned,
+          isBanned: u.banned_until ? new Date(u.banned_until) > new Date() : false,
+        });
+      });
+    }
 
     // Obtener roles de Supabase
     const { data: userRoles } = await adminSupabase
@@ -75,16 +88,33 @@ export async function GET(request: NextRequest) {
     const googleCalendarUsers = new Set(googleCalendarTokens?.map((t: any) => t.user_id) || []);
 
     // Combinar usuarios con sus roles y estado de Google Calendar
-    const users = supabaseUsers.users.map(u => ({
-      id: u.id,
-      email: u.email,
-      name: u.user_metadata?.name || u.email,
-      role: rolesMap.get(u.id) || 'user',
-      created_at: u.created_at,
-      last_sign_in_at: u.last_sign_in_at,
-      app_metadata: u.app_metadata,
-      google_calendar_connected: googleCalendarUsers.has(u.id),
-    }));
+    const users = supabaseUsers.users.map(u => {
+      // Verificar si el usuario está baneado
+      // Supabase puede usar banned_until (timestamp) o ban_duration
+      // Si banned_until existe y está en el futuro, el usuario está baneado
+      let isBanned = false;
+      
+      if (u.banned_until) {
+        const bannedUntil = new Date(u.banned_until);
+        isBanned = bannedUntil > new Date();
+      } else if ((u as any).banned === true) {
+        // Fallback: verificar campo banned booleano si existe
+        isBanned = true;
+      }
+      
+      return {
+        id: u.id,
+        email: u.email,
+        name: u.user_metadata?.name || u.email,
+        role: rolesMap.get(u.id) || 'user',
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at,
+        app_metadata: u.app_metadata,
+        google_calendar_connected: googleCalendarUsers.has(u.id),
+        banned: isBanned,
+        banned_until: u.banned_until || null,
+      };
+    });
 
     return NextResponse.json({ users, total: users.length });
   } catch (error: any) {
