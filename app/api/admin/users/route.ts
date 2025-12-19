@@ -63,11 +63,12 @@ export async function GET(request: NextRequest) {
     if (supabaseUsers?.users && supabaseUsers.users.length > 0) {
       const sampleUsers = supabaseUsers.users.slice(0, 3);
       sampleUsers.forEach(u => {
+        const uAny = u as any;
         console.log('[GET /api/admin/users] Sample user:', {
           email: u.email,
-          banned_until: u.banned_until,
-          banned: (u as any).banned,
-          isBanned: u.banned_until ? new Date(u.banned_until) > new Date() : false,
+          banned_until: uAny.banned_until,
+          banned: uAny.banned,
+          isBanned: uAny.banned_until ? new Date(uAny.banned_until) > new Date() : false,
         });
       });
     }
@@ -92,12 +93,13 @@ export async function GET(request: NextRequest) {
       // Verificar si el usuario está baneado
       // Supabase puede usar banned_until (timestamp) o ban_duration
       // Si banned_until existe y está en el futuro, el usuario está baneado
+      const userAny = u as any;
       let isBanned = false;
       
-      if (u.banned_until) {
-        const bannedUntil = new Date(u.banned_until);
+      if (userAny.banned_until) {
+        const bannedUntil = new Date(userAny.banned_until);
         isBanned = bannedUntil > new Date();
-      } else if ((u as any).banned === true) {
+      } else if (userAny.banned === true) {
         // Fallback: verificar campo banned booleano si existe
         isBanned = true;
       }
@@ -112,7 +114,7 @@ export async function GET(request: NextRequest) {
         app_metadata: u.app_metadata,
         google_calendar_connected: googleCalendarUsers.has(u.id),
         banned: isBanned,
-        banned_until: u.banned_until || null,
+        banned_until: userAny.banned_until || null,
       };
     });
 

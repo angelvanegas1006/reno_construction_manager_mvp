@@ -54,11 +54,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     // Verificar si el usuario está baneado
+    const foundUserAny = foundUser as any;
     let isBanned = false;
-    if (foundUser.banned_until) {
-      const bannedUntil = new Date(foundUser.banned_until);
+    if (foundUserAny.banned_until) {
+      const bannedUntil = new Date(foundUserAny.banned_until);
       isBanned = bannedUntil > new Date();
-    } else if ((foundUser as any).banned === true) {
+    } else if (foundUserAny.banned === true) {
       // Fallback: verificar campo banned booleano si existe
       isBanned = true;
     }
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       name: foundUser.user_metadata?.name || foundUser.email,
       role: userRoleData?.role || 'user',
       banned: isBanned,
-      banned_until: foundUser.banned_until || null,
+      banned_until: foundUserAny.banned_until || null,
       status: isBanned ? 'Desactivado' : 'Activo',
       email_confirmed: !!foundUser.email_confirmed_at,
       last_sign_in_at: foundUser.last_sign_in_at,
