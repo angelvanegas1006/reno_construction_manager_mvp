@@ -233,43 +233,43 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
     switch (widgetId) {
       case 'estimated-visit':
         return (
-          <div className="space-y-1.5">
-            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="space-y-1.5 min-w-0 w-full">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
               {address}
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
               {property.daysToVisit !== null && property.daysToVisit !== undefined && (
-                <span className="whitespace-nowrap">{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
+                <span className="whitespace-nowrap truncate max-w-full">{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
               )}
-              {property.region && <span className="whitespace-nowrap">• {property.region}</span>}
+              {property.region && <span className="whitespace-nowrap truncate max-w-full">• {property.region}</span>}
             </div>
           </div>
         );
       
       case 'initial-check':
         return (
-          <div className="space-y-1.5">
-            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="space-y-1.5 min-w-0 w-full">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
               {address}
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
               {property.daysToVisit !== null && property.daysToVisit !== undefined && (
-                <span className="whitespace-nowrap">{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
+                <span className="whitespace-nowrap truncate max-w-full">{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
               )}
-              {property.renovador && <span className="whitespace-nowrap">• {property.renovador}</span>}
+              {property.renovador && <span className="whitespace-nowrap truncate max-w-full">• {property.renovador}</span>}
             </div>
           </div>
         );
       
       case 'renovator':
         return (
-          <div className="space-y-1.5">
-            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="space-y-1.5 min-w-0 w-full">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
               {address}
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
               {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
-                <span className="whitespace-nowrap">{t.dashboard?.todoWidgets?.daysToStart || "Días para empezar"}: {property.daysToStartRenoSinceRSD}</span>
+                <span className="whitespace-nowrap truncate max-w-full">{t.dashboard?.todoWidgets?.daysToStart || "Días para empezar"}: {property.daysToStartRenoSinceRSD}</span>
               )}
             </div>
           </div>
@@ -277,14 +277,14 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       
       case 'work-update':
         return (
-          <div className="space-y-1.5">
-            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="space-y-1.5 min-w-0 w-full">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
               {address}
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-              {property.renovador && <span className="whitespace-nowrap">{property.renovador}</span>}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
+              {property.renovador && <span className="whitespace-nowrap truncate max-w-full">{property.renovador}</span>}
               {property.renoType && (
-                <span className="whitespace-nowrap">• {property.renoType}</span>
+                <span className="whitespace-nowrap truncate max-w-full">• {property.renoType}</span>
               )}
             </div>
           </div>
@@ -292,14 +292,14 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       
       case 'final-check':
         return (
-          <div className="space-y-1.5">
-            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="space-y-1.5 min-w-0 w-full">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
               {address}
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-              {property.renovador && <span className="whitespace-nowrap">{property.renovador}</span>}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
+              {property.renovador && <span className="whitespace-nowrap truncate max-w-full">{property.renovador}</span>}
               {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
-                <span className="whitespace-nowrap">• {t.dashboard?.todoWidgets?.daysToReady || "Días para lista"}: {property.daysToPropertyReady}</span>
+                <span className="whitespace-nowrap truncate max-w-full">• {t.dashboard?.todoWidgets?.daysToReady || "Días para lista"}: {property.daysToPropertyReady}</span>
               )}
             </div>
           </div>
@@ -307,7 +307,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       
       default:
         return (
-          <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+          <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0 w-full">
             {address}
           </div>
         );
@@ -351,10 +351,10 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
           </div>
         </CardHeader>
         
-        <CardContent className="relative z-10 flex-1 flex flex-col pt-4 pb-4 px-4 min-h-0">
+        <CardContent className="relative z-10 flex-1 flex flex-col pt-4 pb-4 px-4 min-h-0 overflow-hidden">
           {/* Lista de propiedades pendientes */}
           {hasItems && widget.properties.length > 0 && (
-            <div className="space-y-3 flex-1 overflow-y-auto max-h-[500px] pr-2 scrollbar-overlay">
+            <div className="space-y-3 flex-1 overflow-y-auto max-h-[500px] pr-2 scrollbar-overlay min-w-0">
               {widget.properties.map((property, index) => {
                 // Verificar si la propiedad está overdue (debería haberse actualizado antes)
                 const isOverdue = (property as any).isOverdue === true;
@@ -367,7 +367,8 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                       "p-3 rounded-lg cursor-pointer transition-all duration-150",
                       "bg-white dark:bg-[#0a0a0a]",
                       "hover:bg-muted/40 hover:shadow-sm",
-                      "border-2",
+                      "border-2 overflow-hidden",
+                      "min-w-0 w-full",
                       isOverdue 
                         ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
                         : "border-border/60 hover:border-border"
@@ -479,7 +480,8 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                                 "p-3 rounded-lg cursor-pointer transition-all duration-150",
                                 "bg-white dark:bg-[#0a0a0a]",
                                 "hover:bg-muted/40 hover:shadow-sm",
-                                "border-2",
+                                "border-2 overflow-hidden",
+                                "min-w-0 w-full",
                                 isOverdue 
                                   ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
                                   : "border-border/60 hover:border-border"
