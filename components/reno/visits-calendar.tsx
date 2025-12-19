@@ -50,7 +50,29 @@ export function VisitsCalendar({
   const [visits, setVisits] = useState<CalendarVisit[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"day" | "week">("week");
+  // En móvil, usar vista diaria por defecto para mejor UX
+  const [viewMode, setViewMode] = useState<"day" | "week">(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768 ? "day" : "week";
+    }
+    return "week";
+  });
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Detectar si estamos en móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      // Si cambiamos a móvil y estamos en vista semanal, cambiar a diaria
+      if (window.innerWidth < 768 && viewMode === "week") {
+        setViewMode("day");
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [viewMode]);
   const [selectedVisit, setSelectedVisit] = useState<CalendarVisit | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [visitType, setVisitType] = useState<"initial-check" | "final-check" | "obra-seguimiento" | "reminder">("initial-check");
@@ -85,6 +107,40 @@ export function VisitsCalendar({
 
   const goToToday = () => {
     setCurrentDate(new Date());
+  };
+
+  // Función para obtener el texto del botón de fecha
+  const getDateButtonText = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const currentDateNormalized = new Date(currentDate);
+    currentDateNormalized.setHours(0, 0, 0, 0);
+    
+    // Si es hoy, mostrar "Hoy"
+    if (currentDateNormalized.getTime() === today.getTime()) {
+      return t.calendar.today;
+    }
+    
+    // Si es mañana
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (currentDateNormalized.getTime() === tomorrow.getTime()) {
+      return language === "es" ? "Mañana" : "Tomorrow";
+    }
+    
+    // Si es ayer
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (currentDateNormalized.getTime() === yesterday.getTime()) {
+      return language === "es" ? "Ayer" : "Yesterday";
+    }
+    
+    // Para otros días, mostrar la fecha formateada
+    return currentDate.toLocaleDateString(language === "es" ? "es-ES" : "en-US", {
+      weekday: "short",
+      day: "numeric",
+      month: "short"
+    });
   };
 
   // Obtener rango de fechas según el modo de vista
@@ -675,31 +731,33 @@ export function VisitsCalendar({
               )}
             </>
           )}
-          {/* Selector de vista */}
-          <div className="flex gap-1 border rounded-md flex-shrink-0">
-            <button
-              onClick={() => setViewMode("day")}
-              className={cn(
-                "px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                viewMode === "day"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {t.calendar.day}
-            </button>
-            <button
-              onClick={() => setViewMode("week")}
-              className={cn(
-                "px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                viewMode === "week"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {t.calendar.week}
-            </button>
-          </div>
+          {/* Selector de vista - Ocultar en móvil ya que forzamos vista diaria */}
+          {!isMobile && (
+            <div className="flex gap-1 border rounded-md flex-shrink-0">
+              <button
+                onClick={() => setViewMode("day")}
+                className={cn(
+                  "px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                  viewMode === "day"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t.calendar.day}
+              </button>
+              <button
+                onClick={() => setViewMode("week")}
+                className={cn(
+                  "px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                  viewMode === "week"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t.calendar.week}
+              </button>
+            </div>
+          )}
           
           {/* Navegación */}
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -716,10 +774,10 @@ export function VisitsCalendar({
               onClick={goToToday}
               className={cn(
                 "inline-flex items-center justify-center gap-1 md:gap-2 whitespace-nowrap rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                "px-2 md:px-3 py-1 text-xs font-medium h-auto"
+                "px-2 md:px-3 py-1 text-xs font-medium h-auto min-w-[60px] md:min-w-[80px]"
               )}
             >
-              {t.calendar.today}
+              {getDateButtonText()}
             </button>
             <button
               onClick={goToNextPeriod}
@@ -849,85 +907,188 @@ export function VisitsCalendar({
             {t.calendar.loading}
           </p>
         ) : viewMode === "day" ? (
-          // Vista diaria por horas
-          <div className="space-y-2 max-h-[400px] md:max-h-[600px] overflow-y-auto">
-            {hours.map((hour) => {
-              const hourVisits = groupedVisits[hour] || [];
-              return (
-                <div key={hour} className="flex gap-2 md:gap-4 border-b pb-2 min-w-0">
-                  <div className="w-12 md:w-16 text-xs md:text-sm font-medium text-muted-foreground flex-shrink-0">
-                    {hour.toString().padStart(2, "0")}:00
-                  </div>
-                  <div className="flex-1 flex flex-wrap gap-2 min-w-0">
-                    {hourVisits.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">{t.calendar.noVisits}</span>
-                    ) : (
-                      hourVisits.map((visit) => (
-                        <button
-                          key={visit.id}
-                          onClick={() => setSelectedVisit(visit)}
-                          className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-md border bg-white/10 dark:bg-white/10 hover:bg-white/20 dark:hover:bg-white/20 hover:shadow-md dark:hover:shadow-none transition-all text-left min-w-0"
-                        >
-                          <span className="flex-shrink-0">{getVisitIcon(visit.visit_type)}</span>
-                          <span className="text-xs font-medium truncate">
-                            {visit.property_address || visit.property_id}
-                          </span>
-                          <span className="text-xs text-muted-foreground hidden sm:inline">
-                            {getVisitLabel(visit.visit_type)}
-                          </span>
-                        </button>
-                      ))
+          // Vista diaria por horas - Estilo Google Calendar
+          <div className="relative max-h-[400px] md:max-h-[600px] overflow-y-auto">
+            <div className="space-y-0">
+              {hours.map((hour) => {
+                const hourVisits = groupedVisits[hour] || [];
+                const now = new Date();
+                const isToday = currentDate.toDateString() === now.toDateString();
+                const isCurrentHour = isToday && hour === now.getHours();
+                
+                return (
+                  <div 
+                    key={hour} 
+                    className={cn(
+                      "flex gap-2 md:gap-4 border-b border-border/50 pb-3 md:pb-4 min-w-0 relative",
+                      isCurrentHour && "bg-primary/5"
                     )}
+                  >
+                    <div className={cn(
+                      "w-12 md:w-16 text-xs md:text-sm font-medium flex-shrink-0 pt-1 flex items-start",
+                      isCurrentHour ? "text-primary font-semibold" : "text-muted-foreground"
+                    )}>
+                      {/* Indicador de hora actual - solo mostrar si es la hora actual exacta */}
+                      {isCurrentHour ? (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />
+                          <span>{hour.toString().padStart(2, "0")}:00</span>
+                        </div>
+                      ) : (
+                        <span>{hour.toString().padStart(2, "0")}:00</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-2">
+                      {hourVisits.length === 0 ? (
+                        <span className="text-xs text-muted-foreground block py-1">{t.calendar.noVisits}</span>
+                      ) : (
+                        hourVisits.map((visit) => {
+                          const visitDate = new Date(visit.visit_date);
+                          const visitHour = visitDate.getHours();
+                          const visitMinute = visitDate.getMinutes();
+                          const visitTime = `${visitHour.toString().padStart(2, "0")}:${visitMinute.toString().padStart(2, "0")}`;
+                          
+                          return (
+                            <button
+                              key={visit.id}
+                              onClick={() => setSelectedVisit(visit)}
+                              className={cn(
+                                "w-full flex items-center gap-2 rounded-lg",
+                                "border transition-all text-left min-w-0",
+                                "bg-card hover:bg-accent hover:border-primary/50",
+                                "shadow-sm hover:shadow-md",
+                                "active:scale-[0.98]",
+                                // Tamaños más compactos en móvil
+                                isMobile 
+                                  ? "px-2 py-1.5 border-1" 
+                                  : "px-3 md:px-4 py-2.5 md:py-3 border-2"
+                              )}
+                            >
+                              <div className="flex-shrink-0">
+                                <div className={cn(
+                                  "flex items-center justify-center",
+                                  isMobile ? "w-6 h-6" : "w-8 h-8"
+                                )}>
+                                  {getVisitIcon(visit.visit_type)}
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className={cn(
+                                    "font-semibold text-foreground line-clamp-1 break-words",
+                                    isMobile ? "text-xs" : "text-sm md:text-base"
+                                  )}>
+                                    {visit.property_address || visit.property_id}
+                                  </div>
+                                  <div className={cn(
+                                    "text-muted-foreground",
+                                    isMobile ? "text-[10px]" : "text-xs md:text-sm"
+                                  )}>
+                                    {getVisitLabel(visit.visit_type)}
+                                  </div>
+                                </div>
+                                <span className={cn(
+                                  "text-muted-foreground flex-shrink-0 whitespace-nowrap",
+                                  isMobile ? "text-[10px]" : "text-xs"
+                                )}>
+                                  {visitTime}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         ) : (
-          // Vista semanal por días
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 overflow-x-auto">
+          // Vista semanal por días - Mejorada para móvil
+          <div className={cn(
+            "flex md:grid gap-2 overflow-x-auto pb-2",
+            "scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
+            isMobile 
+              ? "flex-row snap-x snap-mandatory" // En móvil, scroll horizontal con snap
+              : "grid-cols-2 md:grid-cols-3 lg:grid-cols-7" // En desktop, mostrar múltiples días
+          )}>
             {weekDays.map((day, index) => {
               const dayVisits = groupedVisits[index] || [];
               const isToday = day.toDateString() === new Date().toDateString();
+              
+              // Ordenar visitas por hora
+              const sortedVisits = [...dayVisits].sort((a, b) => {
+                const timeA = new Date(a.visit_date).getTime();
+                const timeB = new Date(b.visit_date).getTime();
+                return timeA - timeB;
+              });
               
               return (
                 <div
                   key={index}
                   className={cn(
-                    "border rounded-lg p-2 min-h-[150px] md:min-h-[200px] flex flex-col",
-                    isToday && "border-primary bg-primary/5"
+                    "border rounded-lg p-3 md:p-2 flex flex-col",
+                    isMobile 
+                      ? "min-w-[calc(100vw-2rem)] snap-start" // Ancho completo menos padding en móvil
+                      : "min-w-0", // En desktop, sin ancho mínimo
+                    isMobile ? "min-h-[400px]" : "min-h-[150px] md:min-h-[200px]",
+                    isToday && "border-primary bg-primary/5 ring-2 ring-primary/20"
                   )}
                 >
-                  <div className="text-xs font-medium mb-2 flex-shrink-0">
-                    {day.toLocaleDateString(language === "es" ? "es-ES" : "en-US", { weekday: "short", day: "numeric" })}
+                  <div className={cn(
+                    "text-sm md:text-xs font-semibold mb-3 md:mb-2 flex-shrink-0",
+                    isToday && "text-primary"
+                  )}>
+                    <div className="text-xs text-muted-foreground mb-0.5">
+                      {day.toLocaleDateString(language === "es" ? "es-ES" : "en-US", { weekday: "long" })}
+                    </div>
+                    <div className="text-lg md:text-base">
+                      {day.toLocaleDateString(language === "es" ? "es-ES" : "en-US", { day: "numeric" })}
+                    </div>
                   </div>
-                  <div className="space-y-1 flex-1 overflow-y-auto">
-                    {dayVisits.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">{t.calendar.noVisits}</span>
+                  <div className="space-y-2 flex-1 overflow-y-auto">
+                    {sortedVisits.length === 0 ? (
+                      <span className="text-xs text-muted-foreground block py-2">{t.calendar.noVisits}</span>
                     ) : (
-                      dayVisits.map((visit) => (
-                        <button
-                          key={visit.id}
-                          onClick={() => setSelectedVisit(visit)}
-                          className="w-full flex items-start gap-1.5 px-2 py-1 rounded text-xs border bg-white/10 dark:bg-white/10 hover:bg-white/20 dark:hover:bg-white/20 hover:shadow-md dark:hover:shadow-none transition-all text-left"
-                        >
-                          <span className="flex-shrink-0">{getVisitIcon(visit.visit_type)}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate text-[10px] md:text-xs">
-                              {visit.property_address || visit.property_id}
+                      sortedVisits.map((visit) => {
+                        const visitDate = new Date(visit.visit_date);
+                        const visitTime = visitDate.toLocaleTimeString(language === "es" ? "es-ES" : "en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                        
+                        return (
+                          <button
+                            key={visit.id}
+                            onClick={() => setSelectedVisit(visit)}
+                            className={cn(
+                              "w-full flex items-start gap-2 px-3 py-2.5 rounded-lg",
+                              "border-2 transition-all text-left",
+                              "bg-card hover:bg-accent hover:border-primary/50",
+                              "shadow-sm hover:shadow-md",
+                              "active:scale-[0.98]"
+                            )}
+                          >
+                            <div className="flex-shrink-0 mt-0.5">
+                              {getVisitIcon(visit.visit_type)}
                             </div>
-                            <div className="text-muted-foreground text-[10px]">
-                              {new Date(visit.visit_date).toLocaleTimeString(language === "es" ? "es-ES" : "en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="text-xs md:text-sm font-semibold text-foreground line-clamp-2 break-words">
+                                  {visit.property_address || visit.property_id}
+                                </span>
+                                <span className="text-xs text-muted-foreground flex-shrink-0 whitespace-nowrap">
+                                  {visitTime}
+                                </span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {getVisitLabel(visit.visit_type)}
+                              </div>
                             </div>
-                            <div className="text-muted-foreground text-[9px] md:text-[10px]">
-                              {getVisitLabel(visit.visit_type)}
-                            </div>
-                          </div>
-                        </button>
-                      ))
+                          </button>
+                        );
+                      })
                     )}
                   </div>
                 </div>
