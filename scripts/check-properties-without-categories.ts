@@ -1,86 +1,152 @@
 #!/usr/bin/env tsx
 /**
- * Script para verificar qué propiedades en reno-in-progress no tienen categorías
+ * Script para verificar cuántas propiedades en reno-in-progress
+ * tienen budget_pdf_url pero no tienen categorías dinámicas
+ * 
+ * Ejecutar con: npx tsx scripts/check-properties-without-categories.ts
  */
 
 import { loadEnvConfig } from '@next/env';
-import { createAdminClient } from '../lib/supabase/admin';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 const projectDir = process.cwd();
 loadEnvConfig(projectDir);
 
 async function checkPropertiesWithoutCategories() {
+  console.log('🔍 Verificando propiedades sin categorías dinámicas...\n');
+
   const supabase = createAdminClient();
-  
-  console.log('🔍 Buscando propiedades en reno-in-progress sin categorías...\n');
-  
-  // Obtener todas las propiedades en reno-in-progress con budget_pdf_url
-  const { data: properties, error: fetchError } = await supabase
-    .from('properties')
-    .select('id, address, name, budget_pdf_url, "Unique ID From Engagements"')
-    .eq('reno_phase', 'reno-in-progress')
-    .not('budget_pdf_url', 'is', null);
-  
-  if (fetchError) {
-    console.error('❌ Error:', fetchError);
-    process.exit(1);
-  }
-  
-  if (!properties || properties.length === 0) {
-    console.log('❌ No se encontraron propiedades en reno-in-progress con budget_pdf_url');
-    process.exit(0);
-  }
-  
-  console.log(`📊 Total propiedades en reno-in-progress con budget_pdf_url: ${properties.length}\n`);
-  
-  // Verificar cuáles tienen categorías
-  const propertiesWithoutCategories = [];
-  
-  for (const property of properties) {
-    const { data: categories, error: categoriesError } = await supabase
-      .from('property_dynamic_categories')
-      .select('id')
-      .eq('property_id', property.id)
-      .limit(1);
-    
-    if (categoriesError) {
-      console.error(`⚠️  Error verificando categorías para ${property.id}:`, categoriesError);
-      continue;
+
+  try {
+    // 1. Obtener todas las propiedades en reno-in-progress con budget_pdf_url
+    const { data: properties, error: propertiesError } = await supabase
+      .from('properties')
+      .select('id, address, budget_pdf_url, "Renovator name"')
+      .eq('reno_phase', 'reno-in-progress')
+      .not('budget_pdf_url', 'is', null)
+      .order('created_at', { ascending: false });
+
+    if (propertiesError) {
+      console.error('❌ Error obteniendo propiedades:', propertiesError);
+      return;
     }
-    
-    if (!categories || categories.length === 0) {
-      propertiesWithoutCategories.push(property);
+
+    if (!properties || properties.length === 0) {
+      console.log('✅ No hay propiedades en reno-in-progress con budget_pdf_url');
+      return;
     }
-  }
-  
-  console.log(`✅ Propiedades SIN categorías: ${propertiesWithoutCategories.length}\n`);
-  
-  if (propertiesWithoutCategories.length > 0) {
-    console.log('📋 Lista de propiedades sin categorías:\n');
-    propertiesWithoutCategories.forEach((prop, index) => {
-      console.log(`${index + 1}. ${prop.id}`);
-      console.log(`   Dirección: ${prop.address || prop.name || 'N/A'}`);
-      console.log(`   Unique ID: ${prop['Unique ID From Engagements'] || 'N/A'}`);
-      const budgetUrl = prop.budget_pdf_url;
-      const urlPreview = budgetUrl ? (budgetUrl.length > 80 ? budgetUrl.substring(0, 80) + '...' : budgetUrl) : 'N/A';
-      console.log(`   budget_pdf_url: ${budgetUrl ? '✅ Sí' : '❌ No'}`);
-      if (budgetUrl) {
-        console.log(`   URL: ${urlPreview}`);
+
+    console.log(`📊 Total propiedades con budget_pdf_url: ${properties.length}\n`);
+
+    // 2. Verificar cuáles tienen categorías y cuáles no
+    const propertiesWithoutCategories: Array<{
+      id: string;
+      address: string;
+      renovator: string | null;
+    }> = [];
+    const propertiesWithCategories: string[] = [];
+
+    for (const property of properties) {
+      const { data: categories, error: categoriesError } = await supabase
+        .from('property_dynamic_categories')
+        .select('id')
+        .eq('property_id', property.id)
+        .limit(1);
+
+      if (categoriesError) {
+        console.warn(`⚠️  Error verificando categorías para ${property.id}:`, categoriesError.message);
       }
-      console.log('');
+
+      const hasCategories = categories && categories.length > 0;
+
+      if (hasCategories) {
+        propertiesWithCategories.push(property.id);
+      } else {
+        propertiesWithoutCategories.push({
+          id: property.id,
+          address: property.address || 'Sin dirección',
+          renovator: property['Renovator name'] || null,
+        });
+      }
+    }
+
+    // 3. Generar informe
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('📋 INFORME: Propiedades sin Categorías Dinámicas');
+    console.log('═══════════════════════════════════════════════════════════════\n');
+
+    console.log(`📊 RESUMEN:`);
+    console.log(`   Total propiedades con budget_pdf_url: ${properties.length}`);
+    console.log(`   ✅ Con categorías dinámicas: ${propertiesWithCategories.length}`);
+    console.log(`   ❌ Sin categorías dinámicas: ${propertiesWithoutCategories.length}\n`);
+
+    if (propertiesWithoutCategories.length === 0) {
+      console.log('✅ ¡Excelente! Todas las propiedades tienen categorías dinámicas.\n');
+      return;
+    }
+
+    // Agrupar por renovador
+    const byRenovator: Record<string, typeof propertiesWithoutCategories> = {};
+    const withoutRenovator: typeof propertiesWithoutCategories = [];
+
+    propertiesWithoutCategories.forEach(prop => {
+      const renovator = prop.renovator || 'Sin renovador';
+      if (renovator === 'Sin renovador') {
+        withoutRenovator.push(prop);
+      } else {
+        if (!byRenovator[renovator]) {
+          byRenovator[renovator] = [];
+        }
+        byRenovator[renovator].push(prop);
+      }
     });
-  } else {
-    console.log('✅ Todas las propiedades en reno-in-progress ya tienen categorías!');
+
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log(`❌ PROPIEDADES SIN CATEGORÍAS DINÁMICAS (${propertiesWithoutCategories.length}):`);
+    console.log('═══════════════════════════════════════════════════════════════\n');
+
+    // Mostrar por renovador
+    const renovators = Object.keys(byRenovator).sort();
+    renovators.forEach(renovator => {
+      const props = byRenovator[renovator];
+      console.log(`👷 ${renovator} (${props.length} propiedades):`);
+      props.forEach((prop, index) => {
+        console.log(`   ${index + 1}. ${prop.id} - ${prop.address}`);
+      });
+    });
+
+    // Mostrar sin renovador
+    if (withoutRenovator.length > 0) {
+      console.log(`\n❓ Sin renovador asignado (${withoutRenovator.length} propiedades):`);
+      withoutRenovator.forEach((prop, index) => {
+        console.log(`   ${index + 1}. ${prop.id} - ${prop.address}`);
+      });
+    }
+
+    console.log('\n═══════════════════════════════════════════════════════════════');
+    console.log('📊 LISTADO COMPLETO:');
+    console.log('═══════════════════════════════════════════════════════════════\n');
+
+    propertiesWithoutCategories.forEach((prop, index) => {
+      const renovator = prop.renovator || 'Sin renovador';
+      console.log(`${index + 1}. ${prop.id} | ${prop.address} | ${renovator}`);
+    });
+
+    console.log('\n═══════════════════════════════════════════════════════════════');
+    console.log('✅ Verificación completada\n');
+
+  } catch (error) {
+    console.error('❌ Error verificando propiedades:', error);
   }
-  
-  console.log(`\n📊 Resumen:`);
-  console.log(`   - Total propiedades: ${properties.length}`);
-  console.log(`   - Con categorías: ${properties.length - propertiesWithoutCategories.length}`);
-  console.log(`   - Sin categorías: ${propertiesWithoutCategories.length}`);
 }
 
-checkPropertiesWithoutCategories().catch((error) => {
-  console.error('❌ Error fatal:', error);
-  process.exit(1);
-});
-
+// Ejecutar
+checkPropertiesWithoutCategories()
+  .then(() => {
+    console.log('✅ Script finalizado');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Error ejecutando script:', error);
+    process.exit(1);
+  });
