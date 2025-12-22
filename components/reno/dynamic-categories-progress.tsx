@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Trash2, Save, Send, Calendar, Clock, Edit2, Download, ChevronDown, ChevronUp, Wrench } from 'lucide-react';
+import { Trash2, Calendar, Clock, Edit2, Download, ChevronDown, ChevronUp, Wrench, Image as ImageIcon, Video as VideoIcon, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
@@ -12,8 +12,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { DateTimePicker } from '@/components/property/datetime-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { useDynamicCategories } from '@/hooks/useDynamicCategories';
-import { SendUpdateDialog } from './send-update-dialog';
+import { useCategoryUpdates } from '@/hooks/useCategoryUpdates';
+import { SendUpdateImageSelector } from './send-update-image-selector';
+import { SendUpdateEmailPreview } from './send-update-email-preview';
+import { CategoryPhotoUpload } from './category-photo-upload';
 import { PartidaItem } from './partida-item';
+import { ChecklistUploadZone as ChecklistUploadZoneType, FileUpload } from '@/lib/checklist-storage';
+import { uploadFilesToStorage } from '@/lib/supabase/storage-upload';
 import { parseActivitiesText } from '@/lib/parsers/parse-activities-text';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -25,6 +30,94 @@ type SupabaseProperty = Database['public']['Tables']['properties']['Row'];
 
 interface DynamicCategoriesProgressProps {
   property: SupabaseProperty;
+  onSaveRef?: (saveFn: () => Promise<void>) => void;
+  onSendRef?: (sendFn: () => void) => void;
+  onHasUnsavedChangesChange?: (hasChanges: boolean) => void;
+}
+
+// Componente para mostrar los updates de una categoría
+function CategoryUpdatesList({ categoryId }: { categoryId: string }) {
+  const { updates, loading } = useCategoryUpdates(categoryId);
+
+  if (loading || updates.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t space-y-3">
+      <Label className="text-sm font-semibold">Updates recientes</Label>
+      {updates.slice(0, 3).map((update) => (
+        <div key={update.id} className="bg-muted/50 rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-3 w-3" />
+              <span>{new Date(update.created_at).toLocaleDateString('es-ES', {
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}</span>
+            </div>
+            <span className="font-medium">
+              {update.previous_percentage}% → {update.new_percentage}%
+            </span>
+          </div>
+          
+          {update.notes && (
+            <p className="text-sm text-muted-foreground">{update.notes}</p>
+          )}
+          
+          {/* Mostrar fotos */}
+          {update.photos && update.photos.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {update.photos.map((photoUrl, index) => (
+                <a
+                  key={index}
+                  href={photoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative group"
+                >
+                  <div className="w-16 h-16 rounded border overflow-hidden bg-muted">
+                    <img
+                      src={photoUrl}
+                      alt={`Foto ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded flex items-center justify-center">
+                    <ImageIcon className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+          
+          {/* Mostrar videos */}
+          {update.videos && update.videos.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {update.videos.map((videoUrl, index) => (
+                <a
+                  key={index}
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative group"
+                >
+                  <div className="w-16 h-16 rounded border overflow-hidden bg-muted flex items-center justify-center">
+                    <VideoIcon className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded flex items-center justify-center">
+                    <VideoIcon className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // Format activities text to add line breaks for lists
@@ -77,13 +170,15 @@ function extractCategoryOrderNumber(categoryName: string): number {
   return 9999; // Sin número, va al final
 }
 
-export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgressProps) {
+export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHasUnsavedChangesChange }: DynamicCategoriesProgressProps) {
   const { categories, loading, saveAllProgress, deleteCategory, refetch } = useDynamicCategories(property.id);
   const supabase = createClient();
   const [localPercentages, setLocalPercentages] = useState<Record<string, number>>({});
   const [savedPercentages, setSavedPercentages] = useState<Record<string, number>>({}); // Valores guardados (mínimos permitidos)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [sendUpdateOpen, setSendUpdateOpen] = useState(false);
+  const [sendUpdateImageSelectorOpen, setSendUpdateImageSelectorOpen] = useState(false);
+  const [sendUpdateEmailPreviewOpen, setSendUpdateEmailPreviewOpen] = useState(false);
+  const [selectedImagesForEmail, setSelectedImagesForEmail] = useState<Record<string, string[]>>({});
   const [editingInput, setEditingInput] = useState<Record<string, boolean>>({}); // Control de inputs manuales
   const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,6 +188,16 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
   const [visitNotes, setVisitNotes] = useState("");
   const [isSchedulingVisit, setIsSchedulingVisit] = useState(false);
   const justSavedRef = useRef<Record<string, number> | null>(null); // Track values we just saved
+  
+  // Estado para fotos/videos/notas de cada categoría (mientras se edita)
+  // Almacena los FileUpload del ChecklistUploadZone para poder subirlos después
+  const [categoryUpdateData, setCategoryUpdateData] = useState<Record<string, {
+    uploadZone?: ChecklistUploadZoneType;
+    notes: string;
+  }>>({});
+  
+  // Estado para controlar qué categoría está mostrando el modal de fotos
+  const [photoDialogOpen, setPhotoDialogOpen] = useState<Record<string, boolean>>({});
 
   // Show extract button only if: budget_pdf_url exists AND no categories created
   const showExtractButton = property.budget_pdf_url && categories.length === 0;
@@ -221,13 +326,173 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
   const handleSave = useCallback(async () => {
     // Solo guardar cambios reales (valores diferentes a los guardados)
     const changesToSave: Record<string, number> = {};
-    categories.forEach(cat => {
+    const updatesToSave: Record<string, {
+      photos: string[];
+      videos: string[];
+      notes?: string;
+    }> = {};
+
+    // Primero, subir archivos base64 a Supabase Storage para cada categoría
+    for (const cat of categories) {
       const currentValue = localPercentages[cat.id];
       const savedValue = savedPercentages[cat.id] ?? 0;
       if (currentValue !== undefined && currentValue !== savedValue) {
         changesToSave[cat.id] = currentValue;
+        
+        // Incluir fotos/videos/notas si existen para esta categoría
+        const updateData = categoryUpdateData[cat.id];
+        if (updateData && updateData.uploadZone) {
+          const uploadZone = updateData.uploadZone;
+          
+          // Recopilar archivos que necesitan ser subidos (base64)
+          const filesToUpload: FileUpload[] = [
+            ...uploadZone.photos.filter(p => p.data && !p.data.startsWith('http')),
+            ...uploadZone.videos.filter(v => v.data && !v.data.startsWith('http')),
+          ];
+
+          let uploadedUrls: string[] = [];
+          
+              // Subir archivos base64 a Supabase Storage
+          if (filesToUpload.length > 0) {
+            try {
+              // Usar uploadFilesToStorage pero necesitamos adaptarlo para category-updates bucket
+              // Por ahora, subir manualmente cada archivo
+              const supabase = createClient();
+              
+              const uploadPromises = filesToUpload.map(async (file) => {
+                // Si ya tiene URL, retornarla
+                if (file.data && file.data.startsWith('http')) {
+                  return file.data;
+                }
+
+                // Convertir base64 a File
+                const base64Data = file.data.includes(',') ? file.data.split(',')[1] : file.data;
+                const byteCharacters = atob(base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: file.type });
+                const fileObj = new File([blob], file.name, { type: file.type });
+
+                // Generar nombre único
+                const timestamp = Date.now();
+                const randomString = Math.random().toString(36).substring(2, 8);
+                const fileExtension = file.name.split('.').pop() || (file.type.startsWith('image/') ? 'jpg' : 'mp4');
+                const fileName = `${timestamp}_${randomString}.${fileExtension}`;
+                const path = `${property.id}/${cat.id}/${fileName}`;
+
+                // Subir a Supabase Storage
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                  .from('category-updates')
+                  .upload(path, fileObj, {
+                    contentType: file.type,
+                    upsert: false,
+                  });
+
+                if (uploadError) {
+                  console.error(`Error uploading file ${file.name}:`, uploadError);
+                  const errorMessage = uploadError.message || String(uploadError);
+                  
+                  // Detectar diferentes tipos de errores
+                  const isBucketNotFound = 
+                    errorMessage.includes('Bucket not found') || 
+                    errorMessage.includes('bucket') ||
+                    errorMessage.toLowerCase().includes('not found') ||
+                    errorMessage.includes('does not exist') ||
+                    errorMessage.includes('404') ||
+                    (uploadError as any)?.statusCode === 404;
+                  
+                  const isRLSError = 
+                    errorMessage.includes('row-level security') || 
+                    errorMessage.includes('RLS') || 
+                    errorMessage.includes('policy') ||
+                    errorMessage.includes('violates row-level security');
+                  
+                  if (isBucketNotFound) {
+                    toast.error(
+                      `Bucket 'category-updates' no encontrado. Por favor créalo en Supabase Dashboard → Storage → New bucket → Nombre: "category-updates" → Público`,
+                      { duration: 10000 }
+                    );
+                  } else if (isRLSError) {
+                    toast.error(
+                      `Error de Row Level Security. Por favor ejecuta las políticas SQL en Supabase Dashboard → SQL Editor. Ver EJECUTAR_POLITICAS_CATEGORY_UPDATES.md`,
+                      { duration: 10000 }
+                    );
+                  } else {
+                    toast.error(`Error al subir ${file.name}: ${errorMessage}`);
+                  }
+                  return null;
+                }
+
+                // Obtener URL pública
+                const { data: { publicUrl } } = supabase.storage
+                  .from('category-updates')
+                  .getPublicUrl(path);
+
+                return publicUrl;
+              });
+
+              uploadedUrls = (await Promise.all(uploadPromises)).filter((url): url is string => url !== null);
+              
+              if (uploadedUrls.length === 0 && filesToUpload.length > 0) {
+                toast.error('No se pudieron subir las fotos. Verifica que el bucket "category-updates" existe y es público.');
+              } else if (uploadedUrls.length < filesToUpload.length) {
+                toast.warning(`Solo se subieron ${uploadedUrls.length} de ${filesToUpload.length} archivos`);
+              }
+            } catch (error) {
+              console.error('Error uploading files:', error);
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              // Solo mostrar error si no es sobre el bucket (ya se mostró arriba)
+              if (!errorMessage.includes('Bucket') && !errorMessage.includes('bucket')) {
+                toast.error(`Error al subir algunos archivos: ${errorMessage}`);
+              }
+            }
+          }
+
+          // Combinar URLs ya subidas con las nuevas
+          const existingPhotos = uploadZone.photos
+            .filter(p => p.data && p.data.startsWith('http'))
+            .map(p => p.data);
+          const existingVideos = uploadZone.videos
+            .filter(v => v.data && v.data.startsWith('http'))
+            .map(v => v.data);
+
+          // Separar nuevas URLs por tipo (foto vs video)
+          const newPhotos: string[] = [];
+          const newVideos: string[] = [];
+          let urlIndex = 0;
+          
+          uploadZone.photos.forEach(p => {
+            if (p.data && !p.data.startsWith('http') && urlIndex < uploadedUrls.length) {
+              newPhotos.push(uploadedUrls[urlIndex]);
+              urlIndex++;
+            }
+          });
+          
+          uploadZone.videos.forEach(v => {
+            if (v.data && !v.data.startsWith('http') && urlIndex < uploadedUrls.length) {
+              newVideos.push(uploadedUrls[urlIndex]);
+              urlIndex++;
+            }
+          });
+
+          updatesToSave[cat.id] = {
+            photos: [...existingPhotos, ...newPhotos],
+            videos: [...existingVideos, ...newVideos],
+            notes: updateData.notes.trim() || undefined,
+          };
+        } else if (updateData && updateData.notes.trim()) {
+          // Solo notas, sin archivos
+          updatesToSave[cat.id] = {
+            photos: [],
+            videos: [],
+            notes: updateData.notes.trim() || undefined,
+          };
+        }
       }
-    });
+    }
 
     // Si no hay cambios, no hacer nada
     if (Object.keys(changesToSave).length === 0) {
@@ -235,10 +500,11 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
       return;
     }
 
-    const success = await saveAllProgress(property.id, changesToSave);
+    // Guardar todo junto
+    const success = await saveAllProgress(property.id, changesToSave, updatesToSave);
+    
     if (success) {
       // Guardar los valores que acabamos de guardar en el ref
-      // para que el useEffect no los resetee cuando categories se actualice
       justSavedRef.current = { ...changesToSave };
       
       // Actualizar los valores guardados (nuevos mínimos permitidos)
@@ -249,8 +515,8 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
         });
         return updated;
       });
-      // IMPORTANTE: Actualizar localPercentages con los valores guardados
-      // para que el slider se posicione correctamente después de guardar
+      
+      // Actualizar localPercentages con los valores guardados
       setLocalPercentages(prev => {
         const updated = { ...prev };
         Object.entries(changesToSave).forEach(([catId, value]) => {
@@ -258,10 +524,43 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
         });
         return updated;
       });
+      
       setHasUnsavedChanges(false);
-      setEditingInput({}); // Cerrar todos los inputs
+      setEditingInput({});
+      // Limpiar datos de updates
+      setCategoryUpdateData({});
+      setPhotoDialogOpen({});
     }
-  }, [property.id, localPercentages, savedPercentages, categories, saveAllProgress]);
+  }, [property.id, localPercentages, savedPercentages, categories, categoryUpdateData, saveAllProgress]);
+
+  // Exponer funciones a través de refs
+  useEffect(() => {
+    if (onSaveRef) {
+      onSaveRef(handleSave);
+    }
+  }, [onSaveRef, handleSave]);
+
+  useEffect(() => {
+    if (onSendRef) {
+      onSendRef(async () => {
+        // Primero guardar todos los cambios pendientes (incluyendo subir fotos)
+        if (hasUnsavedChanges) {
+          toast.info('Guardando cambios antes de enviar update...');
+          await handleSave();
+          toast.success('Cambios guardados correctamente');
+        }
+        // Luego abrir el selector de imágenes
+        setSendUpdateImageSelectorOpen(true);
+      });
+    }
+  }, [onSendRef, hasUnsavedChanges, handleSave]);
+
+  // Notificar cambios en hasUnsavedChanges
+  useEffect(() => {
+    if (onHasUnsavedChangesChange) {
+      onHasUnsavedChangesChange(hasUnsavedChanges);
+    }
+  }, [hasUnsavedChanges, onHasUnsavedChangesChange]);
 
   const handleDelete = useCallback(async (categoryId: string) => {
     const confirmed = window.confirm('¿Estás seguro de que quieres eliminar esta categoría?');
@@ -610,6 +909,29 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                       <div className="flex items-center justify-between">
                         <Label className="text-sm">Progreso</Label>
                         <div className="flex items-center gap-2">
+                          {/* Botón para agregar fotos/videos si hay cambios */}
+                          {hasChanged && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const isOpening = !photoDialogOpen[category.id];
+                                setPhotoDialogOpen(prev => ({ ...prev, [category.id]: isOpening }));
+                                // Si se abre, expandir la categoría; si se cierra, colapsarla
+                                if (isOpening) {
+                                  setExpandedCategories(prev => ({ ...prev, [category.id]: true }));
+                                } else {
+                                  setExpandedCategories(prev => ({ ...prev, [category.id]: false }));
+                                }
+                              }}
+                              className="h-7 text-xs"
+                            >
+                              <Camera className="h-3 w-3 mr-1" />
+                              {photoDialogOpen[category.id] ? 'Ocultar' : 'Fotos'}
+                            </Button>
+                          )}
                           {isEditingInput ? (
                             <div className="flex items-center gap-1">
                               <Input
@@ -704,7 +1026,54 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
                           </div>
                         )}
                       </div>
+                      
+                      {/* Mostrar updates recientes con fotos/videos */}
+                      <CategoryUpdatesList categoryId={category.id} />
                     </CollapsibleContent>
+                    
+                    {/* Componente de fotos/videos - fuera del CollapsibleContent para que siempre sea visible cuando está abierto */}
+                    {hasChanged && photoDialogOpen[category.id] && (
+                      <CategoryPhotoUpload
+                        categoryId={category.id}
+                        propertyId={property.id}
+                        open={true}
+                        onOpenChange={(open) => {
+                          setPhotoDialogOpen(prev => ({ ...prev, [category.id]: open }));
+                          if (!open) {
+                            setExpandedCategories(prev => ({ ...prev, [category.id]: false }));
+                          }
+                        }}
+                        onSave={(data) => {
+                          // Guardar notas cuando cambian
+                          setCategoryUpdateData(prev => ({
+                            ...prev,
+                            [category.id]: {
+                              uploadZone: prev[category.id]?.uploadZone,
+                              notes: data.notes || "",
+                            },
+                          }));
+                        }}
+                        onUploadZoneChange={(uploadZone) => {
+                          // Guardar el uploadZone completo (incluye base64) para subirlo cuando se guarde el progreso
+                          setCategoryUpdateData(prev => ({
+                            ...prev,
+                            [category.id]: {
+                              uploadZone,
+                              notes: prev[category.id]?.notes || "",
+                            },
+                          }));
+                        }}
+                        initialData={{
+                          photos: categoryUpdateData[category.id]?.uploadZone?.photos
+                            .filter(p => p.data && p.data.startsWith('http'))
+                            .map(p => p.data) || [],
+                          videos: categoryUpdateData[category.id]?.uploadZone?.videos
+                            .filter(v => v.data && v.data.startsWith('http'))
+                            .map(v => v.data) || [],
+                          notes: categoryUpdateData[category.id]?.notes || "",
+                        }}
+                      />
+                    )}
                   </div>
                 </Collapsible>
               );
@@ -712,37 +1081,65 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
           )}
         </div>
 
-        {/* Botones de Acción */}
-        <div className="flex gap-3 pt-4 border-t">
+        {/* Botones de Acción - Solo en desktop, en mobile van al footer */}
+        <div className="hidden md:flex gap-3 pt-4 border-t">
           <Button
             onClick={handleSave}
             disabled={!hasUnsavedChanges || loading}
-            className="flex items-center gap-2"
           >
-            <Save className="h-4 w-4" />
             Guardar Progreso
           </Button>
           <Button
             variant="outline"
-            onClick={() => setSendUpdateOpen(true)}
-            className="flex items-center gap-2"
+            onClick={async () => {
+              // Primero guardar todos los cambios pendientes (incluyendo subir fotos)
+              if (hasUnsavedChanges) {
+                toast.info('Guardando cambios antes de enviar update...');
+                await handleSave();
+                toast.success('Cambios guardados correctamente');
+              }
+              // Luego abrir el selector de imágenes
+              setSendUpdateImageSelectorOpen(true);
+            }}
+            disabled={loading}
           >
-            <Send className="h-4 w-4" />
             Enviar Update a Cliente
           </Button>
         </div>
       </div>
 
-      <SendUpdateDialog
-        open={sendUpdateOpen}
-        onOpenChange={setSendUpdateOpen}
+      <SendUpdateImageSelector
+        open={sendUpdateImageSelectorOpen}
+        onOpenChange={setSendUpdateImageSelectorOpen}
         property={property}
-        categories={categories.map(cat => ({
+        categories={sortedCategories.map(cat => ({
           id: cat.id,
           name: cat.category_name,
           percentage: localPercentages[cat.id] ?? cat.percentage ?? 0,
         }))}
+        onNext={(selectedImages) => {
+          setSelectedImagesForEmail(selectedImages);
+          setSendUpdateImageSelectorOpen(false);
+          setSendUpdateEmailPreviewOpen(true);
+        }}
       />
+
+      <SendUpdateEmailPreview
+        open={sendUpdateEmailPreviewOpen}
+        onOpenChange={setSendUpdateEmailPreviewOpen}
+        property={property}
+        categories={sortedCategories.map(cat => ({
+          id: cat.id,
+          name: cat.category_name,
+          percentage: localPercentages[cat.id] ?? cat.percentage ?? 0,
+        }))}
+        selectedImages={selectedImagesForEmail}
+        onSend={async () => {
+          // Guardar todos los cambios pendientes antes de enviar
+          await handleSave();
+        }}
+      />
+
     </>
   );
 }

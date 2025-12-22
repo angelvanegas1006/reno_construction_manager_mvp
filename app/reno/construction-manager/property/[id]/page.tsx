@@ -6,8 +6,7 @@ import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { NavbarL2 } from "@/components/layout/navbar-l2";
-import { HeaderL2 } from "@/components/layout/header-l2";
+import { NavbarL3 } from "@/components/layout/navbar-l3";
 import { PropertyTabs } from "@/components/layout/property-tabs";
 import { PropertySummaryTab } from "@/components/reno/property-summary-tab";
 import { PropertyStatusTab } from "@/components/reno/property-status-tab";
@@ -27,6 +26,7 @@ import { ReportProblemModal } from "@/components/reno/report-problem-modal";
 import { DynamicCategoriesProgress } from "@/components/reno/dynamic-categories-progress";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 // Importar PdfViewer solo en el cliente para evitar problemas con SSR
 const PdfViewer = dynamic(() => import("@/components/reno/pdf-viewer").then(mod => ({ default: mod.PdfViewer })), {
@@ -66,10 +66,22 @@ export default function RenoPropertyDetailPage() {
   const sourcePage = unwrappedSearchParams.get('from') || null;
   const [reportProblemOpen, setReportProblemOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [hasUnsavedCategoriesChanges, setHasUnsavedCategoriesChanges] = useState(false);
+  const [showFooter, setShowFooter] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const saveCategoriesRef = useRef<(() => Promise<void>) | null>(null);
+  const sendUpdateRef = useRef<(() => void) | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   // Leer el tab desde la URL si existe, sino usar "tareas" por defecto
   const tabFromUrl = unwrappedSearchParams?.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || "tareas"); // Tab por defecto: Tareas
-  const propertyId = unwrappedParams.id && typeof unwrappedParams.id === "string" ? unwrappedParams.id : null;
+  
+  // Extraer propertyId de forma segura sin enumerar params
+  const propertyId = (() => {
+    if (!unwrappedParams) return null;
+    const id = unwrappedParams.id;
+    return id && typeof id === "string" ? id : null;
+  })();
   const { property: supabaseProperty, loading: supabaseLoading, updateProperty: updateSupabaseProperty, refetch } = useSupabaseProperty(propertyId);
   const { categories: dynamicCategories, loading: categoriesLoading } = useDynamicCategories(propertyId);
   const hasCheckedInitialTab = useRef(false); // Track if we've already checked and set the initial tab
@@ -866,7 +878,12 @@ export default function RenoPropertyDetailPage() {
                 }}
               />
               {supabaseProperty && (
-                <DynamicCategoriesProgress property={supabaseProperty} />
+                <DynamicCategoriesProgress 
+                  property={supabaseProperty}
+                  onSaveRef={(saveFn) => { saveCategoriesRef.current = saveFn; }}
+                  onSendRef={(sendFn) => { sendUpdateRef.current = sendFn; }}
+                  onHasUnsavedChangesChange={setHasUnsavedCategoriesChanges}
+                />
               )}
             </div>
           );
@@ -1017,10 +1034,10 @@ export default function RenoPropertyDetailPage() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* L2: Sin Sidebar - se oculta para enfocar al usuario */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Navbar L2: Botón atrás + Acciones críticas */}
-        <NavbarL2
+      {/* L3: Header compacto con menú de hamburguesa */}
+      <div className="flex flex-1 flex-col overflow-hidden relative">
+        {/* Navbar L3: Header compacto con menú de hamburguesa */}
+        <NavbarL3
           onBack={() => {
             console.log("🔙 Property Detail - Back button clicked. Source:", sourcePage, "ViewMode:", viewMode);
             // Si viene del kanban, redirigir al kanban con el viewMode correspondiente
@@ -1038,33 +1055,20 @@ export default function RenoPropertyDetailPage() {
               router.push('/reno/construction-manager');
             }
           }}
-          classNameTitle={t.propertyPage.property}
-          actions={[
-            {
-              label: t.propertyPage.reportProblem,
-              onClick: () => setReportProblemOpen(true),
-              variant: "outline",
-              icon: <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />,
-            },
-          ]}
-          onOpenSidebar={() => setIsSidebarOpen(true)}
-        />
-
-        {/* Header L2: Título extenso de la entidad */}
-        <HeaderL2
-          title={property.fullAddress}
-          subtitle={
-            <>
-              <span>ID: {property.uniqueIdFromEngagements || property.id}</span>
-              <span className="mx-2">·</span>
-              <span>Estado: {getRenoPhaseLabel(getPropertyRenoPhase(), t)}</span>
-            </>
+          backLabel="Atrás"
+          formTitle={t.propertyPage.property}
+          onMenuClick={() => setIsSidebarOpen(true)}
+          rightAction={
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setReportProblemOpen(true)}
+              className="flex-shrink-0"
+              aria-label={t.propertyPage.reportProblem}
+            >
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
+            </Button>
           }
-          badge={{
-            label: getRenoPhaseLabel(getPropertyRenoPhase(), t),
-            variant: getPropertyRenoPhase() === "upcoming-settlements" ? "default" : "secondary",
-          }}
-          progress={getPropertyRenoPhase() === "reno-in-progress" ? averageCategoriesProgress : undefined}
         />
 
         {/* Tabs Navigation */}
@@ -1075,10 +1079,85 @@ export default function RenoPropertyDetailPage() {
         />
 
         {/* Content with Sidebar */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden pt-[60px]" ref={contentRef}>
           {/* Main Content */}
-          <div className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+          <div 
+            className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24"
+            onScroll={(e) => {
+              const currentScrollY = e.currentTarget.scrollTop;
+              // Si hace scroll hacia abajo, ocultar footer; si hace scroll hacia arriba, mostrar
+              if (currentScrollY > lastScrollY && currentScrollY > 50) {
+                setShowFooter(false);
+              } else if (currentScrollY < lastScrollY || currentScrollY <= 10) {
+                setShowFooter(true);
+              }
+              setLastScrollY(currentScrollY);
+            }}
+          >
             <div className="max-w-4xl mx-auto">
+              {/* Información de la propiedad - ahora en el contenido */}
+              <div className="mb-4 md:mb-6 space-y-3">
+                <div className="flex items-start gap-3 flex-wrap">
+                  {/* Progress Badge Circular (si está en reno-in-progress) */}
+                  {getPropertyRenoPhase() === "reno-in-progress" && averageCategoriesProgress !== undefined && (
+                    <div className="relative w-12 h-12 flex-shrink-0">
+                      <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeDasharray={`${averageCategoriesProgress} ${100 - averageCategoriesProgress}`}
+                          className="text-[var(--prophero-blue-500)] transition-all duration-300"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-bold text-foreground">{averageCategoriesProgress}%</span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
+                      {property.fullAddress}
+                    </h1>
+                    <div className="mt-1 flex items-center gap-2 flex-wrap">
+                      <span className="text-sm text-muted-foreground">
+                        ID: {property.uniqueIdFromEngagements || property.id}
+                      </span>
+                      <span className="text-sm text-muted-foreground">·</span>
+                      <span className="text-sm text-muted-foreground">
+                        Estado: {getRenoPhaseLabel(getPropertyRenoPhase(), t)}
+                      </span>
+                      {getPropertyRenoPhase() !== "reno-in-progress" && (
+                        <>
+                          <span className="text-sm text-muted-foreground">·</span>
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 text-xs font-medium rounded-full",
+                              getPropertyRenoPhase() === "upcoming-settlements"
+                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
+                            )}
+                          >
+                            {getRenoPhaseLabel(getPropertyRenoPhase(), t)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
               {renderTabContent()}
             </div>
           </div>
@@ -1094,6 +1173,42 @@ export default function RenoPropertyDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Footer sticky para mobile - Guardar y Enviar al cliente */}
+      {hasUnsavedCategoriesChanges && (
+        <div 
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[var(--prophero-gray-900)] px-4 py-4 md:hidden border-t border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] shadow-[0_-2px_8px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out",
+            showFooter ? "translate-y-0" : "translate-y-full"
+          )}
+        >
+          <div className="flex flex-col gap-3 w-full max-w-md mx-auto">
+            {/* Botón principal: Enviar Update a Cliente */}
+            <Button
+              onClick={() => {
+                if (sendUpdateRef.current) {
+                  sendUpdateRef.current();
+                }
+              }}
+              className="w-full flex items-center justify-center rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-12 text-base font-medium"
+            >
+              Enviar Update a Cliente
+            </Button>
+            {/* Botón secundario: Guardar Progreso */}
+            <Button
+              onClick={async () => {
+                if (saveCategoriesRef.current) {
+                  await saveCategoriesRef.current();
+                }
+              }}
+              variant="outline"
+              className="w-full flex items-center justify-center rounded-lg h-12 text-base font-medium"
+            >
+              Guardar Progreso
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Sidebar Drawer */}
       {isSidebarOpen && (
