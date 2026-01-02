@@ -444,30 +444,56 @@ export async function uploadRenoInProgressPhotos(
     console.log('[Reno In Progress Photos Webhook] 📤 Calling API route with:', {
       propertyId,
       photosCount: photoUrls.length,
+      photoUrls: photoUrls.map(p => ({ url: p.url?.substring(0, 50) + '...', filename: p.filename })),
     });
+
+    const requestBody = {
+      propertyId,
+      photoUrls,
+    };
+
+    console.log('[Reno In Progress Photos Webhook] Request body size:', JSON.stringify(requestBody).length, 'bytes');
 
     const response = await fetch('/api/webhooks/renoinprogressphotos', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        propertyId,
-        photoUrls,
-      }),
+      body: JSON.stringify(requestBody),
     });
+
+    console.log('[Reno In Progress Photos Webhook] Response status:', response.status, response.statusText);
+    console.log('[Reno In Progress Photos Webhook] Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       let errorData: any = {};
+      let errorText = '';
       try {
-        const text = await response.text();
-        try {
-          errorData = JSON.parse(text);
-        } catch {
-          errorData = { message: text || `HTTP ${response.status}` };
+        errorText = await response.text();
+        if (errorText) {
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { message: errorText || `HTTP ${response.status}` };
+          }
+        } else {
+          errorData = { message: `HTTP ${response.status} ${response.statusText || 'Unknown error'}` };
         }
-      } catch (e) {
-        errorData = { message: `HTTP ${response.status} - Failed to read response` };
+      } catch (e: any) {
+        errorData = { 
+          message: `HTTP ${response.status} - Failed to read response`,
+          parseError: e?.message || 'Unknown parse error'
+        };
+      }
+      
+      // Si errorData está vacío o no tiene mensaje útil, agregar información adicional
+      if (!errorData || Object.keys(errorData).length === 0 || (!errorData.message && !errorData.error)) {
+        errorData = {
+          message: `HTTP ${response.status} ${response.statusText || 'Unknown error'}`,
+          status: response.status,
+          statusText: response.statusText,
+          rawText: errorText || 'No response body',
+        };
       }
       
       console.error('[Reno In Progress Photos Webhook] ❌ API route error:', {
@@ -475,17 +501,42 @@ export async function uploadRenoInProgressPhotos(
         statusText: response.statusText,
         error: errorData,
         url: response.url,
+        hasErrorData: !!errorData && Object.keys(errorData).length > 0,
       });
       return false;
     }
 
-    const result = await response.json();
+    let result: any;
+    try {
+      const responseText = await response.text();
+      console.log('[Reno In Progress Photos Webhook] Response text length:', responseText.length);
+      if (responseText) {
+        try {
+          result = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('[Reno In Progress Photos Webhook] Failed to parse JSON response:', {
+            text: responseText.substring(0, 200),
+            parseError,
+          });
+          result = { rawResponse: responseText.substring(0, 200) };
+        }
+      } else {
+        result = { message: 'Empty response body' };
+      }
+    } catch (textError: any) {
+      console.error('[Reno In Progress Photos Webhook] Failed to read response text:', textError);
+      result = { error: 'Failed to read response', details: textError?.message };
+    }
+
     console.log('[Reno In Progress Photos Webhook] ✅ Success:', result);
     return true;
   } catch (error: any) {
     console.error('[Reno In Progress Photos Webhook] ❌ Error calling API route:', {
-      message: error.message,
-      stack: error.stack,
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      name: error?.name,
+      code: error?.code,
+      cause: error?.cause,
     });
     return false;
   }

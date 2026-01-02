@@ -185,11 +185,17 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('[Reno In Progress Photos API] ❌ Error:', {
-      message: error.message,
-      stack: error.stack,
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      name: error?.name,
+      code: error?.code,
     });
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
+      { 
+        error: 'Internal server error', 
+        message: error?.message || 'An unexpected error occurred',
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+      },
       { status: 500 }
     );
   }
