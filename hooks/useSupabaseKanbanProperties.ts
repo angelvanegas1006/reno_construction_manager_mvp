@@ -16,6 +16,7 @@ interface UseSupabaseKanbanPropertiesReturn {
   loading: boolean;
   error: string | null;
   totalProperties: number;
+  refetch: () => Promise<void>;
 }
 
 /**
@@ -131,6 +132,7 @@ export function useSupabaseKanbanProperties() {
   const [supabaseProperties, setSupabaseProperties] = useState<SupabaseProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const supabase = createClient();
   const { role, user } = useAppAuth();
   const fetchInProgressRef = useRef(false);
@@ -139,8 +141,8 @@ export function useSupabaseKanbanProperties() {
   // Fetch properties from Supabase
   useEffect(() => {
     async function fetchProperties() {
-      // Create a unique key for this fetch attempt
-      const fetchKey = `${role}-${user?.id || 'no-user'}-${user?.email || 'no-email'}`;
+      // Create a unique key for this fetch attempt (include refreshTrigger to force refresh)
+      const fetchKey = `${role}-${user?.id || 'no-user'}-${user?.email || 'no-email'}-${refreshTrigger}`;
       
       // Skip if already fetching with the same key
       if (fetchInProgressRef.current && lastFetchKeyRef.current === fetchKey) {
@@ -151,8 +153,8 @@ export function useSupabaseKanbanProperties() {
         return;
       }
       
-      // Skip if we already fetched with this exact key
-      if (lastFetchKeyRef.current === fetchKey && !loading) {
+      // Skip if we already fetched with this exact key (unless refreshTrigger changed)
+      if (lastFetchKeyRef.current === fetchKey && !loading && refreshTrigger === 0) {
         console.log('[useSupabaseKanbanProperties] ✅ Already fetched with this key, skipping...', {
           fetchKey,
           timestamp: new Date().toISOString(),
@@ -351,7 +353,7 @@ export function useSupabaseKanbanProperties() {
         hasUser: user !== null,
       });
     }
-  }, [role, user?.id, user?.email]); // Removed supabase from deps to avoid re-fetching
+  }, [role, user?.id, user?.email, refreshTrigger]); // Added refreshTrigger to force refetch
 
   // Convert and group properties by kanban phase
   const propertiesByPhase = useMemo(() => {
@@ -500,11 +502,21 @@ export function useSupabaseKanbanProperties() {
     });
   }, [loading, error, totalProperties, propertiesByPhase]);
 
+  // Function to manually trigger a refetch
+  const refetch = async () => {
+    console.log('[useSupabaseKanbanProperties] 🔄 Manual refetch triggered');
+    setRefreshTrigger(prev => prev + 1);
+    // Reset fetch state to allow new fetch
+    fetchInProgressRef.current = false;
+    lastFetchKeyRef.current = null;
+  };
+
   return {
     propertiesByPhase,
     loading,
     error,
     totalProperties,
+    refetch,
   };
 }
 
