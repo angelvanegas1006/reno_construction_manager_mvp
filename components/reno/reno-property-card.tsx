@@ -8,12 +8,11 @@ import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
 import { useMixpanel } from "@/hooks/useMixpanel";
-
-type RenoStage = "upcoming-settlements" | "initial-check" | "upcoming" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "reno-in-progress" | "furnishing-cleaning" | "final-check" | "reno-fixes" | "done";
+import { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 
 interface RenoPropertyCardProps {
   property: Property;
-  stage: RenoStage;
+  stage: RenoKanbanPhase;
   onClick?: () => void;
   disabled?: boolean;
   isHighlighted?: boolean;
