@@ -6,9 +6,10 @@
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { updateAirtableWithRetry, findRecordByPropertyId } from "./client";
+import { updateAirtableWithRetry, findTransactionsRecordIdByUniqueId } from "./client";
 
-const AIRTABLE_TABLE_NAME = process.env.NEXT_PUBLIC_AIRTABLE_TABLE_NAME || "Properties";
+// IMPORTANTE: Los comentarios se sincronizan a la tabla "Transactions", no "Properties"
+const AIRTABLE_TABLE_NAME = "Transactions";
 const AIRTABLE_SETUP_NOTES_FIELD_ID = "fldPJAWIuIZsS0zw7"; // SetUp Team Notes field ID
 
 /**
@@ -38,35 +39,43 @@ export async function syncPropertyCommentsToAirtable(
       return true; // No hay comentarios, pero no es un error
     }
 
-    // 2. Obtener la propiedad para encontrar el Airtable ID
+    // 2. Obtener la propiedad para encontrar el Unique ID From Engagements
     const { data: property, error: propertyError } = await supabase
       .from("properties")
-      .select("property_unique_id")
+      .select('"Unique ID From Engagements", airtable_property_id')
       .eq("id", propertyId)
       .single();
 
     if (propertyError || !property) {
-      console.error("Error fetching property:", propertyError);
+      console.error("[syncPropertyCommentsToAirtable] Error fetching property:", propertyError);
       return false;
     }
 
-    const airtablePropertyId = property.property_unique_id;
+    const uniqueId = property['Unique ID From Engagements'];
 
-    if (!airtablePropertyId) {
-      console.error("Property does not have Airtable ID");
+    if (!uniqueId) {
+      console.error("[syncPropertyCommentsToAirtable] Property does not have Unique ID From Engagements:", {
+        propertyId,
+        hasUniqueId: !!uniqueId,
+        hasAirtablePropertyId: !!property.airtable_property_id,
+      });
       return false;
     }
 
-    // 3. Encontrar el record ID en Airtable
-    const recordId = await findRecordByPropertyId(
-      AIRTABLE_TABLE_NAME,
-      airtablePropertyId
-    );
+    // 3. Encontrar el record ID en Airtable Transactions usando Unique ID
+    console.log("[syncPropertyCommentsToAirtable] Searching Transactions by Unique ID:", uniqueId);
+    const recordId = await findTransactionsRecordIdByUniqueId(uniqueId);
 
     if (!recordId) {
-      console.error("Record not found in Airtable");
+      console.error("[syncPropertyCommentsToAirtable] Record not found in Airtable Transactions:", {
+        propertyId,
+        uniqueId,
+        tableName: AIRTABLE_TABLE_NAME,
+      });
       return false;
     }
+
+    console.log("[syncPropertyCommentsToAirtable] ✅ Found Transactions Record ID:", recordId);
 
     // 4. Combinar todos los comentarios con timestamps
     const combinedComments = comments
@@ -85,9 +94,14 @@ export async function syncPropertyCommentsToAirtable(
       .join("\n\n---\n\n");
 
     // 5. Actualizar Airtable con el texto combinado
-    await updateAirtableWithRetry(AIRTABLE_TABLE_NAME, recordId, {
+    const updateSuccess = await updateAirtableWithRetry(AIRTABLE_TABLE_NAME, recordId, {
       [AIRTABLE_SETUP_NOTES_FIELD_ID]: combinedComments,
     });
+
+    if (!updateSuccess) {
+      console.error("[syncPropertyCommentsToAirtable] Failed to update Airtable");
+      return false;
+    }
 
     // 6. Marcar comentarios como sincronizados
     const commentIds = comments.map((c) => c.id);
@@ -99,7 +113,7 @@ export async function syncPropertyCommentsToAirtable(
       })
       .in("id", commentIds);
 
-    console.log(`✅ Synced ${comments.length} comments to Airtable`);
+    console.log(`[syncPropertyCommentsToAirtable] ✅ Synced ${comments.length} comments to Airtable`);
     return true;
   } catch (error) {
     console.error("Error syncing comments to Airtable:", error);

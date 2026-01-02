@@ -41,6 +41,7 @@ import { uploadFilesToStorage } from "@/lib/supabase/storage-upload";
 import type { FileUpload } from "@/lib/checklist-storage";
 import { toast } from "sonner";
 import { finalizeInitialCheckInAirtable } from "@/lib/airtable/initial-check-sync";
+import { createDriveFolderForProperty, uploadPhotosToDrive } from "@/lib/n8n/webhook-caller";
 
 interface UseSupabaseChecklistBaseProps {
   propertyId: string;
@@ -1157,6 +1158,73 @@ export function useSupabaseChecklistBase({
           
           console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Uploaded ${uploadedUrls.length} files successfully`);
           
+          // Subir fotos a Drive después de subirlas a Supabase Storage
+          // Filtrar solo las fotos nuevas (que se acaban de subir) y extraer nombres de archivo
+          const photosToUploadToDrive: Array<{ url: string; filename: string }> = [];
+          
+          // Mapear filesToUpload con uploadedUrls (mismo orden)
+          filesToUpload.forEach((file, index) => {
+            // Solo procesar fotos (no videos) que se acaban de subir (no tenían URL antes)
+            const wasNewFile = file.data && !file.data.startsWith('http');
+            const isPhoto = file.type && file.type.startsWith('image/');
+            
+            if (wasNewFile && isPhoto && index < uploadedUrls.length) {
+              const url = uploadedUrls[index];
+              // Solo procesar si la URL es válida (no es base64)
+              if (url && url.startsWith('http')) {
+                // Extraer nombre de archivo de la URL
+                // Formato: https://...supabase.co/storage/v1/object/public/inspection-images/{path}/{filename}
+                const urlParts = url.split('/');
+                const filename = urlParts[urlParts.length - 1];
+                
+                photosToUploadToDrive.push({
+                  url,
+                  filename,
+                });
+              }
+            }
+          });
+          
+          // Llamar al webhook para subir fotos a Drive si hay fotos nuevas
+          if (photosToUploadToDrive.length > 0) {
+            // Mapear checklistType al tipo correcto para el webhook
+            let driveChecklistType: 'reno_initial' | 'reno_intermediate' | 'reno_final';
+            if (checklistType === 'reno_initial') {
+              driveChecklistType = 'reno_initial';
+            } else if (checklistType === 'reno_intermediate') {
+              driveChecklistType = 'reno_intermediate';
+            } else if (checklistType === 'reno_final') {
+              driveChecklistType = 'reno_final';
+            } else {
+              // Si es otro tipo (partner_initial), no subir a Drive
+              console.log(`[useSupabaseChecklistBase:${inspectionType}] Skipping Drive upload for checklist type: ${checklistType}`);
+            }
+            
+            if (driveChecklistType) {
+              console.log(`[useSupabaseChecklistBase:${inspectionType}] 📤 Uploading ${photosToUploadToDrive.length} photos to Drive...`);
+              try {
+                const driveUploadSuccess = await uploadPhotosToDrive(
+                  propertyId,
+                  driveChecklistType,
+                  photosToUploadToDrive
+                );
+                
+                if (!driveUploadSuccess) {
+                  toast.error("Error al subir fotos a Drive", {
+                    description: "Las fotos se guardaron en Supabase pero no se pudieron subir a Drive. Contacta al administrador.",
+                  });
+                } else {
+                  console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Successfully uploaded photos to Drive`);
+                }
+              } catch (driveError: any) {
+                console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error uploading photos to Drive:`, driveError);
+                toast.error("Error al subir fotos a Drive", {
+                  description: driveError.message || "Las fotos se guardaron en Supabase pero no se pudieron subir a Drive.",
+                });
+              }
+            }
+          }
+          
           // Actualizar las fotos en la copia de la sección con las URLs subidas
           let urlIndex = 0;
           
@@ -1840,6 +1908,15 @@ export function useSupabaseChecklistBase({
 
       if (success) {
         toast.success("Checklist finalizado correctamente");
+        
+        // Si es checklist inicial, llamar al webhook para crear carpeta Drive
+        // Se ejecuta de forma asíncrona y silenciosa
+        if (checklistType === 'reno_initial') {
+          createDriveFolderForProperty(propertyId).catch((error) => {
+            console.error('[useSupabaseChecklistBase] Error creating drive folder:', error);
+            // No mostrar error al usuario (silencioso)
+          });
+        }
       } else {
         toast.error("Error al finalizar checklist en Airtable");
       }

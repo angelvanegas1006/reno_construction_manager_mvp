@@ -6,7 +6,6 @@ import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { NavbarL2 } from "@/components/layout/navbar-l2";
 import { HeaderL2 } from "@/components/layout/header-l2";
 import { PropertyTabs } from "@/components/layout/property-tabs";
 import { PropertySummaryTab } from "@/components/reno/property-summary-tab";
@@ -42,6 +41,7 @@ const PdfViewer = dynamic(() => import("@/components/reno/pdf-viewer").then(mod 
 });
 import { appendSetUpNotesToAirtable } from "@/lib/airtable/initial-check-sync";
 import { updateAirtableWithRetry, findTransactionsRecordIdByUniqueId } from "@/lib/airtable/client";
+import { createDriveFolderForProperty } from "@/lib/n8n/webhook-caller";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
 import { createClient } from "@/lib/supabase/client";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
@@ -317,6 +317,18 @@ export default function RenoPropertyDetailPage() {
                   } else {
                     console.log(`[Property Update] ✅ Successfully updated Airtable (Transactions) for property ${propertyId}`);
                   }
+                  
+                  // Llamar al webhook para crear carpeta Drive (después de actualizar Supabase)
+                  // Se ejecuta independientemente del resultado de Airtable
+                  console.log(`[Property Update] 📁 Attempting to create Drive folder for property ${propertyId}`);
+                  createDriveFolderForProperty(propertyId)
+                    .then((success) => {
+                      console.log(`[Property Update] 📁 Drive folder creation result:`, success);
+                    })
+                    .catch((error) => {
+                      console.error('[Property Update] Error creating drive folder:', error);
+                      // No mostrar error al usuario (silencioso)
+                    });
                 }
               }
             }
@@ -1019,8 +1031,17 @@ export default function RenoPropertyDetailPage() {
     <div className="flex h-screen overflow-hidden">
       {/* L2: Sin Sidebar - se oculta para enfocar al usuario */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Navbar L2: Botón atrás + Acciones críticas */}
-        <NavbarL2
+        {/* Header L2: Unificado con botón Atrás, título y acciones */}
+        <HeaderL2
+          title={property.fullAddress}
+          subtitle={
+            <>
+              <span>ID: {property.uniqueIdFromEngagements || property.id}</span>
+              <span className="mx-2">·</span>
+              <span>Estado: {getRenoPhaseLabel(getPropertyRenoPhase(), t)}</span>
+            </>
+          }
+          progress={getPropertyRenoPhase() === "reno-in-progress" ? averageCategoriesProgress : undefined}
           onBack={() => {
             console.log("🔙 Property Detail - Back button clicked. Source:", sourcePage, "ViewMode:", viewMode);
             // Si viene del kanban, redirigir al kanban con el viewMode correspondiente
@@ -1038,7 +1059,6 @@ export default function RenoPropertyDetailPage() {
               router.push('/reno/construction-manager');
             }
           }}
-          classNameTitle={t.propertyPage.property}
           actions={[
             {
               label: t.propertyPage.reportProblem,
@@ -1048,23 +1068,6 @@ export default function RenoPropertyDetailPage() {
             },
           ]}
           onOpenSidebar={() => setIsSidebarOpen(true)}
-        />
-
-        {/* Header L2: Título extenso de la entidad */}
-        <HeaderL2
-          title={property.fullAddress}
-          subtitle={
-            <>
-              <span>ID: {property.uniqueIdFromEngagements || property.id}</span>
-              <span className="mx-2">·</span>
-              <span>Estado: {getRenoPhaseLabel(getPropertyRenoPhase(), t)}</span>
-            </>
-          }
-          badge={{
-            label: getRenoPhaseLabel(getPropertyRenoPhase(), t),
-            variant: getPropertyRenoPhase() === "upcoming-settlements" ? "default" : "secondary",
-          }}
-          progress={getPropertyRenoPhase() === "reno-in-progress" ? averageCategoriesProgress : undefined}
         />
 
         {/* Tabs Navigation */}

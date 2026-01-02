@@ -137,7 +137,7 @@ export function PropertyStatusSidebar({
         {/* Status Section */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-muted text-foreground dark:bg-muted/50">
               {getPhaseLabel()}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -210,7 +210,7 @@ export function PropertyStatusSidebar({
                 <ClipboardList className="h-4 w-4 text-muted-foreground" />
                 {getChecklistLabel()}
                 {hasChecklist && checklistProgress === 100 && (
-                  <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                     {checklistProgress}%
                   </span>
                 )}

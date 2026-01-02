@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, Home, Calendar, Building2, Euro, FileText, Map, ChevronLeft, ChevronRight, X, Grid3x3 } from "lucide-react";
+import { MapPin, Home, Calendar, Building2, Euro, FileText, Map, ChevronLeft, ChevronRight, X, Grid3x3, FolderOpen, ExternalLink } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -99,6 +99,39 @@ export function PropertySummaryTab({
 
   return (
     <div className="space-y-6">
+      {/* Drive Folder Link */}
+      {supabaseProperty?.drive_folder_url && (
+        <div className="bg-card rounded-lg border p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Carpeta Drive</h3>
+          <div className="space-y-3">
+            <a
+              href={supabaseProperty.drive_folder_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "flex items-center gap-3 p-4 rounded-lg border-2 transition-all duration-200",
+                "bg-card border-border",
+                "hover:bg-muted/40 hover:shadow-md",
+                "cursor-pointer group"
+              )}
+            >
+              <div className="flex-shrink-0 p-2 rounded-md bg-muted/50 group-hover:bg-muted transition-colors">
+                <FolderOpen className="h-5 w-5 text-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">
+                  Abrir carpeta en Google Drive
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 truncate">
+                  {supabaseProperty.drive_folder_url}
+                </p>
+              </div>
+              <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Image Gallery - Grid con imagen principal */}
       <div className="bg-card rounded-lg border p-6 shadow-sm">
         <h3 className="text-lg font-semibold mb-4 text-foreground">{t.property.gallery || "Galería de imágenes"}</h3>

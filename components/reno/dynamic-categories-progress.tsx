@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Trash2, Save, Send, Calendar, Clock, Edit2, Download, ChevronDown, ChevronUp, Wrench } from 'lucide-react';
+import { Trash2, Save, Send, Calendar, Clock, Edit2, Download, ChevronDown, ChevronUp, Wrench, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,7 @@ import { parseActivitiesText } from '@/lib/parsers/parse-activities-text';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { Database } from '@/lib/supabase/types';
-import { callN8nCategoriesWebhook, prepareWebhookPayload } from '@/lib/n8n/webhook-caller';
+import { callN8nCategoriesWebhook, prepareWebhookPayload, uploadRenoInProgressPhotos } from '@/lib/n8n/webhook-caller';
 import { calculateNextUpdateDate } from '@/lib/reno/update-calculator';
 
 type SupabaseProperty = Database['public']['Tables']['properties']['Row'];
@@ -93,9 +93,247 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
   const [visitNotes, setVisitNotes] = useState("");
   const [isSchedulingVisit, setIsSchedulingVisit] = useState(false);
   const justSavedRef = useRef<Record<string, number> | null>(null); // Track values we just saved
+  
+  // Estado para imágenes de update
+  const [updateImages, setUpdateImages] = useState<Array<{ id: string; url: string; filename: string }>>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Show extract button only if: budget_pdf_url exists AND no categories created
   const showExtractButton = property.budget_pdf_url && categories.length === 0;
+
+  // Cargar imágenes guardadas al montar el componente
+  useEffect(() => {
+    const loadUpdateImages = async () => {
+      if (!property.id) return;
+      
+      try {
+        // Cargar todas las imágenes de la propiedad y filtrar en el cliente
+        // porque el filtro JSONB puede no funcionar correctamente en Supabase
+        const { data, error } = await supabase
+          .from('property_images')
+          .select('id, url, filename, created_at, metadata')
+          .eq('property_id', property.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          // Si la tabla no existe o hay un error de permisos, simplemente no cargar imágenes
+          // No es crítico, el usuario puede seguir subiendo imágenes
+          // Solo loggear en desarrollo, no mostrar error al usuario
+          if (process.env.NODE_ENV === 'development') {
+            console.debug('No se pudieron cargar imágenes guardadas (esto es normal si la tabla no existe aún o no hay imágenes):', {
+              error: error.message || JSON.stringify(error),
+              code: error.code,
+            });
+          }
+          setUpdateImages([]);
+          return;
+        }
+
+        if (data && Array.isArray(data)) {
+          // Filtrar en el cliente: solo imágenes con metadata.type === 'update'
+          const updateImagesData = data
+            .filter(img => {
+              // Verificar si metadata existe y tiene type === 'update'
+              if (!img.metadata || typeof img.metadata !== 'object') return false;
+              const metadata = img.metadata as any;
+              return metadata?.type === 'update';
+            })
+            .map(img => ({
+              id: img.id,
+              url: img.url,
+              filename: img.filename || img.url.split('/').pop() || 'image.jpg',
+            }));
+          
+          setUpdateImages(updateImagesData);
+        } else {
+          setUpdateImages([]);
+        }
+      } catch (error: any) {
+        // Si hay un error inesperado, simplemente no cargar imágenes
+        // No es crítico para el funcionamiento
+        // Solo loggear en desarrollo, no mostrar error al usuario
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('Error inesperado al cargar imágenes guardadas (esto es normal si la tabla no existe aún):', {
+            error: error?.message || JSON.stringify(error),
+            name: error?.name,
+          });
+        }
+        setUpdateImages([]);
+      }
+    };
+
+    loadUpdateImages();
+  }, [property.id, supabase]);
+
+  // Manejar selección de archivos
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length !== files.length) {
+      toast.warning('Algunos archivos no son imágenes y fueron ignorados');
+    }
+
+    setSelectedFiles(prev => [...prev, ...imageFiles]);
+    
+    // Limpiar el input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
+
+  // Subir imágenes a Supabase Storage y guardar referencias
+  const handleUploadImages = useCallback(async () => {
+    if (selectedFiles.length === 0) {
+      toast.error('Por favor, selecciona al menos una imagen');
+      return;
+    }
+
+    setIsUploadingImages(true);
+    try {
+      const BUCKET_NAME = 'inspection-images';
+      const uploadedImages: Array<{ id: string; url: string; filename: string }> = [];
+
+      for (const file of selectedFiles) {
+        // Generar nombre único con path organizado
+        const timestamp = Math.floor(Date.now() / 1000);
+        const randomString = Math.random().toString(36).substring(2, 8);
+        const fileExtension = file.name.split('.').pop() || 'jpg';
+        // Usar path: propertyId/updates/filename para organizar las imágenes de updates
+        const filename = `${property.id}/updates/update_${timestamp}_${randomString}.${fileExtension}`;
+
+        // Subir a Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(BUCKET_NAME)
+          .upload(filename, file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw new Error(`Error al subir ${file.name}: ${uploadError.message}`);
+        }
+
+        // Obtener URL pública
+        const { data: { publicUrl } } = supabase.storage
+          .from(BUCKET_NAME)
+          .getPublicUrl(filename);
+
+        // Guardar referencia en property_images
+        const { data: imageData, error: dbError } = await supabase
+          .from('property_images')
+          .insert({
+            property_id: property.id,
+            url: publicUrl,
+            filename: filename,
+            metadata: { type: 'update' },
+          })
+          .select('id, url, filename')
+          .single();
+
+        if (dbError) {
+          console.error('Error saving image reference:', dbError);
+          // Continuar aunque falle el guardado en DB
+        } else if (imageData) {
+          uploadedImages.push({
+            id: imageData.id,
+            url: imageData.url,
+            filename: imageData.filename || filename,
+          });
+        }
+      }
+
+      // Llamar al webhook para subir fotos a Drive (una sola llamada con todas las fotos)
+      if (uploadedImages.length > 0) {
+        console.log(`[DynamicCategoriesProgress] 📤 Starting upload of ${uploadedImages.length} photos to reno_in_progress webhook...`);
+        console.log(`[DynamicCategoriesProgress] Property object:`, {
+          id: property.id,
+          uniqueIdFromEngagements: property['Unique ID From Engagements'],
+          address: property.address,
+          hasDriveFolderId: !!property.drive_folder_id,
+        });
+        console.log(`[DynamicCategoriesProgress] Property ID (UUID): ${property.id}`);
+        console.log(`[DynamicCategoriesProgress] Property Unique ID: ${property['Unique ID From Engagements']}`);
+        try {
+          const photosToUpload = uploadedImages.map(img => ({
+            url: img.url,
+            filename: img.filename,
+          }));
+          
+          console.log(`[DynamicCategoriesProgress] Photos to upload:`, photosToUpload);
+          
+          // Usar el UUID de Supabase (property.id), no el Unique ID
+          const webhookSuccess = await uploadRenoInProgressPhotos(property.id, photosToUpload);
+          
+          if (!webhookSuccess) {
+            console.error(`[DynamicCategoriesProgress] ❌ Webhook call returned false for property ${property.id}`);
+            toast.error("Error al subir fotos al sistema", {
+              description: "Las fotos se guardaron localmente pero no se pudieron subir al sistema. Verifica que la propiedad tenga una carpeta Drive creada.",
+            });
+          } else {
+            console.log(`[DynamicCategoriesProgress] ✅ Successfully uploaded ${uploadedImages.length} photos to reno_in_progress webhook`);
+          }
+        } catch (webhookError: any) {
+          console.error('[DynamicCategoriesProgress] ❌ Error uploading photos to webhook:', webhookError);
+          console.error('[DynamicCategoriesProgress] Error stack:', webhookError.stack);
+          toast.error("Error al subir fotos al sistema", {
+            description: webhookError.message || "Las fotos se guardaron localmente pero no se pudieron subir al sistema.",
+          });
+        }
+      } else {
+        console.warn('[DynamicCategoriesProgress] ⚠️ No uploaded images to send to webhook');
+      }
+
+      // Actualizar estado con las nuevas imágenes
+      setUpdateImages(prev => [...uploadedImages, ...prev]);
+      setSelectedFiles([]);
+      toast.success(`${uploadedImages.length} imagen(es) subida(s) correctamente`);
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al subir las imágenes');
+    } finally {
+      setIsUploadingImages(false);
+    }
+  }, [selectedFiles, property.id, supabase]);
+
+  // Eliminar imagen
+  const handleRemoveImage = useCallback(async (imageId: string, imageUrl: string) => {
+    try {
+      // Eliminar de la base de datos
+      const { error: dbError } = await supabase
+        .from('property_images')
+        .delete()
+        .eq('id', imageId);
+
+      if (dbError) {
+        throw new Error(`Error al eliminar imagen: ${dbError.message}`);
+      }
+
+      // Intentar eliminar del storage (opcional, no crítico si falla)
+      try {
+        // Extraer el path completo del archivo desde la URL
+        // Formato: https://...supabase.co/storage/v1/object/public/inspection-images/{path}
+        const urlParts = imageUrl.split('/inspection-images/');
+        if (urlParts.length > 1) {
+          const filePath = urlParts[1];
+          await supabase.storage
+            .from('inspection-images')
+            .remove([filePath]);
+        }
+      } catch (storageError) {
+        console.warn('Error deleting from storage (non-critical):', storageError);
+      }
+
+      // Actualizar estado
+      setUpdateImages(prev => prev.filter(img => img.id !== imageId));
+      toast.success('Imagen eliminada correctamente');
+    } catch (error) {
+      console.error('Error removing image:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al eliminar la imagen');
+    }
+  }, [supabase]);
 
   // Initialize local and saved percentages from categories
   useEffect(() => {
@@ -712,6 +950,116 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
           )}
         </div>
 
+        {/* Zona de Subida de Imágenes para Updates */}
+        <div className="pt-4 border-t space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-semibold">Imágenes de avance de la obra</Label>
+            <span className="text-xs text-muted-foreground">
+              {updateImages.length} imagen{updateImages.length !== 1 ? 'es' : ''} guardada{updateImages.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          
+          {/* Input de archivos oculto */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileSelect}
+            disabled={isUploadingImages}
+            className="hidden"
+            id="update-images-upload"
+          />
+
+          {/* Botones de acción */}
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingImages}
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Seleccionar Imágenes
+            </Button>
+            {selectedFiles.length > 0 && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleUploadImages}
+                disabled={isUploadingImages}
+                className="flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                {isUploadingImages ? 'Subiendo...' : `Subir ${selectedFiles.length} imagen${selectedFiles.length !== 1 ? 'es' : ''}`}
+              </Button>
+            )}
+          </div>
+
+          {/* Preview de archivos seleccionados (aún no subidos) */}
+          {selectedFiles.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Imágenes seleccionadas ({selectedFiles.length})</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {selectedFiles.map((file, index) => (
+                  <div key={index} className="relative group">
+                    <div className="aspect-square rounded-lg border overflow-hidden bg-muted">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={file.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== index))}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Preview de imágenes guardadas */}
+          {updateImages.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                <ImageIcon className="h-4 w-4 text-green-600" />
+                Imágenes guardadas ({updateImages.length})
+              </Label>
+              <div className="grid grid-cols-4 gap-2">
+                {updateImages.map((img) => (
+                  <div key={img.id} className="relative group">
+                    <div className="aspect-square rounded-lg border overflow-hidden bg-muted">
+                      <img
+                        src={img.url}
+                        alt={img.filename}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemoveImage(img.id, img.url)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Botones de Acción */}
         <div className="flex gap-3 pt-4 border-t">
           <Button
@@ -742,6 +1090,11 @@ export function DynamicCategoriesProgress({ property }: DynamicCategoriesProgres
           name: cat.category_name,
           percentage: localPercentages[cat.id] ?? cat.percentage ?? 0,
         }))}
+        savedImages={updateImages}
+        onImagesSent={() => {
+          // Limpiar imágenes después de enviar (solo mostrar nuevas)
+          setUpdateImages([]);
+        }}
       />
     </>
   );
