@@ -128,7 +128,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   // Mock data initialization removed - now using Supabase only
 
   // Use properties from Supabase only (no mock data, no localStorage)
-  const allProperties = useMemo(() => {
+  const allProperties = useMemo((): Record<RenoKanbanPhase, Property[]> => {
     // During SSR or initial render, return empty structure
     if (!isMounted || supabaseLoading) {
       return {
@@ -140,10 +140,13 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-budget-start": [],
       "reno-budget": [], // Legacy
       "reno-in-progress": [],
+      "furnishing": [],
+      "cleaning": [],
       "furnishing-cleaning": [],
       "final-check": [],
       "reno-fixes": [],
       "done": [],
+      "orphaned": [],
     };
     }
 
@@ -412,7 +415,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       return matchesSearch && matchesFilter;
     };
 
-    const filtered: typeof allProperties = {
+    const filtered: Record<RenoKanbanPhase, Property[]> = {
       "upcoming-settlements": allProperties["upcoming-settlements"].filter(matchesAll),
       "initial-check": allProperties["initial-check"].filter(matchesAll),
       "upcoming": allProperties["upcoming"].filter(matchesAll),
@@ -421,14 +424,17 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-budget-start": allProperties["reno-budget-start"].filter(matchesAll),
       "reno-budget": allProperties["reno-budget"].filter(matchesAll), // Legacy
       "reno-in-progress": allProperties["reno-in-progress"].filter(matchesAll),
+      "furnishing": allProperties["furnishing"].filter(matchesAll),
+      "cleaning": allProperties["cleaning"].filter(matchesAll),
       "furnishing-cleaning": allProperties["furnishing-cleaning"].filter(matchesAll),
       "final-check": allProperties["final-check"].filter(matchesAll),
       "reno-fixes": allProperties["reno-fixes"].filter(matchesAll),
       "done": allProperties["done"].filter(matchesAll),
+      "orphaned": allProperties["orphaned"].filter(matchesAll),
     };
 
     // Sort each column: expired first (even after filtering)
-    const sorted: typeof filtered = {
+    const sorted: Record<RenoKanbanPhase, Property[]> = {
       "upcoming-settlements": sortPropertiesByExpired(filtered["upcoming-settlements"]),
       "initial-check": sortPropertiesByExpired(filtered["initial-check"]),
       "upcoming": sortPropertiesByExpired(filtered["upcoming"]),
@@ -437,10 +443,13 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-budget-start": sortPropertiesByExpired(filtered["reno-budget-start"]),
       "reno-budget": sortPropertiesByExpired(filtered["reno-budget"]), // Legacy
       "reno-in-progress": sortPropertiesByExpired(filtered["reno-in-progress"]),
+      "furnishing": sortPropertiesByExpired(filtered["furnishing"]),
+      "cleaning": sortPropertiesByExpired(filtered["cleaning"]),
       "furnishing-cleaning": sortPropertiesByExpired(filtered["furnishing-cleaning"]),
       "final-check": sortPropertiesByExpired(filtered["final-check"]),
       "reno-fixes": sortPropertiesByExpired(filtered["reno-fixes"]),
       "done": sortPropertiesByExpired(filtered["done"]),
+      "orphaned": sortPropertiesByExpired(filtered["orphaned"]),
     };
 
     return sorted;
