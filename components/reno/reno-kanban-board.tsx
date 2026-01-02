@@ -575,10 +575,13 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'reno-budget-start': [],
       'reno-budget': [], // Legacy
       'reno-in-progress': [],
+      'furnishing': [],
+      'cleaning': [],
       'furnishing-cleaning': [],
       'final-check': [],
       'reno-fixes': [],
       'done': [],
+      'orphaned': [],
     };
 
     visibleRenoKanbanColumns.forEach((column) => {
