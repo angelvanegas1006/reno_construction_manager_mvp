@@ -276,10 +276,13 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-budget-start": sortRenoBudgetPhase("reno-budget-start"),
       "reno-budget": sortRenoBudgetPhase("reno-budget"), // Legacy
       "reno-in-progress": sortRenoInProgressPhase("reno-in-progress"),
+      "furnishing": sortPropertiesByExpired(transformProperties["furnishing"] || []),
+      "cleaning": sortPropertiesByExpired(transformProperties["cleaning"] || []),
       "furnishing-cleaning": sortFurnishingCleaningPhase("furnishing-cleaning"),
       "final-check": sortPropertiesByExpired(transformProperties["final-check"] || []),
       "reno-fixes": sortPropertiesByExpired(transformProperties["reno-fixes"] || []),
       "done": sortPropertiesByExpired(transformProperties["done"] || []),
+      "orphaned": sortPropertiesByExpired(transformProperties["orphaned"] || []),
     };
     
     return sorted;
