@@ -200,10 +200,10 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
               const usersMap = new Map(users.map((u: any) => [u.id, u]));
               
               uniqueUserIds.forEach(userId => {
-                const user = usersMap.get(userId);
+                const user = usersMap.get(userId) as any;
                 if (user) {
                   // Intentar obtener nombre de user_metadata, sino del email
-                  const name = user.name || 
+                  const name = (user.name as string | undefined) || 
                                user.user_metadata?.name || 
                                user.user_metadata?.full_name ||
                                (user.email ? extractNameFromEmail(user.email) : null) ||
