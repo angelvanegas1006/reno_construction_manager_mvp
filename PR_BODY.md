@@ -34,3 +34,4 @@ Las propiedades marcadas en rojo en la vista de lista se desplazaban una celda h
 
 
 
+

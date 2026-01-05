@@ -75,3 +75,4 @@ export function IdealistaStatusBadge({ status, className }: IdealistaStatusBadge
 
 
 
+
