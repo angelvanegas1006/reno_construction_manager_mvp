@@ -77,26 +77,29 @@ export default function ChecklistPDFViewerPage() {
             throw allError;
           }
           
-          // Filtrar manualmente por inspection_type si existe, o usar la más reciente si no
-          const matchingInspection = allInspections?.find((insp: any) => {
-            // Si tiene inspection_type, verificar que coincida
-            if (insp.inspection_type) {
-              return insp.inspection_type === inspectionType;
-            }
-            // Si no tiene inspection_type, solo usar si es la más reciente y el tipo coincide con la fase
-            return false; // No usar inspecciones sin inspection_type
-          });
-          
-          if (matchingInspection?.pdf_url) {
-            console.log('[ChecklistPDFViewer] ✅ Inspección encontrada (sin filtro de BD):', {
-              id: matchingInspection.id,
-              inspection_type: matchingInspection.inspection_type,
+          // Verificar que allInspections es un array válido
+          if (Array.isArray(allInspections) && allInspections.length > 0) {
+            // Filtrar manualmente por inspection_type si existe, o usar la más reciente si no
+            const matchingInspection = allInspections.find((insp: any) => {
+              // Si tiene inspection_type, verificar que coincida
+              if (insp && typeof insp === 'object' && 'inspection_type' in insp) {
+                return insp.inspection_type === inspectionType;
+              }
+              // Si no tiene inspection_type, no usar
+              return false;
             });
-            const url = matchingInspection.pdf_url;
-            if (url && url.startsWith('http')) {
-              setHtmlUrl(url);
-              setLoading(false);
-              return;
+            
+            if (matchingInspection && typeof matchingInspection === 'object' && 'pdf_url' in matchingInspection) {
+              const pdfUrl = matchingInspection.pdf_url;
+              if (pdfUrl && typeof pdfUrl === 'string' && pdfUrl.startsWith('http')) {
+                console.log('[ChecklistPDFViewer] ✅ Inspección encontrada (sin filtro de BD):', {
+                  id: matchingInspection.id,
+                  inspection_type: matchingInspection.inspection_type,
+                });
+                setHtmlUrl(pdfUrl);
+                setLoading(false);
+                return;
+              }
             }
           }
         } else if (inspectionError && inspectionError.code !== 'PGRST116') {
