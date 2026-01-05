@@ -564,62 +564,6 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
       const num = typeof value === 'number' ? value : parseInt(String(value), 10);
       return isNaN(num) ? null : num;
     })(),
-    // Budget PDF URL - Tech Budget Attachment (fldVOO4zqx5HUzIjz)
-    // Este campo está en Transactions y puede ser un attachment de Airtable
-    budget_pdf_url: (() => {
-      try {
-        // Buscar el campo por field ID o nombres alternativos
-        const budgetField = getFieldValue('fldVOO4zqx5HUzIjz', [
-          'fldVOO4zqx5HUzIjz', // Field ID exacto
-          'Tech Budget Attachment',
-          'Tech Budget',
-          'Budget PDF',
-          'Budget Attachment',
-          'budget_pdf_url',
-        ]);
-        
-        // Si no existe o es null/undefined, retornar null
-        if (!budgetField || budgetField === null || budgetField === undefined) {
-          return null;
-        }
-        
-        // Si es un array de attachments (formato de Airtable)
-        if (Array.isArray(budgetField)) {
-          if (budgetField.length > 0) {
-            const firstAttachment = budgetField[0];
-            // Validar que firstAttachment existe y no es null/undefined
-            if (firstAttachment === null || firstAttachment === undefined) {
-              return null;
-            }
-            // Si es un objeto con url, usar la URL
-            if (typeof firstAttachment === 'object' && firstAttachment !== null && 'url' in firstAttachment && typeof firstAttachment.url === 'string') {
-              return firstAttachment.url;
-            }
-            // Si es un string, usarlo directamente
-            if (typeof firstAttachment === 'string' && (firstAttachment.startsWith('http://') || firstAttachment.startsWith('https://'))) {
-              return firstAttachment;
-            }
-          }
-          return null;
-        }
-        
-        // Si es un objeto con url
-        if (typeof budgetField === 'object' && budgetField !== null && 'url' in budgetField && typeof budgetField.url === 'string') {
-          return budgetField.url;
-        }
-        
-        // Si es un string que empieza con http
-        if (typeof budgetField === 'string' && (budgetField.startsWith('http://') || budgetField.startsWith('https://'))) {
-          return budgetField;
-        }
-        
-        return null;
-      } catch (error) {
-        // Si hay cualquier error, retornar null en lugar de fallar
-        console.warn('[Airtable Sync] Error processing budget_pdf_url:', error);
-        return null;
-      }
-    })(),
     // Determinar fase basada en Set Up Status
     // IMPORTANTE: Usar la función de mapeo para mantener consistencia
     reno_phase: (() => {

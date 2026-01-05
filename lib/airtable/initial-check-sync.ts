@@ -416,11 +416,12 @@ export async function finalizeInitialCheckInAirtable(
             completed_at: new Date().toISOString(),
           })
           .eq('id', inspectionData.id);
-      
-      if (completeError) {
-        console.error('[Initial Check Sync] Error completing inspection:', completeError);
-      } else {
-        console.log('[Initial Check Sync] ✅ Inspection completed successfully');
+        
+        if (completeError) {
+          console.error('[Initial Check Sync] Error completing inspection:', completeError);
+        } else {
+          console.log('[Initial Check Sync] ✅ Inspection completed successfully');
+        }
       }
     }
 
