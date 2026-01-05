@@ -492,18 +492,40 @@ export function SendUpdateEmailPreview({
       // Primero guardar todos los cambios pendientes
       await onSend();
       
-      // Generar HTML del correo
+      // Generar HTML del correo (incluye todas las fotos embebidas)
       const emailHTML = generateEmailHTML();
       
-      // Preparar payload para n8n
+      // Obtener email del cliente
+      const clientEmail = property['Client email'];
+      if (!clientEmail) {
+        toast.error('No se encontró el email del cliente');
+        return;
+      }
+      
+      // Obtener Unique ID From Engagements
+      const uniqueIdAirtable = property['Unique ID From Engagements'];
+      if (!uniqueIdAirtable) {
+        toast.error('No se encontró el Unique ID From Engagements');
+        return;
+      }
+      
+      // Preparar payload para n8n webhook
+      // El HTML ya incluye todas las imágenes embebidas como URLs
       const payload = {
-        to: property['Client email'] || 'cliente@example.com', // Dummy temporal
-        subject: `Update de Progreso - ${property['Unique ID From Engagements'] || 'Propiedad'}`,
-        html: emailHTML,
+        to: clientEmail,
+        subject: `Update de Progreso - ${uniqueIdAirtable}`,
+        html: emailHTML, // HTML completo con todas las fotos
+        uniqueIdAirtable: uniqueIdAirtable,
         propertyId: property.id,
-        uniqueIdAirtable: property['Unique ID From Engagements'] || null,
         hubspotId: property['Hubspot ID'] || null,
       };
+      
+      console.log('[Send Update Email] Enviando payload al webhook:', {
+        to: clientEmail,
+        uniqueIdAirtable,
+        htmlLength: emailHTML.length,
+        hasImages: emailHTML.includes('<img'),
+      });
       
       // Llamar a n8n webhook (placeholder por ahora)
       const response = await fetch(WEBHOOK_URL, {
