@@ -1166,69 +1166,7 @@ export default function RenoPropertyDetailPage() {
             }}
           >
             <div className="max-w-4xl mx-auto">
-              {/* Información de la propiedad - ahora en el contenido */}
-              <div className="mb-4 md:mb-6 space-y-3">
-                <div className="flex items-start gap-3 flex-wrap">
-                  {/* Progress Badge Circular (si está en reno-in-progress) */}
-                  {getPropertyRenoPhase() === "reno-in-progress" && averageCategoriesProgress !== undefined && (
-                    <div className="relative w-12 h-12 flex-shrink-0">
-                      <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
-                        <circle
-                          cx="18"
-                          cy="18"
-                          r="16"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
-                        />
-                        <circle
-                          cx="18"
-                          cy="18"
-                          r="16"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          strokeDasharray={`${averageCategoriesProgress} ${100 - averageCategoriesProgress}`}
-                          className="text-[var(--prophero-blue-500)] transition-all duration-300"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xs font-bold text-foreground">{averageCategoriesProgress}%</span>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
-                      {property.fullAddress}
-                    </h1>
-                    <div className="mt-1 flex items-center gap-2 flex-wrap">
-                      <span className="text-sm text-muted-foreground">
-                        ID: {property.uniqueIdFromEngagements || property.id}
-                      </span>
-                      <span className="text-sm text-muted-foreground">·</span>
-                      <span className="text-sm text-muted-foreground">
-                        Estado: {getRenoPhaseLabel(getPropertyRenoPhase(), t)}
-                      </span>
-                      {getPropertyRenoPhase() !== "reno-in-progress" && (
-                        <>
-                          <span className="text-sm text-muted-foreground">·</span>
-                          <span
-                            className={cn(
-                              "px-2 py-0.5 text-xs font-medium rounded-full",
-                              getPropertyRenoPhase() === "upcoming-settlements"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                                : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
-                            )}
-                          >
-                            {getRenoPhaseLabel(getPropertyRenoPhase(), t)}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Información de la propiedad duplicada oculta - ya se muestra en el header */}
               {renderTabContent()}
             </div>
           </div>
