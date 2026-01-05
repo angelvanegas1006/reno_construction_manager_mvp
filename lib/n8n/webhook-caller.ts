@@ -418,3 +418,121 @@ export async function uploadRenoInProgressPhotos(
     return false;
   }
 }
+
+/**
+ * Crea una carpeta de Drive para una propiedad usando el webhook de n8n
+ * @param propertyId ID de la propiedad en Supabase
+ * @returns Promise que se resuelve cuando se crea la carpeta (o si ya existe)
+ */
+export async function createDriveFolderForProperty(propertyId: string): Promise<void> {
+  const supabase = createClient();
+  
+  try {
+    // Obtener datos de la propiedad
+    const { data: property, error: propertyError } = await supabase
+      .from('properties')
+      .select('id, address, name, "Unique ID From Engagements"')
+      .eq('id', propertyId)
+      .single();
+
+    if (propertyError || !property) {
+      console.error('[Drive Folder Webhook] Property not found:', propertyId);
+      return; // No lanzar error, solo loguear
+    }
+
+    // Si ya tiene drive_folder_id, no hacer nada
+    const { data: propertyWithDrive } = await supabase
+      .from('properties')
+      .select('drive_folder_id')
+      .eq('id', propertyId)
+      .single();
+
+    if (propertyWithDrive?.drive_folder_id) {
+      console.log('[Drive Folder Webhook] Property already has drive_folder_id, skipping:', propertyId);
+      return;
+    }
+
+    // Validar que tiene los datos necesarios
+    if (!property.address || !property["Unique ID From Engagements"]) {
+      console.log('[Drive Folder Webhook] Property missing required fields, skipping:', {
+        propertyId,
+        hasAddress: !!property.address,
+        hasUniqueId: !!property["Unique ID From Engagements"],
+      });
+      return;
+    }
+
+    // Preparar payload
+    const payload: DriveFolderWebhookPayload = {
+      propertyAddress: property.address,
+      propertyName: property.name || property.address,
+      uniqueIdFromEngagements: property["Unique ID From Engagements"],
+    };
+
+    console.log('[Drive Folder Webhook] Calling webhook for property:', propertyId);
+    console.log('[Drive Folder Webhook] URL:', DRIVE_FOLDER_WEBHOOK_URL);
+    console.log('[Drive Folder Webhook] Payload:', JSON.stringify(payload, null, 2));
+
+    // Crear un AbortController para timeout de 30 segundos
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const response = await fetch(DRIVE_FOLDER_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Drive Folder Webhook] Error response:', response.status, errorText);
+        // No lanzar error, solo loguear (es silencioso)
+        return;
+      }
+
+      const responseData: DriveFolderWebhookResponse = await response.json().catch(() => ({}));
+      console.log('[Drive Folder Webhook] ✅ Success for property:', propertyId);
+      console.log('[Drive Folder Webhook] Response:', JSON.stringify(responseData, null, 2));
+      
+      // Actualizar la propiedad con drive_folder_id y drive_folder_url si se recibieron
+      if (responseData.drive_folder_id || responseData.drive_folder_url) {
+        const updateData: any = {};
+        if (responseData.drive_folder_id) {
+          updateData.drive_folder_id = responseData.drive_folder_id;
+        }
+        if (responseData.drive_folder_url) {
+          updateData.drive_folder_url = responseData.drive_folder_url;
+        }
+
+        const { error: updateError } = await supabase
+          .from('properties')
+          .update(updateData)
+          .eq('id', propertyId);
+
+        if (updateError) {
+          console.error('[Drive Folder Webhook] Error updating property with drive folder info:', updateError);
+        } else {
+          console.log('[Drive Folder Webhook] ✅ Property updated with drive folder info');
+        }
+      }
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('[Drive Folder Webhook] Webhook call timed out after 30 seconds');
+      } else {
+        console.error('[Drive Folder Webhook] Error calling webhook:', fetchError);
+      }
+      // No lanzar error, solo loguear (es silencioso)
+    }
+  } catch (error: any) {
+    console.error('[Drive Folder Webhook] ❌ Error creating drive folder for property:', propertyId);
+    console.error('[Drive Folder Webhook] Error details:', error.message);
+    // No lanzar error, solo loguear (es silencioso)
+  }
+}
