@@ -1191,7 +1191,7 @@ export function useSupabaseChecklistBase({
           // Para otros tipos: enviar inmediatamente como antes
           if (photosToUploadToDrive.length > 0) {
             // Mapear checklistType al tipo correcto para el webhook
-            let driveChecklistType: 'reno_initial' | 'reno_intermediate' | 'reno_final';
+            let driveChecklistType: 'reno_initial' | 'reno_intermediate' | 'reno_final' | undefined;
             if (checklistType === 'reno_initial') {
               driveChecklistType = 'reno_initial';
             } else if (checklistType === 'reno_intermediate') {
@@ -1201,6 +1201,7 @@ export function useSupabaseChecklistBase({
             } else {
               // Si es otro tipo (partner_initial), no subir a Drive
               console.log(`[useSupabaseChecklistBase:${inspectionType}] Skipping Drive upload for checklist type: ${checklistType}`);
+              driveChecklistType = undefined;
             }
             
             if (driveChecklistType) {
