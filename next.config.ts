@@ -26,6 +26,15 @@ const nextConfig: NextConfig = {
         canvas: false,
       };
     }
+    
+    // Asegurar que los alias se resuelvan correctamente
+    if (config.resolve) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@': require('path').resolve(__dirname),
+      };
+    }
+    
     return config;
   },
 };

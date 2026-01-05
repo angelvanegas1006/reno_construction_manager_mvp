@@ -12,7 +12,7 @@ import { findTransactionsRecordIdByUniqueId, updateAirtableWithRetry } from "@/l
 import { createClient } from "@/lib/supabase/client";
 import { getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
 import { RenovatorCombobox } from "@/components/reno/renovator-combobox";
-import { RenoInProgressPhotoUpload } from "@/components/reno/reno-in-progress-photo-upload";
+import { RenoInProgressPhotoUpload } from "@/components/reno/reno-in-progress-photo-upload.tsx";
 
 interface PropertyActionTabProps {
   property: Property;
