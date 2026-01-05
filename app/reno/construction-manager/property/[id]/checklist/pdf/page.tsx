@@ -66,8 +66,8 @@ export default function ChecklistPDFViewerPage() {
           
           // Buscar todas las inspecciones completadas sin seleccionar inspection_type (puede no existir)
           // Intentar primero con inspection_type, si falla, intentar sin él
-          let allInspections: Array<{ id: string; inspection_type?: string; pdf_url?: string }> | null = null;
-          let allError: any = null;
+          type InspectionItem = { id: string; inspection_type?: string; pdf_url?: string };
+          let allInspections: InspectionItem[] = [];
           
           // Intentar con inspection_type primero
           const { data: inspectionsWithType, error: errorWithType } = await supabase
@@ -93,17 +93,26 @@ export default function ChecklistPDFViewerPage() {
             }
             
             // Mapear los resultados sin inspection_type
-            allInspections = (inspectionsWithoutType || []).map((insp: any) => ({
-              id: insp.id,
-              pdf_url: insp.pdf_url,
-              // inspection_type no está disponible
-            }));
+            if (inspectionsWithoutType && Array.isArray(inspectionsWithoutType)) {
+              allInspections = inspectionsWithoutType.map((insp: any): InspectionItem => ({
+                id: String(insp.id),
+                pdf_url: insp.pdf_url ? String(insp.pdf_url) : undefined,
+                // inspection_type no está disponible
+              }));
+            }
           } else {
             if (errorWithType) {
               console.error('[ChecklistPDFViewer] ❌ Error buscando inspecciones:', errorWithType);
               throw errorWithType;
             }
-            allInspections = inspectionsWithType || [];
+            // Solo asignar si no hay error y es un array válido
+            if (inspectionsWithType && Array.isArray(inspectionsWithType)) {
+              allInspections = inspectionsWithType.map((insp: any): InspectionItem => ({
+                id: String(insp.id),
+                inspection_type: insp.inspection_type ? String(insp.inspection_type) : undefined,
+                pdf_url: insp.pdf_url ? String(insp.pdf_url) : undefined,
+              }));
+            }
           }
           
           // Verificar que allInspections es un array válido
