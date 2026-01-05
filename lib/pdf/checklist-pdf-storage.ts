@@ -169,13 +169,19 @@ export async function getChecklistPDFUrl(
       console.warn(`[checklist-html-storage] Error buscando inspecciones:`, allError.message);
     } else if (allInspections) {
       // Filtrar manualmente por inspection_type
-      const matchingInspection = allInspections.find((insp: any) => 
-        insp.inspection_type === inspectionType
-      );
-      
-      if (matchingInspection?.pdf_url) {
-        console.log(`[checklist-html-storage] ✅ HTML URL found in property_inspections (sin filtro de BD): ${matchingInspection.pdf_url}`);
-        return matchingInspection.pdf_url;
+      if (Array.isArray(allInspections) && allInspections.length > 0) {
+        type InspectionItem = { id: string; inspection_type?: string; pdf_url?: string };
+        const matchingInspection = allInspections.find((insp: any) => {
+          if (insp && typeof insp === 'object' && 'inspection_type' in insp) {
+            return insp.inspection_type === inspectionType;
+          }
+          return false;
+        }) as InspectionItem | undefined;
+        
+        if (matchingInspection && matchingInspection.pdf_url) {
+          console.log(`[checklist-html-storage] ✅ HTML URL found in property_inspections (sin filtro de BD): ${matchingInspection.pdf_url}`);
+          return matchingInspection.pdf_url;
+        }
       }
     }
   } else if (inspectionError && inspectionError.code !== 'PGRST116') {
@@ -184,13 +190,17 @@ export async function getChecklistPDFUrl(
   }
 
   // IMPORTANTE: Validar que el inspection_type coincida antes de usar el pdf_url
-  if (inspection) {
-    if (inspection.inspection_type && inspection.inspection_type !== inspectionType) {
-      console.warn(`[checklist-html-storage] ⚠️ Inspección con tipo incorrecto (esperado: ${inspectionType}, obtenido: ${inspection.inspection_type}), ignorando...`);
+  // Verificar que inspection es un objeto válido y no un error
+  if (inspection && typeof inspection === 'object' && 'id' in inspection) {
+    // Type assertion para asegurar que TypeScript entienda el tipo correcto
+    const inspectionData = inspection as { id: string; inspection_type?: string; pdf_url?: string };
+    
+    if (inspectionData.inspection_type && inspectionData.inspection_type !== inspectionType) {
+      console.warn(`[checklist-html-storage] ⚠️ Inspección con tipo incorrecto (esperado: ${inspectionType}, obtenido: ${inspectionData.inspection_type}), ignorando...`);
       // No usar esta inspección, continuar con el fallback
-    } else if (inspection.pdf_url) {
-      console.log(`[checklist-html-storage] ✅ HTML URL found in property_inspections: ${inspection.pdf_url}`);
-      return inspection.pdf_url;
+    } else if (inspectionData.pdf_url) {
+      console.log(`[checklist-html-storage] ✅ HTML URL found in property_inspections: ${inspectionData.pdf_url}`);
+      return inspectionData.pdf_url;
     }
   }
 

@@ -1,3 +1,4 @@
+// @ts-ignore - jspdf puede no estar instalado en todos los entornos
 import jsPDF from 'jspdf';
 import { ChecklistData } from '@/lib/checklist-storage';
 
