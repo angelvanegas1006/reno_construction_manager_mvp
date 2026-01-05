@@ -356,13 +356,16 @@ export async function finalizeInitialCheckInAirtable(
         .limit(1)
         .maybeSingle();
       
-      if (!latestError && latestInspection) {
+      if (!latestError && latestInspection && typeof latestInspection === 'object' && 'id' in latestInspection) {
+        // Type assertion para asegurar que TypeScript entienda el tipo correcto
+        const inspectionData = latestInspection as { id: string; inspection_type?: string; pdf_url?: string };
+        
         // Validar que el tipo coincida si existe
-        if (latestInspection.inspection_type && latestInspection.inspection_type !== inspectionType) {
+        if (inspectionData.inspection_type && inspectionData.inspection_type !== inspectionType) {
           console.error('[Initial Check Sync] ❌ Inspección encontrada tiene tipo incorrecto:', {
             esperado: inspectionType,
-            obtenido: latestInspection.inspection_type,
-            id: latestInspection.id,
+            obtenido: inspectionData.inspection_type,
+            id: inspectionData.id,
           });
           inspection = null;
           inspectionError = { code: 'PGRST116', message: 'No matching inspection found' } as any;
@@ -377,36 +380,42 @@ export async function finalizeInitialCheckInAirtable(
     }
     
     // Validar que la inspección obtenida tenga el tipo correcto
-    if (inspection && inspection.inspection_type && inspection.inspection_type !== inspectionType) {
-      console.error('[Initial Check Sync] ❌ Inspección con tipo incorrecto:', {
-        esperado: inspectionType,
-        obtenido: inspection.inspection_type,
-        id: inspection.id,
-      });
-      inspection = null;
-      inspectionError = { code: 'PGRST116', message: 'No matching inspection found' } as any;
-    }
-    
-    if (inspection) {
-      console.log(`[Initial Check Sync] ✅ Inspección encontrada:`, {
-        id: inspection.id,
-        inspection_type: inspection.inspection_type,
-        inspection_status: inspection.inspection_status,
-      });
+    // Verificar que inspection es un objeto válido y no un error
+    if (inspection && typeof inspection === 'object' && 'id' in inspection) {
+      // Type assertion para asegurar que TypeScript entienda el tipo correcto
+      const inspectionData = inspection as { id: string; inspection_type?: string; inspection_status?: string; pdf_url?: string };
+      
+      if (inspectionData.inspection_type && inspectionData.inspection_type !== inspectionType) {
+        console.error('[Initial Check Sync] ❌ Inspección con tipo incorrecto:', {
+          esperado: inspectionType,
+          obtenido: inspectionData.inspection_type,
+          id: inspectionData.id,
+        });
+        inspection = null;
+        inspectionError = { code: 'PGRST116', message: 'No matching inspection found' } as any;
+      } else {
+        console.log(`[Initial Check Sync] ✅ Inspección encontrada:`, {
+          id: inspectionData.id,
+          inspection_type: inspectionData.inspection_type,
+          inspection_status: inspectionData.inspection_status,
+        });
+      }
     } else {
       console.warn(`[Initial Check Sync] ⚠️ No se encontró inspección del tipo ${inspectionType} para propertyId ${propertyId}`);
     }
 
     // Si encontramos una inspección pero no está completada, completarla ahora
-    if (!inspectionError && inspection && inspection.inspection_status !== 'completed') {
-      console.log('[Initial Check Sync] Inspection not completed, completing it now:', inspection.id);
-      const { error: completeError } = await supabase
-        .from('property_inspections')
-        .update({
-          inspection_status: 'completed',
-          completed_at: new Date().toISOString(),
-        })
-        .eq('id', inspection.id);
+    if (!inspectionError && inspection && typeof inspection === 'object' && 'id' in inspection) {
+      const inspectionData = inspection as { id: string; inspection_status?: string };
+      if (inspectionData.inspection_status !== 'completed') {
+        console.log('[Initial Check Sync] Inspection not completed, completing it now:', inspectionData.id);
+        const { error: completeError } = await supabase
+          .from('property_inspections')
+          .update({
+            inspection_status: 'completed',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', inspectionData.id);
       
       if (completeError) {
         console.error('[Initial Check Sync] Error completing inspection:', completeError);
@@ -417,12 +426,14 @@ export async function finalizeInitialCheckInAirtable(
 
     let pdfUrl: string | null = null;
 
-    if (!inspectionError && inspection) {
+    if (!inspectionError && inspection && typeof inspection === 'object' && 'id' in inspection) {
+      const inspectionData = inspection as { id: string };
+      
       // Cargar zonas y elementos del checklist
       const { data: zones } = await supabase
         .from('inspection_zones')
         .select('*')
-        .eq('inspection_id', inspection.id);
+        .eq('inspection_id', inspectionData.id);
 
       const { data: elements } = await supabase
         .from('inspection_elements')
@@ -464,10 +475,13 @@ export async function finalizeInitialCheckInAirtable(
           console.log('[Initial Check Sync] ✅ PDF generated and uploaded:', pdfUrl);
 
           // Guardar URL del PDF en property_inspections
-          await supabase
-            .from('property_inspections')
-            .update({ pdf_url: pdfUrl })
-            .eq('id', inspection.id);
+          if (inspection && typeof inspection === 'object' && 'id' in inspection) {
+            const inspectionData = inspection as { id: string };
+            await supabase
+              .from('property_inspections')
+              .update({ pdf_url: pdfUrl })
+              .eq('id', inspectionData.id);
+          }
         } catch (pdfError: any) {
           console.error('[Initial Check Sync] ❌ Error generating PDF:', pdfError);
           // Continuar aunque falle la generación del PDF
