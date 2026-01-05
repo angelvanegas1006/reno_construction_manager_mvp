@@ -33,6 +33,14 @@ const nextConfig: NextConfig = {
         ...config.resolve.alias,
         '@': require('path').resolve(__dirname),
       };
+      
+      // Agregar extensiones para resolver módulos correctamente
+      // Asegurar que .tsx y .ts estén al principio de la lista
+      const extensions = ['.tsx', '.ts', '.jsx', '.js', '.json'];
+      config.resolve.extensions = [
+        ...extensions.filter(ext => !config.resolve.extensions?.includes(ext)),
+        ...(config.resolve.extensions || []),
+      ];
     }
     
     return config;
