@@ -1,13 +1,20 @@
 -- Migración: Crear políticas RLS para el bucket checklists
--- Ejecutar en Supabase SQL Editor
+-- ⚠️ IMPORTANTE: Si recibes error "must be owner of relation objects", 
+-- usa el Dashboard de Supabase en lugar de SQL Editor.
+-- Ver: EJECUTAR_POLITICAS_CHECKLISTS_DASHBOARD.md
+--
 -- Estas políticas permiten a usuarios autenticados subir, leer y eliminar archivos HTML de checklists
+--
+-- NOTA: Si tienes permisos de administrador, puedes ejecutar este SQL.
+-- Si no, usa el Dashboard: Storage → checklists → Policies → New Policy
 
 -- Eliminar políticas existentes si existen (para poder recrearlas)
-DROP POLICY IF EXISTS "Allow authenticated users to upload checklist HTML" ON storage.objects;
-DROP POLICY IF EXISTS "Allow public to read checklist HTML" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to read checklist HTML" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to update checklist HTML" ON storage.objects;
-DROP POLICY IF EXISTS "Allow authenticated users to delete checklist HTML" ON storage.objects;
+-- ⚠️ Solo ejecutar si tienes permisos de administrador
+-- DROP POLICY IF EXISTS "Allow authenticated users to upload checklist HTML" ON storage.objects;
+-- DROP POLICY IF EXISTS "Allow public to read checklist HTML" ON storage.objects;
+-- DROP POLICY IF EXISTS "Allow authenticated users to read checklist HTML" ON storage.objects;
+-- DROP POLICY IF EXISTS "Allow authenticated users to update checklist HTML" ON storage.objects;
+-- DROP POLICY IF EXISTS "Allow authenticated users to delete checklist HTML" ON storage.objects;
 
 -- 1. Política para INSERT (subir archivos HTML de checklists)
 CREATE POLICY "Allow authenticated users to upload checklist HTML"
