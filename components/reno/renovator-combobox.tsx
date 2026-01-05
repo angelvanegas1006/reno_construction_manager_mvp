@@ -189,13 +189,13 @@ export function RenovatorCombobox({
                 className={cn(
                   "w-full text-left px-3 py-2 transition-colors flex items-center justify-between",
                   "hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]",
-                  isHighlighted && "bg-muted/50 dark:bg-muted/30",
-                  isSelected && "bg-muted dark:bg-muted/40"
+                  isHighlighted && "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20",
+                  isSelected && "bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/30"
                 )}
               >
                 <span className="text-sm font-medium text-foreground">{renovator}</span>
                 {isSelected && (
-                  <Check className="h-4 w-4 text-foreground flex-shrink-0" />
+                  <Check className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] flex-shrink-0" />
                 )}
               </button>
             );

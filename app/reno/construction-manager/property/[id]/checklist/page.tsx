@@ -157,9 +157,30 @@ export default function RenoChecklistPage() {
   );
 
   // Check if checklist is completed (read-only mode)
+  // IMPORTANTE: Verificar que la inspección corresponde al tipo correcto antes de verificar si está completada
+  // Esto evita que el final check aparezca como completado cuando en realidad el initial check es el completado
   const isChecklistCompleted = useMemo(() => {
-    return inspection?.inspection_status === 'completed' || inspection?.completed_at !== null;
-  }, [inspection]);
+    if (!inspection) {
+      return false;
+    }
+    
+    // Verificar que el tipo de inspección coincide con el esperado
+    const inspectionTypeMatches = (inspection as any).inspection_type === inspectionType;
+    
+    // Si el tipo no coincide, no considerar completado (permite edición)
+    if (!inspectionTypeMatches) {
+      console.log('[ChecklistPage] ⚠️ Inspection type mismatch - allowing editing:', {
+        expectedType: inspectionType,
+        actualType: (inspection as any).inspection_type,
+        inspectionId: inspection.id,
+        inspectionStatus: inspection.inspection_status,
+      });
+      return false;
+    }
+    
+    // Solo considerar completado si el tipo coincide y está completada
+    return inspection.inspection_status === 'completed' || inspection.completed_at !== null;
+  }, [inspection, inspectionType]);
 
   // Get dynamic categories for reno-in-progress phase
   const { categories: dynamicCategories } = useDynamicCategories(propertyId);

@@ -15,6 +15,7 @@ export async function uploadChecklistPDFToStorage(
     address: string;
     propertyId: string;
     renovatorName?: string;
+    driveFolderUrl?: string;
   },
   language: 'es' | 'en' = 'es'
 ): Promise<string> {
@@ -140,38 +141,80 @@ export async function getChecklistPDFUrl(
   // Para rutas autenticadas, intentar obtener desde property_inspections primero
   const supabase = createClient();
   const inspectionType = checklistType === 'reno_initial' ? 'initial' : 'final';
+  
+  // IMPORTANTE: Incluir inspection_type en el select para validar que coincida
   const { data: inspection, error: inspectionError } = await supabase
     .from('property_inspections')
-    .select('pdf_url')
+    .select('id, inspection_type, pdf_url')
     .eq('property_id', propertyId)
     .eq('inspection_type', inspectionType)
     .eq('inspection_status', 'completed')
     .order('completed_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle(); // Usar maybeSingle() en lugar de single() para evitar errores si no existe
 
-  if (inspectionError) {
+  // Si hay un error relacionado con la columna inspection_type, intentar sin ese filtro
+  if (inspectionError && (inspectionError.code === '42883' || inspectionError.message?.includes('column') || inspectionError.message?.includes('does not exist'))) {
+    console.warn(`[checklist-html-storage] Campo inspection_type no existe, buscando sin filtro:`, inspectionError.message);
+    
+    // Buscar todas las inspecciones completadas y filtrar manualmente
+    const { data: allInspections, error: allError } = await supabase
+      .from('property_inspections')
+      .select('id, inspection_type, pdf_url')
+      .eq('property_id', propertyId)
+      .eq('inspection_status', 'completed')
+      .order('completed_at', { ascending: false });
+    
+    if (allError) {
+      console.warn(`[checklist-html-storage] Error buscando inspecciones:`, allError.message);
+    } else if (allInspections) {
+      // Filtrar manualmente por inspection_type
+      const matchingInspection = allInspections.find((insp: any) => 
+        insp.inspection_type === inspectionType
+      );
+      
+      if (matchingInspection?.pdf_url) {
+        console.log(`[checklist-html-storage] ✅ HTML URL found in property_inspections (sin filtro de BD): ${matchingInspection.pdf_url}`);
+        return matchingInspection.pdf_url;
+      }
+    }
+  } else if (inspectionError && inspectionError.code !== 'PGRST116') {
+    // PGRST116 es "no rows returned", que es válido si no existe la inspección
     console.warn(`[checklist-html-storage] Error fetching HTML URL from property_inspections for ${propertyId} (${inspectionType}):`, inspectionError.message);
   }
 
-  if (inspection?.pdf_url) {
-    console.log(`[checklist-html-storage] ✅ HTML URL found in property_inspections: ${inspection.pdf_url}`);
-    return inspection.pdf_url;
+  // IMPORTANTE: Validar que el inspection_type coincida antes de usar el pdf_url
+  if (inspection) {
+    if (inspection.inspection_type && inspection.inspection_type !== inspectionType) {
+      console.warn(`[checklist-html-storage] ⚠️ Inspección con tipo incorrecto (esperado: ${inspectionType}, obtenido: ${inspection.inspection_type}), ignorando...`);
+      // No usar esta inspección, continuar con el fallback
+    } else if (inspection.pdf_url) {
+      console.log(`[checklist-html-storage] ✅ HTML URL found in property_inspections: ${inspection.pdf_url}`);
+      return inspection.pdf_url;
+    }
   }
 
   // Si no se encuentra, construir el path y obtener la URL pública
   const type = checklistType === 'reno_initial' ? 'initial' : 'final';
   const path = `${propertyId}/${type}/checklist.html`;
 
+  console.log(`[checklist-html-storage] 🔍 Construyendo URL desde storage para:`, {
+    propertyId,
+    checklistType,
+    type,
+    path,
+  });
+
   const { data: publicUrlData } = supabase.storage
     .from(STORAGE_BUCKET)
     .getPublicUrl(path);
 
   if (!publicUrlData || !publicUrlData.publicUrl) {
-    console.warn('[checklist-html-storage] No se pudo generar URL pública para:', path);
+    console.warn('[checklist-html-storage] ⚠️ No se pudo generar URL pública para:', path);
     return null;
   }
 
+  console.log(`[checklist-html-storage] ✅ URL pública generada desde storage: ${publicUrlData.publicUrl}`);
   return publicUrlData.publicUrl;
 }
 

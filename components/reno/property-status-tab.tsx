@@ -86,31 +86,88 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
           inspection_type: item.inspection_type,
           inspection_status: item.inspection_status,
           completed_at: item.completed_at,
+          created_at: item.created_at,
         })));
       }
 
       // Type guard to ensure data is an array and handle potential type issues
       if (Array.isArray(rawData)) {
+        // Primero, identificar cuáles tienen inspection_type válido y cuáles no
+        const validInspections = rawData.filter((item: any) => 
+          item.inspection_type === 'initial' || item.inspection_type === 'final'
+        );
+        const invalidInspections = rawData.filter((item: any) => 
+          !item.inspection_type || (item.inspection_type !== 'initial' && item.inspection_type !== 'final')
+        );
+        
+        // Si hay inspecciones sin tipo válido, intentar inferirlas
+        if (invalidInspections.length > 0) {
+          console.warn('[PropertyStatusTab] ⚠️ Inspecciones sin inspection_type válido:', {
+            count: invalidInspections.length,
+            currentPhase,
+            totalInspections: rawData.length,
+            validInspections: validInspections.length,
+          });
+        }
+        
         // Convert to ChecklistHistory format, defaulting inspection_type if missing
         const checklists: ChecklistHistory[] = rawData.map((item: any, index: number) => {
-          // Si falta inspection_type, intentar inferirlo:
-          // - Si la propiedad está en cleaning/final-check y es la más reciente, probablemente es 'final'
-          // - Si hay múltiples inspecciones, la más reciente podría ser 'final' si la fase lo indica
+          // IMPORTANTE: Si inspection_type existe pero está vacío o es null, tratarlo como faltante
+          const hasInspectionType = item.inspection_type && 
+            (item.inspection_type === 'initial' || item.inspection_type === 'final');
+          
+          // Si falta inspection_type o es inválido, intentar inferirlo de forma más inteligente
           let inferredType: 'initial' | 'final' = 'initial';
-          if (!item.inspection_type) {
+          if (!hasInspectionType) {
+            // Estrategia de inferencia mejorada:
+            // 1. Si la propiedad está en cleaning/final-check, la más reciente probablemente es 'final'
+            // 2. Si hay múltiples inspecciones, verificar si alguna ya tiene tipo válido
+            // 3. Si hay dos inspecciones y una tiene completed_at más reciente, podría ser 'final'
             if (currentPhase === 'cleaning' || currentPhase === 'final-check') {
               // Si estamos en cleaning o final-check, la inspección más reciente probablemente es final
               inferredType = index === 0 ? 'final' : 'initial';
-            } else if (rawData.length > 1 && index === 0) {
-              // Si hay múltiples inspecciones y esta es la más reciente, podría ser final
-              // Pero por defecto asumimos initial si no hay más contexto
-              inferredType = 'initial';
+            } else if (rawData.length === 2) {
+              // Si hay exactamente 2 inspecciones, la más reciente (index 0) probablemente es 'final'
+              // y la más antigua (index 1) probablemente es 'initial'
+              inferredType = index === 0 ? 'final' : 'initial';
+            } else if (rawData.length > 1) {
+              // Si hay más de 2, usar la fase actual como guía
+              // Si la fase indica que debería haber un final check completado, la más reciente es 'final'
+              if (currentPhase && (currentPhase.includes('final') || currentPhase.includes('cleaning'))) {
+                inferredType = index === 0 ? 'final' : 'initial';
+              } else {
+                // Por defecto, la más reciente es 'initial' si no hay más contexto
+                inferredType = 'initial';
+              }
             }
+            
+            console.warn('[PropertyStatusTab] ⚠️ Inspection sin inspection_type válido, inferido:', {
+              id: item.id,
+              inspection_type_original: item.inspection_type,
+              inspection_type_inferred: inferredType,
+              index,
+              currentPhase,
+              totalInspections: rawData.length,
+              completed_at: item.completed_at,
+            });
+          }
+          
+          const finalType = hasInspectionType ? item.inspection_type : inferredType;
+          
+          // Log para debugging del tipo final asignado
+          if (finalType === 'final') {
+            console.log('[PropertyStatusTab] ✅ Final checklist identificado:', {
+              id: item.id,
+              inspection_type_original: item.inspection_type,
+              inspection_type_final: finalType,
+              was_inferred: !hasInspectionType,
+              completed_at: item.completed_at,
+            });
           }
           
           return {
             id: item.id,
-            inspection_type: item.inspection_type || inferredType,
+            inspection_type: finalType as 'initial' | 'final',
             inspection_status: item.inspection_status || 'in_progress',
             created_at: item.created_at,
             completed_at: item.completed_at,
@@ -118,6 +175,14 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
             pdf_url: item.pdf_url || null,
           };
         });
+        
+        // Log final de los checklists procesados
+        console.log('[PropertyStatusTab] ✅ Checklists procesados:', checklists.map(c => ({
+          id: c.id,
+          inspection_type: c.inspection_type,
+          isCompleted: c.completed_at !== null || c.inspection_status === 'completed',
+        })));
+        
         setChecklists(checklists);
       } else {
         setChecklists([]);
@@ -225,15 +290,29 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
               </div>
 
               <div className="flex items-center justify-center">
-                {isCompleted && (
-                  <Link
-                    href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=${checklist.inspection_type === 'initial' ? 'reno_initial' : 'reno_final'}&from=status`}
-                    className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors flex items-center gap-2"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Ver informe
-                  </Link>
-                )}
+                {isCompleted && (() => {
+                  const linkType = checklist.inspection_type === 'initial' ? 'reno_initial' : 'reno_final';
+                  const linkHref = `/reno/construction-manager/property/${propertyId}/checklist/pdf?type=${linkType}&from=status`;
+                  
+                  // Log para debugging del link generado
+                  console.log('[PropertyStatusTab] 🔗 Generando link para checklist:', {
+                    checklistId: checklist.id,
+                    inspection_type: checklist.inspection_type,
+                    linkType,
+                    linkHref,
+                    isCompleted,
+                  });
+                  
+                  return (
+                    <Link
+                      href={linkHref}
+                      className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors flex items-center gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Ver informe
+                    </Link>
+                  );
+                })()}
               </div>
             </div>
           </div>

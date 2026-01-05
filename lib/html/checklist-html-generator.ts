@@ -152,9 +152,27 @@ export async function generateChecklistHTML(
     address: string;
     propertyId: string;
     renovatorName?: string;
+    driveFolderUrl?: string;
   },
   translations: any
 ): Promise<string> {
+  // Log para debugging
+  console.log('[generateChecklistHTML] 📋 Generating HTML with:', {
+    propertyId: propertyInfo.propertyId,
+    hasDriveFolderUrl: !!propertyInfo.driveFolderUrl,
+    driveFolderUrl: propertyInfo.driveFolderUrl,
+    sectionsCount: Object.keys(checklist.sections || {}).length,
+  });
+
+  // Contar preguntas con notas
+  let totalQuestionsWithNotes = 0;
+  Object.values(checklist.sections || {}).forEach((section: any) => {
+    if (section.questions) {
+      totalQuestionsWithNotes += section.questions.filter((q: any) => q.notes).length;
+    }
+  });
+  console.log('[generateChecklistHTML] 📝 Questions with notes:', totalQuestionsWithNotes);
+
   const completedDate = checklist.completedAt
     ? new Date(checklist.completedAt).toLocaleDateString('es-ES', {
         year: 'numeric',
@@ -273,8 +291,28 @@ tailwind.config = {
 <div class="flex flex-col gap-1 md:col-span-2">
 <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Fecha de Inspección</span>
 <span class="text-base text-slate-700 dark:text-slate-300">${escapeHtml(completedDate)}</span>
-</div>
-</div>
+</div>`;
+
+  // Añadir enlace de Drive si existe
+  if (propertyInfo.driveFolderUrl && propertyInfo.driveFolderUrl.trim().length > 0) {
+    console.log('[generateChecklistHTML] 🔗 Adding Drive folder link:', propertyInfo.driveFolderUrl);
+    html += `
+<div class="flex flex-col gap-1 md:col-span-2">
+<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Carpeta de Drive</span>
+<a href="${escapeHtml(propertyInfo.driveFolderUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-accent hover:text-accent/80 transition-colors text-base font-medium">
+<span class="material-symbols-outlined text-lg">folder</span>
+<span>Abrir carpeta en Google Drive</span>
+<span class="material-symbols-outlined text-sm">open_in_new</span>
+</a>
+</div>`;
+  } else {
+    console.log('[generateChecklistHTML] ⚠️ No Drive folder URL provided:', {
+      hasDriveFolderUrl: !!propertyInfo.driveFolderUrl,
+      driveFolderUrl: propertyInfo.driveFolderUrl,
+    });
+  }
+
+  html += `</div>
 </section>`;
 
   // Generar secciones
@@ -415,6 +453,17 @@ ${escapeHtml(statusLabel)}
           const statusLabel = getStatusLabel(question.status, translations);
           const statusClasses = getStatusBadgeClasses(question.status);
 
+          // Log para debugging de notas
+          if (question.notes) {
+            console.log(`[generateChecklistHTML] 📝 Question with notes:`, {
+              sectionId,
+              questionId: question.id,
+              questionLabel,
+              notesLength: question.notes.length,
+              notesPreview: question.notes.substring(0, 100),
+            });
+          }
+
           html += `
 <div class="bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
 <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
@@ -425,8 +474,35 @@ ${escapeHtml(statusLabel)}
 <span class="material-symbols-outlined text-sm">check_circle</span>
 ${escapeHtml(statusLabel)}
 </span>
+</div>`;
+
+          // Mostrar notas si existen (verificar tanto question.notes como que no esté vacío)
+          if (question.notes && question.notes.trim().length > 0) {
+            html += `
+<div class="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-slate-400 text-lg flex-shrink-0 mt-0.5">note</span>
+<div class="flex-1">
+<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Notas</span>
+<p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">${escapeHtml(question.notes)}</p>
+</div>
 </div>
 </div>`;
+          }
+
+          // Mostrar fotos si existen
+          if (question.photos && question.photos.length > 0) {
+            html += `
+<div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+${question.photos.slice(0, 4).map((photo: any) => photo.data ? `
+<div class="relative group overflow-hidden rounded-lg shadow-sm border border-slate-100 dark:border-slate-800 aspect-video">
+<img alt="${escapeHtml(questionLabel)}" class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105" src="${escapeHtml(photo.data)}"/>
+</div>
+` : '').join('')}
+</div>`;
+          }
+
+          html += `</div>`;
         }
       }
     }

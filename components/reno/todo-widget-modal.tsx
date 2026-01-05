@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import { mapSetUpStatusToKanbanPhase } from "@/lib/supabase/kanban-mapping";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { RenovatorCombobox } from "@/components/reno/renovator-combobox";
-import { createDriveFolderForProperty } from "@/lib/n8n/webhook-caller";
 
 interface TodoWidgetModalProps {
   open: boolean;
@@ -226,31 +225,16 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
         fields: airtableUpdates,
       });
 
-      // Llamar al webhook para crear carpeta Drive (después de actualizar Supabase)
-      // Se ejecuta independientemente del resultado de Airtable
-      console.log(`[Todo Widget] 📁 Attempting to create Drive folder for property ${propertyId}`);
-      createDriveFolderForProperty(propertyId)
-        .then((success) => {
-          console.log(`[Todo Widget] 📁 Drive folder creation result:`, success);
-        })
-        .catch((error) => {
-          console.error('[Todo Widget] Error creating drive folder:', error);
-          // No mostrar error al usuario (silencioso)
-        });
-
       if (airtableSuccess) {
         console.log(`[Todo Widget] ✅ Successfully updated Airtable (Transactions) for property ${propertyId}`);
-        
         toast.success("Visita estimada guardada y sincronizada con Airtable", {
           description: currentPhase === 'upcoming-settlements' 
             ? "La fecha de visita estimada se ha guardado en Supabase y Airtable, y la propiedad se ha movido a Revisión Inicial."
             : "La fecha de visita estimada se ha guardado correctamente en Supabase y Airtable.",
         });
         onOpenChange(false);
-        // Esperar un poco antes de recargar para que la llamada al webhook tenga tiempo de ejecutarse
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
+        // Recargar la página para reflejar los cambios
+        window.location.reload();
       } else {
         console.error(`[Todo Widget] Failed to update Airtable (Transactions) for property ${propertyId}`, {
           tableName: AIRTABLE_TABLE_NAME,

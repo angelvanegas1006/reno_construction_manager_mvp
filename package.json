@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:clean": "rm -rf .next && next dev",
+    "dev": "next dev --webpack",
+    "dev:clean": "rm -rf .next && next dev --webpack",
     "kill:port": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
     "dev:force": "npm run kill:port && sleep 1 && npm run dev",
     "dev:staging": "next dev --env-file=.env.staging",

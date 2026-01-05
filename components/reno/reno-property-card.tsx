@@ -3,16 +3,18 @@
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Flag } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
 import { useMixpanel } from "@/hooks/useMixpanel";
-import { RenoKanbanPhase } from "@/lib/reno-kanban-config";
+import { needsUpdate, calculateNextUpdateDate, needsUpdateThisWeek } from "@/lib/reno/update-calculator";
+
+type RenoStage = "upcoming-settlements" | "initial-check" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "upcoming" | "reno-in-progress" | "furnishing" | "final-check" | "cleaning" | "furnishing-cleaning" | "reno-fixes" | "done" | "orphaned";
 
 interface RenoPropertyCardProps {
   property: Property;
-  stage: RenoKanbanPhase;
+  stage: RenoStage;
   onClick?: () => void;
   disabled?: boolean;
   isHighlighted?: boolean;
@@ -31,9 +33,39 @@ export function RenoPropertyCard({
   const { track } = useMixpanel();
   const isExpired = isPropertyExpired(property);
 
-  const needsUpdateToday = property.proximaActualizacion
-    ? new Date(property.proximaActualizacion).toDateString() === new Date().toDateString()
+  // Calculate proximaActualizacion if it doesn't exist (from reno start date)
+  const renoStartDate = property.inicio || (property as any).supabaseProperty?.["Reno Start Date"] || (property as any).supabaseProperty?.start_date;
+  const proximaActualizacionCalculada = property.proximaActualizacion || 
+    (stage === "reno-in-progress" ? calculateNextUpdateDate(null, property.renoType, renoStartDate) : null);
+
+  const needsUpdateToday = proximaActualizacionCalculada
+    ? new Date(proximaActualizacionCalculada).toDateString() === new Date().toDateString()
     : false;
+
+  // Check if property needs an update THIS WEEK (for reno-in-progress phase)
+  // Only show badge if the property needs update this week (Monday to Sunday)
+  // This matches exactly the criteria used in the "Actualización de obra" widget in home
+  const needsUpdateBadge = stage === "reno-in-progress" && proximaActualizacionCalculada && 
+    needsUpdate(proximaActualizacionCalculada, property.renoType, renoStartDate) &&
+    needsUpdateThisWeek(proximaActualizacionCalculada);
+  
+  // Debug log for all reno-in-progress properties to understand the issue
+  if (stage === "reno-in-progress") {
+    const daysSinceStart = renoStartDate ? Math.floor((new Date().getTime() - new Date(renoStartDate).getTime()) / (1000 * 60 * 60 * 24)) : null;
+    const intervalDays = property.renoType?.toLowerCase().includes('light') ? 7 : 
+                        property.renoType?.toLowerCase().includes('medium') ? 14 : 
+                        property.renoType?.toLowerCase().includes('major') ? 30 : 7;
+    
+    console.log(`[RenoPropertyCard] ${property.id}:`, {
+      renoType: property.renoType,
+      renoStartDate,
+      daysSinceStart,
+      intervalDays,
+      needsUpdate: daysSinceStart !== null ? daysSinceStart >= intervalDays : 'no start date',
+      needsUpdateBadge,
+      proximaActualizacionCalculada,
+    });
+  }
 
   // Check if property exceeds duration limit based on reno type (for reno-in-progress)
   const exceedsDurationLimit = (() => {
@@ -74,17 +106,14 @@ export function RenoPropertyCard({
     return property.daysToVisit > 5;
   })();
 
-  // Check if property exceeds Days to Property Ready limit (for furnishing-cleaning phase)
+  // Check if property exceeds Days to Property Ready limit (for furnishing, cleaning, and furnishing-cleaning phases)
   const exceedsDaysToPropertyReadyLimit = (() => {
-    if (stage !== "furnishing-cleaning" || !property.daysToPropertyReady) {
+    if ((stage !== "furnishing" && stage !== "cleaning" && stage !== "furnishing-cleaning") || !property.daysToPropertyReady) {
       return false;
     }
     
     return property.daysToPropertyReady > 25;
   })();
-
-  // Determine if property should be marked in red
-  const isMarkedInRed = exceedsDurationLimit || exceedsDaysToStartLimit || exceedsDaysToVisitLimit || exceedsDaysToPropertyReadyLimit;
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
@@ -148,7 +177,10 @@ export function RenoPropertyCard({
           ? "ring-2 ring-[var(--prophero-blue-500)] shadow-lg border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30" 
           : "",
         isExpired && "border-l-4 border-l-red-100 dark:border-l-red-900/30",
-        isMarkedInRed && "border-l-4 border-l-red-500"
+        exceedsDurationLimit && stage === "reno-in-progress" && "border-l-4 border-l-red-500",
+        exceedsDaysToStartLimit && "border-l-4 border-l-red-500", // Red left border for budget phases
+        exceedsDaysToVisitLimit && "border-l-4 border-l-red-500", // Red left border for initial-check phase
+        exceedsDaysToPropertyReadyLimit && (stage === "furnishing" || stage === "cleaning" || stage === "furnishing-cleaning") && "border-l-4 border-l-red-500" // Red left border for furnishing/cleaning phases
       )}
       onClick={disabled ? undefined : () => {
         track("Property Card Clicked", {
@@ -161,23 +193,23 @@ export function RenoPropertyCard({
         onClick?.();
       }}
     >
-      {/* Red flag indicator in top right corner */}
-      {isMarkedInRed && (
-        <div className="absolute top-2 right-2 z-10">
-          <Flag className="h-4 w-4 text-red-500 stroke-black" fill="currentColor" strokeWidth={2} />
-        </div>
-      )}
-      
       {/* ID and Expired tag aligned at top */}
       <div className="flex items-center justify-between mb-2 gap-2 min-w-0">
         <div className="text-xs font-semibold text-muted-foreground truncate min-w-0">
           ID {property.uniqueIdFromEngagements || property.id}
         </div>
-        {isExpired && (
-          <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 flex-shrink-0 whitespace-nowrap">
-            {t.propertyCard.expired}
-          </span>
-        )}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {needsUpdateBadge && (
+            <Badge variant="outline" className="text-xs border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">
+              {language === "es" ? "Necesita actualización" : "Need Update"}
+            </Badge>
+          )}
+          {isExpired && (
+            <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 flex-shrink-0 whitespace-nowrap">
+              {t.propertyCard.expired}
+            </span>
+          )}
+        </div>
       </div>
       
       {/* Address with region integrated */}
@@ -193,47 +225,50 @@ export function RenoPropertyCard({
       {/* Tags */}
       {showRenoDetails && property.renoType && (() => {
         // Función para obtener los estilos del badge según el tipo de renovación
-        // Todos usan la paleta de azules de Vistral con diferentes tonos:
-        // - Light Reno: azul más clarito (blue-50)
-        // - Medium Reno: azul medio (blue-100)
-        // - Major Reno: azul más oscuro (blue-200)
+        // - Light Reno: Verde fuerte (bg-green-600) sin borde ni hover
+        // - Medium Reno: Verde claro (bg-green-100)
+        // - Major Reno: Amarillo-naranja claro (bg-yellow-200)
         const getRenoTypeBadgeStyles = (renoType?: string) => {
           if (!renoType) return null;
           
           const typeLower = renoType.toLowerCase();
           
-          // Light Reno: azul más clarito
+          // Light Reno: Verde fuerte sin borde ni hover
           if (typeLower.includes('light')) {
             return {
-              bg: 'bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20',
-              text: 'text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-300)]',
-              border: 'border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]/30'
+              bg: 'bg-green-600 dark:bg-green-600',
+              text: 'text-white dark:text-white',
+              border: 'border-0',
+              hover: ''
             };
           }
           
-          // Medium Reno: azul medio
+          // Medium Reno: Verde claro
           if (typeLower.includes('medium')) {
             return {
-              bg: 'bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/20',
-              text: 'text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]',
-              border: 'border-[var(--prophero-blue-300)] dark:border-[var(--prophero-blue-700)]/30'
+              bg: 'bg-green-100 dark:bg-green-900/30',
+              text: 'text-green-800 dark:text-green-300',
+              border: 'border border-green-200 dark:border-green-800/30',
+              hover: ''
             };
           }
           
-          // Major Reno: azul más oscuro
+          // Major Reno: Amarillo-naranja claro
           if (typeLower.includes('major')) {
             return {
-              bg: 'bg-[var(--prophero-blue-200)] dark:bg-[var(--prophero-blue-800)]/20',
-              text: 'text-[var(--prophero-blue-800)] dark:text-[var(--prophero-blue-200)]',
-              border: 'border-[var(--prophero-blue-400)] dark:border-[var(--prophero-blue-600)]/30'
+              bg: 'bg-yellow-200 dark:bg-yellow-900/30',
+              text: 'text-yellow-900 dark:text-yellow-200',
+              border: 'border border-yellow-300 dark:border-yellow-800/30',
+              hover: ''
             };
           }
           
-          // Default: azul medio (por si acaso)
+          // Default: verde claro (por si acaso)
           return {
-            bg: 'bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/20',
-            text: 'text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]',
-            border: 'border-[var(--prophero-blue-300)] dark:border-[var(--prophero-blue-700)]/30'
+            bg: 'bg-green-100 dark:bg-green-900/30',
+            text: 'text-green-800 dark:text-green-300',
+            border: 'border border-green-200 dark:border-green-800/30',
+            hover: ''
           };
         };
 
@@ -242,18 +277,44 @@ export function RenoPropertyCard({
         
         return (
           <div className="flex flex-wrap gap-2 mb-3">
-            <Badge 
-              variant="secondary" 
-              className={`${badgeStyles.bg} ${badgeStyles.text} border ${badgeStyles.border} font-medium`}
+            <span 
+              className={cn(
+                badgeStyles.bg,
+                badgeStyles.text,
+                badgeStyles.border,
+                badgeStyles.hover,
+                "inline-flex items-center rounded-full text-xs font-medium px-2 py-1"
+              )}
             >
               {property.renoType}
-            </Badge>
+            </span>
           </div>
         );
       })()}
 
       {/* Stage-specific content */}
-      {stage === "initial-check" ? (
+      {stage === "upcoming-settlements" ? (
+        <div className="space-y-2">
+          {property.region && (
+            <div className="text-xs text-muted-foreground">
+              {t.propertyCard.region}: {property.region}
+            </div>
+          )}
+          {property.realSettlementDate && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3 flex-shrink-0" />
+              <span>{t.propertyCard.signing}: {formatDate(property.realSettlementDate)}</span>
+            </div>
+          )}
+          {/* Días para visitar - only show if filled */}
+          {property.daysToVisit !== null && property.daysToVisit !== undefined && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Días para visitar:</span> {property.daysToVisit} días
+            </div>
+          )}
+          {/* Ocultar timeInPhase para upcoming-settlements */}
+        </div>
+      ) : stage === "initial-check" ? (
         <div className="space-y-2">
           {property.region && (
             <div className="text-xs text-muted-foreground">
@@ -272,32 +333,13 @@ export function RenoPropertyCard({
               <span>{t.propertyCard.estimatedVisit}: {formatDate(property.estimatedVisitDate)}</span>
             </div>
           )}
+          {/* Días para visitar - only show if filled */}
           {property.daysToVisit !== null && property.daysToVisit !== undefined && (
             <div className="text-xs text-muted-foreground">
               <span className="font-medium">Días para visitar:</span> {property.daysToVisit} días
             </div>
           )}
           {/* Ocultar timeInPhase para initial-check */}
-        </div>
-      ) : stage === "upcoming-settlements" ? (
-        <div className="space-y-2">
-          {property.region && (
-            <div className="text-xs text-muted-foreground">
-              {t.propertyCard.region}: {property.region}
-            </div>
-          )}
-          {property.estimatedVisitDate && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3 flex-shrink-0" />
-              <span>{t.propertyCard.estimatedVisit}: {formatDate(property.estimatedVisitDate)}</span>
-            </div>
-          )}
-          {property.daysToVisit !== null && property.daysToVisit !== undefined && (
-            <div className="text-xs text-muted-foreground">
-              <span className="font-medium">Días para visitar:</span> {property.daysToVisit} días
-            </div>
-          )}
-          {/* Ocultar timeInPhase para upcoming-settlements */}
         </div>
       ) : stage === "final-check" ? (
         <div className="space-y-2">
@@ -311,11 +353,11 @@ export function RenoPropertyCard({
               <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
-          {showRenoDetails && property.proximaActualizacion && (
+          {showRenoDetails && proximaActualizacionCalculada && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3 flex-shrink-0" />
               <span>
-                {t.propertyCard.next}: {formatDate(property.proximaActualizacion)}
+                {t.propertyCard.next}: {formatDate(proximaActualizacionCalculada)}
                 {needsUpdateToday && (
                   <span className="ml-1 text-[var(--prophero-blue-600)] font-medium">({t.propertyCard.today})</span>
                 )}
@@ -341,20 +383,8 @@ export function RenoPropertyCard({
               <span className="font-medium">Duración de la obra:</span> {property.renoDuration} días
             </div>
           )}
-          {showRenoDetails && property.proximaActualizacion && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Calendar className="h-3 w-3 flex-shrink-0" />
-              <span>
-                {t.propertyCard.next}: {formatDate(property.proximaActualizacion)}
-                {needsUpdateToday && (
-                  <span className="ml-1 text-[var(--prophero-blue-600)] font-medium">({t.propertyCard.today})</span>
-                )}
-              </span>
-            </div>
-          )}
-          <div className="text-xs text-muted-foreground">{t.propertyCard.workInProgress} {timeInPhase}</div>
         </div>
-      ) : stage === "furnishing-cleaning" || stage === "reno-fixes" ? (
+      ) : stage === "furnishing" || stage === "cleaning" ? (
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
@@ -366,19 +396,34 @@ export function RenoPropertyCard({
               <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
-          {stage === "furnishing-cleaning" && property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
+          {/* Días para propiedad lista - only show if filled */}
+          {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">{t.propertyCard.daysLabel}</span> {property.daysToPropertyReady} {t.propertyCard.days}
+            </div>
+          )}
+        </div>
+      ) : stage === "furnishing-cleaning" ? (
+        <div className="space-y-2">
+          {showRenoDetails && property.renovador && (
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
+                <span className="text-xs font-semibold text-foreground">
+                  {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground">{property.renovador || t.propertyCard.siteManager}</span>
+            </div>
+          )}
+          {/* Días para propiedad lista - only show if filled */}
+          {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
             <div className="text-xs text-muted-foreground">
               <span className="font-medium">Días para propiedad lista:</span> {property.daysToPropertyReady} días
             </div>
           )}
-          <div className="text-xs text-muted-foreground">
-            {stage === "furnishing-cleaning" && `${t.propertyCard.cleaningFurnishing} `}
-            {stage === "reno-fixes" && `${t.propertyCard.repairs} `}
-            {/* Ocultar timeInPhase para furnishing-cleaning */}
-            {stage === "reno-fixes" && timeInPhase}
-          </div>
+          {/* Ocultar timeInPhase para furnishing-cleaning */}
         </div>
-      ) : stage === "reno-budget" || stage === "reno-budget-renovator" || stage === "reno-budget-client" || stage === "reno-budget-start" ? (
+      ) : stage === "reno-fixes" ? (
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
@@ -390,12 +435,37 @@ export function RenoPropertyCard({
               <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
-          {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
-            <div className="text-xs text-muted-foreground">
-              <span className="font-medium">Días a empezar la obra:</span> {property.daysToStartRenoSinceRSD} días
+          <div className="text-xs text-muted-foreground">
+            {t.propertyCard.repairs} {timeInPhase}
+          </div>
+        </div>
+      ) : (stage === "reno-budget" || stage === "reno-budget-renovator" || stage === "reno-budget-client" || stage === "reno-budget-start") ? (
+        <div className="space-y-2">
+          {showRenoDetails && property.renovador && (
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+                <span className="text-xs font-semibold text-foreground leading-none">
+                  {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
-          {/* Ocultar timeInPhase para fases de budget */}
+          {/* Days and duration fields - only show if filled */}
+          {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Días Para empezar la reno desde firma:</span> {property.daysToStartRenoSinceRSD} días
+            </div>
+          )}
+          {property.renoDuration !== null && property.renoDuration !== undefined && (
+            <div className="text-xs text-muted-foreground">
+              <span className="font-medium">Duración de la reno:</span> {property.renoDuration} días
+            </div>
+          )}
+          {/* Ocultar timeInPhase para las nuevas fases de budget */}
+          {(stage === "reno-budget-renovator" || stage === "reno-budget-client" || stage === "reno-budget-start") ? null : (
+            <div className="text-xs text-muted-foreground">{timeInPhase}</div>
+          )}
         </div>
       ) : stage === "done" ? (
         <div className="space-y-2">

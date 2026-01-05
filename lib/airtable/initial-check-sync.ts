@@ -301,7 +301,7 @@ export async function finalizeInitialCheckInAirtable(
     // Obtener información completa de la propiedad de Supabase
     const { data: property, error: propertyError } = await supabase
       .from('properties')
-      .select('"Unique ID From Engagements", address, "Renovator name", bedrooms, bathrooms')
+      .select('"Unique ID From Engagements", address, "Renovator name", bedrooms, bathrooms, drive_folder_url')
       .eq('id', propertyId)
       .single();
 
@@ -332,29 +332,69 @@ export async function finalizeInitialCheckInAirtable(
     // 1. Cargar checklist desde Supabase
     const inspectionType = checklistType === 'reno_initial' ? 'initial' : 'final';
     
-    // Buscar la inspección más reciente del tipo correcto
+    console.log(`[Initial Check Sync] 🔍 Buscando inspección del tipo: ${inspectionType} para propertyId: ${propertyId}`);
+    
+    // IMPORTANTE: Buscar la inspección del tipo correcto, no solo la más reciente
+    // Esto asegura que el HTML del final check se guarde en la inspección del final check, no en la del initial check
     let { data: inspection, error: inspectionError } = await supabase
       .from('property_inspections')
-      .select('id, inspection_status, completed_at')
+      .select('id, inspection_type, inspection_status, completed_at')
       .eq('property_id', propertyId)
+      .eq('inspection_type', inspectionType) // FILTRAR POR TIPO CORRECTO
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    // Si hay un error o no se encuentra, intentar sin filtro de inspection_type (por compatibilidad)
-    if (inspectionError && (inspectionError.code === '42883' || inspectionError.message?.includes('column'))) {
+    // Si hay un error porque la columna inspection_type no existe, intentar sin filtro (por compatibilidad)
+    if (inspectionError && (inspectionError.code === '42883' || inspectionError.message?.includes('column') || inspectionError.message?.includes('does not exist'))) {
+      console.warn('[Initial Check Sync] ⚠️ Campo inspection_type no existe, buscando sin filtro:', inspectionError.message);
       const { data: latestInspection, error: latestError } = await supabase
         .from('property_inspections')
-        .select('id, inspection_status, completed_at')
+        .select('id, inspection_type, inspection_status, completed_at')
         .eq('property_id', propertyId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       
       if (!latestError && latestInspection) {
-        inspection = latestInspection;
-        inspectionError = null;
+        // Validar que el tipo coincida si existe
+        if (latestInspection.inspection_type && latestInspection.inspection_type !== inspectionType) {
+          console.error('[Initial Check Sync] ❌ Inspección encontrada tiene tipo incorrecto:', {
+            esperado: inspectionType,
+            obtenido: latestInspection.inspection_type,
+            id: latestInspection.id,
+          });
+          inspection = null;
+          inspectionError = { code: 'PGRST116', message: 'No matching inspection found' } as any;
+        } else {
+          inspection = latestInspection;
+          inspectionError = null;
+        }
       }
+    } else if (inspectionError && inspectionError.code !== 'PGRST116') {
+      // PGRST116 es "no rows returned", que es válido si no existe la inspección
+      console.error('[Initial Check Sync] ❌ Error buscando inspección:', inspectionError);
+    }
+    
+    // Validar que la inspección obtenida tenga el tipo correcto
+    if (inspection && inspection.inspection_type && inspection.inspection_type !== inspectionType) {
+      console.error('[Initial Check Sync] ❌ Inspección con tipo incorrecto:', {
+        esperado: inspectionType,
+        obtenido: inspection.inspection_type,
+        id: inspection.id,
+      });
+      inspection = null;
+      inspectionError = { code: 'PGRST116', message: 'No matching inspection found' } as any;
+    }
+    
+    if (inspection) {
+      console.log(`[Initial Check Sync] ✅ Inspección encontrada:`, {
+        id: inspection.id,
+        inspection_type: inspection.inspection_type,
+        inspection_status: inspection.inspection_status,
+      });
+    } else {
+      console.warn(`[Initial Check Sync] ⚠️ No se encontró inspección del tipo ${inspectionType} para propertyId ${propertyId}`);
     }
 
     // Si encontramos una inspección pero no está completada, completarla ahora
@@ -417,6 +457,7 @@ export async function finalizeInitialCheckInAirtable(
               address: property.address || propertyId,
               propertyId,
               renovatorName: property['Renovator name'] || undefined,
+              driveFolderUrl: property.drive_folder_url || undefined,
             },
             'es' // Por ahora siempre en español
           );

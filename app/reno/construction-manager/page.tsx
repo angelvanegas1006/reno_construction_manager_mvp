@@ -121,20 +121,6 @@ export default function RenoConstructionManagerHomePage() {
     
     fetchVisitsForThisWeek();
   }, [supabase]);
-  
-  // Log when propertiesByPhase changes
-  useEffect(() => {
-    console.log('[RenoHomePage] 📊 propertiesByPhase changed:', {
-      loading: supabaseLoading,
-      error: supabaseError,
-      hasPropertiesByPhase: !!propertiesByPhase,
-      phaseCounts: propertiesByPhase ? Object.entries(propertiesByPhase).reduce((acc, [phase, props]) => {
-        acc[phase] = props.length;
-        return acc;
-      }, {} as Record<string, number>) : null,
-      timestamp: new Date().toISOString(),
-    });
-  }, [propertiesByPhase, supabaseLoading, supabaseError]);
 
   // Convert Supabase properties to Property format for home page
   const properties = useMemo(() => {

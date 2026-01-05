@@ -93,6 +93,8 @@ export function useSupabaseChecklistBase({
     refetchInspection: () => Promise<void>;
     createInitialZones: (inspectionId: string) => Promise<void>;
   } | null>(null);
+  // Ref para acumular URLs de fotos del initial check para enviarlas todas juntas al final
+  const accumulatedInitialCheckPhotosRef = useRef<Array<{ url: string; filename: string }>>([]);
   
   // Keep checklistRef in sync with checklist state
   useEffect(() => {
@@ -1185,7 +1187,8 @@ export function useSupabaseChecklistBase({
             }
           });
           
-          // Llamar al webhook para subir fotos a Drive si hay fotos nuevas
+          // Para initial check: acumular URLs en lugar de enviarlas inmediatamente
+          // Para otros tipos: enviar inmediatamente como antes
           if (photosToUploadToDrive.length > 0) {
             // Mapear checklistType al tipo correcto para el webhook
             let driveChecklistType: 'reno_initial' | 'reno_intermediate' | 'reno_final';
@@ -1201,26 +1204,34 @@ export function useSupabaseChecklistBase({
             }
             
             if (driveChecklistType) {
-              console.log(`[useSupabaseChecklistBase:${inspectionType}] 📤 Uploading ${photosToUploadToDrive.length} photos to Drive...`);
-              try {
-                const driveUploadSuccess = await uploadPhotosToDrive(
-                  propertyId,
-                  driveChecklistType,
-                  photosToUploadToDrive
-                );
-                
-                if (!driveUploadSuccess) {
+              // Si es initial check, acumular las URLs en lugar de enviarlas
+              if (checklistType === 'reno_initial') {
+                console.log(`[useSupabaseChecklistBase:${inspectionType}] 📦 Accumulating ${photosToUploadToDrive.length} photos for initial check (will send all at once when finalizing)`);
+                accumulatedInitialCheckPhotosRef.current.push(...photosToUploadToDrive);
+                console.log(`[useSupabaseChecklistBase:${inspectionType}] 📦 Total accumulated photos: ${accumulatedInitialCheckPhotosRef.current.length}`);
+              } else {
+                // Para otros tipos (intermediate, final), enviar inmediatamente
+                console.log(`[useSupabaseChecklistBase:${inspectionType}] 📤 Uploading ${photosToUploadToDrive.length} photos to Drive...`);
+                try {
+                  const driveUploadSuccess = await uploadPhotosToDrive(
+                    propertyId,
+                    driveChecklistType,
+                    photosToUploadToDrive
+                  );
+                  
+                  if (!driveUploadSuccess) {
+                    toast.error("Error al subir fotos a Drive", {
+                      description: "Las fotos se guardaron en Supabase pero no se pudieron subir a Drive. Contacta al administrador.",
+                    });
+                  } else {
+                    console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Successfully uploaded photos to Drive`);
+                  }
+                } catch (driveError: any) {
+                  console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error uploading photos to Drive:`, driveError);
                   toast.error("Error al subir fotos a Drive", {
-                    description: "Las fotos se guardaron en Supabase pero no se pudieron subir a Drive. Contacta al administrador.",
+                    description: driveError.message || "Las fotos se guardaron en Supabase pero no se pudieron subir a Drive.",
                   });
-                } else {
-                  console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Successfully uploaded photos to Drive`);
                 }
-              } catch (driveError: any) {
-                console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error uploading photos to Drive:`, driveError);
-                toast.error("Error al subir fotos a Drive", {
-                  description: driveError.message || "Las fotos se guardaron en Supabase pero no se pudieron subir a Drive.",
-                });
               }
             }
           }
@@ -1916,6 +1927,337 @@ export function useSupabaseChecklistBase({
             console.error('[useSupabaseChecklistBase] Error creating drive folder:', error);
             // No mostrar error al usuario (silencioso)
           });
+
+          // Recopilar todas las URLs de fotos del checklist completo y enviarlas todas juntas a n8n
+          const allPhotos: Array<{ url: string; filename: string }> = [];
+          
+          // Función helper para extraer fotos de una sección
+          const extractPhotosFromSection = (section: ChecklistSection) => {
+            // Fotos de uploadZones
+            if (section.uploadZones) {
+              section.uploadZones.forEach(zone => {
+                if (zone.photos) {
+                  zone.photos.forEach(photo => {
+                    if (photo.data && photo.data.startsWith('http')) {
+                      const urlParts = photo.data.split('/');
+                      const filename = urlParts[urlParts.length - 1];
+                      allPhotos.push({ url: photo.data, filename });
+                    }
+                  });
+                }
+              });
+            }
+
+            // Fotos de dynamicItems
+            if (section.dynamicItems) {
+              section.dynamicItems.forEach(item => {
+                // Fotos del uploadZone del item
+                if (item.uploadZone?.photos) {
+                  item.uploadZone.photos.forEach(photo => {
+                    if (photo.data && photo.data.startsWith('http')) {
+                      const urlParts = photo.data.split('/');
+                      const filename = urlParts[urlParts.length - 1];
+                      allPhotos.push({ url: photo.data, filename });
+                    }
+                  });
+                }
+                // Fotos de questions dentro del item
+                if (item.questions) {
+                  item.questions.forEach(question => {
+                    if (question.photos) {
+                      question.photos.forEach(photo => {
+                        if (photo.data && photo.data.startsWith('http')) {
+                          const urlParts = photo.data.split('/');
+                          const filename = urlParts[urlParts.length - 1];
+                          allPhotos.push({ url: photo.data, filename });
+                        }
+                      });
+                    }
+                  });
+                }
+                // Fotos de carpentryItems
+                if (item.carpentryItems) {
+                  item.carpentryItems.forEach(carpentryItem => {
+                    if (carpentryItem.photos) {
+                      carpentryItem.photos.forEach(photo => {
+                        if (photo.data && photo.data.startsWith('http')) {
+                          const urlParts = photo.data.split('/');
+                          const filename = urlParts[urlParts.length - 1];
+                          allPhotos.push({ url: photo.data, filename });
+                        }
+                      });
+                    }
+                    if (carpentryItem.units) {
+                      carpentryItem.units.forEach(unit => {
+                        if (unit.photos) {
+                          unit.photos.forEach(photo => {
+                            if (photo.data && photo.data.startsWith('http')) {
+                              const urlParts = photo.data.split('/');
+                              const filename = urlParts[urlParts.length - 1];
+                              allPhotos.push({ url: photo.data, filename });
+                            }
+                          });
+                        }
+                      });
+                    }
+                  });
+                }
+                // Fotos de climatizationItems
+                if (item.climatizationItems) {
+                  item.climatizationItems.forEach(climatizationItem => {
+                    if (climatizationItem.photos) {
+                      climatizationItem.photos.forEach(photo => {
+                        if (photo.data && photo.data.startsWith('http')) {
+                          const urlParts = photo.data.split('/');
+                          const filename = urlParts[urlParts.length - 1];
+                          allPhotos.push({ url: photo.data, filename });
+                        }
+                      });
+                    }
+                    if (climatizationItem.units) {
+                      climatizationItem.units.forEach(unit => {
+                        if (unit.photos) {
+                          unit.photos.forEach(photo => {
+                            if (photo.data && photo.data.startsWith('http')) {
+                              const urlParts = photo.data.split('/');
+                              const filename = urlParts[urlParts.length - 1];
+                              allPhotos.push({ url: photo.data, filename });
+                            }
+                          });
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+
+            // Fotos de questions directas de la sección
+            if (section.questions) {
+              section.questions.forEach(question => {
+                if (question.photos) {
+                  question.photos.forEach(photo => {
+                    if (photo.data && photo.data.startsWith('http')) {
+                      const urlParts = photo.data.split('/');
+                      const filename = urlParts[urlParts.length - 1];
+                      allPhotos.push({ url: photo.data, filename });
+                    }
+                  });
+                }
+              });
+            }
+
+            // Fotos de carpentryItems directos de la sección
+            if (section.carpentryItems) {
+              section.carpentryItems.forEach(item => {
+                if (item.photos) {
+                  item.photos.forEach(photo => {
+                    if (photo.data && photo.data.startsWith('http')) {
+                      const urlParts = photo.data.split('/');
+                      const filename = urlParts[urlParts.length - 1];
+                      allPhotos.push({ url: photo.data, filename });
+                    }
+                  });
+                }
+                if (item.units) {
+                  item.units.forEach(unit => {
+                    if (unit.photos) {
+                      unit.photos.forEach(photo => {
+                        if (photo.data && photo.data.startsWith('http')) {
+                          const urlParts = photo.data.split('/');
+                          const filename = urlParts[urlParts.length - 1];
+                          allPhotos.push({ url: photo.data, filename });
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+
+            // Fotos de climatizationItems directos de la sección
+            if (section.climatizationItems) {
+              section.climatizationItems.forEach(item => {
+                if (item.photos) {
+                  item.photos.forEach(photo => {
+                    if (photo.data && photo.data.startsWith('http')) {
+                      const urlParts = photo.data.split('/');
+                      const filename = urlParts[urlParts.length - 1];
+                      allPhotos.push({ url: photo.data, filename });
+                    }
+                  });
+                }
+                if (item.units) {
+                  item.units.forEach(unit => {
+                    if (unit.photos) {
+                      unit.photos.forEach(photo => {
+                        if (photo.data && photo.data.startsWith('http')) {
+                          const urlParts = photo.data.split('/');
+                          const filename = urlParts[urlParts.length - 1];
+                          allPhotos.push({ url: photo.data, filename });
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+
+            // Fotos de storageItems
+            if (section.storageItems) {
+              section.storageItems.forEach(item => {
+                if (item.photos) {
+                  item.photos.forEach(photo => {
+                    if (photo.data && photo.data.startsWith('http')) {
+                      const urlParts = photo.data.split('/');
+                      const filename = urlParts[urlParts.length - 1];
+                      allPhotos.push({ url: photo.data, filename });
+                    }
+                  });
+                }
+                if (item.units) {
+                  item.units.forEach(unit => {
+                    if (unit.photos) {
+                      unit.photos.forEach(photo => {
+                        if (photo.data && photo.data.startsWith('http')) {
+                          const urlParts = photo.data.split('/');
+                          const filename = urlParts[urlParts.length - 1];
+                          allPhotos.push({ url: photo.data, filename });
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+
+            // Fotos de appliancesItems
+            if (section.appliancesItems) {
+              section.appliancesItems.forEach(item => {
+                if (item.photos) {
+                  item.photos.forEach(photo => {
+                    if (photo.data && photo.data.startsWith('http')) {
+                      const urlParts = photo.data.split('/');
+                      const filename = urlParts[urlParts.length - 1];
+                      allPhotos.push({ url: photo.data, filename });
+                    }
+                  });
+                }
+                if (item.units) {
+                  item.units.forEach(unit => {
+                    if (unit.photos) {
+                      unit.photos.forEach(photo => {
+                        if (photo.data && photo.data.startsWith('http')) {
+                          const urlParts = photo.data.split('/');
+                          const filename = urlParts[urlParts.length - 1];
+                          allPhotos.push({ url: photo.data, filename });
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+
+            // Fotos de securityItems
+            if (section.securityItems) {
+              section.securityItems.forEach(item => {
+                if (item.photos) {
+                  item.photos.forEach(photo => {
+                    if (photo.data && photo.data.startsWith('http')) {
+                      const urlParts = photo.data.split('/');
+                      const filename = urlParts[urlParts.length - 1];
+                      allPhotos.push({ url: photo.data, filename });
+                    }
+                  });
+                }
+                if (item.units) {
+                  item.units.forEach(unit => {
+                    if (unit.photos) {
+                      unit.photos.forEach(photo => {
+                        if (photo.data && photo.data.startsWith('http')) {
+                          const urlParts = photo.data.split('/');
+                          const filename = urlParts[urlParts.length - 1];
+                          allPhotos.push({ url: photo.data, filename });
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+
+            // Fotos de systemsItems
+            if (section.systemsItems) {
+              section.systemsItems.forEach(item => {
+                if (item.photos) {
+                  item.photos.forEach(photo => {
+                    if (photo.data && photo.data.startsWith('http')) {
+                      const urlParts = photo.data.split('/');
+                      const filename = urlParts[urlParts.length - 1];
+                      allPhotos.push({ url: photo.data, filename });
+                    }
+                  });
+                }
+                if (item.units) {
+                  item.units.forEach(unit => {
+                    if (unit.photos) {
+                      unit.photos.forEach(photo => {
+                        if (photo.data && photo.data.startsWith('http')) {
+                          const urlParts = photo.data.split('/');
+                          const filename = urlParts[urlParts.length - 1];
+                          allPhotos.push({ url: photo.data, filename });
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          };
+
+          // Recopilar fotos de todas las secciones
+          Object.values(checklist.sections).forEach(section => {
+            extractPhotosFromSection(section);
+          });
+
+          // Combinar con las fotos acumuladas durante el guardado (por si alguna no se guardó aún)
+          const allPhotosToSend = [...accumulatedInitialCheckPhotosRef.current, ...allPhotos];
+          
+          // Eliminar duplicados basándose en la URL
+          const uniquePhotos = Array.from(
+            new Map(allPhotosToSend.map(photo => [photo.url, photo])).values()
+          );
+
+          console.log(`[useSupabaseChecklistBase:${inspectionType}] 📤 Sending all ${uniquePhotos.length} photos to Drive in a single call...`);
+          
+          if (uniquePhotos.length > 0) {
+            try {
+              const driveUploadSuccess = await uploadPhotosToDrive(
+                propertyId,
+                'reno_initial',
+                uniquePhotos
+              );
+              
+              if (!driveUploadSuccess) {
+                toast.error("Error al subir fotos a Drive", {
+                  description: "El checklist se finalizó correctamente pero no se pudieron subir todas las fotos a Drive. Contacta al administrador.",
+                });
+              } else {
+                console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Successfully uploaded all ${uniquePhotos.length} photos to Drive`);
+              }
+              
+              // Limpiar el ref después de enviar
+              accumulatedInitialCheckPhotosRef.current = [];
+            } catch (driveError: any) {
+              console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error uploading photos to Drive:`, driveError);
+              toast.error("Error al subir fotos a Drive", {
+                description: driveError.message || "El checklist se finalizó correctamente pero no se pudieron subir todas las fotos a Drive.",
+              });
+            }
+          } else {
+            console.log(`[useSupabaseChecklistBase:${inspectionType}] ℹ️ No photos to upload to Drive`);
+          }
         }
       } else {
         toast.error("Error al finalizar checklist en Airtable");

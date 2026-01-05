@@ -13,10 +13,10 @@ export function Auth0ProviderWrapper({ children }: Auth0ProviderWrapperProps) {
 
   // Validate Auth0 configuration
   if (!domain || !clientId) {
-    // En desarrollo, solo mostrar debug (no error) ya que Auth0 es opcional
-    if (process.env.NODE_ENV === 'development') {
-      console.debug("Auth0 configuration missing. Running without Auth0. Check your .env.local file if you intend to use it.");
-    }
+    console.error("Auth0 configuration missing. Please check your .env.local file.");
+    console.error("Required environment variables:");
+    console.error("- NEXT_PUBLIC_AUTH0_DOMAIN");
+    console.error("- NEXT_PUBLIC_AUTH0_CLIENT_ID");
     
     // Return children without Auth0Provider if config is missing
     // This allows the app to still work with Supabase auth

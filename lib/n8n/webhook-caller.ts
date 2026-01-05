@@ -140,166 +140,6 @@ export function prepareWebhookPayload(property: {
 }
 
 /**
- * Llama al webhook de n8n para crear una carpeta en Drive
- * @param propertyId ID de la propiedad en Supabase
- * @returns true si la llamada fue exitosa y se actualizó Supabase, false en caso contrario
- */
-export async function createDriveFolderForProperty(propertyId: string): Promise<boolean> {
-  const supabase = createClient();
-  
-  try {
-    // Obtener datos de la propiedad
-    const { data: property, error: propertyError } = await supabase
-      .from('properties')
-      .select('id, name, address, "Unique ID From Engagements", drive_folder_id, drive_folder_url')
-      .eq('id', propertyId)
-      .single();
-
-    if (propertyError || !property) {
-      console.error('[Drive Folder Webhook] Property not found:', propertyId);
-      return false;
-    }
-
-    // Verificar si ya tiene drive_folder_id o drive_folder_url
-    if (property.drive_folder_id || property.drive_folder_url) {
-      console.log('[Drive Folder Webhook] Property already has drive folder, skipping:', {
-        propertyId,
-        hasDriveFolderId: !!property.drive_folder_id,
-        hasDriveFolderUrl: !!property.drive_folder_url,
-        driveFolderId: property.drive_folder_id,
-        driveFolderUrl: property.drive_folder_url,
-      });
-      return true; // Ya tiene carpeta, consideramos éxito
-    }
-    
-    console.log('[Drive Folder Webhook] Property does not have drive folder, proceeding to create:', {
-      propertyId,
-      propertyName: property.name,
-      propertyAddress: property.address,
-    });
-
-    // Validar que tenemos los datos necesarios
-    // Usar valores por defecto si faltan algunos campos
-    const propertyAddress = property.address;
-    // Si no hay name, usar address como fallback
-    const propertyName = property.name || property.address || `Property ${propertyId}`;
-    const uniqueIdFromEngagements = property['Unique ID From Engagements'];
-
-    console.log('[Drive Folder Webhook] Validating required data:', {
-      propertyId,
-      address: propertyAddress,
-      name: property.name,
-      nameFallback: propertyName,
-      uniqueId: uniqueIdFromEngagements,
-      hasAddress: !!propertyAddress,
-      hasName: !!property.name,
-      hasUniqueId: !!uniqueIdFromEngagements,
-    });
-
-    // Solo address es estrictamente requerido
-    if (!propertyAddress) {
-      console.error('[Drive Folder Webhook] Missing required address, skipping:', {
-        propertyId,
-        address: propertyAddress || 'MISSING',
-        name: propertyName,
-        uniqueId: uniqueIdFromEngagements || 'MISSING',
-      });
-      return false; // Saltamos la llamada si falta address
-    }
-
-    // Si falta uniqueIdFromEngagements, usar propertyId como fallback
-    const finalUniqueId = uniqueIdFromEngagements || propertyId;
-    
-    if (!uniqueIdFromEngagements) {
-      console.warn('[Drive Folder Webhook] Missing Unique ID From Engagements, using propertyId as fallback:', {
-        propertyId,
-        usingPropertyId: true,
-      });
-    }
-
-    // Preparar payload
-    const payload: DriveFolderWebhookPayload = {
-      propertyAddress,
-      propertyName,
-      uniqueIdFromEngagements: finalUniqueId,
-    };
-
-    console.log('[Drive Folder Webhook] Calling webhook for property:', propertyId);
-    console.log('[Drive Folder Webhook] URL:', DRIVE_FOLDER_WEBHOOK_URL);
-    console.log('[Drive Folder Webhook] Payload:', JSON.stringify(payload, null, 2));
-
-    // Crear un AbortController para timeout de 30 segundos
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    try {
-      const response = await fetch(DRIVE_FOLDER_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[Drive Folder Webhook] Error response:', response.status, errorText);
-        // No lanzar error, solo retornar false (silencioso)
-        return false;
-      }
-
-      const responseData = await response.json().catch(() => ({})) as DriveFolderWebhookResponse;
-      console.log('[Drive Folder Webhook] ✅ Success for property:', propertyId);
-      console.log('[Drive Folder Webhook] Response:', JSON.stringify(responseData, null, 2));
-
-      // Actualizar Supabase con drive_folder_id y drive_folder_url
-      if (responseData.drive_folder_id || responseData.drive_folder_url) {
-        const updateData: Record<string, any> = {};
-        if (responseData.drive_folder_id) {
-          updateData.drive_folder_id = responseData.drive_folder_id;
-        }
-        if (responseData.drive_folder_url) {
-          updateData.drive_folder_url = responseData.drive_folder_url;
-        }
-
-        const { error: updateError } = await supabase
-          .from('properties')
-          .update(updateData)
-          .eq('id', propertyId);
-
-        if (updateError) {
-          console.error('[Drive Folder Webhook] Error updating Supabase:', updateError);
-          return false;
-        }
-
-        console.log('[Drive Folder Webhook] ✅ Updated Supabase with drive folder info');
-        return true;
-      } else {
-        console.warn('[Drive Folder Webhook] Response did not include drive_folder_id or drive_folder_url');
-        return false;
-      }
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        console.error('[Drive Folder Webhook] Request timed out after 30 seconds');
-      } else {
-        console.error('[Drive Folder Webhook] Fetch error:', fetchError);
-      }
-      // No mostrar error al usuario, solo retornar false (silencioso)
-      return false;
-    }
-  } catch (error: any) {
-    console.error('[Drive Folder Webhook] ❌ Error calling webhook for property:', propertyId);
-    console.error('[Drive Folder Webhook] Error details:', error.message);
-    // No mostrar error al usuario, solo retornar false (silencioso)
-    return false;
-  }
-}
-
-/**
  * Obtiene la URL del webhook según el tipo de checklist
  */
 function getPhotosWebhookUrl(checklistType: 'reno_initial' | 'reno_intermediate' | 'reno_final'): string {
@@ -318,7 +158,7 @@ function getPhotosWebhookUrl(checklistType: 'reno_initial' | 'reno_intermediate'
 /**
  * Sube fotos a Drive usando el webhook de n8n
  * @param propertyId ID de la propiedad en Supabase
- * @param checklistType Tipo de checklist (reno_initial, reno_in_progress, reno_final)
+ * @param checklistType Tipo de checklist (reno_initial, reno_intermediate, reno_final)
  * @param photoUrls Array de objetos con url y filename de las fotos
  * @returns true si la llamada fue exitosa, false en caso contrario
  */
@@ -454,7 +294,7 @@ export async function uploadRenoInProgressPhotos(
 
     console.log('[Reno In Progress Photos Webhook] Request body size:', JSON.stringify(requestBody).length, 'bytes');
 
-    const response = await fetch('/api/webhooks/renoinprogressphotos', {
+    const response = await fetch('/api/webhooks/reno-in-progress-photos', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -465,51 +305,88 @@ export async function uploadRenoInProgressPhotos(
     console.log('[Reno In Progress Photos Webhook] Response status:', response.status, response.statusText);
     console.log('[Reno In Progress Photos Webhook] Response headers:', Object.fromEntries(response.headers.entries()));
 
-    if (!response.ok) {
-      let errorData: any = {};
-      let errorText = '';
-      try {
-        errorText = await response.text();
-        if (errorText) {
-          try {
-            errorData = JSON.parse(errorText);
-          } catch {
-            errorData = { message: errorText || `HTTP ${response.status}` };
-          }
-        } else {
-          errorData = { message: `HTTP ${response.status} ${response.statusText || 'Unknown error'}` };
-        }
-      } catch (e: any) {
-        errorData = { 
-          message: `HTTP ${response.status} - Failed to read response`,
-          parseError: e?.message || 'Unknown parse error'
-        };
-      }
-      
-      // Si errorData está vacío o no tiene mensaje útil, agregar información adicional
-      if (!errorData || Object.keys(errorData).length === 0 || (!errorData.message && !errorData.error)) {
-        errorData = {
-          message: `HTTP ${response.status} ${response.statusText || 'Unknown error'}`,
-          status: response.status,
-          statusText: response.statusText,
-          rawText: errorText || 'No response body',
-        };
-      }
-      
-      console.error('[Reno In Progress Photos Webhook] ❌ API route error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData,
-        url: response.url,
-        hasErrorData: !!errorData && Object.keys(errorData).length > 0,
-      });
+    // Leer el texto de la respuesta una sola vez
+    let responseText = '';
+    try {
+      responseText = await response.text();
+      console.log('[Reno In Progress Photos Webhook] Response text length:', responseText.length);
+      console.log('[Reno In Progress Photos Webhook] Response text preview:', responseText.substring(0, 500));
+    } catch (textError: any) {
+      console.error('[Reno In Progress Photos Webhook] Failed to read response text:', textError);
       return false;
     }
 
+    if (!response.ok) {
+      // Construir información de error detallada
+      const errorInfo: any = {
+        status: response.status,
+        statusText: response.statusText || 'Unknown',
+        url: response.url,
+        responseTextLength: responseText?.length || 0,
+      };
+
+      // Intentar parsear el JSON de la respuesta
+      let errorData: any = null;
+      let errorMessage = `Error ${response.status}: ${response.statusText || 'Unknown error'}`;
+      
+      if (responseText && responseText.trim()) {
+        try {
+          errorData = JSON.parse(responseText);
+          errorInfo.parsedError = errorData;
+          
+          // Si el objeto parseado está vacío, usar el texto original
+          if (!errorData || (typeof errorData === 'object' && Object.keys(errorData).length === 0)) {
+            errorInfo.emptyParsedObject = true;
+            errorData = { 
+              message: responseText.substring(0, 200),
+              rawResponse: responseText,
+            };
+          }
+          
+          // Extraer mensaje de error del objeto parseado
+          errorMessage = errorData?.error || errorData?.message || errorMessage;
+        } catch (parseError) {
+          // Si no se puede parsear como JSON, usar el texto como mensaje
+          errorInfo.parseError = 'Failed to parse JSON';
+          errorInfo.parseErrorDetails = parseError instanceof Error ? parseError.message : String(parseError);
+          errorInfo.rawResponse = responseText.substring(0, 1000);
+          errorData = { 
+            message: responseText.substring(0, 200) || errorMessage,
+            rawResponse: responseText,
+          };
+          errorMessage = errorData.message;
+        }
+      } else {
+        errorInfo.noResponseBody = true;
+        errorData = { 
+          message: errorMessage,
+        };
+      }
+      
+      // Asegurar que siempre tengamos un mensaje
+      errorInfo.errorMessage = errorMessage;
+      errorInfo.errorData = errorData;
+      
+      // Log detallado del error con toda la información
+      console.error('[Reno In Progress Photos Webhook] ❌ API route error:', JSON.stringify(errorInfo, null, 2));
+      
+      // También log individual para mejor visibilidad en consola
+      console.error('[Reno In Progress Photos Webhook] Error summary:', {
+        status: response.status,
+        statusText: response.statusText,
+        message: errorMessage,
+        hasResponseText: !!responseText,
+        responseTextLength: responseText?.length || 0,
+        responseTextPreview: responseText?.substring(0, 300) || 'No response body',
+        errorDataKeys: errorData ? Object.keys(errorData) : [],
+      });
+      
+      return false;
+    }
+
+    // Si la respuesta es OK, parsear el JSON
     let result: any;
     try {
-      const responseText = await response.text();
-      console.log('[Reno In Progress Photos Webhook] Response text length:', responseText.length);
       if (responseText) {
         try {
           result = JSON.parse(responseText);
@@ -523,9 +400,9 @@ export async function uploadRenoInProgressPhotos(
       } else {
         result = { message: 'Empty response body' };
       }
-    } catch (textError: any) {
-      console.error('[Reno In Progress Photos Webhook] Failed to read response text:', textError);
-      result = { error: 'Failed to read response', details: textError?.message };
+    } catch (parseError: any) {
+      console.error('[Reno In Progress Photos Webhook] Failed to parse response:', parseError);
+      result = { error: 'Failed to parse response', details: parseError?.message };
     }
 
     console.log('[Reno In Progress Photos Webhook] ✅ Success:', result);
@@ -541,13 +418,3 @@ export async function uploadRenoInProgressPhotos(
     return false;
   }
 }
-
-
-
-
-
-
-
-
-
-

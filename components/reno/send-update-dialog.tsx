@@ -11,11 +11,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { X, Upload, Image as ImageIcon, Check } from 'lucide-react';
+import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import type { Database } from '@/lib/supabase/types';
 
 type SupabaseProperty = Database['public']['Tables']['properties']['Row'];
@@ -26,19 +24,11 @@ interface Category {
   percentage: number;
 }
 
-interface SavedImage {
-  id: string;
-  url: string;
-  filename: string;
-}
-
 interface SendUpdateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   property: SupabaseProperty;
   categories: Category[];
-  savedImages?: SavedImage[];
-  onImagesSent?: () => void;
 }
 
 interface UploadedImage {
@@ -48,19 +38,16 @@ interface UploadedImage {
 
 const WEBHOOK_URL = 'https://n8n.prod.prophero.com/webhook/envio_emailsupdates';
 const MAX_IMAGES = 20;
-const BUCKET_NAME = 'inspection-images';
+const BUCKET_NAME = 'property-images';
 
 export function SendUpdateDialog({
   open,
   onOpenChange,
   property,
   categories,
-  savedImages = [],
-  onImagesSent,
 }: SendUpdateDialogProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [selectedSavedImages, setSelectedSavedImages] = useState<Set<string>>(new Set());
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,11 +61,7 @@ export function SendUpdateDialog({
   };
 
   const uploadImageToStorage = useCallback(async (file: File): Promise<UploadedImage> => {
-    // Usar path organizado: propertyId/updates/filename
-    const timestamp = Math.floor(Date.now() / 1000);
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const fileExtension = file.name.split('.').pop() || 'jpg';
-    const filename = `${property.id}/updates/update_${timestamp}_${randomString}.${fileExtension}`;
+    const filename = generateFilename(file);
     
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
@@ -152,18 +135,6 @@ export function SendUpdateDialog({
       return;
     }
 
-    // Combinar imágenes guardadas seleccionadas con imágenes recién subidas
-    const selectedSavedImagesArray = savedImages.filter(img => selectedSavedImages.has(img.id));
-    const allSelectedImages = [
-      ...selectedSavedImagesArray.map(img => ({ url: img.url, filename: img.filename })),
-      ...uploadedImages.map(img => ({ url: img.url, filename: img.filename })),
-    ];
-
-    if (allSelectedImages.length === 0) {
-      toast.error('Por favor, selecciona al menos una imagen');
-      return;
-    }
-
     setIsSending(true);
     try {
       const payload = {
@@ -174,7 +145,10 @@ export function SendUpdateDialog({
         clientEmail: property['Client email'] ?? null,
         uniqueIdAirtable: property['Unique ID From Engagements'] ?? null,
         hubspotId: property['Hubspot ID'] ?? null,
-        selectedImages: allSelectedImages,
+        selectedImages: uploadedImages.map(img => ({
+          url: img.url,
+          filename: img.filename,
+        })),
       };
 
       const response = await fetch(WEBHOOK_URL, {
@@ -189,22 +163,7 @@ export function SendUpdateDialog({
         throw new Error(`Error al enviar el update: ${response.statusText}`);
       }
 
-      // Eliminar imágenes enviadas de la base de datos
-      if (selectedSavedImages.size > 0) {
-        const imageIdsToDelete = Array.from(selectedSavedImages);
-        await supabase
-          .from('property_images')
-          .delete()
-          .in('id', imageIdsToDelete);
-      }
-
       toast.success('Update enviado correctamente al cliente');
-      
-      // Notificar que las imágenes fueron enviadas
-      if (onImagesSent) {
-        onImagesSent();
-      }
-      
       handleClose();
     } catch (error) {
       console.error('Error sending update:', error);
@@ -212,12 +171,11 @@ export function SendUpdateDialog({
     } finally {
       setIsSending(false);
     }
-  }, [uploadedImages, selectedSavedImages, savedImages, categories, property, supabase, onImagesSent]);
+  }, [uploadedImages, categories, property]);
 
   const handleClose = useCallback(() => {
     setSelectedFiles([]);
     setUploadedImages([]);
-    setSelectedSavedImages(new Set());
     setIsUploading(false);
     setIsSending(false);
     if (fileInputRef.current) {
@@ -226,20 +184,7 @@ export function SendUpdateDialog({
     onOpenChange(false);
   }, [onOpenChange]);
 
-  const handleToggleSavedImage = useCallback((imageId: string) => {
-    setSelectedSavedImages(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(imageId)) {
-        newSet.delete(imageId);
-      } else {
-        newSet.add(imageId);
-      }
-      return newSet;
-    });
-  }, []);
-
   const totalImages = selectedFiles.length + uploadedImages.length;
-  const totalSelectedImages = selectedSavedImages.size + uploadedImages.length;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -247,56 +192,14 @@ export function SendUpdateDialog({
         <DialogHeader>
           <DialogTitle>Enviar Update a Cliente</DialogTitle>
           <DialogDescription>
-            Selecciona las imágenes guardadas o sube nuevas imágenes para incluir en el update al cliente.
+            Selecciona y sube hasta {MAX_IMAGES} imágenes para incluir en el update al cliente.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Imágenes Guardadas */}
-          {savedImages.length > 0 && (
-            <div className="space-y-2">
-              <Label>Imágenes Guardadas - Selecciona las que quieres enviar</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {savedImages.map((img) => (
-                  <div 
-                    key={img.id} 
-                    className="relative group cursor-pointer"
-                    onClick={() => handleToggleSavedImage(img.id)}
-                  >
-                    <div className="aspect-square rounded-lg border-2 overflow-hidden bg-muted relative transition-all">
-                      <img
-                        src={img.url}
-                        alt={img.filename}
-                        className="w-full h-full object-cover"
-                      />
-                      {selectedSavedImages.has(img.id) && (
-                        <div className="absolute inset-0 bg-primary/20 border-2 border-primary" />
-                      )}
-                      <div className="absolute top-2 left-2 pointer-events-none">
-                        <div className={cn(
-                          "h-5 w-5 rounded border-2 flex items-center justify-center transition-all",
-                          selectedSavedImages.has(img.id)
-                            ? "bg-primary border-primary"
-                            : "bg-background border-border"
-                        )}>
-                          {selectedSavedImages.has(img.id) && (
-                            <Check className="h-3 w-3 text-primary-foreground" />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {selectedSavedImages.size} de {savedImages.length} imagen{selectedSavedImages.size !== 1 ? 'es' : ''} seleccionada{selectedSavedImages.size !== 1 ? 's' : ''}
-              </p>
-            </div>
-          )}
-
-          {/* File Input para nuevas imágenes */}
+          {/* File Input */}
           <div className="space-y-2">
-            <Label>Subir Nuevas Imágenes ({totalImages}/{MAX_IMAGES})</Label>
+            <Label>Imágenes ({totalImages}/{MAX_IMAGES})</Label>
             <div className="flex items-center gap-2">
               <input
                 ref={fileInputRef}
@@ -410,10 +313,10 @@ export function SendUpdateDialog({
           </Button>
           <Button
             onClick={handleSendUpdate}
-            disabled={(uploadedImages.length === 0 && selectedSavedImages.size === 0) || isSending || isUploading}
+            disabled={uploadedImages.length === 0 || isSending || isUploading}
             className="flex items-center gap-2"
           >
-            {isSending ? 'Enviando...' : `Enviar Update${totalSelectedImages > 0 ? ` (${totalSelectedImages} imagen${totalSelectedImages !== 1 ? 'es' : ''})` : ''}`}
+            {isSending ? 'Enviando...' : 'Enviar Update'}
           </Button>
         </DialogFooter>
       </DialogContent>

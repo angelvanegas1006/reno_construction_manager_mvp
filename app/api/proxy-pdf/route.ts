@@ -14,8 +14,22 @@ export async function GET(request: NextRequest) {
     const awsUsername = process.env.AWS_S3_USERNAME;
     const awsPassword = process.env.AWS_S3_PASSWORD;
 
+    // Log para debugging (sin mostrar la contraseña completa)
+    console.log('[Proxy PDF] Checking AWS S3 credentials:', {
+      hasUsername: !!awsUsername,
+      username: awsUsername || 'NOT SET',
+      hasPassword: !!awsPassword,
+      passwordLength: awsPassword ? awsPassword.length : 0,
+      passwordPreview: awsPassword ? `${awsPassword.substring(0, 3)}***` : 'NOT SET',
+    });
+
     if (!awsUsername || !awsPassword) {
       console.error('[Proxy PDF] Missing AWS S3 credentials in environment variables');
+      console.error('[Proxy PDF] Environment check:', {
+        AWS_S3_USERNAME: process.env.AWS_S3_USERNAME ? 'SET' : 'NOT SET',
+        AWS_S3_PASSWORD: process.env.AWS_S3_PASSWORD ? 'SET' : 'NOT SET',
+        allEnvKeys: Object.keys(process.env).filter(k => k.includes('AWS') || k.includes('S3')),
+      });
       return NextResponse.json(
         { error: 'Server configuration error: AWS S3 credentials not configured' },
         { status: 500 }

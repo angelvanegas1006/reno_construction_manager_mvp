@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { syncPropertyCommentsToAirtable } from "@/lib/airtable/sync-comments";
 
 export interface PropertyComment {
   id: string;
@@ -36,8 +35,6 @@ export function usePropertyComments(propertyId: string | null): UsePropertyComme
   const [comments, setComments] = useState<PropertyComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-
-  const supabase = createClient();
 
   // Fetch comments
   const fetchComments = useCallback(async () => {
@@ -85,7 +82,7 @@ export function usePropertyComments(propertyId: string | null): UsePropertyComme
     } finally {
       setLoading(false);
     }
-  }, [propertyId, supabase]);
+  }, [propertyId]);
 
   // Add comment
   const addComment = useCallback(
@@ -151,19 +148,6 @@ export function usePropertyComments(propertyId: string | null): UsePropertyComme
         };
         setComments((prev) => [normalizedComment, ...prev]);
 
-        // Sincronizar comentarios a Airtable después de crear (de forma asíncrona)
-        syncPropertyCommentsToAirtable(propertyId)
-          .then((success) => {
-            if (success) {
-              console.log("[usePropertyComments] ✅ Comments synced to Airtable");
-            } else {
-              console.warn("[usePropertyComments] ⚠️ Failed to sync comments to Airtable");
-            }
-          })
-          .catch((error) => {
-            console.error("[usePropertyComments] Error syncing comments to Airtable:", error);
-          });
-
         toast.success(isReminder ? "Recordatorio creado correctamente" : "Comentario agregado correctamente");
         return true;
       } catch (err) {
@@ -173,7 +157,7 @@ export function usePropertyComments(propertyId: string | null): UsePropertyComme
         return false;
       }
     },
-    [propertyId, supabase]
+    [propertyId]
   );
 
   // Delete comment
@@ -201,7 +185,7 @@ export function usePropertyComments(propertyId: string | null): UsePropertyComme
         return false;
       }
     },
-    [supabase]
+    []
   );
 
   // Initial fetch

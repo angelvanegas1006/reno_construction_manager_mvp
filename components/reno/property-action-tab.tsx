@@ -12,6 +12,7 @@ import { findTransactionsRecordIdByUniqueId, updateAirtableWithRetry } from "@/l
 import { createClient } from "@/lib/supabase/client";
 import { getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
 import { RenovatorCombobox } from "@/components/reno/renovator-combobox";
+import { RenoInProgressPhotoUpload } from "@/components/reno/reno-in-progress-photo-upload";
 
 interface PropertyActionTabProps {
   property: Property;
@@ -288,6 +289,11 @@ export function PropertyActionTab({
             {formatDate(estimatedVisitDate)}
           </p>
         </div>
+      )}
+
+      {/* Subir fotos de avance de obra - Solo para fase reno-in-progress */}
+      {renoPhase === "reno-in-progress" && propertyId && (
+        <RenoInProgressPhotoUpload propertyId={propertyId} />
       )}
     </div>
   );

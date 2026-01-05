@@ -6,7 +6,6 @@ import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { HeaderL2 } from "@/components/layout/header-l2";
 import { PropertyTabs } from "@/components/layout/property-tabs";
 import { PropertySummaryTab } from "@/components/reno/property-summary-tab";
 import { PropertyStatusTab } from "@/components/reno/property-status-tab";
@@ -41,7 +40,6 @@ const PdfViewer = dynamic(() => import("@/components/reno/pdf-viewer").then(mod 
 });
 import { appendSetUpNotesToAirtable } from "@/lib/airtable/initial-check-sync";
 import { updateAirtableWithRetry, findTransactionsRecordIdByUniqueId } from "@/lib/airtable/client";
-import { createDriveFolderForProperty } from "@/lib/n8n/webhook-caller";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
 import { createClient } from "@/lib/supabase/client";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
@@ -118,12 +116,16 @@ export default function RenoPropertyDetailPage() {
 
   // Verificar el PDF cuando estamos en la tab de presupuesto y existe budget_pdf_url
   useEffect(() => {
-    if (activeTab !== "presupuesto-reforma" || !supabaseProperty?.budget_pdf_url) {
+    // Validar que budget_pdf_url sea un string válido
+    const budgetPdfUrl = supabaseProperty?.budget_pdf_url && typeof supabaseProperty.budget_pdf_url === 'string' && supabaseProperty.budget_pdf_url.trim().length > 0
+      ? supabaseProperty.budget_pdf_url.trim()
+      : null;
+    
+    if (activeTab !== "presupuesto-reforma" || !budgetPdfUrl || !budgetPdfUrl.startsWith('http')) {
       setPdfError(null);
       return;
     }
 
-    const budgetPdfUrl = supabaseProperty.budget_pdf_url;
     const proxyPdfUrl = `/api/proxy-pdf?url=${encodeURIComponent(budgetPdfUrl)}`;
     
     // Verificar que el PDF sea accesible antes de cargarlo
@@ -317,18 +319,6 @@ export default function RenoPropertyDetailPage() {
                   } else {
                     console.log(`[Property Update] ✅ Successfully updated Airtable (Transactions) for property ${propertyId}`);
                   }
-                  
-                  // Llamar al webhook para crear carpeta Drive (después de actualizar Supabase)
-                  // Se ejecuta independientemente del resultado de Airtable
-                  console.log(`[Property Update] 📁 Attempting to create Drive folder for property ${propertyId}`);
-                  createDriveFolderForProperty(propertyId)
-                    .then((success) => {
-                      console.log(`[Property Update] 📁 Drive folder creation result:`, success);
-                    })
-                    .catch((error) => {
-                      console.error('[Property Update] Error creating drive folder:', error);
-                      // No mostrar error al usuario (silencioso)
-                    });
                 }
               }
             }
@@ -903,10 +893,13 @@ export default function RenoPropertyDetailPage() {
       case "estado-propiedad":
         return propertyId ? <PropertyStatusTab propertyId={propertyId} /> : null;
       case "presupuesto-reforma":
-        const budgetPdfUrl = supabaseProperty?.budget_pdf_url;
+        // Validar que budget_pdf_url sea un string válido
+        const budgetPdfUrl = supabaseProperty?.budget_pdf_url && typeof supabaseProperty.budget_pdf_url === 'string' && supabaseProperty.budget_pdf_url.trim().length > 0
+          ? supabaseProperty.budget_pdf_url.trim()
+          : null;
         
         // Crear URL del proxy si existe el PDF
-        const proxyPdfUrl = budgetPdfUrl 
+        const proxyPdfUrl = budgetPdfUrl && budgetPdfUrl.startsWith('http')
           ? `/api/proxy-pdf?url=${encodeURIComponent(budgetPdfUrl)}`
           : null;
         
@@ -1031,44 +1024,105 @@ export default function RenoPropertyDetailPage() {
     <div className="flex h-screen overflow-hidden">
       {/* L2: Sin Sidebar - se oculta para enfocar al usuario */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header L2: Unificado con botón Atrás, título y acciones */}
-        <HeaderL2
-          title={property.fullAddress}
-          subtitle={
-            <>
-              <span>ID: {property.uniqueIdFromEngagements || property.id}</span>
-              <span className="mx-2">·</span>
-              <span>Estado: {getRenoPhaseLabel(getPropertyRenoPhase(), t)}</span>
-            </>
-          }
-          progress={getPropertyRenoPhase() === "reno-in-progress" ? averageCategoriesProgress : undefined}
-          onBack={() => {
-            console.log("🔙 Property Detail - Back button clicked. Source:", sourcePage, "ViewMode:", viewMode);
-            // Si viene del kanban, redirigir al kanban con el viewMode correspondiente
-            if (sourcePage === 'kanban') {
-              const kanbanUrl = viewMode === 'list' 
-                ? '/reno/construction-manager/kanban?viewMode=list'
-                : '/reno/construction-manager/kanban';
-              console.log("🔙 Property Detail - Redirecting to kanban:", kanbanUrl);
-              router.push(kanbanUrl);
-            } else if (viewMode === 'list') {
-              // Si hay viewMode list pero no viene del kanban, ir a kanban con ese modo
-              router.push('/reno/construction-manager/kanban?viewMode=list');
-            } else {
-              // Por defecto ir a home (kanban es la vista por defecto)
-              router.push('/reno/construction-manager');
-            }
-          }}
-          actions={[
-            {
-              label: t.propertyPage.reportProblem,
-              onClick: () => setReportProblemOpen(true),
-              variant: "outline",
-              icon: <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />,
-            },
-          ]}
-          onOpenSidebar={() => setIsSidebarOpen(true)}
-        />
+        {/* Header unificado: Botón atrás + Título + Botón Reportar Problema */}
+        <header className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-3 md:px-4 lg:px-6 py-4 md:py-6">
+          <div className="flex items-start justify-between gap-4">
+            {/* Izquierda: Botón Atrás + Título */}
+            <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  console.log("🔙 Property Detail - Back button clicked. Source:", sourcePage, "ViewMode:", viewMode);
+                  // Si viene del kanban, redirigir al kanban con el viewMode correspondiente
+                  if (sourcePage === 'kanban') {
+                    const kanbanUrl = viewMode === 'list' 
+                      ? '/reno/construction-manager/kanban?viewMode=list'
+                      : '/reno/construction-manager/kanban';
+                    console.log("🔙 Property Detail - Redirecting to kanban:", kanbanUrl);
+                    router.push(kanbanUrl);
+                  } else if (viewMode === 'list') {
+                    // Si hay viewMode list pero no viene del kanban, ir a kanban con ese modo
+                    router.push('/reno/construction-manager/kanban?viewMode=list');
+                  } else {
+                    // Por defecto ir a home (kanban es la vista por defecto)
+                    router.push('/reno/construction-manager');
+                  }
+                }}
+                className="flex items-center gap-1 md:gap-2 flex-shrink-0"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden md:inline">Atrás</span>
+              </Button>
+              
+              <div className="flex-1 min-w-0">
+                {/* Progress Badge Circular (si se proporciona) */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  {getPropertyRenoPhase() === "reno-in-progress" && averageCategoriesProgress !== undefined && (
+                    <div className="relative w-12 h-12 flex-shrink-0">
+                      <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeDasharray={`${averageCategoriesProgress} ${100 - averageCategoriesProgress}`}
+                          className="text-[var(--prophero-blue-500)] transition-all duration-300"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-bold text-foreground">{averageCategoriesProgress}%</span>
+                      </div>
+                    </div>
+                  )}
+                  <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
+                    {property.fullAddress}
+                  </h1>
+                </div>
+                {/* Subtítulo */}
+                <div className="mt-2 text-sm text-muted-foreground">
+                  <span>ID: {property.uniqueIdFromEngagements || property.id}</span>
+                  <span className="mx-2">·</span>
+                  <span>Estado: {getRenoPhaseLabel(getPropertyRenoPhase(), t)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Derecha: Botón Reportar Problema + Mobile Sidebar Button */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Mobile Sidebar Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden"
+                aria-label="Open sidebar"
+              >
+                <Info className="h-5 w-5" />
+              </Button>
+              
+              {/* Botón Reportar Problema */}
+              <Button
+                variant="outline"
+                onClick={() => setReportProblemOpen(true)}
+                className="flex items-center gap-1 md:gap-2 text-xs md:text-sm border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:border-amber-300 dark:hover:border-amber-700"
+              >
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+                <span className="hidden sm:inline">{t.propertyPage.reportProblem}</span>
+              </Button>
+            </div>
+          </div>
+        </header>
 
         {/* Tabs Navigation */}
         <PropertyTabs

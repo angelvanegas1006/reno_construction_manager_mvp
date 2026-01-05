@@ -42,41 +42,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Obtener la inspección
-    // Intentar primero con inspection_type, si falla buscar sin él
+    console.log('[regenerate-checklist-html] 📋 Property data:', {
+      propertyId,
+      address: property.address,
+      hasDriveFolderUrl: !!property.drive_folder_url,
+      driveFolderUrl: property.drive_folder_url,
+    });
+
+    // 2. Obtener la inspección del tipo correcto
+    // IMPORTANTE: Filtrar por inspection_type para asegurar que obtenemos la inspección correcta
     let inspection: any = null;
     let inspError: any = null;
+
+    console.log(`[regenerate-checklist-html] 🔍 Buscando inspección del tipo: ${inspectionType} para propertyId: ${propertyId}`);
 
     try {
       let { data: inspectionData, error: inspectionQueryError } = await supabase
         .from('property_inspections')
         .select('id, inspection_type, inspection_status')
         .eq('property_id', propertyId)
-        .eq('inspection_type', inspectionType)
+        .eq('inspection_type', inspectionType) // FILTRAR POR TIPO CORRECTO
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      // Si el error es que la columna no existe, buscar sin inspection_type
+      // Si el error es que la columna no existe, buscar sin inspection_type pero validar manualmente
       if (inspectionQueryError && (inspectionQueryError.code === '42883' || inspectionQueryError.message?.includes('column') || inspectionQueryError.message?.includes('does not exist'))) {
-        console.warn('[regenerate-checklist-html] inspection_type column does not exist, querying without it');
+        console.warn('[regenerate-checklist-html] ⚠️ Campo inspection_type no existe, buscando sin filtro:', inspectionQueryError.message);
         const { data: allInspections, error: allError } = await supabase
           .from('property_inspections')
-          .select('id, inspection_status')
+          .select('id, inspection_type, inspection_status')
           .eq('property_id', propertyId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .order('created_at', { ascending: false });
         
         if (allError && allError.code !== 'PGRST116') {
           inspError = allError;
-        } else {
-          inspection = allInspections;
+        } else if (allInspections && Array.isArray(allInspections)) {
+          // Filtrar manualmente por inspection_type
+          const matchingInspection = allInspections.find((insp: any) => 
+            insp.inspection_type === inspectionType
+          );
+          
+          if (matchingInspection) {
+            inspection = matchingInspection;
+          } else {
+            inspError = { code: 'PGRST116', message: `No ${inspectionType} inspection found` };
+          }
         }
       } else if (inspectionQueryError && inspectionQueryError.code !== 'PGRST116') {
         inspError = inspectionQueryError;
       } else {
         inspection = inspectionData;
+      }
+      
+      // Validar que la inspección obtenida tenga el tipo correcto
+      if (inspection && inspection.inspection_type && inspection.inspection_type !== inspectionType) {
+        console.error('[regenerate-checklist-html] ❌ Inspección con tipo incorrecto:', {
+          esperado: inspectionType,
+          obtenido: inspection.inspection_type,
+          id: inspection.id,
+        });
+        inspection = null;
+        inspError = { code: 'PGRST116', message: `No ${inspectionType} inspection found` };
       }
     } catch (err: any) {
       inspError = err;
@@ -95,6 +122,11 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+    
+    console.log(`[regenerate-checklist-html] ✅ Inspección encontrada:`, {
+      id: inspection.id,
+      inspection_type: inspection.inspection_type,
+    });
 
     // 3. Obtener zonas y elementos
     const { data: zones, error: zonesError } = await supabase
@@ -132,6 +164,16 @@ export async function POST(request: NextRequest) {
       property.bathrooms || null
     );
 
+    // Log para verificar que las notas se están obteniendo
+    console.log('[regenerate-checklist-html] 📝 Checklist data summary:', {
+      sectionsCount: Object.keys(checklistData.sections || {}).length,
+      sectionsWithQuestions: Object.entries(checklistData.sections || {}).map(([sectionId, section]: [string, any]) => ({
+        sectionId,
+        questionsCount: section?.questions?.length || 0,
+        questionsWithNotes: section?.questions?.filter((q: any) => q.notes)?.length || 0,
+      })),
+    });
+
     const fullChecklist = {
       propertyId,
       checklistType,
@@ -141,13 +183,24 @@ export async function POST(request: NextRequest) {
     };
 
     // 5. Generar HTML
+    const propertyInfo = {
+      address: property.address || propertyId,
+      propertyId,
+      renovatorName: property['Renovator name'] || undefined,
+      driveFolderUrl: property.drive_folder_url || undefined,
+    };
+
+    console.log('[regenerate-checklist-html] 🔗 Property info for HTML:', {
+      address: propertyInfo.address,
+      propertyId: propertyInfo.propertyId,
+      hasRenovatorName: !!propertyInfo.renovatorName,
+      hasDriveFolderUrl: !!propertyInfo.driveFolderUrl,
+      driveFolderUrl: propertyInfo.driveFolderUrl,
+    });
+
     const htmlContent = await generateChecklistHTML(
       fullChecklist,
-      {
-        address: property.address || propertyId,
-        propertyId,
-        renovatorName: property['Renovator name'] || undefined,
-      },
+      propertyInfo,
       translations.es
     );
 

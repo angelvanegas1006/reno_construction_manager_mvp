@@ -43,70 +43,141 @@ export default function ChecklistPDFViewerPage() {
         const supabase = createClient();
         const inspectionType = checklistType === 'reno_initial' ? 'initial' : 'final';
         
-        const { data: inspection } = await supabase
+        console.log('[ChecklistPDFViewer] 🔍 Buscando inspección:', {
+          propertyId,
+          checklistType,
+          inspectionType,
+        });
+        
+        // Buscar la inspección correcta - IMPORTANTE: incluir inspection_type en el select para validar
+        const { data: inspection, error: inspectionError } = await supabase
           .from('property_inspections')
-          .select('pdf_url')
+          .select('id, inspection_type, pdf_url')
           .eq('property_id', propertyId)
           .eq('inspection_type', inspectionType)
           .eq('inspection_status', 'completed')
           .order('completed_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle(); // Usar maybeSingle() en lugar de single() para evitar errores si no existe
 
-        if (inspection?.pdf_url) {
-          // Validar que la URL sea completa
-          const url = inspection.pdf_url;
-          if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            console.error('[ChecklistPDFViewer] URL inválida desde BD:', url);
-            setError(`URL inválida almacenada en la base de datos: ${url.substring(0, 50)}...`);
-            setLoading(false);
-            return;
-          }
-          // Verificar que la URL no esté truncada (debe contener el dominio completo)
-          if (!url.includes('.supabase.co')) {
-            console.error('[ChecklistPDFViewer] URL truncada detectada:', url);
-            setError(`URL truncada detectada. URL completa requerida.`);
-            setLoading(false);
-            return;
-          }
-          console.log('[ChecklistPDFViewer] ✅ URL válida desde BD:', url.substring(0, 80) + '...');
-          setHtmlUrl(url);
-        } else {
-          // Si no existe en property_inspections, intentar construir URL desde storage
-          let url = await getChecklistPDFUrl(propertyId, checklistType);
+        // Si hay un error relacionado con la columna inspection_type, intentar sin ese filtro
+        if (inspectionError && (inspectionError.code === '42883' || inspectionError.message?.includes('column') || inspectionError.message?.includes('does not exist'))) {
+          console.warn('[ChecklistPDFViewer] ⚠️ Campo inspection_type no existe, buscando sin filtro:', inspectionError.message);
           
-          if (!url) {
-            // Si no existe el HTML, intentar regenerarlo
-            console.log('[ChecklistPDFViewer] HTML no encontrado, intentando regenerar...');
-            try {
-              const regenerateResponse = await fetch('/api/regenerate-checklist-html', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  propertyId,
-                  checklistType,
-                }),
-              });
-
-              if (regenerateResponse.ok) {
-                const regenerateData = await regenerateResponse.json();
-                url = regenerateData.storageUrl;
-                console.log('[ChecklistPDFViewer] ✅ HTML regenerado exitosamente');
-              } else {
-                console.warn('[ChecklistPDFViewer] No se pudo regenerar el HTML');
-              }
-            } catch (regenerateError) {
-              console.error('[ChecklistPDFViewer] Error al regenerar HTML:', regenerateError);
+          // Buscar todas las inspecciones completadas y filtrar manualmente
+          const { data: allInspections, error: allError } = await supabase
+            .from('property_inspections')
+            .select('id, inspection_type, pdf_url')
+            .eq('property_id', propertyId)
+            .eq('inspection_status', 'completed')
+            .order('completed_at', { ascending: false });
+          
+          if (allError) {
+            console.error('[ChecklistPDFViewer] ❌ Error buscando inspecciones:', allError);
+            throw allError;
+          }
+          
+          // Filtrar manualmente por inspection_type si existe, o usar la más reciente si no
+          const matchingInspection = allInspections?.find((insp: any) => {
+            // Si tiene inspection_type, verificar que coincida
+            if (insp.inspection_type) {
+              return insp.inspection_type === inspectionType;
+            }
+            // Si no tiene inspection_type, solo usar si es la más reciente y el tipo coincide con la fase
+            return false; // No usar inspecciones sin inspection_type
+          });
+          
+          if (matchingInspection?.pdf_url) {
+            console.log('[ChecklistPDFViewer] ✅ Inspección encontrada (sin filtro de BD):', {
+              id: matchingInspection.id,
+              inspection_type: matchingInspection.inspection_type,
+            });
+            const url = matchingInspection.pdf_url;
+            if (url && url.startsWith('http')) {
+              setHtmlUrl(url);
+              setLoading(false);
+              return;
             }
           }
-          
-          if (url) {
+        } else if (inspectionError && inspectionError.code !== 'PGRST116') {
+          // PGRST116 es "no rows returned", que es válido si no existe la inspección
+          console.error('[ChecklistPDFViewer] ❌ Error buscando inspección:', inspectionError);
+          throw inspectionError;
+        }
+
+        // Validar que la inspección obtenida tenga el tipo correcto
+        if (inspection) {
+          // IMPORTANTE: Verificar que el inspection_type coincida antes de usar el pdf_url
+          if (inspection.inspection_type && inspection.inspection_type !== inspectionType) {
+            console.error('[ChecklistPDFViewer] ❌ Inspección con tipo incorrecto:', {
+              esperado: inspectionType,
+              obtenido: inspection.inspection_type,
+              id: inspection.id,
+            });
+            // No usar esta inspección, continuar con el fallback
+          } else if (inspection.pdf_url) {
+            // Validar que la URL sea completa
+            const url = inspection.pdf_url;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+              console.error('[ChecklistPDFViewer] URL inválida desde BD:', url);
+              setError(`URL inválida almacenada en la base de datos: ${url.substring(0, 50)}...`);
+              setLoading(false);
+              return;
+            }
+            // Verificar que la URL no esté truncada (debe contener el dominio completo)
+            if (!url.includes('.supabase.co')) {
+              console.error('[ChecklistPDFViewer] URL truncada detectada:', url);
+              setError(`URL truncada detectada. URL completa requerida.`);
+              setLoading(false);
+              return;
+            }
+            console.log('[ChecklistPDFViewer] ✅ URL válida desde BD:', {
+              inspection_type: inspection.inspection_type,
+              url: url.substring(0, 80) + '...',
+            });
             setHtmlUrl(url);
-          } else {
-            setError("Checklist no encontrado. El checklist puede no haber sido finalizado aún o no se pudo generar el informe.");
+            setLoading(false);
+            return;
           }
+        }
+        
+        // Si no se encontró la inspección correcta, intentar construir URL desde storage
+        console.log('[ChecklistPDFViewer] ⚠️ No se encontró inspección con pdf_url, intentando desde storage...');
+        
+        // Si no existe en property_inspections, intentar construir URL desde storage
+        let url = await getChecklistPDFUrl(propertyId, checklistType);
+        
+        if (!url) {
+          // Si no existe el HTML, intentar regenerarlo
+          console.log('[ChecklistPDFViewer] HTML no encontrado, intentando regenerar...');
+          try {
+            const regenerateResponse = await fetch('/api/regenerate-checklist-html', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                propertyId,
+                checklistType,
+              }),
+            });
+
+            if (regenerateResponse.ok) {
+              const regenerateData = await regenerateResponse.json();
+              url = regenerateData.storageUrl;
+              console.log('[ChecklistPDFViewer] ✅ HTML regenerado exitosamente');
+            } else {
+              console.warn('[ChecklistPDFViewer] No se pudo regenerar el HTML');
+            }
+          } catch (regenerateError) {
+            console.error('[ChecklistPDFViewer] Error al regenerar HTML:', regenerateError);
+          }
+        }
+        
+        if (url) {
+          setHtmlUrl(url);
+        } else {
+          setError("Checklist no encontrado. El checklist puede no haber sido finalizado aún o no se pudo generar el informe.");
         }
       } catch (err: any) {
         console.error('Error loading HTML:', err);
