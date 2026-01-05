@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useCallback, useState, useRef, use } from "react";
-import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink } from "lucide-react";
+import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -629,80 +629,50 @@ export default function RenoPropertyDetailPage() {
           
           return (
             <div className="space-y-6">
-              <PropertyActionTab 
-                property={property} 
-                supabaseProperty={supabaseProperty} 
-                propertyId={propertyId}
-                allProperties={allProperties}
-                onUpdateRenovatorName={async (newName: string) => {
-                  return await updateSupabaseProperty({
-                    'Renovator name': newName || null,
-                  });
-                }}
-              />
-              
-              {/* Date section for initial-check (with or without date) */}
+              {/* Date section for initial-check (always editable) */}
               {showDateSection && (
                 <div className="bg-card rounded-lg border p-6 shadow-sm">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label className="text-sm font-semibold">
-                          {t.upcomingSettlements.estimatedVisitDate}
-                        </Label>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {isEditingDate || !hasEstimatedDate
-                            ? t.upcomingSettlements.estimatedVisitDateDescription
-                            : `${t.propertyPage.currentDate}: ${estimatedDate ? new Date(estimatedDate).toLocaleDateString(language === "es" ? "es-ES" : "en-US") : ""}`
-                          }
-                        </p>
-                      </div>
-                      {hasEstimatedDate && !isEditingDate && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsEditingDate(true)}
-                        >
-                          {t.propertyPage.modifyDate || "Modificar fecha"}
-                        </Button>
-                      )}
+                    <div>
+                      <Label className="text-base md:text-lg font-semibold">
+                        {t.upcomingSettlements.estimatedVisitDate}
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t.upcomingSettlements.estimatedVisitDateDescription}
+                      </p>
                     </div>
                     
-                    {(isEditingDate || !hasEstimatedDate) && (
-                      <div className="space-y-4 pt-4 border-t">
-                        <FutureDatePicker
-                          value={localEstimatedVisitDate}
-                          onChange={handleDateChange}
-                          placeholder="DD/MM/YYYY"
-                          errorMessage={t.upcomingSettlements.dateMustBeFuture}
-                        />
+                    <div className="space-y-4 pt-2">
+                      <FutureDatePicker
+                        value={localEstimatedVisitDate}
+                        onChange={handleDateChange}
+                        placeholder="DD/MM/YYYY"
+                        errorMessage={t.upcomingSettlements.dateMustBeFuture}
+                      />
+                      {hasUnsavedChanges && (
                         <div className="flex items-center justify-end gap-2">
-                          {hasEstimatedDate && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setIsEditingDate(false);
-                                setLocalEstimatedVisitDate(property?.estimatedVisitDate || (supabaseProperty as any)?.['Estimated Visit Date']);
-                                setHasUnsavedChanges(false);
-                              }}
-                            >
-                              {t.calendar.cancel || "Cancelar"}
-                            </Button>
-                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setLocalEstimatedVisitDate(property?.estimatedVisitDate || (supabaseProperty as any)?.['Estimated Visit Date']);
+                              setHasUnsavedChanges(false);
+                            }}
+                          >
+                            {t.calendar.cancel || "Cancelar"}
+                          </Button>
                           <Button
                             size="sm"
                             onClick={async () => {
                               await saveToSupabase(true);
-                              setIsEditingDate(false);
                             }}
-                            disabled={isSaving || !hasUnsavedChanges || !localEstimatedVisitDate}
+                            disabled={isSaving || !localEstimatedVisitDate}
                           >
                             {isSaving ? t.propertyPage.saving || "Guardando..." : t.propertyPage.save || "Guardar"}
                           </Button>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -770,7 +740,7 @@ export default function RenoPropertyDetailPage() {
                   <div className="space-y-3 md:space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <Label className="text-sm font-semibold">
+                        <Label className="text-base md:text-lg font-semibold">
                           {t.upcomingSettlements.estimatedVisitDate}
                         </Label>
                         <p className="text-xs text-muted-foreground mt-1 break-words">
@@ -868,18 +838,7 @@ export default function RenoPropertyDetailPage() {
         // For reno-in-progress, show DynamicCategoriesProgress
         if (currentPhase === "reno-in-progress") {
           return (
-            <div className="space-y-6">
-              <PropertyActionTab 
-                property={property} 
-                supabaseProperty={supabaseProperty} 
-                propertyId={propertyId}
-                allProperties={allProperties}
-                onUpdateRenovatorName={async (newName: string) => {
-                  return await updateSupabaseProperty({
-                    'Renovator name': newName || null,
-                  });
-                }}
-              />
+            <>
               {supabaseProperty && (
                 <DynamicCategoriesProgress 
                   property={supabaseProperty}
@@ -888,6 +847,22 @@ export default function RenoPropertyDetailPage() {
                   onHasUnsavedChangesChange={setHasUnsavedCategoriesChanges}
                 />
               )}
+            </>
+          );
+        }
+        
+        // For reno-budget-start, show "No tienes tareas pendientes!" if no tasks
+        if (currentPhase === "reno-budget-start" && dynamicCategories.length === 0) {
+          return (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-3">
+                <div className="flex justify-center">
+                  <div className="p-3 rounded-full bg-muted/30">
+                    <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                </div>
+                <p className="text-base font-medium text-muted-foreground">No tienes tareas pendientes!</p>
+              </div>
             </div>
           );
         }
@@ -1150,7 +1125,7 @@ export default function RenoPropertyDetailPage() {
         />
 
         {/* Content with Sidebar */}
-        <div className="flex flex-1 overflow-hidden pt-[60px]" ref={contentRef}>
+        <div className="flex flex-1 overflow-hidden pt-2" ref={contentRef}>
           {/* Main Content */}
           <div 
             className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24"

@@ -197,12 +197,19 @@ export function SendUpdateEmailPreview({
     const clientName = 'Cliente'; // TODO: Obtener del campo cuando exista
     const clientEmail = property['Client email'] || 'cliente@example.com'; // Dummy
     
-    // PropHero header (tercera imagen) - Usar logo público de PropHero
+    // PropHero header - Usar logo de PropHero desde Google Drive
+    // La imagen debe estar compartida públicamente en Google Drive
+    const logoDriveId = "175Xighr2apmnSaTmmIQP_wKsj1c6iMFM";
+    // URL estándar de Google Drive
+    const logoUrl = `https://drive.google.com/uc?export=view&id=${logoDriveId}`;
+    // URL alternativa usando el visor de Google Drive (más confiable para emails)
+    const logoUrlAlt = `https://lh3.googleusercontent.com/d/${logoDriveId}`;
+    
     const propHeroHeader = `
       <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-collapse: collapse;">
         <tr>
-          <td align="center" style="padding: 30px 20px 20px 20px;">
-            <img src="https://prophero.com/vistral-logo.svg" alt="PropHero" width="180" style="display: block; max-width: 180px; height: auto;" />
+          <td align="center" style="padding: 20px 20px 10px 20px;">
+            <img src="${logoUrlAlt}" alt="PropHero" width="450" style="display: block; max-width: 450px; width: 100%; height: auto; border: 0;" onerror="this.onerror=null; this.src='${logoUrl}';" />
           </td>
         </tr>
       </table>
@@ -290,7 +297,7 @@ export function SendUpdateEmailPreview({
               <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 600px; width: 100%;">
                 ${propHeroHeader}
                 <tr>
-                  <td style="padding: 30px; background-color: #ffffff;">
+                  <td style="padding: 10px 30px 30px 30px; background-color: #ffffff;">
                     <h1 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 700; color: #1a1a1a;">Update de Progreso</h1>
                     <p style="margin: 0 0 30px 0; font-size: 16px; color: #666666; line-height: 1.6;">
                       Estimado/a ${clientName},

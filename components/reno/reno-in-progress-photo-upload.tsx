@@ -81,23 +81,62 @@ export function RenoInProgressPhotoUpload({
         propertyId,
         photosCount: photoUrls.length,
         photoSizes: photoUrls.map(p => ({ filename: p.filename, urlLength: p.url.length })),
+        totalPayloadSize: JSON.stringify(photoUrls).length,
       });
 
-      const success = await uploadRenoInProgressPhotos(propertyId, photoUrls);
+      // Subir fotos en lotes de 3 para evitar problemas con el límite del body parser (1MB por defecto)
+      // Cada foto en base64 puede ser ~1-2MB, así que 3 fotos por lote es seguro
+      const BATCH_SIZE = 3;
+      const uploadedBatchPhotos: string[] = [];
+      const failedBatchPhotos: string[] = [];
+      
+      for (let i = 0; i < photoUrls.length; i += BATCH_SIZE) {
+        const batch = photoUrls.slice(i, i + BATCH_SIZE);
+        const batchPhotoIds = photosWithData.slice(i, i + BATCH_SIZE).map(p => p.id);
+        
+        console.log(`[RenoInProgressPhotoUpload] 📤 Subiendo lote ${Math.floor(i / BATCH_SIZE) + 1} de ${Math.ceil(photoUrls.length / BATCH_SIZE)}:`, {
+          batchSize: batch.length,
+          photos: batch.map(p => p.filename),
+        });
+        
+        const batchSuccess = await uploadRenoInProgressPhotos(propertyId, batch);
+        
+        if (batchSuccess) {
+          // Marcar las fotos de este lote como subidas
+          batchPhotoIds.forEach(id => uploadedBatchPhotos.push(id));
+          console.log(`[RenoInProgressPhotoUpload] ✅ Lote ${Math.floor(i / BATCH_SIZE) + 1} subido correctamente`);
+        } else {
+          // Marcar las fotos de este lote como fallidas
+          batchPhotoIds.forEach(id => failedBatchPhotos.push(id));
+          console.error(`[RenoInProgressPhotoUpload] ❌ Error en lote ${Math.floor(i / BATCH_SIZE) + 1}`);
+          // Continuar con el siguiente lote aunque este falle
+        }
+      }
 
-      if (success) {
-        // Marcar fotos como subidas
+      // Actualizar estado con las fotos subidas exitosamente
+      if (uploadedBatchPhotos.length > 0) {
         const newUploadedPhotos = new Set(uploadedPhotos);
-        photosToUpload.forEach(p => newUploadedPhotos.add(p.id));
+        uploadedBatchPhotos.forEach(id => newUploadedPhotos.add(id));
         setUploadedPhotos(newUploadedPhotos);
         
-        // Limpiar las fotos subidas
+        // Limpiar solo las fotos subidas exitosamente
         setPhotos(prev => prev.filter(p => !newUploadedPhotos.has(p.id)));
         
         toast.success("Fotos subidas correctamente", {
-          description: `${photoUrls.length} foto${photoUrls.length > 1 ? 's' : ''} subida${photoUrls.length > 1 ? 's' : ''} al Drive`,
+          description: `${uploadedBatchPhotos.length} foto${uploadedBatchPhotos.length > 1 ? 's' : ''} subida${uploadedBatchPhotos.length > 1 ? 's' : ''} al Drive${failedBatchPhotos.length > 0 ? ` (${failedBatchPhotos.length} fallaron)` : ''}`,
         });
-      } else {
+      }
+      
+      // Mostrar error si alguna foto falló
+      if (failedBatchPhotos.length > 0) {
+        toast.error("Algunas fotos no se pudieron subir", {
+          description: `${failedBatchPhotos.length} foto${failedBatchPhotos.length > 1 ? 's' : ''} no se ${failedBatchPhotos.length > 1 ? 'pudieron' : 'pudo'} subir. Verifica que la propiedad tenga una carpeta de Drive configurada o contacta al administrador.`,
+          duration: 6000,
+        });
+      }
+      
+      // Si todas fallaron, mostrar error general
+      if (uploadedBatchPhotos.length === 0 && failedBatchPhotos.length > 0) {
         toast.error("Error al subir fotos", {
           description: "No se pudieron subir las fotos. Verifica que la propiedad tenga una carpeta de Drive configurada o contacta al administrador.",
           duration: 6000,

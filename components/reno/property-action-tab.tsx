@@ -278,8 +278,17 @@ export function PropertyActionTab({
         </div>
       )}
 
-      {/* Mostrar fecha estimada solo si no está en upcoming-settlements ni en las fases de budget */}
-      {estimatedVisitDate && renoPhase !== "upcoming-settlements" && renoPhase !== "reno-budget-renovator" && renoPhase !== "reno-budget-client" && (
+      {/* Mostrar fecha estimada solo para fases específicas (ocultar para initial-check, reno-in-progress, furnishing, cleaning, final-check, budget phases) */}
+      {estimatedVisitDate && 
+       renoPhase !== "upcoming-settlements" && 
+       renoPhase !== "initial-check" &&
+       renoPhase !== "reno-budget-renovator" && 
+       renoPhase !== "reno-budget-client" && 
+       renoPhase !== "reno-budget-start" &&
+       renoPhase !== "reno-in-progress" &&
+       renoPhase !== "furnishing" &&
+       renoPhase !== "cleaning" &&
+       renoPhase !== "final-check" && (
         <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
           <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
             <Calendar className="h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
@@ -291,10 +300,7 @@ export function PropertyActionTab({
         </div>
       )}
 
-      {/* Subir fotos de avance de obra - Solo para fase reno-in-progress */}
-      {renoPhase === "reno-in-progress" && propertyId && (
-        <RenoInProgressPhotoUpload propertyId={propertyId} />
-      )}
+      {/* Fotos de avance de obra ahora se muestran en DynamicCategoriesProgress para reno-in-progress */}
     </div>
   );
 }

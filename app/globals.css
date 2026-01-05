@@ -55,28 +55,28 @@ input[type="range"].slider-blue::-moz-range-track {
 input[type="range"].slider-blue::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: white;
+  background: transparent;
   cursor: pointer;
-  border: 2px solid hsl(var(--primary));
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  margin-top: -6px;
+  border: none;
+  box-shadow: none;
+  margin-top: -4px;
   position: relative;
-  z-index: 20;
+  z-index: 30;
 }
 
 input[type="range"].slider-blue::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: white;
+  background: transparent;
   cursor: pointer;
-  border: 2px solid hsl(var(--primary));
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: none;
+  box-shadow: none;
   position: relative;
-  z-index: 20;
+  z-index: 30;
 }
 
 

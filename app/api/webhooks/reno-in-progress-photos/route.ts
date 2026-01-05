@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+// Configuración para Next.js 13+ App Router
+// Usar runtime nodejs para tener más control sobre el procesamiento
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 segundos de timeout
+
 const RENO_IN_PROGRESS_PHOTOS_WEBHOOK = 'https://n8n.prod.prophero.com/webhook/reno_in_progress_photos';
 const STORAGE_BUCKET = 'inspection-images';
 
@@ -22,7 +27,36 @@ interface PhotosWebhookPayload {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Leer el body de manera más robusta para manejar payloads grandes
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (jsonError: any) {
+      // Si falla el parseo JSON, puede ser por tamaño
+      console.error('[Reno In Progress Photos API] ❌ Error parsing JSON:', {
+        message: jsonError?.message,
+        name: jsonError?.name,
+      });
+      
+      // Intentar leer como texto para debug
+      try {
+        const text = await request.text();
+        console.error('[Reno In Progress Photos API] Body size:', text.length);
+        console.error('[Reno In Progress Photos API] Body preview:', text.substring(0, 500));
+      } catch (textError) {
+        console.error('[Reno In Progress Photos API] Could not read body as text');
+      }
+      
+      return NextResponse.json(
+        { 
+          error: 'Invalid JSON payload',
+          message: 'The request body is too large or invalid. Please try uploading fewer photos at once.',
+          details: jsonError?.message,
+        },
+        { status: 400 }
+      );
+    }
+    
     const { propertyId, photoUrls } = body;
 
     // Validar parámetros

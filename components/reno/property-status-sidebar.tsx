@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, User, Building2, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell } from "lucide-react";
+import { CheckCircle2, Clock, User, Building2, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell, Flag, Wrench } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { usePropertyComments } from "@/hooks/usePropertyComments";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect } from "react";
+import { isDelayedWork } from "@/lib/property-sorting";
 
 interface PropertyStatusSidebarProps {
   property: Property;
@@ -46,10 +47,41 @@ export function PropertyStatusSidebar({
   const [checklistProgress, setChecklistProgress] = useState(0);
 
   // Extract data from Supabase
-  const renoPhase = supabaseProperty?.reno_phase || "upcoming-settlements";
+  const renoPhase = supabaseProperty?.reno_phase || property.renoPhase || "upcoming-settlements";
   const technicalConstructor = supabaseProperty?.['Technical construction'] || supabaseProperty?.technical_construction;
   const responsibleOwner = supabaseProperty?.responsible_owner;
+  const renovatorName = supabaseProperty?.['Renovator name'] || property.renovador;
+  const renoType = property.renoType || supabaseProperty?.reno_type;
   const createdAt = supabaseProperty?.created_at || property.createdAt;
+  
+  // Get days based on phase
+  const daysToVisit = property.daysToVisit;
+  const daysToStartRenoSinceRSD = property.daysToStartRenoSinceRSD;
+  const renoDuration = property.renoDuration;
+  const daysToPropertyReady = property.daysToPropertyReady;
+  
+  // Check if property is delayed
+  const isDelayed = isDelayedWork(property, renoPhase);
+  
+  // Get the appropriate days label and value based on phase
+  const getDaysInfo = () => {
+    if ((renoPhase === "initial-check" || renoPhase === "upcoming-settlements") && daysToVisit !== null && daysToVisit !== undefined) {
+      return { label: "Días para visitar", value: daysToVisit };
+    }
+    if ((renoPhase === "reno-budget-renovator" || renoPhase === "reno-budget-client" || renoPhase === "reno-budget-start") && 
+        daysToStartRenoSinceRSD !== null && daysToStartRenoSinceRSD !== undefined) {
+      return { label: "Días para empezar la reno desde firma", value: daysToStartRenoSinceRSD };
+    }
+    if (renoPhase === "reno-in-progress" && renoDuration !== null && renoDuration !== undefined) {
+      return { label: "Duración de la obra", value: renoDuration };
+    }
+    if ((renoPhase === "furnishing" || renoPhase === "cleaning") && daysToPropertyReady !== null && daysToPropertyReady !== undefined) {
+      return { label: "Días para propiedad lista", value: daysToPropertyReady };
+    }
+    return null;
+  };
+  
+  const daysInfo = getDaysInfo();
 
   // Check if property has checklist
   useEffect(() => {
@@ -120,8 +152,13 @@ export function PropertyStatusSidebar({
     const phaseLabels: Record<string, string> = {
       "upcoming-settlements": t.kanban.upcomingSettlements,
       "initial-check": t.kanban.initialCheck,
+      "reno-budget-renovator": t.kanban.renoBudgetRenovator,
+      "reno-budget-client": t.kanban.renoBudgetClient,
+      "reno-budget-start": t.kanban.renoBudgetStart,
       "reno-in-progress": t.kanban.renoInProgress,
       "final-check": t.kanban.finalCheck,
+      "furnishing": t.kanban.furnishing || "Amoblamiento",
+      "cleaning": t.kanban.cleaning || "Limpieza",
       "done": t.kanban.done,
     };
     return phaseLabels[renoPhase] || renoPhase;
@@ -144,166 +181,62 @@ export function PropertyStatusSidebar({
               {formattedDate ? `${t.propertySidebar.createdOn} ${formattedDate}` : ""}
             </span>
           </div>
-
         </div>
 
-        {/* Pending Items */}
-        {pendingItems.length > 0 && (
+        {/* Renovator Name */}
+        {renovatorName && (
           <div>
-            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              {t.propertySidebar.pending}
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-muted-foreground" />
+              Reformista
             </h4>
-            <div className="space-y-2">
-              {pendingItems.map((item, index) => (
-                <button
-                  key={index}
-                  onClick={item.onClick}
-                  className={cn(
-                    "w-full text-left flex items-center justify-between p-2 rounded-md text-sm",
-                    item.onClick
-                      ? "hover:bg-accent hover:text-accent-foreground transition-colors"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  <span>{item.label}</span>
-                  {item.onClick && (
-                    <span className="text-muted-foreground">→</span>
-                  )}
-                </button>
-              ))}
-            </div>
+            <p className="text-sm text-foreground">{renovatorName}</p>
           </div>
         )}
 
-        {/* Assigned Roles */}
-        <div className="space-y-4">
-          {technicalConstructor && (
-            <div>
-              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                {t.propertySidebar.technicalConstructor}
-              </h4>
-              <p className="text-sm text-foreground">{technicalConstructor}</p>
-            </div>
-          )}
-
-          {responsibleOwner && (
-            <div>
-              <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                {t.propertySidebar.siteManager}
-              </h4>
-              <p className="text-sm text-foreground">{responsibleOwner}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Checklist Section - Collapsable */}
-        {(renoPhase === "initial-check" || renoPhase === "final-check") && (
-          <div className="border-t pt-4">
-            <button
-              onClick={() => setChecklistExpanded(!checklistExpanded)}
-              className="w-full flex items-center justify-between text-sm font-semibold mb-3 hover:text-foreground transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                {getChecklistLabel()}
-                {hasChecklist && checklistProgress === 100 && (
-                  <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                    {checklistProgress}%
-                  </span>
-                )}
-              </div>
-              {checklistExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-            
-            {checklistExpanded && (
-              <div className="space-y-3">
-                {hasChecklist ? (
-                  <>
-                    <div className="text-xs text-muted-foreground mb-2">
-                      {checklistProgress === 100 
-                        ? t.propertySidebar.checklistCompleted || "Checklist completado"
-                        : t.propertySidebar.checklistInProgress}
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (propertyId) {
-                          window.location.href = `/reno/construction-manager/property/${propertyId}/checklist`;
-                        }
-                      }}
-                      className="w-full text-left p-2 rounded-md text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
-                    >
-                      {t.propertySidebar.continueChecklist} →
-                    </button>
-                  </>
-                ) : (
-                  <div className="text-xs text-muted-foreground mb-2">
-                    {t.propertySidebar.noChecklistStarted}
-                  </div>
-                )}
-                <button
-                  onClick={() => {
-                    if (propertyId) {
-                      window.location.href = `/reno/construction-manager/property/${propertyId}/checklist`;
-                    }
-                  }}
-                  className="w-full px-3 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  {hasChecklist ? t.propertySidebar.openChecklist : t.propertySidebar.startChecklist}
-                </button>
-              </div>
-            )}
+        {/* Responsible Owner */}
+        {responsibleOwner && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              Analista de reno
+            </h4>
+            <p className="text-sm text-foreground">{responsibleOwner}</p>
           </div>
         )}
 
-        {/* Reminders Section - Collapsable */}
-        {propertyId && (
-          <Collapsible open={true} onOpenChange={() => {}} className="space-y-3 pt-4 border-t">
-            <CollapsibleTrigger asChild>
-              <div className="flex items-center justify-between w-full cursor-pointer py-2">
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-muted-foreground" />
-                  {t.propertySidebar.reminders}
-                </h4>
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="max-h-60 overflow-y-auto">
-                <PropertyRemindersSection propertyId={propertyId} limit={3} />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+        {/* Tipo de Reforma */}
+        {renoType && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              Tipo de reforma
+            </h4>
+            <p className="text-sm text-foreground">{renoType}</p>
+          </div>
         )}
 
-        {/* Comments Section - Collapsable */}
-        {propertyId && (
-          <div className="border-t pt-4">
-            <button
-              onClick={() => setCommentsExpanded(!commentsExpanded)}
-              className="w-full flex items-center justify-between text-sm font-semibold mb-3 hover:text-foreground transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                {t.propertySidebar.comments}
-              </div>
-              {commentsExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
+        {/* Days Information with Delay Flag */}
+        {daysInfo && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                {daysInfo.label}
+              </h4>
+              {isDelayed && (
+                <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                  <Flag className="h-3 w-3" />
+                  Atrasado
+                </span>
               )}
-            </button>
-            
-            {commentsExpanded && (
-              <div className="max-h-[400px] overflow-y-auto">
-                <PropertyCommentsSection propertyId={propertyId} property={property} supabaseProperty={supabaseProperty} />
-              </div>
-            )}
+            </div>
+            <p className={cn(
+              "text-sm font-medium",
+              isDelayed ? "text-red-600 dark:text-red-400" : "text-foreground"
+            )}>
+              {daysInfo.value} días
+            </p>
           </div>
         )}
 

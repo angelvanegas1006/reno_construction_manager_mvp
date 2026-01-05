@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
+import { extractNameFromEmail } from "@/lib/supabase/user-name-utils";
 
 interface ChecklistHistory {
   id: string;
@@ -32,6 +33,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
   const { t, language } = useI18n();
   const [checklists, setChecklists] = useState<ChecklistHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
   const { property: supabaseProperty } = useSupabaseProperty(propertyId);
 
   // Calcular fase actual de la propiedad de forma estable
@@ -184,6 +186,46 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
         })));
         
         setChecklists(checklists);
+        
+        // Obtener nombres de usuarios únicos
+        const uniqueUserIds = [...new Set(checklists.map(c => c.created_by).filter(Boolean))] as string[];
+        if (uniqueUserIds.length > 0) {
+          const namesMap: Record<string, string> = {};
+          
+          // Obtener usuarios desde la API
+          try {
+            const response = await fetch('/api/users');
+            if (response.ok) {
+              const { users } = await response.json();
+              const usersMap = new Map(users.map((u: any) => [u.id, u]));
+              
+              uniqueUserIds.forEach(userId => {
+                const user = usersMap.get(userId);
+                if (user) {
+                  // Intentar obtener nombre de user_metadata, sino del email
+                  const name = user.name || 
+                               user.user_metadata?.name || 
+                               user.user_metadata?.full_name ||
+                               (user.email ? extractNameFromEmail(user.email) : null) ||
+                               userId;
+                  namesMap[userId] = name;
+                } else {
+                  // Si no se encuentra, usar el ID como fallback
+                  namesMap[userId] = userId;
+                }
+              });
+              
+              setUserNames(namesMap);
+            }
+          } catch (error) {
+            console.error('[PropertyStatusTab] Error fetching user names:', error);
+            // Si falla, usar IDs como fallback
+            uniqueUserIds.forEach(userId => {
+              namesMap[userId] = userId;
+            });
+            setUserNames(namesMap);
+          }
+        }
       } else {
         setChecklists([]);
       }
@@ -283,7 +325,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
                   {checklist.created_by && (
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4" />
-                      <span>{t.propertyStatusTab.createdBy}: {checklist.created_by}</span>
+                      <span>{t.propertyStatusTab.createdBy}: {userNames[checklist.created_by] || checklist.created_by}</span>
                     </div>
                   )}
                 </div>

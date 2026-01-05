@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import type { Database } from '@/lib/supabase/types';
 import { callN8nCategoriesWebhook, prepareWebhookPayload } from '@/lib/n8n/webhook-caller';
 import { calculateNextUpdateDate } from '@/lib/reno/update-calculator';
+import { RenoInProgressPhotoUpload } from './reno-in-progress-photo-upload';
 
 type SupabaseProperty = Database['public']['Tables']['properties']['Row'];
 
@@ -967,28 +968,18 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                         <div className="absolute inset-0 h-3 rounded-lg bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]" />
                         {/* Progress fill (blue primary) */}
                         <div 
-                          className={`absolute inset-y-0 left-0 bg-primary ${percentage >= 100 ? 'rounded-lg' : 'rounded-l-lg'}`}
+                          className={`absolute inset-y-0 left-0 bg-primary transition-all duration-150 ease-out ${percentage >= 100 ? 'rounded-lg' : 'rounded-l-lg'}`}
                           style={{
                             width: `${Math.min(100, percentage)}%`,
                           }}
                         />
-                        {/* Circle indicator at the end of progress - always visible, pero no bloquea interacción */}
-                        <div 
-                          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary border-2 border-white dark:border-[#000000] shadow-sm z-20 pointer-events-none"
-                          style={{
-                            left: percentage > 0 
-                              ? `calc(${Math.min(100, percentage)}% - 6px)` 
-                              : '-6px',
-                          }}
-                        />
-                        {/* Slider input on top - transparent track, only thumb visible */}
+                        {/* Slider input on top - transparent track, thumb invisible */}
                         <input
-                          key={`slider-${category.id}-${percentage}`}
                           type="range"
-                          min={0}
+                          min={minAllowedValue}
                           max={100}
                           step={1}
-                          value={Math.max(0, Math.min(100, percentage))}
+                          value={Math.max(minAllowedValue, Math.min(100, percentage))}
                           onInput={(e) => {
                             const newValue = parseInt((e.target as HTMLInputElement).value, 10);
                             handleSliderChange(category.id, newValue);
@@ -998,8 +989,17 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                             handleSliderChange(category.id, newValue);
                           }}
                           className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-30"
-                          style={{ touchAction: 'none' }}
+                          style={{ touchAction: 'pan-y' }}
                           title={`Mínimo permitido: ${minAllowedValue}%`}
+                        />
+                        {/* Circle indicator at the end of progress - always visible, positioned based on slider value */}
+                        <div 
+                          className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white dark:bg-white border-2 border-primary shadow-md z-20 pointer-events-none transition-all duration-150 ease-out"
+                          style={{
+                            left: percentage > 0 
+                              ? `calc(${Math.min(100, percentage)}% - 10px)` 
+                              : '-10px',
+                          }}
                         />
                       </div>
                       {minAllowedValue > 0 && (
@@ -1079,6 +1079,11 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
               );
             })
           )}
+        </div>
+
+        {/* Fotos de Avance de Obra - Entre categorías y botones */}
+        <div className="pt-4 border-t">
+          <RenoInProgressPhotoUpload propertyId={property.id} />
         </div>
 
         {/* Botones de Acción - Solo en desktop, en mobile van al footer */}

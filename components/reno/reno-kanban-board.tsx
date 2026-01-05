@@ -268,11 +268,24 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     };
 
     // Sort final-check phase by days_to_property_ready (descending, most days first)
+    // Red cards (exceeding daysToPropertyReady > 25) first
     const sortFinalCheckPhase = (phase: RenoKanbanPhase) => {
       const expiredFirst = sortPropertiesByExpired(transformProperties[phase] || []);
       
+      const exceedsDaysToPropertyReadyLimit = (prop: Property): boolean => {
+        if (!prop.daysToPropertyReady) return false;
+        return prop.daysToPropertyReady > 25;
+      };
+      
       return expiredFirst.sort((a, b) => {
-        // Sort by days_to_property_ready descending (most days first)
+        const aExceeds = exceedsDaysToPropertyReadyLimit(a);
+        const bExceeds = exceedsDaysToPropertyReadyLimit(b);
+        
+        // Red cards (exceeding limit) first
+        if (aExceeds && !bExceeds) return -1;
+        if (!aExceeds && bExceeds) return 1;
+        
+        // Then sort by daysToPropertyReady descending (most days first)
         // Properties without this field go to the end
         const aDays = a.daysToPropertyReady ?? -Infinity;
         const bDays = b.daysToPropertyReady ?? -Infinity;
