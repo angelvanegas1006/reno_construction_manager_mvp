@@ -80,7 +80,13 @@ export default function ChecklistPDFViewerPage() {
           // Verificar que allInspections es un array válido
           if (Array.isArray(allInspections) && allInspections.length > 0) {
             // Filtrar manualmente por inspection_type si existe, o usar la más reciente si no
-            const matchingInspection = allInspections.find((insp: any) => {
+            type InspectionType = {
+              id: string;
+              inspection_type?: string;
+              pdf_url?: string;
+            };
+            
+            const matchingInspection = allInspections.find((insp: any): insp is InspectionType => {
               // Si tiene inspection_type, verificar que coincida
               if (insp && typeof insp === 'object' && 'inspection_type' in insp) {
                 return insp.inspection_type === inspectionType;
@@ -89,9 +95,9 @@ export default function ChecklistPDFViewerPage() {
               return false;
             });
             
-            if (matchingInspection && typeof matchingInspection === 'object' && 'pdf_url' in matchingInspection) {
+            if (matchingInspection && matchingInspection.pdf_url) {
               const pdfUrl = matchingInspection.pdf_url;
-              if (pdfUrl && typeof pdfUrl === 'string' && pdfUrl.startsWith('http')) {
+              if (typeof pdfUrl === 'string' && pdfUrl.startsWith('http')) {
                 console.log('[ChecklistPDFViewer] ✅ Inspección encontrada (sin filtro de BD):', {
                   id: matchingInspection.id,
                   inspection_type: matchingInspection.inspection_type,
