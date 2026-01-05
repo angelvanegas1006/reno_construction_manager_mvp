@@ -147,18 +147,22 @@ export default function ChecklistPDFViewerPage() {
         }
 
         // Validar que la inspección obtenida tenga el tipo correcto
-        if (inspection) {
+        // Verificar que inspection es un objeto válido y no un error
+        if (inspection && typeof inspection === 'object' && 'id' in inspection) {
+          // Type assertion para asegurar que TypeScript entienda el tipo correcto
+          const inspectionData = inspection as { id: string; inspection_type?: string; pdf_url?: string };
+          
           // IMPORTANTE: Verificar que el inspection_type coincida antes de usar el pdf_url
-          if (inspection.inspection_type && inspection.inspection_type !== inspectionType) {
+          if (inspectionData.inspection_type && inspectionData.inspection_type !== inspectionType) {
             console.error('[ChecklistPDFViewer] ❌ Inspección con tipo incorrecto:', {
               esperado: inspectionType,
-              obtenido: inspection.inspection_type,
-              id: inspection.id,
+              obtenido: inspectionData.inspection_type,
+              id: inspectionData.id,
             });
             // No usar esta inspección, continuar con el fallback
-          } else if (inspection.pdf_url) {
+          } else if (inspectionData.pdf_url) {
             // Validar que la URL sea completa
-            const url = inspection.pdf_url;
+            const url = inspectionData.pdf_url;
             if (!url.startsWith('http://') && !url.startsWith('https://')) {
               console.error('[ChecklistPDFViewer] URL inválida desde BD:', url);
               setError(`URL inválida almacenada en la base de datos: ${url.substring(0, 50)}...`);
@@ -173,7 +177,7 @@ export default function ChecklistPDFViewerPage() {
               return;
             }
             console.log('[ChecklistPDFViewer] ✅ URL válida desde BD:', {
-              inspection_type: inspection.inspection_type,
+              inspection_type: inspectionData.inspection_type,
               url: url.substring(0, 80) + '...',
             });
             setHtmlUrl(url);
