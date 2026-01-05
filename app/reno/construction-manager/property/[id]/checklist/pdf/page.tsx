@@ -64,34 +64,57 @@ export default function ChecklistPDFViewerPage() {
         if (inspectionError && (inspectionError.code === '42883' || inspectionError.message?.includes('column') || inspectionError.message?.includes('does not exist'))) {
           console.warn('[ChecklistPDFViewer] ⚠️ Campo inspection_type no existe, buscando sin filtro:', inspectionError.message);
           
-          // Buscar todas las inspecciones completadas y filtrar manualmente
-          const { data: allInspections, error: allError } = await supabase
+          // Buscar todas las inspecciones completadas sin seleccionar inspection_type (puede no existir)
+          // Intentar primero con inspection_type, si falla, intentar sin él
+          let allInspections: Array<{ id: string; inspection_type?: string; pdf_url?: string }> | null = null;
+          let allError: any = null;
+          
+          // Intentar con inspection_type primero
+          const { data: inspectionsWithType, error: errorWithType } = await supabase
             .from('property_inspections')
             .select('id, inspection_type, pdf_url')
             .eq('property_id', propertyId)
             .eq('inspection_status', 'completed')
             .order('completed_at', { ascending: false });
           
-          if (allError) {
-            console.error('[ChecklistPDFViewer] ❌ Error buscando inspecciones:', allError);
-            throw allError;
+          if (errorWithType && (errorWithType.message?.includes('column') || errorWithType.message?.includes('does not exist'))) {
+            // Si falla porque inspection_type no existe, intentar sin él
+            console.warn('[ChecklistPDFViewer] ⚠️ inspection_type no existe en select, intentando sin él');
+            const { data: inspectionsWithoutType, error: errorWithoutType } = await supabase
+              .from('property_inspections')
+              .select('id, pdf_url')
+              .eq('property_id', propertyId)
+              .eq('inspection_status', 'completed')
+              .order('completed_at', { ascending: false });
+            
+            if (errorWithoutType) {
+              console.error('[ChecklistPDFViewer] ❌ Error buscando inspecciones:', errorWithoutType);
+              throw errorWithoutType;
+            }
+            
+            // Mapear los resultados sin inspection_type
+            allInspections = (inspectionsWithoutType || []).map((insp: any) => ({
+              id: insp.id,
+              pdf_url: insp.pdf_url,
+              // inspection_type no está disponible
+            }));
+          } else {
+            if (errorWithType) {
+              console.error('[ChecklistPDFViewer] ❌ Error buscando inspecciones:', errorWithType);
+              throw errorWithType;
+            }
+            allInspections = inspectionsWithType || [];
           }
           
           // Verificar que allInspections es un array válido
           if (Array.isArray(allInspections) && allInspections.length > 0) {
-            // Filtrar manualmente por inspection_type si existe, o usar la más reciente si no
-            type InspectionType = {
-              id: string;
-              inspection_type?: string;
-              pdf_url?: string;
-            };
-            
-            const matchingInspection = allInspections.find((insp: any): insp is InspectionType => {
+            // Filtrar manualmente por inspection_type si existe
+            const matchingInspection = allInspections.find((insp) => {
               // Si tiene inspection_type, verificar que coincida
-              if (insp && typeof insp === 'object' && 'inspection_type' in insp) {
+              if (insp.inspection_type) {
                 return insp.inspection_type === inspectionType;
               }
-              // Si no tiene inspection_type, no usar
+              // Si no tiene inspection_type, no usar (no podemos determinar el tipo)
               return false;
             });
             
