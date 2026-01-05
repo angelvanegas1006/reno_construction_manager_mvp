@@ -698,6 +698,53 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
       console.warn('[Airtable Sync] No Properties link found, using Transactions Record ID as fallback:', airtableProperty.id);
       return airtableProperty.id;
     })(),
+    // Budget PDF URL - Campo "TECH - Budget Attachment (URLs)" (fldVOO4zqx5HUzIjz) de Transactions
+    // Si el campo está vacío en Airtable, mantener el valor actual en Supabase (no sobrescribir)
+    budget_pdf_url: (() => {
+      const budgetField = getFieldValue('fldVOO4zqx5HUzIjz', [
+        'fldVOO4zqx5HUzIjz', // Field ID
+        'TECH - Budget Attachment (URLs)',
+        'TECH - Budget Attachment',
+        'Tech Budget Attachment',
+        'Budget Attachment',
+        'budget_pdf_url'
+      ]);
+      
+      // Si el campo está vacío o es null, retornar undefined para no sobrescribir el valor existente
+      if (!budgetField || budgetField === null || budgetField === '') {
+        return undefined; // undefined significa "no actualizar este campo"
+      }
+      
+      // Si es un string, puede tener múltiples URLs separadas por comas
+      if (typeof budgetField === 'string') {
+        // Limpiar y validar URLs
+        const urls = budgetField
+          .split(',')
+          .map(url => url.trim())
+          .filter(url => url.length > 0 && (url.startsWith('http://') || url.startsWith('https://')));
+        
+        // Retornar todas las URLs separadas por comas (para mostrar múltiples en la app)
+        return urls.length > 0 ? urls.join(',') : undefined;
+      }
+      
+      // Si es un array, unir las URLs
+      if (Array.isArray(budgetField)) {
+        const urls = budgetField
+          .map(item => {
+            if (typeof item === 'string') {
+              return item.trim();
+            } else if (typeof item === 'object' && item !== null && item.url) {
+              return item.url;
+            }
+            return null;
+          })
+          .filter((url): url is string => url !== null && url.length > 0 && (url.startsWith('http://') || url.startsWith('https://')));
+        
+        return urls.length > 0 ? urls.join(',') : undefined;
+      }
+      
+      return undefined;
+    })(),
     updated_at: new Date().toISOString(),
   };
 }
@@ -853,18 +900,30 @@ export async function syncPropertiesFromAirtable(
             shouldUpdatePicsUrls = !hasPicsUrls && newPicsUrls.length > 0;
           }
           
-          // Preparar datos para actualizar (excluir pics_urls si no se debe actualizar)
-          const updateData = { ...supabaseData };
-          if (!shouldUpdatePicsUrls) {
-            // No actualizar pics_urls, mantener el valor actual
-            delete updateData.pics_urls;
-          }
+          // Lógica para budget_pdf_url:
+          // - Solo actualizar cuando entra a reno-in-progress (si viene de otra fase)
+          // - Si el campo viene vacío de Airtable (undefined), mantener el valor actual
+          const isEnteringRenoInProgress = 
+            currentData?.reno_phase !== 'reno-in-progress' && 
+            supabaseData.reno_phase === 'reno-in-progress';
           
           // Expandir hasChanges para verificar TODOS los campos sincronizados
           // Usar 'as any' para campos con espacios que TypeScript no reconoce en el tipo
           // Combinar verificación de ambos cambios (nuestros y de Manu) para máxima cobertura
           const currentDataAny = currentData as any;
           const supabaseDataAny = supabaseData as any;
+          
+          // Verificar si budget_pdf_url debe actualizarse
+          let shouldUpdateBudgetPdf = false;
+          if (isEnteringRenoInProgress && supabaseData.budget_pdf_url !== undefined) {
+            // Entrando a reno-in-progress y hay valor en Airtable: actualizar
+            shouldUpdateBudgetPdf = currentData?.budget_pdf_url !== supabaseData.budget_pdf_url;
+          } else if (supabaseData.budget_pdf_url !== undefined) {
+            // No está entrando a reno-in-progress pero hay valor: comparar normalmente
+            shouldUpdateBudgetPdf = currentData?.budget_pdf_url !== supabaseData.budget_pdf_url;
+          }
+          // Si supabaseData.budget_pdf_url es undefined, no actualizar (mantener valor actual)
+          
           const hasChanges =
             // Campos básicos
             currentData?.address !== supabaseData.address ||
@@ -895,11 +954,24 @@ export async function syncPropertiesFromAirtable(
             currentData?.days_to_visit !== supabaseData.days_to_visit ||
             // Fase y otros
             currentData?.reno_phase !== supabaseData.reno_phase ||
-            currentData?.budget_pdf_url !== supabaseData.budget_pdf_url ||
+            shouldUpdateBudgetPdf ||
             shouldUpdatePicsUrls ||
             (hasRelatedFields && (!currentData?.area_cluster && !currentDataAny?.['Hubspot ID'] && !currentData?.property_unique_id));
 
             if (hasChanges) {
+              // Preparar datos de actualización, excluyendo campos undefined
+              const updateData: any = { ...supabaseData };
+              
+              // Si budget_pdf_url es undefined, no incluirlo en la actualización (mantener valor actual)
+              if (updateData.budget_pdf_url === undefined) {
+                delete updateData.budget_pdf_url;
+              }
+              
+              // Si no se debe actualizar pics_urls, excluirlo
+              if (!shouldUpdatePicsUrls) {
+                delete updateData.pics_urls;
+              }
+              
               // Log para el primer registro para debugging
               if (airtableProperties.indexOf(airtableProperty) === 0) {
                 console.log('[Airtable Sync] Sample data being sent to Supabase:', {
@@ -908,6 +980,7 @@ export async function syncPropertiesFromAirtable(
                   renovation_type: supabaseData.renovation_type,
                   property_unique_id: supabaseData.property_unique_id,
                   pics_urls: shouldUpdatePicsUrls ? `Will ${isFirstPhase ? 'update' : 'insert'}` : 'Will NOT update',
+                  budget_pdf_url: updateData.budget_pdf_url !== undefined ? `Will ${isEnteringRenoInProgress ? 'update (entering reno-in-progress)' : 'update'}` : 'Will NOT update (maintain current)',
                 });
               }
 

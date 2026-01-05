@@ -45,6 +45,19 @@ export async function syncRenoInProgressFromAirtable(): Promise<{
     if (propertyIds.length > 0) {
       console.log(`[Reno In Progress Sync] Forcing reno_phase to 'reno-in-progress' for ${propertyIds.length} properties...`);
       
+      // Obtener los datos completos de las propiedades sincronizadas para incluir budget_pdf_url
+      // Esto asegura que budget_pdf_url se sincronice cuando entra a reno-in-progress
+      const { data: syncedProperties, error: fetchError } = await supabase
+        .from('properties')
+        .select('id, budget_pdf_url')
+        .in('id', propertyIds);
+      
+      if (fetchError) {
+        console.error('[Reno In Progress Sync] Error fetching synced properties:', fetchError);
+      }
+      
+      // Actualizar fase y otros campos
+      // budget_pdf_url ya debería estar sincronizado desde syncPropertiesFromAirtable
       const { error: updateError } = await supabase
         .from('properties')
         .update({ 

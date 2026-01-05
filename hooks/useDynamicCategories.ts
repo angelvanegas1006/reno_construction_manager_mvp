@@ -9,13 +9,23 @@ type DynamicCategory = Database['public']['Tables']['property_dynamic_categories
 type CategoryUpdate = Database['public']['Tables']['property_dynamic_categories']['Update'];
 type PropertyUpdate = Database['public']['Tables']['properties']['Update'];
 
+interface CategoryUpdateData {
+  photos?: string[];
+  videos?: string[];
+  notes?: string;
+}
+
 interface UseDynamicCategoriesReturn {
   categories: DynamicCategory[];
   loading: boolean;
   error: string | null;
   updateCategoryPercentage: (categoryId: string, percentage: number) => Promise<boolean>;
   deleteCategory: (categoryId: string) => Promise<boolean>;
-  saveAllProgress: (propertyId: string, percentages: Record<string, number>) => Promise<boolean>;
+  saveAllProgress: (
+    propertyId: string, 
+    percentages: Record<string, number>,
+    updates?: Record<string, CategoryUpdateData>
+  ) => Promise<boolean>;
   refetch: () => Promise<void>;
 }
 
@@ -142,7 +152,8 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
 
   const saveAllProgress = useCallback(async (
     propertyId: string,
-    percentages: Record<string, number>
+    percentages: Record<string, number>,
+    updates?: Record<string, CategoryUpdateData>
   ): Promise<boolean> => {
     try {
       setError(null);
@@ -158,16 +169,51 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
         return true;
       }
 
+      // Obtener el usuario actual para guardar created_by
+      const { data: { user } } = await supabase.auth.getUser();
+      const createdBy = user?.id || null;
+
       // Update all changed categories in parallel
-      const updatePromises = categoriesToUpdate.map(cat => {
+      const updatePromises = categoriesToUpdate.map(async (cat) => {
         const newPercentage = percentages[cat.id];
-        return supabase
+        const previousPercentage = cat.percentage ?? 0;
+        
+        // Actualizar la categoría
+        const { error: updateError } = await supabase
           .from('property_dynamic_categories')
           .update({
             percentage: newPercentage,
             updated_at: new Date().toISOString(),
           })
           .eq('id', cat.id);
+
+        if (updateError) {
+          return { error: updateError };
+        }
+
+        // Si hay update data (fotos/videos/notas), guardarlo en category_updates
+        const updateData = updates?.[cat.id];
+        if (updateData && (updateData.photos?.length || updateData.videos?.length || updateData.notes)) {
+          const { error: insertError } = await supabase
+            .from('category_updates')
+            .insert({
+              category_id: cat.id,
+              property_id: propertyId,
+              previous_percentage: previousPercentage,
+              new_percentage: newPercentage,
+              photos: updateData.photos || [],
+              videos: updateData.videos || [],
+              notes: updateData.notes || undefined,
+              created_by: createdBy,
+            });
+
+          if (insertError) {
+            console.error(`Error saving update for category ${cat.id}:`, insertError);
+            // No fallar el guardado si solo falla el insert del update
+          }
+        }
+
+        return { error: null };
       });
 
       const results = await Promise.all(updatePromises);

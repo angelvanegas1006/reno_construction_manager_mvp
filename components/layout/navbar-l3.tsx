@@ -23,6 +23,8 @@ interface NavbarL3Props {
   statusText?: string;
   /** Botón de menú móvil para abrir sidebar */
   onMenuClick?: () => void;
+  /** Acción adicional en la esquina superior derecha (ej: icono de reportar problema) */
+  rightAction?: React.ReactNode;
 }
 
 /**
@@ -44,6 +46,7 @@ export function NavbarL3({
   actions = [],
   statusText,
   onMenuClick,
+  rightAction,
 }: NavbarL3Props) {
   // Separar acciones: guardar (outline) y enviar (default/primary)
   const saveAction = actions.find(a => a.variant === "outline");
@@ -128,6 +131,13 @@ export function NavbarL3({
                   {submitAction.label}
                 </Button>
               )}
+            </div>
+          )}
+          
+          {/* Acción adicional en la esquina superior derecha */}
+          {rightAction && (
+            <div className="flex items-center flex-shrink-0">
+              {rightAction}
             </div>
           )}
         </div>
