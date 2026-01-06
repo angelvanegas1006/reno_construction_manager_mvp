@@ -1,0 +1,121 @@
+/* Prophero Design System Tokens (source: https://web-components.design.prophero.com/) */
+
+:root {
+  /* Brand Blues - Primary Palette */
+  --prophero-blue-50: #eef2ff;
+  --prophero-blue-100: #e0e7ff;
+  --prophero-blue-200: #c7d2fe;
+  --prophero-blue-300: #a5b4fc;
+  --prophero-blue-400: #818cf8;
+  --prophero-blue-500: #316eff; /* Primary brand color - updated for dark mode */
+  --prophero-blue-600: #2246cc;
+  --prophero-blue-700: #1b36a3;
+  --prophero-blue-800: #152a80;
+  --prophero-blue-900: #112266;
+  --prophero-blue-950: #0d1b4d;
+
+  /* Semantic Colors */
+  --prophero-success: #10b981;
+  --prophero-success-hover: #059669;
+  --prophero-warning: #f59e0b;
+  --prophero-warning-hover: #d97706;
+  --prophero-danger: #ef4444;
+  --prophero-danger-hover: #dc2626;
+  --prophero-info: #3b82f6;
+  --prophero-info-hover: #2563eb;
+
+  /* Dark Mode Secondary Colors */
+  --prophero-secondary-200: #d1d1d1;
+  --prophero-secondary-500: #6d6d6d;
+  --prophero-secondary-600: #5d5d5d;
+  --prophero-secondary-700: #4f4f4f;
+  --prophero-secondary-800: #454545;
+  --prophero-secondary-900: #3d3d3d;
+  --prophero-secondary-950: #212121;
+
+  /* Neutral Grays */
+  --prophero-gray-50: #f9fafb;
+  --prophero-gray-100: #f3f4f6;
+  --prophero-gray-200: #e5e7eb;
+  --prophero-gray-300: #d1d5db;
+  --prophero-gray-400: #9ca3af;
+  --prophero-gray-500: #6b7280;
+  --prophero-gray-600: #4b5563;
+  --prophero-gray-700: #374151;
+  --prophero-gray-800: #1f2937;
+  --prophero-gray-900: #111827;
+  --prophero-gray-950: #030712;
+
+  /* Typography Scale */
+  --prophero-font-family-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --prophero-font-family-mono: 'Fira Code', 'Consolas', monospace;
+  
+  --prophero-font-size-xs: 0.75rem;    /* 12px */
+  --prophero-font-size-sm: 0.875rem;   /* 14px */
+  --prophero-font-size-base: 1rem;      /* 16px */
+  --prophero-font-size-lg: 1.125rem;    /* 18px */
+  --prophero-font-size-xl: 1.25rem;     /* 20px */
+  --prophero-font-size-2xl: 1.5rem;     /* 24px */
+  --prophero-font-size-3xl: 1.875rem;   /* 30px */
+  --prophero-font-size-4xl: 2.25rem;    /* 36px */
+
+  --prophero-font-weight-normal: 400;
+  --prophero-font-weight-medium: 500;
+  --prophero-font-weight-semibold: 600;
+  --prophero-font-weight-bold: 700;
+
+  --prophero-line-height-tight: 1.25;
+  --prophero-line-height-normal: 1.5;
+  --prophero-line-height-relaxed: 1.75;
+
+  /* Spacing Scale */
+  --prophero-spacing-0: 0;
+  --prophero-spacing-1: 0.25rem;   /* 4px */
+  --prophero-spacing-2: 0.5rem;    /* 8px */
+  --prophero-spacing-3: 0.75rem;   /* 12px */
+  --prophero-spacing-4: 1rem;      /* 16px */
+  --prophero-spacing-5: 1.25rem;   /* 20px */
+  --prophero-spacing-6: 1.5rem;    /* 24px */
+  --prophero-spacing-8: 2rem;      /* 32px */
+  --prophero-spacing-10: 2.5rem;   /* 40px */
+  --prophero-spacing-12: 3rem;     /* 48px */
+  --prophero-spacing-16: 4rem;     /* 64px */
+  --prophero-spacing-20: 5rem;     /* 80px */
+
+  /* Border Radius */
+  --prophero-radius-none: 0;
+  --prophero-radius-sm: 0.25rem;   /* 4px */
+  --prophero-radius-md: 0.5rem;     /* 8px */
+  --prophero-radius-lg: 0.75rem;     /* 12px */
+  --prophero-radius-xl: 1rem;       /* 16px */
+  --prophero-radius-full: 9999px;
+
+  /* Shadows */
+  --prophero-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --prophero-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --prophero-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --prophero-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Transitions */
+  --prophero-transition-fast: 150ms ease;
+  --prophero-transition-base: 200ms ease;
+  --prophero-transition-slow: 300ms ease;
+}
+
+/* Dark Mode Overrides */
+.dark {
+  /* Dark mode adjustments for semantic colors - reduced saturation */
+  --prophero-success: #22c55e; /* Reduced saturation - using 500 instead of 700 */
+  --prophero-success-hover: #16a34a;
+  --prophero-warning: #fbbf24; /* Reduced saturation */
+  --prophero-warning-hover: #f59e0b;
+  --prophero-danger: #f87171; /* Reduced saturation - using 400 instead of 700 */
+  --prophero-danger-hover: #ef4444;
+  --prophero-info: #60a5fa; /* Reduced saturation */
+  --prophero-info-hover: #3b82f6;
+}
+
+
+
+
+
