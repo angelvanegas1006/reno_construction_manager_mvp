@@ -27,18 +27,25 @@ export function getUpdateIntervalDays(renoType?: string | null): number {
 }
 
 /**
- * Base date for all renovation updates: Friday, December 11, 2024
+ * Get base date for all renovation updates: Tomorrow
  * This is used as fallback ONLY when reno_start_date is not available
+ * Using tomorrow ensures the team can start working from that date
  */
-const BASE_UPDATE_DATE = new Date('2024-12-11T00:00:00.000Z'); // Friday, December 11, 2024
+function getBaseUpdateDate(): Date {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  return tomorrow;
+}
 
 /**
- * Calculate the next update date based on renovation start date and renovation type
- * Updates are calculated from the renovation start date (reno_start_date) forward
- * @param lastUpdateDate ISO date string of the last update (or null/undefined) - used for fallback only
+ * Calculate the next update date based on renovation type
+ * RESET ÚNICO: Todas las propiedades calculan desde mañana, independientemente de fecha de inicio
+ * En el futuro, cuando se actualice una propiedad, se usará su fecha de inicio normalmente
+ * @param lastUpdateDate ISO date string of the last update (or null/undefined) - not used in reset mode
  * @param renoType Type of renovation (Light Reno, Medium Reno, Major Reno)
- * @param renoStartDate ISO date string of when the renovation started (optional)
- * @returns ISO date string of the next update date that should occur (or has occurred)
+ * @param renoStartDate ISO date string of when the renovation started (optional) - ignored in reset mode
+ * @returns ISO date string of the next update date (tomorrow + interval based on reno type)
  */
 export function calculateNextUpdateDate(
   lastUpdateDate: string | null | undefined,
@@ -47,31 +54,18 @@ export function calculateNextUpdateDate(
 ): string | null {
   const intervalDays = getUpdateIntervalDays(renoType);
   
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // RESET ÚNICO: Todas las propiedades calculan desde mañana
+  // Ignoramos renoStartDate para este reset único
+  const baseDate = getBaseUpdateDate(); // Tomorrow
   
-  // Use reno_start_date if available, otherwise fallback to BASE_UPDATE_DATE
-  const startDate = renoStartDate ? new Date(renoStartDate) : BASE_UPDATE_DATE;
-  startDate.setHours(0, 0, 0, 0);
+  // Calculate next update: tomorrow + interval based on reno type
+  const nextUpdateDate = new Date(baseDate);
+  nextUpdateDate.setDate(baseDate.getDate() + intervalDays);
+  nextUpdateDate.setHours(0, 0, 0, 0);
   
-  // Start from renovation start date
-  let updateDate = new Date(startDate);
-  updateDate.setHours(0, 0, 0, 0);
-  
-  // Find the last update date that should have happened (<= today)
-  // This is the date that determines if we need an update
-  let lastUpdateThatShouldHaveHappened = new Date(startDate);
-  lastUpdateThatShouldHaveHappened.setHours(0, 0, 0, 0);
-  
-  // Keep adding interval days until we exceed today
-  while (updateDate <= today) {
-    lastUpdateThatShouldHaveHappened = new Date(updateDate);
-    updateDate.setDate(updateDate.getDate() + intervalDays);
-  }
-  
-  // Return the next update date (the one after the last that should have happened)
-  // This is what we show as "próxima actualización"
-  return updateDate.toISOString();
+  // Return the next update date (tomorrow + interval)
+  // This ensures no properties show as "needs update" initially
+  return nextUpdateDate.toISOString();
 }
 
 /**

@@ -33,21 +33,28 @@ export function RenoPropertyCard({
   const { track } = useMixpanel();
   const isExpired = isPropertyExpired(property);
 
-  // Calculate proximaActualizacion if it doesn't exist (from reno start date)
+  // Calculate proximaActualizacion for reno-in-progress phase
+  // RESET ÚNICO: Siempre calcular desde mañana, ignorando cualquier fecha antigua de la BD
   const renoStartDate = property.inicio || (property as any).supabaseProperty?.["Reno Start Date"] || (property as any).supabaseProperty?.start_date;
-  const proximaActualizacionCalculada = property.proximaActualizacion || 
-    (stage === "reno-in-progress" ? calculateNextUpdateDate(null, property.renoType, renoStartDate) : null);
+  // Para reno-in-progress, siempre calcular desde mañana (reset único)
+  // Para otras fases, usar la fecha de la BD si existe
+  const proximaActualizacionCalculada = stage === "reno-in-progress" 
+    ? calculateNextUpdateDate(null, property.renoType, renoStartDate) // Siempre calcular desde mañana
+    : (property.proximaActualizacion || null); // Para otras fases, usar BD si existe
 
   const needsUpdateToday = proximaActualizacionCalculada
     ? new Date(proximaActualizacionCalculada).toDateString() === new Date().toDateString()
     : false;
 
-  // Check if property needs an update THIS WEEK (for reno-in-progress phase)
-  // Only show badge if the property needs update this week (Monday to Sunday)
-  // This matches exactly the criteria used in the "Actualización de obra" widget in home
-  const needsUpdateBadge = stage === "reno-in-progress" && proximaActualizacionCalculada && 
-    needsUpdate(proximaActualizacionCalculada, property.renoType, renoStartDate) &&
-    needsUpdateThisWeek(proximaActualizacionCalculada);
+  // Check if property needs an update (for reno-in-progress phase)
+  // Show badge ONLY if the property needs update (today or in the past)
+  // Blue badge if this week, red badge if overdue (past week or earlier)
+  // Con el reset, todas las fechas están en el futuro, por lo que no debería mostrar badges inicialmente
+  const needsUpdateNow = stage === "reno-in-progress" && proximaActualizacionCalculada && 
+    needsUpdate(proximaActualizacionCalculada, property.renoType, renoStartDate);
+  const needsUpdateThisWeekFlag = needsUpdateNow && needsUpdateThisWeek(proximaActualizacionCalculada);
+  // Solo mostrar "vencida" si realmente necesita actualización pero no está en esta semana
+  const isOverdue = needsUpdateNow && !needsUpdateThisWeekFlag;
   
   // Debug log for all reno-in-progress properties to understand the issue
   if (stage === "reno-in-progress") {
@@ -62,7 +69,9 @@ export function RenoPropertyCard({
       daysSinceStart,
       intervalDays,
       needsUpdate: daysSinceStart !== null ? daysSinceStart >= intervalDays : 'no start date',
-      needsUpdateBadge,
+      needsUpdateNow,
+      needsUpdateThisWeekFlag,
+      isOverdue,
       proximaActualizacionCalculada,
     });
   }
@@ -199,12 +208,19 @@ export function RenoPropertyCard({
           ID {property.uniqueIdFromEngagements || property.id}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          {needsUpdateBadge && (
+          {/* Solo mostrar badges de actualización en fase reno-in-progress cuando necesita actualización a cliente */}
+          {stage === "reno-in-progress" && needsUpdateThisWeekFlag && (
             <Badge variant="outline" className="text-xs border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">
               {language === "es" ? "Necesita actualización" : "Need Update"}
             </Badge>
           )}
-          {isExpired && (
+          {stage === "reno-in-progress" && isOverdue && (
+            <Badge variant="outline" className="text-xs border-red-500 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30">
+              {language === "es" ? "Vencida" : "Overdue"}
+            </Badge>
+          )}
+          {/* Solo mostrar expired si NO está en reno-in-progress (para evitar duplicados) */}
+          {stage !== "reno-in-progress" && isExpired && (
             <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 flex-shrink-0 whitespace-nowrap">
               {t.propertyCard.expired}
             </span>

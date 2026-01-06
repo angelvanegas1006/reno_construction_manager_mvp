@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, User, Building2, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell, Flag, Wrench } from "lucide-react";
+import { CheckCircle2, Clock, User, Building2, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell, Flag, Wrench, Folder } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,7 @@ export function PropertyStatusSidebar({
   const renovatorName = supabaseProperty?.['Renovator name'] || property.renovador;
   const renoType = property.renoType || supabaseProperty?.reno_type;
   const createdAt = supabaseProperty?.created_at || property.createdAt;
+  const driveFolderUrl = supabaseProperty?.drive_folder_url;
   
   // Get days based on phase
   const daysToVisit = property.daysToVisit;
@@ -237,6 +238,24 @@ export function PropertyStatusSidebar({
             )}>
               {daysInfo.value} días
             </p>
+          </div>
+        )}
+
+        {/* Drive Folder Link */}
+        {driveFolderUrl && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <Folder className="h-4 w-4 text-muted-foreground" />
+              Carpeta Drive
+            </h4>
+            <a
+              href={driveFolderUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            >
+              Abrir carpeta
+            </a>
           </div>
         )}
 
