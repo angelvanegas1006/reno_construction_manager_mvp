@@ -370,9 +370,9 @@ export async function finalizeInitialCheckInAirtable(
           inspection = null;
           inspectionError = { code: 'PGRST116', message: 'No matching inspection found' } as any;
         } else {
-          inspection = latestInspection;
-          inspectionError = null;
-        }
+        inspection = latestInspection;
+        inspectionError = null;
+      }
       }
     } else if (inspectionError && inspectionError.code !== 'PGRST116') {
       // PGRST116 es "no rows returned", que es válido si no existe la inspección
@@ -409,18 +409,18 @@ export async function finalizeInitialCheckInAirtable(
       const inspectionData = inspection as { id: string; inspection_status?: string };
       if (inspectionData.inspection_status !== 'completed') {
         console.log('[Initial Check Sync] Inspection not completed, completing it now:', inspectionData.id);
-        const { error: completeError } = await supabase
-          .from('property_inspections')
-          .update({
-            inspection_status: 'completed',
-            completed_at: new Date().toISOString(),
-          })
+      const { error: completeError } = await supabase
+        .from('property_inspections')
+        .update({
+          inspection_status: 'completed',
+          completed_at: new Date().toISOString(),
+        })
           .eq('id', inspectionData.id);
-        
-        if (completeError) {
-          console.error('[Initial Check Sync] Error completing inspection:', completeError);
-        } else {
-          console.log('[Initial Check Sync] ✅ Inspection completed successfully');
+      
+      if (completeError) {
+        console.error('[Initial Check Sync] Error completing inspection:', completeError);
+      } else {
+        console.log('[Initial Check Sync] ✅ Inspection completed successfully');
         }
       }
     }
@@ -478,9 +478,9 @@ export async function finalizeInitialCheckInAirtable(
           // Guardar URL del PDF en property_inspections
           if (inspection && typeof inspection === 'object' && 'id' in inspection) {
             const inspectionData = inspection as { id: string };
-            await supabase
-              .from('property_inspections')
-              .update({ pdf_url: pdfUrl })
+          await supabase
+            .from('property_inspections')
+            .update({ pdf_url: pdfUrl })
               .eq('id', inspectionData.id);
           }
         } catch (pdfError: any) {

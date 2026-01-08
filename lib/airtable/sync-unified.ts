@@ -249,12 +249,50 @@ function mapAirtablePropertyToSupabase(airtableProperty: any): any {
       'Est. Reno End Date:',
       'Estimated End Date'
     ]) || null,
-    start_date: getFieldValue('Reno Start Date', [
-      'Reno Start Date', 
-      'Reno start date',
-      'Reno Start Date:',
-      'Start Date'
-    ]) || null,
+    start_date: (() => {
+      // Buscar primero por field ID directamente, luego por nombres alternativos
+      const dateValue = fields['fldCnB9pCmpG5khiH'] !== undefined 
+        ? fields['fldCnB9pCmpG5khiH']
+        : getFieldValue('Reno Start Date', [
+            'Reno Start Date', 
+            'Reno start date',
+            'Reno Start Date:',
+            'Start Date'
+          ]);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0]; // YYYY-MM-DD
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+      return null;
+    })(),
+    Est_reno_start_date: (() => {
+      // Buscar primero por field ID directamente, luego por nombres alternativos
+      const dateValue = fields['fldPX58nQYf9HsTRE'] !== undefined 
+        ? fields['fldPX58nQYf9HsTRE']
+        : getFieldValue('Est. reno start date', [
+            'Est. reno start date',
+            'Est. Reno Start Date',
+            'Estimated Reno Start Date',
+            'Estimated reno start date'
+          ]);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0]; // YYYY-MM-DD
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+      return null;
+    })(),
     pics_urls: (() => {
       let picsField = fields['pics_urls_from_properties'] ||
                      fields['fldq1FLXBToYEY9W3'] || 
@@ -333,6 +371,24 @@ function mapAirtablePropertyToSupabase(airtableProperty: any): any {
       if (value === null || value === undefined) return null;
       const num = typeof value === 'number' ? value : parseInt(String(value), 10);
       return isNaN(num) ? null : num;
+    })(),
+    'Real Settlement Date': (() => {
+      const dateValue = getFieldValue('Real settlement date', [
+        'Real settlement date',
+        'Real Settlement Date',
+        'fldpQgS6HzhX0nXal' // Field ID en Airtable
+      ]);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0]; // YYYY-MM-DD
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+      return null;
     })(),
     airtable_property_id: airtableProperty.id,
     updated_at: new Date().toISOString(),

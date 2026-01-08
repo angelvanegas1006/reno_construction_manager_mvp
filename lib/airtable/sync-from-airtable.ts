@@ -412,7 +412,7 @@ export async function fetchPropertiesFromAirtable(
 /**
  * Mapea un registro de Airtable a formato Supabase
  */
-function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
+export function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
   const fields = airtableProperty.fields;
   // Buscar el campo con diferentes variaciones del nombre
   const uniqueIdValue = 
@@ -519,12 +519,50 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
       'Est. Reno End Date:',
       'Estimated End Date'
     ]) || null,
-    start_date: getFieldValue('Reno Start Date', [
-      'Reno Start Date', 
-      'Reno start date',
-      'Reno Start Date:',
-      'Start Date'
-    ]) || null,
+    start_date: (() => {
+      // Buscar primero por field ID directamente, luego por nombres alternativos
+      const dateValue = fields['fldCnB9pCmpG5khiH'] !== undefined 
+        ? fields['fldCnB9pCmpG5khiH']
+        : getFieldValue('Reno Start Date', [
+            'Reno Start Date', 
+            'Reno start date',
+            'Reno Start Date:',
+            'Start Date'
+          ]);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0]; // YYYY-MM-DD
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+      return null;
+    })(),
+    Est_reno_start_date: (() => {
+      // Buscar primero por field ID directamente, luego por nombres alternativos
+      const dateValue = fields['fldPX58nQYf9HsTRE'] !== undefined 
+        ? fields['fldPX58nQYf9HsTRE']
+        : getFieldValue('Est. reno start date', [
+            'Est. reno start date',
+            'Est. Reno Start Date',
+            'Estimated Reno Start Date',
+            'Estimated reno start date'
+          ]);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0]; // YYYY-MM-DD
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+      return null;
+    })(),
     // Days and duration fields - convert to numbers
     'Days to Start Reno (Since RSD)': (() => {
       // Campo en Airtable: "Days to start reno since real settlement date"
@@ -688,6 +726,24 @@ function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
       }
       
       return undefined;
+    })(),
+    'Real Settlement Date': (() => {
+      const dateValue = getFieldValue('Real settlement date', [
+        'Real settlement date',
+        'Real Settlement Date',
+        'fldpQgS6HzhX0nXal' // Field ID en Airtable
+      ]);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString().split('T')[0]; // YYYY-MM-DD
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+      return null;
     })(),
     updated_at: new Date().toISOString(),
   };
