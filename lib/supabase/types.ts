@@ -754,6 +754,7 @@ export type Database = {
           photos: string[] | null
           videos: string[] | null
           notes: string | null
+          category_text: string | null
           created_by: string | null
           created_at: string
         }
@@ -766,6 +767,7 @@ export type Database = {
           photos?: string[] | null
           videos?: string[] | null
           notes?: string | null
+          category_text?: string | null
           created_by?: string | null
           created_at?: string
         }
@@ -778,6 +780,7 @@ export type Database = {
           photos?: string[] | null
           videos?: string[] | null
           notes?: string | null
+          category_text?: string | null
           created_by?: string | null
           created_at?: string
         }
@@ -791,6 +794,44 @@ export type Database = {
           },
           {
             foreignKeyName: "fk_category_updates_property"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_update_emails: {
+        Row: {
+          id: string
+          property_id: string
+          html_content: string
+          client_email: string | null
+          subject: string | null
+          sent_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          html_content: string
+          client_email?: string | null
+          subject?: string | null
+          sent_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          html_content?: string
+          client_email?: string | null
+          subject?: string | null
+          sent_at?: string
+          created_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_client_update_emails_property"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
