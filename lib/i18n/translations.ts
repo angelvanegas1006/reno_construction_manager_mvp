@@ -290,6 +290,10 @@ export interface Translations {
     visitsTodayDescription: string;
     totalVisitsMonth: string;
     totalVisitsMonthDescription: string;
+    updatesThisWeek: string;
+    updatesThisWeekDescription: string;
+    settlementsThisWeek: string;
+    settlementsThisWeekDescription: string;
     checksForToday: string;
     checksForTodayDescription: string;
     workStatusVisitsToday: string;
@@ -1316,6 +1320,10 @@ export const translations: Record<Language, Translations> = {
       visitsTodayDescription: "Visitas estimadas programadas para esta semana",
       totalVisitsMonth: "Total de visitas hechas en el mes",
       totalVisitsMonthDescription: "Visitas completadas este mes",
+      updatesThisWeek: "Actualizaciones para esta semana",
+      updatesThisWeekDescription: "Actualizaciones de seguimiento de obra programadas para esta semana",
+      settlementsThisWeek: "Viviendas que se firman esta semana",
+      settlementsThisWeekDescription: "Propiedades con fecha de escrituración programada para esta semana",
       checksForToday: "Checks para ejecutar hoy",
       checksForTodayDescription: "Checks iniciales y finales programados para hoy",
       workStatusVisitsToday: "Visitas de estado de obra hoy",
