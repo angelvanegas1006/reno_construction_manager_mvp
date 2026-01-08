@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { Database } from '@/lib/supabase/types';
@@ -42,6 +42,7 @@ export function SendUpdateEmailPreview({
   const [isSending, setIsSending] = useState(false);
   const [isGeneratingTexts, setIsGeneratingTexts] = useState(false);
   const [generationErrors, setGenerationErrors] = useState<Record<string, string>>({});
+  const [excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set()); // Categorías excluidas del update
   const supabase = createClient();
 
   // Detectar mobile/tablet
@@ -61,8 +62,8 @@ export function SendUpdateEmailPreview({
 
   const [categoriesWithoutImages, setCategoriesWithoutImages] = useState<Category[]>([]);
 
-  // Obtener categorías sin fotos pero con updates recientes (últimos 30 minutos)
-  // También incluir categorías que tuvieron cambios de porcentaje aunque no tengan registro en category_updates
+  // Obtener categorías sin fotos pero con updates MUY recientes (últimos 2 minutos)
+  // Solo incluir categorías que se acaban de guardar justo antes de enviar el update
   useEffect(() => {
     if (!open || categories.length === 0) {
       setCategoriesWithoutImages([]);
@@ -71,7 +72,7 @@ export function SendUpdateEmailPreview({
 
     const fetchCategoriesWithoutImages = async () => {
       try {
-        const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
         const categoryIds = categories.map(cat => cat.id);
         
         const { data: updates, error } = await supabase
@@ -79,7 +80,7 @@ export function SendUpdateEmailPreview({
           .select('category_id, created_at, new_percentage, photos')
           .eq('property_id', property.id)
           .in('category_id', categoryIds)
-          .gte('created_at', thirtyMinutesAgo)
+          .gte('created_at', twoMinutesAgo)
           .order('created_at', { ascending: false });
 
         if (error) {
@@ -95,12 +96,9 @@ export function SendUpdateEmailPreview({
             errorMessage.includes('category_updates');
           
           if (isTableNotFound) {
-            // Si la tabla no existe, incluir todas las categorías con porcentaje > 0 que no tienen imágenes seleccionadas
-            const categoriesWithoutImagesList = categories.filter(category => {
-              if (selectedImages[category.id]) return false;
-              return category.percentage > 0;
-            });
-            setCategoriesWithoutImages(categoriesWithoutImagesList);
+            // Si la tabla no existe, no incluir ninguna categoría sin imágenes
+            // Solo se incluirán las que tienen imágenes seleccionadas
+            setCategoriesWithoutImages([]);
             return;
           }
           console.error('Error fetching recent updates:', error);
@@ -118,29 +116,20 @@ export function SendUpdateEmailPreview({
             .map(update => update.category_id)
         );
 
-        // Filtrar categorías que no están en selectedImages pero tienen updates recientes SIN fotos
-        // O categorías con porcentaje > 0 que no tienen imágenes seleccionadas
+        // Filtrar categorías que no están en selectedImages pero tienen updates MUY recientes SIN fotos
+        // Solo incluir categorías con updates de los últimos 2 minutos (justo después de guardar)
         const categoriesWithoutImagesList = categories.filter(category => {
           if (selectedImages[category.id]) return false; // Ya tiene imágenes seleccionadas
           
-          // Incluir si:
-          // 1. Tiene un update reciente sin fotos, O
-          // 2. Tiene porcentaje > 0 (cambio reciente aunque no haya registro en category_updates)
-          return (
-            categoryIdsWithRecentUpdates.has(category.id) || 
-            category.percentage > 0
-          );
+          // Solo incluir si tiene un update muy reciente sin fotos
+          return categoryIdsWithRecentUpdates.has(category.id);
         });
 
         setCategoriesWithoutImages(categoriesWithoutImagesList);
       } catch (err) {
         console.error('Error fetching categories without images:', err);
-        // En caso de error, incluir todas las categorías con porcentaje > 0 que no tienen imágenes
-        const categoriesWithoutImagesList = categories.filter(category => {
-          if (selectedImages[category.id]) return false;
-          return category.percentage > 0;
-        });
-        setCategoriesWithoutImages(categoriesWithoutImagesList);
+        // En caso de error, no incluir ninguna categoría (solo las que tienen imágenes seleccionadas)
+        setCategoriesWithoutImages([]);
       }
     };
 
@@ -152,18 +141,16 @@ export function SendUpdateEmailPreview({
     if (!open || categories.length === 0) return;
 
     const generateTextsWithGemini = async () => {
-      // Obtener todas las categorías con avances (porcentaje > 0)
+      // Obtener solo categorías con avances MUY recientes (últimos 2 minutos)
+      // Esto asegura que solo incluimos categorías que se acaban de guardar justo antes de enviar
       const categoriesWithProgress = [
+        // Categorías con imágenes seleccionadas (siempre incluir si tienen imágenes)
         ...Object.keys(selectedImages).map(catId => {
           const cat = categories.find(c => c.id === catId);
           return cat && cat.percentage > 0 ? cat : null;
         }).filter(Boolean) as Category[],
-        ...categoriesWithoutImages.filter(cat => cat.percentage > 0),
-        ...categories.filter(cat => 
-          cat.percentage > 0 && 
-          !selectedImages[cat.id] && 
-          !categoriesWithoutImages.find(c => c.id === cat.id)
-        )
+        // Categorías sin imágenes pero con updates muy recientes (ya filtradas por categoriesWithoutImages)
+        ...categoriesWithoutImages
       ];
 
       // Eliminar duplicados
@@ -186,14 +173,15 @@ export function SendUpdateEmailPreview({
           .select('id, activities_text')
           .in('id', categoryIds);
 
-        // Obtener los últimos updates de cada categoría
-        const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        // Obtener los últimos updates de cada categoría (solo los MUY recientes - últimos 2 minutos)
+        // Esto asegura que solo incluimos categorías que se acaban de guardar justo antes de enviar
+        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
         const { data: updatesData } = await supabase
           .from('category_updates')
           .select('category_id, previous_percentage, new_percentage, notes, created_at')
           .eq('property_id', property.id)
           .in('category_id', categoryIds)
-          .gte('created_at', thirtyMinutesAgo)
+          .gte('created_at', twoMinutesAgo)
           .order('created_at', { ascending: false });
 
         // Crear un mapa de updates por categoría (último update de cada una)
@@ -214,8 +202,11 @@ export function SendUpdateEmailPreview({
           });
         }
 
-        // Generar textos en paralelo para todas las categorías
-        const generationPromises = uniqueCategories.map(async (category) => {
+        // Filtrar categorías excluidas
+        const categoriesToGenerate = uniqueCategories.filter(cat => !excludedCategories.has(cat.id));
+
+        // Generar textos en paralelo para todas las categorías (excepto las excluidas)
+        const generationPromises = categoriesToGenerate.map(async (category) => {
           try {
             const categoryInfo = categoriesMap.get(category.id);
             const update = updatesMap.get(category.id);
@@ -286,9 +277,9 @@ export function SendUpdateEmailPreview({
 
         setCategoryTexts(prev => ({ ...prev, ...generatedTexts }));
 
-        // Generar resumen final con IA
+        // Generar resumen final con IA (solo para categorías no excluidas)
         try {
-          const summaryInfo = uniqueCategories.map(cat => {
+          const summaryInfo = categoriesToGenerate.map(cat => {
             const catText = generatedTexts[cat.id] || `Avance en ${cat.name}`;
             return `${cat.name}: ${catText}`;
           }).join('\n');
@@ -301,7 +292,9 @@ export function SendUpdateEmailPreview({
             body: JSON.stringify({ 
               categoryData: {
                 categoryName: 'Resumen General',
-                currentPercentage: Math.round(uniqueCategories.reduce((sum, cat) => sum + cat.percentage, 0) / uniqueCategories.length),
+                currentPercentage: categoriesToGenerate.length > 0 
+                  ? Math.round(categoriesToGenerate.reduce((sum, cat) => sum + cat.percentage, 0) / categoriesToGenerate.length)
+                  : 0,
                 activities: `Avances realizados:\n${summaryInfo}\n\nEscribe un párrafo corto (2-3 frases máximo) en español, positivo y profesional, que resuma el progreso general de la obra. Debe sonar natural, como escrito por un jefe de obra, y cerrar el update de manera positiva. NO menciones porcentajes.`,
               }
             }),
@@ -329,7 +322,7 @@ export function SendUpdateEmailPreview({
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [open, categories, selectedImages, categoriesWithoutImages, property.id, supabase]);
+  }, [open, categories, selectedImages, categoriesWithoutImages, property.id, supabase, excludedCategories]);
 
   const handleTextChange = useCallback((categoryId: string, text: string) => {
     setCategoryTexts(prev => ({
@@ -367,8 +360,9 @@ export function SendUpdateEmailPreview({
       </table>
     `;
     
-    // Categorías con imágenes
+    // Categorías con imágenes (excluyendo las eliminadas)
     const categoriesWithImagesHTML = Object.entries(selectedImages)
+      .filter(([categoryId]) => !excludedCategories.has(categoryId))
       .map(([categoryId, imageUrls]) => {
         const category = categories.find(cat => cat.id === categoryId);
         if (!category) return '';
@@ -415,9 +409,9 @@ export function SendUpdateEmailPreview({
       })
       .join('');
     
-    // Categorías sin fotos pero con updates recientes
-    // Incluir todas las categorías sin imágenes que tienen porcentaje > 0, incluso si no tienen texto editado aún
+    // Categorías sin fotos pero con updates recientes (excluyendo las eliminadas)
     const categoriesWithoutImagesHTML = categoriesWithoutImages
+      .filter(category => !excludedCategories.has(category.id))
       .map(category => {
         // Si no hay texto editado, usar el texto por defecto
         const text = categoryTexts[category.id] || `Hemos avanzado en ${category.name} alcanzando un ${category.percentage}% de progreso.`;
@@ -484,7 +478,7 @@ export function SendUpdateEmailPreview({
     `;
     
     return html;
-  }, [property, categories, selectedImages, categoryTexts, categoriesWithoutImages]);
+  }, [property, categories, selectedImages, categoryTexts, categoriesWithoutImages, excludedCategories]);
 
   const handleSend = useCallback(async () => {
     setIsSending(true);
@@ -540,6 +534,74 @@ export function SendUpdateEmailPreview({
         throw new Error(`Error al enviar el correo: ${response.statusText}`);
       }
       
+      // Guardar HTML en client_update_emails
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error: saveError } = await supabase
+        .from('client_update_emails')
+        .insert({
+          property_id: property.id,
+          html_content: emailHTML,
+          client_email: clientEmail,
+          subject: `Update de Progreso - ${uniqueIdAirtable}`,
+          created_by: user?.id || null,
+        });
+      
+      if (saveError) {
+        console.error('[Send Update Email] Error guardando HTML en historial:', saveError);
+        // No fallar el envío si solo falla el guardado del historial
+      } else {
+        console.log('[Send Update Email] ✅ HTML guardado en historial');
+      }
+      
+      // Actualizar category_updates más recientes con los textos generados
+      // Buscar los updates más recientes de cada categoría que tiene texto generado (excluyendo las eliminadas)
+      const categoryIdsWithText = Object.keys(categoryTexts)
+        .filter(id => id !== '_summary' && !excludedCategories.has(id));
+      
+      if (categoryIdsWithText.length > 0) {
+        const updatePromises = categoryIdsWithText.map(async (categoryId) => {
+          const text = categoryTexts[categoryId];
+          if (!text) return;
+          
+          // Buscar el update más reciente de esta categoría sin texto
+          const { data: recentUpdate, error: findError } = await supabase
+            .from('category_updates')
+            .select('id')
+            .eq('category_id', categoryId)
+            .eq('property_id', property.id)
+            .is('category_text', null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (findError) {
+            console.error(`[Send Update Email] Error buscando update para categoría ${categoryId}:`, findError);
+            return;
+          }
+          
+          if (recentUpdate) {
+            // Actualizar con el texto generado
+            const { error: updateError } = await supabase
+              .from('category_updates')
+              .update({ category_text: text })
+              .eq('id', recentUpdate.id);
+            
+            if (updateError) {
+              console.error(`[Send Update Email] Error actualizando texto para categoría ${categoryId}:`, updateError);
+            } else {
+              console.log(`[Send Update Email] ✅ Texto actualizado para categoría ${categoryId}`);
+            }
+          } else {
+            console.warn(`[Send Update Email] ⚠️ No se encontró update reciente sin texto para categoría ${categoryId}`);
+          }
+        });
+        
+        await Promise.all(updatePromises);
+        console.log('[Send Update Email] ✅ Textos de categorías actualizados en historial');
+      }
+      
       toast.success('Update enviado correctamente al cliente');
       handleClose();
     } catch (error) {
@@ -548,13 +610,28 @@ export function SendUpdateEmailPreview({
     } finally {
       setIsSending(false);
     }
-  }, [onSend, generateEmailHTML, property]);
+  }, [onSend, generateEmailHTML, property, categoryTexts, excludedCategories, supabase]);
 
   const handleClose = useCallback(() => {
     setCategoryTexts({});
+    setExcludedCategories(new Set());
     setIsSending(false);
     onOpenChange(false);
   }, [onOpenChange]);
+
+  const handleExcludeCategory = useCallback((categoryId: string) => {
+    setExcludedCategories(prev => {
+      const newSet = new Set(prev);
+      newSet.add(categoryId);
+      return newSet;
+    });
+    // También eliminar el texto generado para esta categoría
+    setCategoryTexts(prev => {
+      const newTexts = { ...prev };
+      delete newTexts[categoryId];
+      return newTexts;
+    });
+  }, []);
 
   const emailHTML = useMemo(() => generateEmailHTML(), [generateEmailHTML]);
 
@@ -596,13 +673,28 @@ export function SendUpdateEmailPreview({
               {/* Editor de textos por categoría */}
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Editar Textos</Label>
-                {Object.entries(selectedImages).map(([categoryId, imageUrls]) => {
+                {Object.entries(selectedImages)
+                  .filter(([categoryId]) => !excludedCategories.has(categoryId))
+                  .map(([categoryId, imageUrls]) => {
                   const category = categories.find(cat => cat.id === categoryId);
                   if (!category) return null;
                   
                   return (
                     <div key={categoryId} className="space-y-2">
-                      <Label className="text-sm font-medium">{category.name}</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">{category.name}</Label>
+                        {!isGeneratingTexts && categoryTexts[categoryId] && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleExcludeCategory(categoryId)}
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Eliminar esta categoría del update"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                       {isGeneratingTexts && !categoryTexts[categoryId] ? (
                         <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
                           <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -628,9 +720,24 @@ export function SendUpdateEmailPreview({
                 })}
                 
                 {/* Categorías sin fotos pero con updates */}
-                {categoriesWithoutImages.map(category => (
+                {categoriesWithoutImages
+                  .filter(category => !excludedCategories.has(category.id))
+                  .map(category => (
                   <div key={category.id} className="space-y-2">
-                    <Label className="text-sm font-medium">{category.name}</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium">{category.name}</Label>
+                      {!isGeneratingTexts && categoryTexts[category.id] && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleExcludeCategory(category.id)}
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title="Eliminar esta categoría del update"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     {isGeneratingTexts && !categoryTexts[category.id] ? (
                       <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
                         <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -736,13 +843,28 @@ export function SendUpdateEmailPreview({
             )}
             
             <Label className="text-base font-semibold">Editar Textos</Label>
-            {Object.entries(selectedImages).map(([categoryId]) => {
+            {Object.entries(selectedImages)
+              .filter(([categoryId]) => !excludedCategories.has(categoryId))
+              .map(([categoryId]) => {
               const category = categories.find(cat => cat.id === categoryId);
               if (!category) return null;
               
               return (
                 <div key={categoryId} className="space-y-2">
-                  <Label className="text-sm font-medium">{category.name}</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">{category.name}</Label>
+                    {!isGeneratingTexts && categoryTexts[categoryId] && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleExcludeCategory(categoryId)}
+                        className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Eliminar esta categoría del update"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                   {isGeneratingTexts && !categoryTexts[categoryId] ? (
                     <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
@@ -768,9 +890,24 @@ export function SendUpdateEmailPreview({
             })}
             
             {/* Categorías sin fotos pero con updates */}
-            {categoriesWithoutImages.map(category => (
+            {categoriesWithoutImages
+              .filter(category => !excludedCategories.has(category.id))
+              .map(category => (
               <div key={category.id} className="space-y-2">
-                <Label className="text-sm font-medium">{category.name}</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">{category.name}</Label>
+                  {!isGeneratingTexts && categoryTexts[category.id] && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleExcludeCategory(category.id)}
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      title="Eliminar esta categoría del update"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 {isGeneratingTexts && !categoryTexts[category.id] ? (
                   <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
                     <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />

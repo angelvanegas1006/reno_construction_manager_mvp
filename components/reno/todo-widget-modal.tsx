@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { mapSetUpStatusToKanbanPhase } from "@/lib/supabase/kanban-mapping";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { RenovatorCombobox } from "@/components/reno/renovator-combobox";
+import { PenTool } from "lucide-react";
 
 interface TodoWidgetModalProps {
   open: boolean;
@@ -60,6 +61,26 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
   const uniqueId = property?.uniqueIdFromEngagements || property?.id || "";
   const areaCluster = supabaseProperty?.area_cluster || property?.region || "";
   const renoType = supabaseProperty?.renovation_type || property?.renoType || "";
+  const realSettlementDate = property?.realSettlementDate || supabaseProperty?.['Real Settlement Date'];
+  
+  // Verificar si la propiedad está firmada (realSettlementDate anterior a hoy)
+  const isSigned = (() => {
+    if (!realSettlementDate) return false;
+    try {
+      const settlementDate = new Date(realSettlementDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      settlementDate.setHours(0, 0, 0, 0);
+      return settlementDate < today;
+    } catch (e) {
+      return false;
+    }
+  })();
+  
+  // Formatear fecha de escrituración para mostrar
+  const formattedSettlementDate = realSettlementDate 
+    ? new Date(realSettlementDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : "-";
 
   // Manejar guardado de Estimated Visit Date
   const handleSaveEstimatedVisitDate = async () => {
@@ -431,9 +452,37 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
                 <p className="text-sm font-medium">{areaCluster || "-"}</p>
               </div>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Reno Type</Label>
-              <p className="text-sm font-medium">{renoType || "-"}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Reno Type</Label>
+                <p className="text-sm font-medium">{renoType || "-"}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Fecha de escrituración</Label>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">{formattedSettlementDate}</p>
+                  {/* Icono de Firmada - solo para estimated-visit e initial-check */}
+                  {(widgetType === 'estimated-visit' || widgetType === 'initial-check') && isSigned && (
+                    <div 
+                      className="relative group"
+                      onClick={(e) => e.stopPropagation()}
+                      onMouseEnter={(e) => e.stopPropagation()}
+                    >
+                      <PenTool 
+                        className="h-4 w-4 text-indigo-600 dark:text-indigo-400 cursor-help" 
+                      />
+                      {/* Tooltip personalizado */}
+                      <div className="absolute left-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
+                        <div className="relative bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-md px-2 py-1.5 whitespace-nowrap shadow-lg">
+                          Esta vivienda ya está firmada
+                          {/* Flecha del tooltip */}
+                          <div className="absolute -top-1 left-3 w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -469,14 +518,15 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
                     onValueChange={async (newValue) => {
                       const trimmedValue = newValue?.trim() || "";
                       setRenovatorName(trimmedValue);
-                      // Guardar automáticamente cuando se selecciona un renovador del combobox
+                      // Guardar automáticamente cuando se escribe o selecciona un renovador
+                      // Esto permite crear nuevos renovadores escribiendo el nombre
                       const currentRenovator = property?.renovador || (property as any)?.supabaseProperty?.['Renovator name'] || "";
-                      if (trimmedValue && trimmedValue !== currentRenovator) {
-                        // Guardar inmediatamente con el nuevo valor
+                      if (trimmedValue !== currentRenovator) {
+                        // Guardar inmediatamente con el nuevo valor (puede ser un renovador nuevo)
                         await handleSaveRenovatorName(trimmedValue);
                       }
                     }}
-                    placeholder="Buscar renovador..."
+                    placeholder="Buscar o escribir renovador..."
                     disabled={isSaving}
                   />
                   {isSaving && (

@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "lucide-react";
+import { Calendar, CheckCircle2, PenTool } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
@@ -202,6 +202,47 @@ export function RenoPropertyCard({
         onClick?.();
       }}
     >
+      {/* Icono de Firmada - arriba a la derecha (solo para upcoming-settlements e initial-check) */}
+      {(stage === "upcoming-settlements" || stage === "initial-check") && (() => {
+        const realSettlementDate = property.realSettlementDate || 
+                                  (property as any)?.supabaseProperty?.['Real Settlement Date'];
+        
+        if (realSettlementDate) {
+          try {
+            const settlementDate = new Date(realSettlementDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            settlementDate.setHours(0, 0, 0, 0);
+            
+            // Solo mostrar si la fecha es anterior a hoy
+            if (settlementDate < today) {
+              return (
+                <div 
+                  className="absolute top-2 right-2 z-10 group"
+                  onClick={(e) => e.stopPropagation()} // Evitar que el click en el icono active el onClick del card
+                  onMouseEnter={(e) => e.stopPropagation()} // Evitar que el hover active otros eventos
+                >
+                  <PenTool 
+                    className="h-5 w-5 text-indigo-600 dark:text-indigo-400 cursor-help" 
+                  />
+                  {/* Tooltip personalizado */}
+                  <div className="absolute right-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
+                    <div className="relative bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-md px-2 py-1.5 whitespace-nowrap shadow-lg">
+                      Esta vivienda ya está firmada
+                      {/* Flecha del tooltip */}
+                      <div className="absolute -top-1 right-3 w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45"></div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+          } catch (e) {
+            // Si hay error parseando la fecha, no mostrar nada
+          }
+        }
+        return null;
+      })()}
+      
       {/* ID and Expired tag aligned at top */}
       <div className="flex items-center justify-between mb-2 gap-2 min-w-0">
         <div className="text-xs font-semibold text-muted-foreground truncate min-w-0">
@@ -319,7 +360,7 @@ export function RenoPropertyCard({
           {property.realSettlementDate && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3 flex-shrink-0" />
-              <span>{t.propertyCard.signing}: {formatDate(property.realSettlementDate)}</span>
+              <span>Fecha de escrituración: {formatDate(property.realSettlementDate)}</span>
             </div>
           )}
           {/* Días para visitar - only show if filled */}
@@ -340,7 +381,7 @@ export function RenoPropertyCard({
           {property.realSettlementDate && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar className="h-3 w-3 flex-shrink-0" />
-              <span>{t.propertyCard.signing}: {formatDate(property.realSettlementDate)}</span>
+              <span>Fecha de escrituración: {formatDate(property.realSettlementDate)}</span>
             </div>
           )}
           {property.estimatedVisitDate && (
