@@ -330,12 +330,12 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       >
         <CardHeader 
           className={cn(
-            "relative z-10 flex flex-row items-center gap-3 pb-4 cursor-pointer flex-shrink-0",
+            "relative z-10 flex flex-row items-start gap-3 py-4 cursor-pointer flex-shrink-0",
             "border-b border-border/50"
           )}
           onClick={widget.onClick}
         >
-          <CardTitle className="text-sm font-semibold text-foreground leading-tight flex-1 min-w-0 truncate">
+          <CardTitle className="text-sm font-semibold text-foreground leading-relaxed flex-1 min-w-0 break-words pt-0.5">
             {widget.title}
           </CardTitle>
           
@@ -442,7 +442,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                     )}
                   >
                     <div className="flex-1 min-w-0 text-left">
-                      <div className="text-sm font-semibold text-foreground leading-tight">
+                      <div className="text-sm font-semibold text-foreground leading-normal break-words">
                         {widget.title}
                       </div>
                     </div>

@@ -34,7 +34,10 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
 
     // Get dynamic count from section or default to dynamicItems length or 0
     const dynamicCount: number = section.dynamicCount ?? (section.dynamicItems?.length ?? 0);
-    const dynamicItems = section.dynamicItems || [];
+    // Usar useMemo para asegurar que dynamicItems se actualice cuando section.dynamicItems cambie
+    const dynamicItems = useMemo(() => {
+      return section.dynamicItems || [];
+    }, [section.dynamicItems]);
 
     // Get current bano if index is provided
     const bano = (() => {
@@ -42,7 +45,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         return dynamicItems[banoIndex] || {
           id: `bano-${banoIndex + 1}`,
           questions: [],
-          uploadZone: { id: "fotos-video", photos: [], videos: [] },
+          uploadZone: { id: `fotos-video-banos-${banoIndex + 1}`, photos: [], videos: [] },
         };
       }
       return null;
@@ -59,7 +62,14 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       { id: "ventilacion" },
     ], []);
 
-    const questions = bano?.questions || defaultQuestions;
+    // Usar useMemo para asegurar que questions se actualice cuando dynamicItems cambie
+    const questions = useMemo(() => {
+      if (banoIndex !== undefined) {
+        const latestBano = dynamicItems[banoIndex];
+        return latestBano?.questions || defaultQuestions;
+      }
+      return bano?.questions || defaultQuestions;
+    }, [dynamicItems, banoIndex, bano?.questions, defaultQuestions]);
 
     // Initialize carpentry items
     const carpentryItems: ChecklistCarpentryItem[] = (() => {
@@ -75,23 +85,37 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       } as ChecklistCarpentryItem));
     })();
 
-    // Initialize upload zone
-    const uploadZone = bano?.uploadZone || { id: "fotos-video", photos: [], videos: [] };
+    // Initialize upload zone - usar ID único con índice
+    const uploadZone = bano?.uploadZone || (banoIndex !== undefined 
+      ? { id: `fotos-video-banos-${banoIndex + 1}`, photos: [], videos: [] }
+      : { id: "fotos-video", photos: [], videos: [] });
 
     // Handlers
     const handleUploadZoneUpdate = useCallback((updates: ChecklistUploadZone) => {
       if (banoIndex === undefined || !bano) return;
-      const updatedItems = [...dynamicItems];
+      // Priorizar section.dynamicItems para obtener los datos más actualizados
+      const latestDynamicItems = section.dynamicItems || dynamicItems;
+      const latestBano = latestDynamicItems[banoIndex] || bano;
+      const updatedItems = [...latestDynamicItems];
+      // Asegurar que el ID del uploadZone se mantiene correcto
+      const correctUploadZoneId = `fotos-video-banos-${banoIndex + 1}`;
       updatedItems[banoIndex] = {
-        ...bano,
-        uploadZone: updates,
+        ...latestBano,
+        uploadZone: {
+          ...updates,
+          id: updates.id || correctUploadZoneId, // Mantener ID correcto si no viene en updates
+        },
       };
       onUpdate({ dynamicItems: updatedItems });
-    }, [bano, dynamicItems, banoIndex, onUpdate]);
+    }, [bano, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleQuestionUpdate = useCallback((questionId: string, updates: Partial<ChecklistQuestion>) => {
       if (banoIndex === undefined || !bano) return;
-      const currentQuestions = bano.questions || defaultQuestions;
+      // Priorizar dynamicItems del useMemo que se actualiza cuando section.dynamicItems cambia
+      const latestDynamicItems = dynamicItems.length > 0 ? dynamicItems : (section.dynamicItems || []);
+      const latestBano = latestDynamicItems[banoIndex] || bano;
+      
+      const currentQuestions = latestBano.questions || defaultQuestions;
       const updatedQuestions = currentQuestions.map(q =>
         q.id === questionId ? { ...q, ...updates } : q
       );
@@ -100,13 +124,13 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         updatedQuestions.push({ id: questionId, ...updates });
       }
       
-      const updatedItems = [...dynamicItems];
+      const updatedItems = [...latestDynamicItems];
       updatedItems[banoIndex] = {
-        ...bano,
+        ...latestBano,
         questions: updatedQuestions,
       };
       onUpdate({ dynamicItems: updatedItems });
-    }, [bano, dynamicItems, banoIndex, defaultQuestions, onUpdate]);
+    }, [bano, dynamicItems, banoIndex, defaultQuestions, onUpdate, section.dynamicItems]);
 
     const handleCarpentryQuantityChange = useCallback((itemId: string, delta: number) => {
       if (banoIndex === undefined || !bano) return;
@@ -151,7 +175,10 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
 
     const handleCarpentryStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
       if (banoIndex === undefined || !bano) return;
-      const currentItems = bano?.carpentryItems || carpentryItems;
+      // Priorizar section.dynamicItems para obtener los datos más actualizados
+      const latestDynamicItems = section.dynamicItems || dynamicItems;
+      const latestBano = latestDynamicItems[banoIndex] || bano;
+      const currentItems = latestBano?.carpentryItems || carpentryItems;
       const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -175,7 +202,10 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
 
     const handleCarpentryNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
       if (banoIndex === undefined || !bano) return;
-      const currentItems = bano?.carpentryItems || carpentryItems;
+      // Priorizar section.dynamicItems para obtener los datos más actualizados
+      const latestDynamicItems = section.dynamicItems || dynamicItems;
+      const latestBano = latestDynamicItems[banoIndex] || bano;
+      const currentItems = latestBano?.carpentryItems || carpentryItems;
       const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -189,17 +219,20 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         }
         return item;
       });
-      const updatedDynamicItems = [...dynamicItems];
+      const updatedDynamicItems = [...latestDynamicItems];
       updatedDynamicItems[banoIndex] = {
-        ...bano,
+        ...latestBano,
         carpentryItems: updatedItems,
       };
       onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate]);
+    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleCarpentryPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
       if (banoIndex === undefined || !bano) return;
-      const currentItems = bano?.carpentryItems || carpentryItems;
+      // Priorizar section.dynamicItems para obtener los datos más actualizados
+      const latestDynamicItems = section.dynamicItems || dynamicItems;
+      const latestBano = latestDynamicItems[banoIndex] || bano;
+      const currentItems = latestBano?.carpentryItems || carpentryItems;
       const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -213,17 +246,20 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         }
         return item;
       });
-      const updatedDynamicItems = [...dynamicItems];
+      const updatedDynamicItems = [...latestDynamicItems];
       updatedDynamicItems[banoIndex] = {
-        ...bano,
+        ...latestBano,
         carpentryItems: updatedItems,
       };
       onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate]);
+    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleCarpentryBadElementsChange = useCallback((itemId: string, unitIndex: number | null, badElements: string[]) => {
       if (banoIndex === undefined || !bano) return;
-      const currentItems = bano?.carpentryItems || carpentryItems;
+      // Priorizar section.dynamicItems para obtener los datos más actualizados
+      const latestDynamicItems = section.dynamicItems || dynamicItems;
+      const latestBano = latestDynamicItems[banoIndex] || bano;
+      const currentItems = latestBano?.carpentryItems || carpentryItems;
       const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -237,13 +273,13 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         }
         return item;
       });
-      const updatedDynamicItems = [...dynamicItems];
+      const updatedDynamicItems = [...latestDynamicItems];
       updatedDynamicItems[banoIndex] = {
-        ...bano,
+        ...latestBano,
         carpentryItems: updatedItems,
       };
       onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate]);
+    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleCountChange = useCallback((delta: number) => {
       const newCount = Math.max(0, Math.min(20, dynamicCount + delta));
@@ -252,8 +288,9 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       
       if (newCount > dynamicCount) {
         while (updatedItems.length < newCount) {
+          const newIndex = updatedItems.length + 1;
           updatedItems.push({
-            id: `bano-${updatedItems.length + 1}`,
+            id: `bano-${newIndex}`,
             questions: [
               { id: "acabados" },
               { id: "agua-drenaje" },
@@ -263,7 +300,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
               { id: "mobiliario" },
               { id: "ventilacion" },
             ],
-            uploadZone: { id: "fotos-video", photos: [], videos: [] },
+            uploadZone: { id: `fotos-video-banos-${newIndex}`, photos: [], videos: [] },
             carpentryItems: CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
           });
         }
@@ -289,12 +326,101 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       { value: "no_aplica", label: t.checklist.noAplica, icon: XCircle },
     ], [t]);
 
+    // Function to calculate progress for a bathroom
+    const calculateBanoProgress = useCallback((banoItem: ChecklistDynamicItem) => {
+      const totalSections = 9; // Fotos, Acabados, Agua/Drenaje, Sanitarios, Grifería/Ducha, Puerta entrada, Carpintería, Mobiliario, Ventilación
+      let completedSections = 0;
+
+      // 1. Fotos/video (required)
+      if (banoItem.uploadZone && 
+          (banoItem.uploadZone.photos?.length > 0 || banoItem.uploadZone.videos?.length > 0)) {
+        completedSections++;
+      }
+
+      // 2. Acabados (must have status)
+      const acabadosQuestion = banoItem.questions?.find(q => q.id === "acabados");
+      if (acabadosQuestion?.status) {
+        completedSections++;
+      }
+
+      // 3. Agua/Drenaje (must have status)
+      const aguaDrenajeQuestion = banoItem.questions?.find(q => q.id === "agua-drenaje");
+      if (aguaDrenajeQuestion?.status) {
+        completedSections++;
+      }
+
+      // 4. Sanitarios (must have status)
+      const sanitariosQuestion = banoItem.questions?.find(q => q.id === "sanitarios");
+      if (sanitariosQuestion?.status) {
+        completedSections++;
+      }
+
+      // 5. Grifería/Ducha (must have status)
+      const griferiaDuchaQuestion = banoItem.questions?.find(q => q.id === "griferia-ducha");
+      if (griferiaDuchaQuestion?.status) {
+        completedSections++;
+      }
+
+      // 6. Puerta entrada (must have status)
+      const puertaQuestion = banoItem.questions?.find(q => q.id === "puerta-entrada");
+      if (puertaQuestion?.status) {
+        completedSections++;
+      }
+
+      // 7. Carpintería - all items with cantidad > 0 must have estado
+      let carpinteriaComplete = true;
+      if (banoItem.carpentryItems && banoItem.carpentryItems.length > 0) {
+        for (const item of banoItem.carpentryItems) {
+          if (item.cantidad > 0) {
+            if (item.cantidad === 1) {
+              // Single unit - check estado directly on item
+              if (!(item as ChecklistCarpentryItem).estado) {
+                carpinteriaComplete = false;
+                break;
+              }
+            } else if (item.cantidad > 1) {
+              // Multiple units - check that we have exactly cantidad units and all have estado
+              if (!item.units || item.units.length !== item.cantidad) {
+                carpinteriaComplete = false;
+                break;
+              }
+              const allUnitsHaveEstado = item.units.every(unit => unit.estado);
+              if (!allUnitsHaveEstado) {
+                carpinteriaComplete = false;
+                break;
+              }
+            }
+          }
+        }
+      }
+      if (carpinteriaComplete && banoItem.carpentryItems && banoItem.carpentryItems.some(item => item.cantidad > 0)) {
+        completedSections++;
+      } else if (!banoItem.carpentryItems || banoItem.carpentryItems.every(item => item.cantidad === 0)) {
+        // Si no hay carpintería, cuenta como completado
+        completedSections++;
+      }
+
+      // 8. Mobiliario (must have status if exists)
+      const mobiliarioQuestion = banoItem.questions?.find(q => q.id === "mobiliario");
+      if (mobiliarioQuestion?.status) {
+        completedSections++;
+      }
+
+      // 9. Ventilación (must have status)
+      const ventilacionQuestion = banoItem.questions?.find(q => q.id === "ventilacion");
+      if (ventilacionQuestion?.status) {
+        completedSections++;
+      }
+
+      return { completed: completedSections, total: totalSections };
+    }, []);
+
     // If dynamicCount === 1 and banoIndex is undefined, show the form directly
     if (dynamicCount === 1 && banoIndex === undefined) {
       const singleBano = dynamicItems[0] || {
         id: "bano-1",
         questions: defaultQuestions,
-        uploadZone: { id: "fotos-video", photos: [], videos: [] },
+        uploadZone: { id: "fotos-video-banos-1", photos: [], videos: [] },
         carpentryItems: CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
       };
       
@@ -447,9 +573,14 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         const currentDynamicItems = section.dynamicItems || [];
         const currentBano = currentDynamicItems[0] || effectiveBano;
         const updatedDynamicItems = [...currentDynamicItems];
+        // Asegurar que el ID del uploadZone se mantiene correcto
+        const correctUploadZoneId = "fotos-video-banos-1";
         updatedDynamicItems[0] = {
           ...currentBano,
-          uploadZone: updates,
+          uploadZone: {
+            ...updates,
+            id: updates.id || correctUploadZoneId, // Mantener ID correcto si no viene en updates
+          },
         };
         onUpdate({ dynamicItems: updatedDynamicItems });
       };
@@ -478,7 +609,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       const currentBano = currentDynamicItems[0] || effectiveBano;
       const currentQuestions = currentBano.questions || effectiveQuestions;
       const currentCarpentryItems = currentBano.carpentryItems || effectiveCarpentryItems;
-      const currentUploadZone = currentBano.uploadZone || { id: "fotos-video", photos: [], videos: [] };
+      const currentUploadZone = currentBano.uploadZone || { id: "fotos-video-banos-1", photos: [], videos: [] };
 
       return (
         <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
@@ -696,7 +827,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                       {/* Notes */}
                                       <div className="space-y-2">
                                         <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                          {t.checklist.notes} <span className="text-red-500">*</span>
+                                          {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                         </Label>
                                         <Textarea
                                           value={unit.notes || ""}
@@ -760,7 +891,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                 {/* Notes */}
                                 <div className="space-y-2">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                    {t.checklist.notes} <span className="text-red-500">*</span>
+                                    {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                   </Label>
                                   <Textarea
                                     value={item.notes || ""}
@@ -1053,7 +1184,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                       {/* Notes */}
                                       <div className="space-y-2">
                                         <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                          {t.checklist.notes} <span className="text-red-500">*</span>
+                                          {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                         </Label>
                                         <Textarea
                                           value={unit.notes || ""}
@@ -1117,7 +1248,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                 {/* Notes */}
                                 <div className="space-y-2">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                    {t.checklist.notes} <span className="text-red-500">*</span>
+                                    {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                   </Label>
                                   <Textarea
                                     value={item.notes || ""}
@@ -1284,17 +1415,33 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         {/* List of Bathrooms */}
         {dynamicCount > 0 && (
           <div className="space-y-3">
-            {dynamicItems.map((banoItem, index) => {
-              const progress = 0; // TODO: Calculate progress
+            {Array.from({ length: dynamicCount }, (_, index) => {
+              // Usar section.dynamicItems directamente para obtener los datos más actualizados
+              const latestDynamicItems = section.dynamicItems || dynamicItems;
+              const banoItem = latestDynamicItems[index] || {
+                id: `bano-${index + 1}`,
+                questions: [],
+                uploadZone: { id: `fotos-video-banos-${index + 1}`, photos: [], videos: [] },
+              };
+              // Calcular progreso para este baño específico usando sus propios datos
+              const progress = calculateBanoProgress(banoItem);
+              const isComplete = progress.completed === progress.total;
               return (
-                <Card key={banoItem.id} className="p-4 sm:p-6">
+                <Card key={banoItem.id || index} className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-foreground">
-                        {t.checklist.sections.banos.bathroom} {index + 1}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {progress}% completado
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-sm font-semibold text-foreground">
+                          {t.checklist.sections.banos.bathroom} {index + 1}
+                        </h3>
+                        {isComplete && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
+                            Completado
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {progress.completed}/{progress.total} secciones completadas
                       </p>
                     </div>
                     <button

@@ -1160,6 +1160,21 @@ export function useSupabaseChecklistBase({
           
           console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Uploaded ${uploadedUrls.length} files successfully`);
           
+          // Crear mapeo de file.id -> URL para actualizar correctamente cada foto
+          const fileIdToUrlMap = new Map<string, string>();
+          filesToUpload.forEach((file, index) => {
+            if (index < uploadedUrls.length && uploadedUrls[index]) {
+              fileIdToUrlMap.set(file.id, uploadedUrls[index]);
+            }
+          });
+          
+          console.log(`[useSupabaseChecklistBase:${inspectionType}] 📋 Created file ID to URL map:`, {
+            totalFiles: filesToUpload.length,
+            uploadedUrls: uploadedUrls.length,
+            mapSize: fileIdToUrlMap.size,
+            fileIds: Array.from(fileIdToUrlMap.keys()),
+          });
+          
           // Subir fotos a Drive después de subirlas a Supabase Storage
           // Filtrar solo las fotos nuevas (que se acaban de subir) y extraer nombres de archivo
           const photosToUploadToDrive: Array<{ url: string; filename: string }> = [];
@@ -1212,71 +1227,72 @@ export function useSupabaseChecklistBase({
                 console.log(`[useSupabaseChecklistBase:${inspectionType}] 📦 Total accumulated photos: ${accumulatedInitialCheckPhotosRef.current.length}`);
               } else {
                 // Para otros tipos (intermediate, final), enviar inmediatamente
-                console.log(`[useSupabaseChecklistBase:${inspectionType}] 📤 Uploading ${photosToUploadToDrive.length} photos to Drive...`);
-                try {
-                  const driveUploadSuccess = await uploadPhotosToDrive(
-                    propertyId,
-                    driveChecklistType,
-                    photosToUploadToDrive
-                  );
-                  
-                  if (!driveUploadSuccess) {
-                    toast.error("Error al subir fotos a Drive", {
-                      description: "Las fotos se guardaron en Supabase pero no se pudieron subir a Drive. Contacta al administrador.",
-                    });
-                  } else {
-                    console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Successfully uploaded photos to Drive`);
-                  }
-                } catch (driveError: any) {
-                  console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error uploading photos to Drive:`, driveError);
+              console.log(`[useSupabaseChecklistBase:${inspectionType}] 📤 Uploading ${photosToUploadToDrive.length} photos to Drive...`);
+              try {
+                const driveUploadSuccess = await uploadPhotosToDrive(
+                  propertyId,
+                  driveChecklistType,
+                  photosToUploadToDrive
+                );
+                
+                if (!driveUploadSuccess) {
                   toast.error("Error al subir fotos a Drive", {
-                    description: driveError.message || "Las fotos se guardaron en Supabase pero no se pudieron subir a Drive.",
+                    description: "Las fotos se guardaron en Supabase pero no se pudieron subir a Drive. Contacta al administrador.",
                   });
+                } else {
+                  console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Successfully uploaded photos to Drive`);
+                }
+              } catch (driveError: any) {
+                console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error uploading photos to Drive:`, driveError);
+                toast.error("Error al subir fotos a Drive", {
+                  description: driveError.message || "Las fotos se guardaron en Supabase pero no se pudieron subir a Drive.",
+                });
                 }
               }
             }
           }
           
-          // Actualizar las fotos en la copia de la sección con las URLs subidas
-          let urlIndex = 0;
+          // Función helper para actualizar una foto/video usando el mapeo por ID
+          const updateFileWithMap = (file: FileUpload, context: string) => {
+            if (file.data && (file.data.startsWith('data:') || (!file.data.startsWith('http') && file.data.length > 100))) {
+              const url = fileIdToUrlMap.get(file.id);
+              if (url) {
+                console.log(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Updating ${context} file ${file.id} with URL:`, url.substring(0, 50) + '...');
+                file.data = url;
+                return true;
+              }
+            }
+            return false;
+          };
           
+          // Actualizar las fotos en la copia de la sección con las URLs subidas usando el mapeo por ID
           // Actualizar uploadZones
           if (sectionToSave.uploadZones) {
             sectionToSave.uploadZones.forEach(uploadZone => {
               if (uploadZone.photos) {
                 uploadZone.photos.forEach(photo => {
-                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                    if (urlIndex < uploadedUrls.length) {
-                      photo.data = uploadedUrls[urlIndex];
-                      urlIndex++;
-                    }
-                  }
+                  updateFileWithMap(photo, `uploadZone ${uploadZone.id}`);
+                });
+              }
+              if (uploadZone.videos) {
+                uploadZone.videos.forEach(video => {
+                  updateFileWithMap(video, `uploadZone ${uploadZone.id}`);
                 });
               }
             });
           }
           
-          // Actualizar dynamicItems
+          // Actualizar dynamicItems (CRÍTICO: aquí está el problema de mezcla de fotos)
           if (sectionToSave.dynamicItems) {
-            sectionToSave.dynamicItems.forEach(item => {
+            sectionToSave.dynamicItems.forEach((item, itemIndex) => {
               if (item.uploadZone?.photos) {
                 item.uploadZone.photos.forEach(photo => {
-                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                    if (urlIndex < uploadedUrls.length) {
-                      photo.data = uploadedUrls[urlIndex];
-                      urlIndex++;
-                    }
-                  }
+                  updateFileWithMap(photo, `dynamicItem ${item.id} (index ${itemIndex}) uploadZone`);
                 });
               }
               if (item.uploadZone?.videos) {
                 item.uploadZone.videos.forEach(video => {
-                  if (video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))) {
-                    if (urlIndex < uploadedUrls.length) {
-                      video.data = uploadedUrls[urlIndex];
-                      urlIndex++;
-                    }
-                  }
+                  updateFileWithMap(video, `dynamicItem ${item.id} (index ${itemIndex}) uploadZone`);
                 });
               }
               // Actualizar carpentryItems dentro de dynamic items
@@ -1284,24 +1300,14 @@ export function useSupabaseChecklistBase({
                 item.carpentryItems.forEach(carpentryItem => {
                   if (carpentryItem.photos) {
                     carpentryItem.photos.forEach(photo => {
-                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                        if (urlIndex < uploadedUrls.length) {
-                          photo.data = uploadedUrls[urlIndex];
-                          urlIndex++;
-                        }
-                      }
+                      updateFileWithMap(photo, `dynamicItem ${item.id} carpentryItem ${carpentryItem.id}`);
                     });
                   }
                   if (carpentryItem.units) {
                     carpentryItem.units.forEach(unit => {
                       if (unit.photos) {
                         unit.photos.forEach(photo => {
-                          if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                            if (urlIndex < uploadedUrls.length) {
-                              photo.data = uploadedUrls[urlIndex];
-                              urlIndex++;
-                            }
-                          }
+                          updateFileWithMap(photo, `dynamicItem ${item.id} carpentryItem ${carpentryItem.id} unit ${unit.id}`);
                         });
                       }
                     });
@@ -1313,24 +1319,14 @@ export function useSupabaseChecklistBase({
                 item.climatizationItems.forEach(climatizationItem => {
                   if (climatizationItem.photos) {
                     climatizationItem.photos.forEach(photo => {
-                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                        if (urlIndex < uploadedUrls.length) {
-                          photo.data = uploadedUrls[urlIndex];
-                          urlIndex++;
-                        }
-                      }
+                      updateFileWithMap(photo, `dynamicItem ${item.id} climatizationItem ${climatizationItem.id}`);
                     });
                   }
                   if (climatizationItem.units) {
                     climatizationItem.units.forEach(unit => {
                       if (unit.photos) {
                         unit.photos.forEach(photo => {
-                          if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                            if (urlIndex < uploadedUrls.length) {
-                              photo.data = uploadedUrls[urlIndex];
-                              urlIndex++;
-                            }
-                          }
+                          updateFileWithMap(photo, `dynamicItem ${item.id} climatizationItem ${climatizationItem.id} unit ${unit.id}`);
                         });
                       }
                     });
@@ -1342,12 +1338,7 @@ export function useSupabaseChecklistBase({
                 item.questions.forEach(question => {
                   if (question.photos) {
                     question.photos.forEach(photo => {
-                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                        if (urlIndex < uploadedUrls.length) {
-                          photo.data = uploadedUrls[urlIndex];
-                          urlIndex++;
-                        }
-                      }
+                      updateFileWithMap(photo, `dynamicItem ${item.id} question ${question.id}`);
                     });
                   }
                 });
@@ -1360,12 +1351,7 @@ export function useSupabaseChecklistBase({
             sectionToSave.questions.forEach(question => {
               if (question.photos) {
                 question.photos.forEach(photo => {
-                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                    if (urlIndex < uploadedUrls.length) {
-                      photo.data = uploadedUrls[urlIndex];
-                      urlIndex++;
-                    }
-                  }
+                  updateFileWithMap(photo, `question ${question.id}`);
                 });
               }
             });
@@ -1377,12 +1363,7 @@ export function useSupabaseChecklistBase({
               // Fotos cuando cantidad = 1
               if (item.photos) {
                 item.photos.forEach(photo => {
-                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                    if (urlIndex < uploadedUrls.length) {
-                      photo.data = uploadedUrls[urlIndex];
-                      urlIndex++;
-                    }
-                  }
+                  updateFileWithMap(photo, `carpentryItem ${item.id}`);
                 });
               }
               // Fotos de units cuando cantidad > 1
@@ -1390,12 +1371,7 @@ export function useSupabaseChecklistBase({
                 item.units.forEach(unit => {
                   if (unit.photos) {
                     unit.photos.forEach(photo => {
-                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                        if (urlIndex < uploadedUrls.length) {
-                          photo.data = uploadedUrls[urlIndex];
-                          urlIndex++;
-                        }
-                      }
+                      updateFileWithMap(photo, `carpentryItem ${item.id} unit ${unit.id}`);
                     });
                   }
                 });
@@ -1409,12 +1385,7 @@ export function useSupabaseChecklistBase({
               // Fotos cuando cantidad = 1
               if (item.photos) {
                 item.photos.forEach(photo => {
-                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                    if (urlIndex < uploadedUrls.length) {
-                      photo.data = uploadedUrls[urlIndex];
-                      urlIndex++;
-                    }
-                  }
+                  updateFileWithMap(photo, `climatizationItem ${item.id}`);
                 });
               }
               // Fotos de units cuando cantidad > 1
@@ -1422,12 +1393,7 @@ export function useSupabaseChecklistBase({
                 item.units.forEach(unit => {
                   if (unit.photos) {
                     unit.photos.forEach(photo => {
-                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                        if (urlIndex < uploadedUrls.length) {
-                          photo.data = uploadedUrls[urlIndex];
-                          urlIndex++;
-                        }
-                      }
+                      updateFileWithMap(photo, `climatizationItem ${item.id} unit ${unit.id}`);
                     });
                   }
                 });
@@ -1440,24 +1406,14 @@ export function useSupabaseChecklistBase({
             sectionToSave.storageItems.forEach(item => {
               if (item.photos) {
                 item.photos.forEach(photo => {
-                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                    if (urlIndex < uploadedUrls.length) {
-                      photo.data = uploadedUrls[urlIndex];
-                      urlIndex++;
-                    }
-                  }
+                  updateFileWithMap(photo, `storageItem ${item.id}`);
                 });
               }
               if (item.units) {
                 item.units.forEach(unit => {
                   if (unit.photos) {
                     unit.photos.forEach(photo => {
-                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                        if (urlIndex < uploadedUrls.length) {
-                          photo.data = uploadedUrls[urlIndex];
-                          urlIndex++;
-                        }
-                      }
+                      updateFileWithMap(photo, `storageItem ${item.id} unit ${unit.id}`);
                     });
                   }
                 });
@@ -1470,24 +1426,14 @@ export function useSupabaseChecklistBase({
             sectionToSave.appliancesItems.forEach(item => {
               if (item.photos) {
                 item.photos.forEach(photo => {
-                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                    if (urlIndex < uploadedUrls.length) {
-                      photo.data = uploadedUrls[urlIndex];
-                      urlIndex++;
-                    }
-                  }
+                  updateFileWithMap(photo, `appliancesItem ${item.id}`);
                 });
               }
               if (item.units) {
                 item.units.forEach(unit => {
                   if (unit.photos) {
                     unit.photos.forEach(photo => {
-                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                        if (urlIndex < uploadedUrls.length) {
-                          photo.data = uploadedUrls[urlIndex];
-                          urlIndex++;
-                        }
-                      }
+                      updateFileWithMap(photo, `appliancesItem ${item.id} unit ${unit.id}`);
                     });
                   }
                 });
@@ -1500,24 +1446,14 @@ export function useSupabaseChecklistBase({
             sectionToSave.securityItems.forEach(item => {
               if (item.photos) {
                 item.photos.forEach(photo => {
-                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                    if (urlIndex < uploadedUrls.length) {
-                      photo.data = uploadedUrls[urlIndex];
-                      urlIndex++;
-                    }
-                  }
+                  updateFileWithMap(photo, `securityItem ${item.id}`);
                 });
               }
               if (item.units) {
                 item.units.forEach(unit => {
                   if (unit.photos) {
                     unit.photos.forEach(photo => {
-                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                        if (urlIndex < uploadedUrls.length) {
-                          photo.data = uploadedUrls[urlIndex];
-                          urlIndex++;
-                        }
-                      }
+                      updateFileWithMap(photo, `securityItem ${item.id} unit ${unit.id}`);
                     });
                   }
                 });
@@ -1530,24 +1466,14 @@ export function useSupabaseChecklistBase({
             sectionToSave.systemsItems.forEach(item => {
               if (item.photos) {
                 item.photos.forEach(photo => {
-                  if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                    if (urlIndex < uploadedUrls.length) {
-                      photo.data = uploadedUrls[urlIndex];
-                      urlIndex++;
-                    }
-                  }
+                  updateFileWithMap(photo, `systemsItem ${item.id}`);
                 });
               }
               if (item.units) {
                 item.units.forEach(unit => {
                   if (unit.photos) {
                     unit.photos.forEach(photo => {
-                      if (photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))) {
-                        if (urlIndex < uploadedUrls.length) {
-                          photo.data = uploadedUrls[urlIndex];
-                          urlIndex++;
-                        }
-                      }
+                      updateFileWithMap(photo, `systemsItem ${item.id} unit ${unit.id}`);
                     });
                   }
                 });
@@ -1622,13 +1548,22 @@ export function useSupabaseChecklistBase({
           .select();
         
         if (batchUpsertError) {
-          debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error batch upserting elements:`, {
-            error: batchUpsertError,
+          // Mejorar el logging del error para ver qué está pasando
+          const errorDetails = {
+            code: (batchUpsertError as any)?.code,
+            message: (batchUpsertError as any)?.message,
+            details: (batchUpsertError as any)?.details,
+            hint: (batchUpsertError as any)?.hint,
             elementsCount: elementsToSave.length,
-            errorCode: (batchUpsertError as any)?.code,
-            errorMessage: (batchUpsertError as any)?.message,
-          });
-          toast.error(`Error al guardar ${elementsToSave.length} elementos`);
+            elementNames: elementsToSave.map(e => e.element_name),
+            zoneIds: [...new Set(elementsToSave.map(e => e.zone_id))],
+            duplicateElements: elementsToSave.filter((e, idx, arr) => 
+              arr.findIndex(ee => ee.zone_id === e.zone_id && ee.element_name === e.element_name) !== idx
+            ).map(e => ({ zone_id: e.zone_id, element_name: e.element_name })),
+          };
+          debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error batch upserting elements:`, errorDetails);
+          console.error('Full error object:', batchUpsertError);
+          toast.error(`Error al guardar ${elementsToSave.length} elementos: ${(batchUpsertError as any)?.message || 'Error desconocido'}`);
         } else {
           debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Batch saved ${elementsToSave.length} elements successfully`);
           

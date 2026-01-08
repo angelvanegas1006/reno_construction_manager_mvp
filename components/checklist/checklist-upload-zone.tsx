@@ -327,7 +327,12 @@ export function ChecklistUploadZone({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-semibold leading-tight">
-              {title} {isRequired && <span className="text-red-500">*</span>}
+              {title} {isRequired && (
+                <span className="text-red-500">
+                  <span className="text-red-500">*</span>
+                  <span className="ml-1 text-red-500">Obligatorio</span>
+                </span>
+              )}
             </Label>
             <span className="text-xs text-muted-foreground leading-normal">
               {uploadZone.photos.length} foto(s), {uploadZone.videos.length} video(s)

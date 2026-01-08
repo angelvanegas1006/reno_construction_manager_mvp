@@ -84,12 +84,12 @@ export default function RenoConstructionManagerHomePage() {
     return filtered;
   }, [rawPropertiesByPhase, selectedForemanEmails, role]);
   
-  // Load visits for this week (from estimatedVisitDate)
-  const [visitsForThisWeek, setVisitsForThisWeek] = useState<number>(0);
-  const [loadingVisits, setLoadingVisits] = useState(true);
+  // Load work updates for this week (only from reno-in-progress properties with next_update)
+  const [updatesForThisWeek, setUpdatesForThisWeek] = useState<number>(0);
+  const [loadingUpdates, setLoadingUpdates] = useState(true);
   
   useEffect(() => {
-    const fetchVisitsForThisWeek = async () => {
+    const calculateUpdatesForThisWeek = async () => {
       try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -97,29 +97,30 @@ export default function RenoConstructionManagerHomePage() {
         endOfWeek.setDate(endOfWeek.getDate() + 7);
         endOfWeek.setHours(23, 59, 59, 999);
         
-        // Get all properties with estimatedVisitDate within this week
-        const { data, error } = await supabase
+        // Get all properties in reno-in-progress with next_update within this week
+        const { data: workUpdates, error: workUpdatesError } = await supabase
           .from("properties")
-          .select("id, \"Estimated Visit Date\"")
-          .not("\"Estimated Visit Date\"", "is", null)
-          .gte("\"Estimated Visit Date\"", today.toISOString().split('T')[0])
-          .lte("\"Estimated Visit Date\"", endOfWeek.toISOString().split('T')[0]);
+          .select("id, next_update, reno_phase")
+          .eq("reno_phase", "reno-in-progress")
+          .not("next_update", "is", null)
+          .gte("next_update", today.toISOString().split('T')[0])
+          .lte("next_update", endOfWeek.toISOString().split('T')[0]);
         
-        if (error) {
-          console.error("Error fetching visits for this week:", error);
-          setVisitsForThisWeek(0);
+        if (workUpdatesError) {
+          console.error("Error fetching work updates for this week:", workUpdatesError);
+          setUpdatesForThisWeek(0);
         } else {
-          setVisitsForThisWeek(data?.length || 0);
+          setUpdatesForThisWeek(workUpdates?.length || 0);
         }
       } catch (error) {
-        console.error("Error fetching visits for this week:", error);
-        setVisitsForThisWeek(0);
+        console.error("Error calculating updates for this week:", error);
+        setUpdatesForThisWeek(0);
       } finally {
-        setLoadingVisits(false);
+        setLoadingUpdates(false);
       }
     };
     
-    fetchVisitsForThisWeek();
+    calculateUpdatesForThisWeek();
   }, [supabase]);
 
   // Convert Supabase properties to Property format for home page
@@ -179,19 +180,40 @@ export default function RenoConstructionManagerHomePage() {
       (propertiesByPhase?.['cleaning']?.length || 0)
     );
 
-    // Visitas para esta semana: propiedades con estimatedVisitDate dentro de esta semana
+    // Actualizaciones para esta semana: solo actualizaciones de seguimiento de obra (reno-in-progress con next_update)
     // Se carga desde Supabase en el useEffect anterior
-    const visitasParaEstaSemana = visitsForThisWeek;
+    const actualizacionesParaEstaSemana = updatesForThisWeek;
 
-    // Total visitas del mes: simulated with dummy data
-    const totalVisitasMes = 28; // Dummy for now
+    // Viviendas que se firman esta semana: propiedades con realSettlementDate dentro de esta semana
+    // Usar propertiesByPhase para respetar el filtrado por foreman
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(endOfWeek.getDate() + 7);
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    let viviendasQueSeFirmanEstaSemana = 0;
+    if (propertiesByPhase) {
+      // Contar propiedades con realSettlementDate dentro de esta semana
+      // propertiesByPhase ya está filtrado por foreman si corresponde
+      Object.values(propertiesByPhase).flat().forEach((property) => {
+        if (property.realSettlementDate) {
+          const settlementDate = new Date(property.realSettlementDate);
+          settlementDate.setHours(0, 0, 0, 0);
+          
+          if (settlementDate >= today && settlementDate <= endOfWeek) {
+            viviendasQueSeFirmanEstaSemana++;
+          }
+        }
+      });
+    }
 
     return {
       obrasActivas,
-      visitasParaEstaSemana,
-      totalVisitasMes,
+      actualizacionesParaEstaSemana,
+      viviendasQueSeFirmanEstaSemana,
     };
-  }, [properties, visitsForThisWeek]);
+  }, [properties, updatesForThisWeek, propertiesByPhase]);
 
 
   // Handle property click - navigate to property detail or task
@@ -247,8 +269,8 @@ export default function RenoConstructionManagerHomePage() {
               {/* KPIs */}
               <RenoHomeIndicators
                 obrasActivas={indicators.obrasActivas}
-                visitasParaHoy={indicators.visitasParaEstaSemana}
-                totalVisitasMes={indicators.totalVisitasMes}
+                actualizacionesParaEstaSemana={indicators.actualizacionesParaEstaSemana}
+                viviendasQueSeFirmanEstaSemana={indicators.viviendasQueSeFirmanEstaSemana}
               />
 
               {/* Todo List Widgets */}

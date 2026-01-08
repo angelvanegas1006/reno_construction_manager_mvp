@@ -473,7 +473,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                                 {unitRequiresDetails && (
                                   <div className="space-y-2">
                                     <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                      {t.checklist.notes} <span className="text-red-500">*</span>
+                                      {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                     </Label>
                                     <Textarea
                                       value={unit.notes || ""}
@@ -542,7 +542,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                           })() && (
                             <div className="space-y-2">
                               <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                {t.checklist.notes} <span className="text-red-500">*</span>
+                                {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                               </Label>
                               <Textarea
                                 value={(item as ChecklistCarpentryItem).notes || ""}
@@ -697,7 +697,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                                 {unitRequiresDetails && (
                                   <div className="space-y-2">
                                     <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                      {t.checklist.notes} <span className="text-red-500">*</span>
+                                      {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                     </Label>
                                     <Textarea
                                       value={unit.notes || ""}
@@ -766,7 +766,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                           })() && (
                             <div className="space-y-2">
                               <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                {t.checklist.notes} <span className="text-red-500">*</span>
+                                {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                               </Label>
                               <Textarea
                                 value={(item as ChecklistClimatizationItem).notes || ""}
@@ -828,20 +828,23 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                   label=""
                   onUpdate={handleMobiliarioQuestionUpdate}
                   elements={[]}
+                  showNotes={false}
                 />
                 {/* Campo de notas obligatorio para describir qué mobiliario existe */}
-                <div className="space-y-2">
-                  <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                    {t.checklist.sections.entradaPasillos.mobiliario.queMobiliarioExiste} <span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
-                    value={mobiliario.question?.notes || ""}
-                    onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
-                    placeholder="Describe qué mobiliario existe en la entrada y pasillos..."
-                    className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
-                    required={true}
-                  />
-                </div>
+                {(mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                      {t.checklist.sections.entradaPasillos.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                    </Label>
+                    <Textarea
+                      value={mobiliario.question?.notes || ""}
+                      onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
+                      placeholder="Describe qué mobiliario existe en la entrada y pasillos..."
+                      className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                      required={true}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

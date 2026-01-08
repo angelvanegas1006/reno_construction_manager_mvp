@@ -461,7 +461,7 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
                                     {/* Notes */}
                                     <div className="space-y-2">
                                       <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                        {t.checklist.notes} <span className="text-red-500">*</span>
+                                        {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                       </Label>
                                       <Textarea
                                         value={unit.notes || ""}
@@ -525,7 +525,7 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
                               {/* Notes */}
                               <div className="space-y-2">
                                 <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                  {t.checklist.notes} <span className="text-red-500">*</span>
+                                  {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                 </Label>
                                 <Textarea
                                   value={carpentryItem.notes || ""}
@@ -693,7 +693,7 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
                                     {/* Notes */}
                                     <div className="space-y-2">
                                       <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                        {t.checklist.notes} <span className="text-red-500">*</span>
+                                        {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                       </Label>
                                       <Textarea
                                         value={unit.notes || ""}
@@ -757,7 +757,7 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
                               {/* Notes */}
                               <div className="space-y-2">
                                 <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                  {t.checklist.notes} <span className="text-red-500">*</span>
+                                  {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                 </Label>
                                 <Textarea
                                   value={climatizationItem.notes || ""}
@@ -815,20 +815,23 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
                   label=""
                   onUpdate={handleMobiliarioQuestionUpdate}
                   elements={[]}
+                  showNotes={false}
                 />
                 {/* Campo de notas obligatorio para describir qué mobiliario existe */}
-                <div className="space-y-2">
-                  <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                    {t.checklist.sections.salon.mobiliario.queMobiliarioExiste} <span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
-                    value={mobiliario.question?.notes || ""}
-                    onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
-                    placeholder="Describe qué mobiliario existe en el salón..."
-                    className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
-                    required={true}
-                  />
-                </div>
+                {(mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                      {t.checklist.sections.salon.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                    </Label>
+                    <Textarea
+                      value={mobiliario.question?.notes || ""}
+                      onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
+                      placeholder="Describe qué mobiliario existe en el salón..."
+                      className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                      required={true}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

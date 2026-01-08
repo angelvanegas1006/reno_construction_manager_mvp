@@ -7,14 +7,14 @@ import { useI18n } from "@/lib/i18n";
 
 interface RenoHomeIndicatorsProps {
   obrasActivas: number;
-  visitasParaHoy: number;
-  totalVisitasMes: number;
+  actualizacionesParaEstaSemana: number;
+  viviendasQueSeFirmanEstaSemana: number;
 }
 
 export function RenoHomeIndicators({
   obrasActivas,
-  visitasParaHoy,
-  totalVisitasMes,
+  actualizacionesParaEstaSemana,
+  viviendasQueSeFirmanEstaSemana,
 }: RenoHomeIndicatorsProps) {
   const { t } = useI18n();
 
@@ -52,15 +52,15 @@ export function RenoHomeIndicators({
         icon={Building2}
       />
       <IndicatorCard
-        title={t.dashboard.visitsToday}
-        value={visitasParaHoy}
-        description={t.dashboard.visitsTodayDescription}
+        title={t.dashboard.updatesThisWeek || "Actualizaciones para esta semana"}
+        value={actualizacionesParaEstaSemana}
+        description={t.dashboard.updatesThisWeekDescription || "Actualizaciones de seguimiento de obra programadas para esta semana"}
         icon={Calendar}
       />
       <IndicatorCard
-        title={t.dashboard.totalVisitsMonth}
-        value={totalVisitasMes}
-        description={t.dashboard.totalVisitsMonthDescription}
+        title={t.dashboard.settlementsThisWeek || "Viviendas que se firman esta semana"}
+        value={viviendasQueSeFirmanEstaSemana}
+        description={t.dashboard.settlementsThisWeekDescription || "Propiedades con fecha de escrituración programada para esta semana"}
         icon={CheckCircle}
       />
     </div>

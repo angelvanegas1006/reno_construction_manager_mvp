@@ -219,8 +219,140 @@ export function RenoChecklistSidebar({
                                 ? `${t.checklist.sections.habitaciones.bedroom} ${i + 1}`
                                 : `${t.checklist.sections.banos.bathroom} ${i + 1}`;
                               
-                              // For sub-items, we use the parent section progress
-                              const subItemProgress = progress;
+                              // Calculate individual progress for each dynamic item
+                              const sectionData = checklist?.sections?.[progressKey];
+                              const dynamicItem = sectionData?.dynamicItems?.[i];
+                              let subItemProgress = 0;
+                              
+                              if (dynamicItem) {
+                                if (isBanos) {
+                                  // Calculate progress for bathroom using the same logic as in banos-section.tsx
+                                  const totalSections = 9; // Fotos, Acabados, Agua/Drenaje, Sanitarios, Grifería/Ducha, Puerta entrada, Carpintería, Mobiliario, Ventilación
+                                  let completedSections = 0;
+                                  
+                                  // 1. Fotos/video
+                                  if (dynamicItem.uploadZone && 
+                                      (dynamicItem.uploadZone.photos?.length > 0 || dynamicItem.uploadZone.videos?.length > 0)) {
+                                    completedSections++;
+                                  }
+                                  
+                                  // 2-6. Questions (Acabados, Agua/Drenaje, Sanitarios, Grifería/Ducha, Puerta entrada)
+                                  const questionIds = ["acabados", "agua-drenaje", "sanitarios", "griferia-ducha", "puerta-entrada"];
+                                  questionIds.forEach(qId => {
+                                    const question = dynamicItem.questions?.find(q => q.id === qId);
+                                    if (question?.status) completedSections++;
+                                  });
+                                  
+                                  // 7. Carpintería
+                                  let carpinteriaComplete = true;
+                                  if (dynamicItem.carpentryItems && dynamicItem.carpentryItems.length > 0) {
+                                    for (const item of dynamicItem.carpentryItems) {
+                                      if (item.cantidad > 0) {
+                                        if (item.cantidad === 1) {
+                                          if (!(item as any).estado) {
+                                            carpinteriaComplete = false;
+                                            break;
+                                          }
+                                        } else if (item.cantidad > 1) {
+                                          if (!item.units || item.units.length !== item.cantidad) {
+                                            carpinteriaComplete = false;
+                                            break;
+                                          }
+                                          const allUnitsHaveEstado = item.units.every((unit: any) => unit.estado);
+                                          if (!allUnitsHaveEstado) {
+                                            carpinteriaComplete = false;
+                                            break;
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                  if (carpinteriaComplete && dynamicItem.carpentryItems && dynamicItem.carpentryItems.some((item: any) => item.cantidad > 0)) {
+                                    completedSections++;
+                                  } else if (!dynamicItem.carpentryItems || dynamicItem.carpentryItems.every((item: any) => item.cantidad === 0)) {
+                                    completedSections++;
+                                  }
+                                  
+                                  // 8. Mobiliario
+                                  const mobiliarioQuestion = dynamicItem.questions?.find(q => q.id === "mobiliario");
+                                  if (mobiliarioQuestion?.status) {
+                                    completedSections++;
+                                  }
+                                  
+                                  // 9. Ventilación
+                                  const ventilacionQuestion = dynamicItem.questions?.find(q => q.id === "ventilacion");
+                                  if (ventilacionQuestion?.status) {
+                                    completedSections++;
+                                  }
+                                  
+                                  subItemProgress = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0;
+                                } else if (isHabitaciones) {
+                                  // Calculate progress for bedroom using similar logic
+                                  const totalSections = 6; // Fotos, Acabados, Carpintería, Electricidad, Climatización, Mobiliario
+                                  let completedSections = 0;
+                                  
+                                  // 1. Fotos/video
+                                  if (dynamicItem.uploadZone && 
+                                      (dynamicItem.uploadZone.photos?.length > 0 || dynamicItem.uploadZone.videos?.length > 0)) {
+                                    completedSections++;
+                                  }
+                                  
+                                  // 2. Acabados
+                                  const acabadosQuestion = dynamicItem.questions?.find(q => q.id === "acabados");
+                                  if (acabadosQuestion?.status) {
+                                    completedSections++;
+                                  }
+                                  
+                                  // 3. Carpintería - Puerta de entrada
+                                  const puertaQuestion = dynamicItem.questions?.find(q => q.id === "puerta-entrada");
+                                  if (puertaQuestion?.status) {
+                                    completedSections++;
+                                  }
+                                  
+                                  // 4. Electricidad
+                                  const electricidadQuestion = dynamicItem.questions?.find(q => q.id === "electricidad");
+                                  if (electricidadQuestion?.status) {
+                                    completedSections++;
+                                  }
+                                  
+                                  // 5. Climatización
+                                  let climatizacionComplete = true;
+                                  if (dynamicItem.climatizationItems && dynamicItem.climatizationItems.length > 0) {
+                                    for (const item of dynamicItem.climatizationItems) {
+                                      if (item.cantidad > 0) {
+                                        if (item.cantidad === 1) {
+                                          if (!(item as any).estado) {
+                                            climatizacionComplete = false;
+                                            break;
+                                          }
+                                        } else if (item.cantidad > 1) {
+                                          if (!item.units || item.units.length !== item.cantidad) {
+                                            climatizacionComplete = false;
+                                            break;
+                                          }
+                                          const allUnitsHaveEstado = item.units.every((unit: any) => unit.estado);
+                                          if (!allUnitsHaveEstado) {
+                                            climatizacionComplete = false;
+                                            break;
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                  if (climatizacionComplete) {
+                                    completedSections++;
+                                  }
+                                  
+                                  // 6. Mobiliario
+                                  if (dynamicItem.mobiliario) {
+                                    if (!dynamicItem.mobiliario.existeMobiliario || dynamicItem.mobiliario.question?.status) {
+                                      completedSections++;
+                                    }
+                                  }
+                                  
+                                  subItemProgress = totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0;
+                                }
+                              }
                               
                               return (
                                 <button

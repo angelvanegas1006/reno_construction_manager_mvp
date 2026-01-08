@@ -198,7 +198,7 @@ export function ChecklistQuestion({
       {showNotes && requiresDetails && (
         <div className="space-y-2">
           <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-            {t.checklist.notes} <span className="text-red-500">*</span>
+            {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
           </Label>
           <Textarea
             value={question?.notes || ""}

@@ -73,7 +73,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         return dynamicItems[habitacionIndex] || {
           id: `habitacion-${habitacionIndex + 1}`,
           questions: [],
-          uploadZone: { id: "fotos-video", photos: [], videos: [] },
+          uploadZone: { id: `fotos-video-habitaciones-${habitacionIndex + 1}`, photos: [], videos: [] },
         };
       }
       return null;
@@ -86,7 +86,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       { id: "puerta-entrada" },
     ], []);
 
-    const questions = habitacion?.questions || defaultQuestions;
+    // Usar useMemo para asegurar que questions se actualice cuando dynamicItems cambie
+    const questions = useMemo(() => {
+      if (habitacionIndex !== undefined) {
+        const latestHabitacion = dynamicItems[habitacionIndex];
+        return latestHabitacion?.questions || defaultQuestions;
+      }
+      return habitacion?.questions || defaultQuestions;
+    }, [dynamicItems, habitacionIndex, habitacion?.questions, defaultQuestions]);
 
     // Initialize carpentry items - use dynamicItems directly to ensure we get the latest data
     const carpentryItems = (() => {
@@ -119,16 +126,23 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
     // Initialize mobiliario
     const mobiliario = habitacion?.mobiliario || { existeMobiliario: false };
 
-    // Initialize upload zone
-    const uploadZone = habitacion?.uploadZone || { id: "fotos-video", photos: [], videos: [] };
+    // Initialize upload zone - usar ID único con índice
+    const uploadZone = habitacion?.uploadZone || (habitacionIndex !== undefined 
+      ? { id: `fotos-video-habitaciones-${habitacionIndex + 1}`, photos: [], videos: [] }
+      : { id: "fotos-video", photos: [], videos: [] });
 
     // All callbacks must be defined always (hooks rules)
     const handleUploadZoneUpdate = useCallback((updates: ChecklistUploadZone) => {
       if (habitacionIndex === undefined || !habitacion) return;
       const updatedItems = [...dynamicItems];
+      // Asegurar que el ID del uploadZone se mantiene correcto
+      const correctUploadZoneId = `fotos-video-habitaciones-${habitacionIndex + 1}`;
       updatedItems[habitacionIndex] = {
         ...habitacion,
-        uploadZone: updates,
+        uploadZone: {
+          ...updates,
+          id: updates.id || correctUploadZoneId, // Mantener ID correcto si no viene en updates
+        },
       };
       onUpdate({ dynamicItems: updatedItems });
     }, [dynamicItems, habitacion, habitacionIndex, onUpdate]);
@@ -148,7 +162,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       console.log(`📍 [handleQuestionUpdate] Using effectiveIndex:`, effectiveIndex);
       
       // Always get the latest habitacion from section.dynamicItems to ensure we have the most up-to-date data
-      const latestDynamicItems = section.dynamicItems || dynamicItems;
+      // Priorizar dynamicItems del useMemo que se actualiza cuando section.dynamicItems cambia
+      const latestDynamicItems = dynamicItems.length > 0 ? dynamicItems : (section.dynamicItems || []);
       console.log(`📦 [handleQuestionUpdate] latestDynamicItems length:`, latestDynamicItems.length);
       
       const latestHabitacion = latestDynamicItems[effectiveIndex] || habitacion;
@@ -215,7 +230,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentHabitacion = currentDynamicItems[habitacionIndex] || {
         id: `habitacion-${habitacionIndex + 1}`,
         questions: [],
-        uploadZone: { id: "fotos-video", photos: [], videos: [] },
+        uploadZone: { id: `fotos-video-habitaciones-${habitacionIndex + 1}`, photos: [], videos: [] },
         carpentryItems: CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
       };
       const currentItems = currentHabitacion.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
@@ -415,7 +430,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentHabitacion = currentDynamicItems[habitacionIndex] || {
         id: `habitacion-${habitacionIndex + 1}`,
         questions: [],
-        uploadZone: { id: "fotos-video", photos: [], videos: [] },
+        uploadZone: { id: `fotos-video-habitaciones-${habitacionIndex + 1}`, photos: [], videos: [] },
         climatizationItems: CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
       };
       const currentItems = currentHabitacion.climatizationItems || CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
@@ -611,14 +626,15 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       if (newCount > dynamicCount) {
         // Add new bedrooms
         while (updatedItems.length < newCount) {
+          const newIndex = updatedItems.length + 1;
           updatedItems.push({
-            id: `habitacion-${updatedItems.length + 1}`,
+            id: `habitacion-${newIndex}`,
             questions: [
               { id: "acabados" },
               { id: "electricidad" },
               { id: "puerta-entrada" },
             ],
-            uploadZone: { id: "fotos-video", photos: [], videos: [] },
+            uploadZone: { id: `fotos-video-habitaciones-${newIndex}`, photos: [], videos: [] },
             carpentryItems: CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
             climatizationItems: CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
             mobiliario: { existeMobiliario: false },
@@ -734,14 +750,15 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
     // Calculate questions for specific habitacion mode (always calculate, even if not used)
     const specificHabitacionAcabadosQuestion = useMemo(() => {
       if (habitacionIndex === undefined) return { id: "acabados" };
-      const latestDynamicItems = section.dynamicItems || [];
+      // Usar dynamicItems del useMemo en lugar de section.dynamicItems para obtener los datos más actualizados
+      const latestDynamicItems = dynamicItems.length > 0 ? dynamicItems : (section.dynamicItems || []);
       const latestHabitacion = latestDynamicItems[habitacionIndex];
       if (!latestHabitacion) return { id: "acabados" };
       const currentQuestions = (latestHabitacion.questions && latestHabitacion.questions.length > 0) 
         ? latestHabitacion.questions 
         : defaultQuestions;
       return currentQuestions.find(q => q.id === "acabados") || { id: "acabados" };
-    }, [section.dynamicItems, habitacionIndex, defaultQuestions]);
+    }, [dynamicItems, section.dynamicItems, habitacionIndex, defaultQuestions]);
 
     // If dynamicCount === 1 and habitacionIndex is undefined, show the form directly (as if habitacionIndex === 0)
     if (dynamicCount === 1 && habitacionIndex === undefined) {
@@ -752,7 +769,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
           { id: "electricidad" },
           { id: "puerta-entrada" },
         ],
-        uploadZone: { id: "fotos-video", photos: [], videos: [] },
+        uploadZone: { id: "fotos-video-habitaciones-1", photos: [], videos: [] },
         carpentryItems: CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
         climatizationItems: CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
         mobiliario: { existeMobiliario: false },
@@ -764,7 +781,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const effectiveCarpentryItems = effectiveHabitacion.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
       const effectiveClimatizationItems = effectiveHabitacion.climatizationItems || CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
       const effectiveMobiliario = effectiveHabitacion.mobiliario || { existeMobiliario: false };
-      const effectiveUploadZone = effectiveHabitacion.uploadZone || { id: "fotos-video", photos: [], videos: [] };
+      const effectiveUploadZone = effectiveHabitacion.uploadZone || { id: "fotos-video-habitaciones-1", photos: [], videos: [] };
 
       // Handlers for single bedroom (when dynamicCount === 1)
       const handleSingleCarpentryQuantityChange = (itemId: string, delta: number) => {
@@ -1092,9 +1109,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
               uploadZone={currentHabitacion.uploadZone || effectiveUploadZone}
               onUpdate={(updates) => {
                 const updatedItems = [...dynamicItems];
+                // Asegurar que el ID del uploadZone se mantiene correcto
+                const correctUploadZoneId = "fotos-video-habitaciones-1";
                 updatedItems[0] = {
                   ...currentHabitacion,
-                  uploadZone: updates,
+                  uploadZone: {
+                    ...updates,
+                    id: updates.id || correctUploadZoneId, // Mantener ID correcto si no viene en updates
+                  },
                 };
                 onUpdate({ dynamicItems: updatedItems });
               }}
@@ -1246,7 +1268,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                               const latestHabitacion = latestDynamicItems[0] || habitacion || {
                                 id: `habitacion-1`,
                                 questions: [],
-                                uploadZone: { id: "fotos-video", photos: [], videos: [] },
+                                uploadZone: { id: "fotos-video-habitaciones-1", photos: [], videos: [] },
                                 carpentryItems: CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
                               };
                               const latestCarpentryItems = latestHabitacion?.carpentryItems || carpentryItems;
@@ -1271,7 +1293,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       const latestHabitacionForButton = latestDynamicItemsForButton[0] || habitacion || {
                                         id: `habitacion-1`,
                                         questions: [],
-                                        uploadZone: { id: "fotos-video", photos: [], videos: [] },
+                                        uploadZone: { id: "fotos-video-habitaciones-1", photos: [], videos: [] },
                                         carpentryItems: CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
                                       };
                                       const latestCarpentryItemsForButton = latestHabitacionForButton?.carpentryItems || carpentryItems;
@@ -1348,7 +1370,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                 const latestHabitacion = latestDynamicItems[0] || habitacion || {
                                   id: `habitacion-1`,
                                   questions: [],
-                                  uploadZone: { id: "fotos-video", photos: [], videos: [] },
+                                  uploadZone: { id: "fotos-video-habitaciones-1", photos: [], videos: [] },
                                   carpentryItems: CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
                                 };
                                 const latestCarpentryItems = latestHabitacion?.carpentryItems || carpentryItems;
@@ -1383,7 +1405,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                               const latestHabitacion = latestDynamicItems[0] || habitacion || {
                                 id: `habitacion-1`,
                                 questions: [],
-                                uploadZone: { id: "fotos-video", photos: [], videos: [] },
+                                uploadZone: { id: "fotos-video-habitaciones-1", photos: [], videos: [] },
                                 carpentryItems: CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
                               };
                               const latestCarpentryItems = latestHabitacion?.carpentryItems || carpentryItems;
@@ -1669,7 +1691,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       {/* Notes */}
                                       <div className="space-y-2">
                                         <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                          {t.checklist.notes} <span className="text-red-500">*</span>
+                                          {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                         </Label>
                                         <Textarea
                                           value={unit.notes || ""}
@@ -1748,7 +1770,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                 {/* Notes */}
                                 <div className="space-y-2">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                    {t.checklist.notes} <span className="text-red-500">*</span>
+                                    {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                   </Label>
                                   <Textarea
                                     value={(() => {
@@ -1842,31 +1864,38 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                       onUpdate({ dynamicItems: updatedItems });
                     }}
                     elements={[]}
+                    showNotes={false}
                   />
                   {/* Campo de notas obligatorio para describir qué mobiliario existe */}
-                  <div className="space-y-2">
-                    <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                      {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea
-                      value={(currentHabitacion.mobiliario || effectiveMobiliario).question?.notes || ""}
-                      onChange={(e) => {
-                        const currentMobiliario = currentHabitacion.mobiliario || effectiveMobiliario;
-                        const updatedItems = [...dynamicItems];
-                        updatedItems[0] = {
-                          ...currentHabitacion,
-                          mobiliario: {
-                            ...currentMobiliario,
-                            question: { ...(currentMobiliario.question || { id: "mobiliario" }), notes: e.target.value },
-                          },
-                        };
-                        onUpdate({ dynamicItems: updatedItems });
-                      }}
-                      placeholder="Describe qué mobiliario existe en la habitación..."
-                      className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
-                      required={true}
-                    />
-                  </div>
+                  {(() => {
+                    const mobiliarioQuestion = (currentHabitacion.mobiliario || effectiveMobiliario).question;
+                    const needsDetails = mobiliarioQuestion?.status === "necesita_reparacion" || mobiliarioQuestion?.status === "necesita_reemplazo";
+                    return needsDetails && (
+                      <div className="space-y-2">
+                        <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                          {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                        </Label>
+                        <Textarea
+                          value={mobiliarioQuestion?.notes || ""}
+                          onChange={(e) => {
+                            const currentMobiliario = currentHabitacion.mobiliario || effectiveMobiliario;
+                            const updatedItems = [...dynamicItems];
+                            updatedItems[0] = {
+                              ...currentHabitacion,
+                              mobiliario: {
+                                ...currentMobiliario,
+                                question: { ...(currentMobiliario.question || { id: "mobiliario" }), notes: e.target.value },
+                              },
+                            };
+                            onUpdate({ dynamicItems: updatedItems });
+                          }}
+                          placeholder="Describe qué mobiliario existe en la habitación..."
+                          className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                          required={true}
+                        />
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -2364,7 +2393,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       {/* Notes */}
                                       <div className="space-y-2">
                                         <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                          {t.checklist.notes} <span className="text-red-500">*</span>
+                                          {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                         </Label>
                                         <Textarea
                                           value={unit.notes || ""}
@@ -2457,7 +2486,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                 {/* Notes */}
                                 <div className="space-y-2">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                    {t.checklist.notes} <span className="text-red-500">*</span>
+                                    {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
                                   </Label>
                                   <Textarea
                                     value={(() => {
@@ -2529,20 +2558,23 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                     label=""
                     onUpdate={handleMobiliarioQuestionUpdate}
                     elements={[]}
+                    showNotes={false}
                   />
                   {/* Campo de notas obligatorio para describir qué mobiliario existe */}
-                  <div className="space-y-2">
-                    <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                      {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea
-                      value={mobiliario.question?.notes || ""}
-                      onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
-                      placeholder="Describe qué mobiliario existe en la habitación..."
-                      className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
-                      required={true}
-                    />
-                  </div>
+                  {(mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
+                    <div className="space-y-2">
+                      <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                        {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                      </Label>
+                      <Textarea
+                        value={mobiliario.question?.notes || ""}
+                        onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
+                        placeholder="Describe qué mobiliario existe en la habitación..."
+                        className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                        required={true}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -2635,11 +2667,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
             </Label>
             <div className="space-y-3">
               {Array.from({ length: dynamicCount }, (_, index) => {
-                const habitacionItem = dynamicItems[index] || {
+                // Usar section.dynamicItems directamente para obtener los datos más actualizados
+                const latestDynamicItems = section.dynamicItems || dynamicItems;
+                const habitacionItem = latestDynamicItems[index] || {
                   id: `habitacion-${index + 1}`,
                   questions: [],
-                  uploadZone: { id: "fotos-video", photos: [], videos: [] },
+                  uploadZone: { id: `fotos-video-habitaciones-${index + 1}`, photos: [], videos: [] },
                 };
+                // Calcular progreso para esta habitación específica usando sus propios datos
                 const progress = calculateHabitacionProgress(habitacionItem);
                 const isComplete = progress.completed === progress.total;
 
