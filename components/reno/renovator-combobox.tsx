@@ -85,16 +85,26 @@ export function RenovatorCombobox({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        // Si hay texto escrito que no está en la lista, guardarlo como nuevo renovador
+        if (searchQuery.trim() && searchQuery.trim() !== (value || "")) {
+          onValueChange(searchQuery.trim());
+        }
         setOpen(false);
         setSearchQuery("");
       }
     };
 
     if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      // Usar timeout para permitir que los clicks en el dropdown funcionen
+      const timeoutId = setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+      }, 100);
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
     }
-  }, [open]);
+  }, [open, searchQuery, value, onValueChange]);
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -118,9 +128,18 @@ export function RenovatorCombobox({
         const selectedElement = listRef.current?.children[selectedIndex - 1] as HTMLElement;
         selectedElement?.scrollIntoView({ block: "nearest", behavior: "smooth" });
       }, 0);
-    } else if (e.key === "Enter" && open && filteredRenovators[selectedIndex]) {
+    } else if (e.key === "Enter") {
       e.preventDefault();
-      handleSelect(filteredRenovators[selectedIndex]);
+      if (open && filteredRenovators[selectedIndex]) {
+        // Si hay una opción seleccionada, usarla
+        handleSelect(filteredRenovators[selectedIndex]);
+      } else if (searchQuery.trim()) {
+        // Si hay texto escrito pero no hay coincidencias, guardar el texto escrito como nuevo renovador
+        onValueChange(searchQuery.trim());
+        setOpen(false);
+        setSearchQuery("");
+        inputRef.current?.blur();
+      }
     } else if (e.key === "Escape") {
       setOpen(false);
       setSearchQuery("");
@@ -141,8 +160,11 @@ export function RenovatorCombobox({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
+    const newValue = e.target.value;
+    setSearchQuery(newValue);
     setOpen(true);
+    // No guardar aquí, solo actualizar el estado local
+    // El guardado se hará cuando se seleccione o se pierda el foco
   };
 
   // Display value: mostrar el valor seleccionado o la búsqueda
@@ -159,6 +181,21 @@ export function RenovatorCombobox({
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onKeyDown={handleKeyDown}
+          onBlur={(e) => {
+            // Solo procesar si el siguiente elemento no es parte del dropdown
+            const relatedTarget = e.relatedTarget as HTMLElement;
+            if (!containerRef.current?.contains(relatedTarget)) {
+              // Si hay texto escrito que no está en la lista, guardarlo como nuevo renovador
+              if (searchQuery.trim() && searchQuery.trim() !== (value || "")) {
+                onValueChange(searchQuery.trim());
+              }
+              // Pequeño delay para permitir que el click en el dropdown funcione
+              setTimeout(() => {
+                setOpen(false);
+                setSearchQuery("");
+              }, 200);
+            }
+          }}
           placeholder={placeholder}
           disabled={disabled}
           className="pl-10 pr-10"
@@ -205,10 +242,26 @@ export function RenovatorCombobox({
 
       {open && searchQuery && filteredRenovators.length === 0 && (
         <div className={cn(
-          "absolute z-[100] w-full bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-md p-3",
+          "absolute z-[100] w-full bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-md",
           dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
         )}>
-          <p className="text-sm text-muted-foreground">No se encontraron renovadores</p>
+          <button
+            type="button"
+            onClick={() => {
+              if (searchQuery.trim()) {
+                onValueChange(searchQuery.trim());
+                setOpen(false);
+                setSearchQuery("");
+                inputRef.current?.blur();
+              }
+            }}
+            className="w-full text-left px-3 py-2 transition-colors flex items-center justify-between hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]"
+          >
+            <span className="text-sm text-foreground">
+              Crear nuevo: <span className="font-medium">"{searchQuery}"</span>
+            </span>
+            <span className="text-xs text-muted-foreground">Presiona Enter</span>
+          </button>
         </div>
       )}
     </div>

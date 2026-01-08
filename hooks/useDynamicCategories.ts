@@ -191,26 +191,26 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
           return { error: updateError };
         }
 
-        // Si hay update data (fotos/videos/notas), guardarlo en category_updates
+        // Siempre crear un category_update cuando se guarda el progreso (para historial)
+        // Incluso si no hay fotos/videos/notas, queremos registrar el cambio de porcentaje
         const updateData = updates?.[cat.id];
-        if (updateData && (updateData.photos?.length || updateData.videos?.length || updateData.notes)) {
-          const { error: insertError } = await supabase
-            .from('category_updates')
-            .insert({
-              category_id: cat.id,
-              property_id: propertyId,
-              previous_percentage: previousPercentage,
-              new_percentage: newPercentage,
-              photos: updateData.photos || [],
-              videos: updateData.videos || [],
-              notes: updateData.notes || undefined,
-              created_by: createdBy,
-            });
+        const { error: insertError } = await supabase
+          .from('category_updates')
+          .insert({
+            category_id: cat.id,
+            property_id: propertyId,
+            previous_percentage: previousPercentage,
+            new_percentage: newPercentage,
+            photos: updateData?.photos || [],
+            videos: updateData?.videos || [],
+            notes: updateData?.notes || undefined,
+            created_by: createdBy,
+            // category_text se actualizará después cuando se genere el texto para el email
+          });
 
-          if (insertError) {
-            console.error(`Error saving update for category ${cat.id}:`, insertError);
-            // No fallar el guardado si solo falla el insert del update
-          }
+        if (insertError) {
+          console.error(`Error saving update for category ${cat.id}:`, insertError);
+          // No fallar el guardado si solo falla el insert del update
         }
 
         return { error: null };

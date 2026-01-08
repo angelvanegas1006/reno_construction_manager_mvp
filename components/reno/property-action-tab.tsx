@@ -243,12 +243,14 @@ export function PropertyActionTab({
               onValueChange={(newValue) => {
                 const trimmedValue = newValue?.trim() || "";
                 setLocalRenovatorName(trimmedValue);
-                // Guardar automáticamente cuando se selecciona un renovador del combobox
-                if (trimmedValue && trimmedValue !== (renovatorNameFromSupabase || "")) {
+                // Guardar automáticamente cuando se selecciona un renovador de la lista
+                // o cuando se escribe un nuevo valor (se guarda al perder el foco o presionar Enter)
+                const currentValue = renovatorNameFromSupabase || "";
+                if (trimmedValue !== currentValue) {
                   handleRenovatorNameChange(trimmedValue);
                 }
               }}
-              placeholder="Buscar renovador..."
+              placeholder="Buscar o escribir renovador..."
               disabled={isSavingRenovatorName}
             />
           ) : (

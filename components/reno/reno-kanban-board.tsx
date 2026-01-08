@@ -1161,8 +1161,8 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               return true;
             }
             
-            // Check Days to Property Ready limit for furnishing and cleaning
-            if ((phase === "furnishing" || phase === "cleaning") && prop.daysToPropertyReady && prop.daysToPropertyReady > 25) {
+            // Check Days to Property Ready limit for furnishing, cleaning, and final-check
+            if ((phase === "furnishing" || phase === "cleaning" || phase === "final-check") && prop.daysToPropertyReady && prop.daysToPropertyReady > 25) {
               return true;
             }
             // Legacy furnishing-cleaning
