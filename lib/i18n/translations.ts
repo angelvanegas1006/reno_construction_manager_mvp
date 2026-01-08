@@ -362,6 +362,8 @@ export interface Translations {
     lastComment: string;
     close: string;
     goToTask: string;
+    viewProperty: string;
+    reportProgress: string;
     noVisits: string;
     loading: string;
     edit: string;
@@ -1390,6 +1392,8 @@ export const translations: Record<Language, Translations> = {
       lastComment: "Último comentario",
       close: "Cerrar",
       goToTask: "Ir a la tarea",
+      viewProperty: "Ver propiedad",
+      reportProgress: "Reportar Progreso",
       noVisits: "Sin visitas",
       loading: "Cargando...",
       edit: "Editar",
@@ -2361,6 +2365,8 @@ export const translations: Record<Language, Translations> = {
       lastComment: "Last comment",
       close: "Close",
       goToTask: "Go to task",
+      viewProperty: "View property",
+      reportProgress: "Report Progress",
       noVisits: "No visits",
       loading: "Loading...",
       edit: "Edit",
