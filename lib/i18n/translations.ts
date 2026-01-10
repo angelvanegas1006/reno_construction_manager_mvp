@@ -116,6 +116,9 @@ export interface Translations {
     photo: string;
     photos: string;
     saveSuccess: string;
+    trackingEnabled: string;
+    trackingDisabled: string;
+    trackingError: string;
     sections: {
       basicInfo: string;
       economicInfo: string;
@@ -321,6 +324,7 @@ export interface Translations {
       noPendingTasks: string;
       pendingTasks: string;
       total: string;
+      needsTracking: string;
     };
     // Foreman Filter
     foremanFilter: {
@@ -330,6 +334,23 @@ export interface Translations {
     };
     // Add Visit
     addVisit: string;
+    // Update Requests
+    updateRequests: {
+      title: string;
+      description: string;
+      properties: string;
+      searchPlaceholder: string;
+      allForemen: string;
+      noProperties: string;
+      address: string;
+      startDate: string;
+      daysInProgress: string;
+      lastUpdate: string;
+      status: string;
+      action: string;
+      trackingActive: string;
+      trackingInactive: string;
+    };
   };
   
   // Calendar, Visits & Reminders
@@ -453,6 +474,8 @@ export interface Translations {
       completeFinalChecklist: string;
       initialCheckDescription: string;
       finalCheckDescription: string;
+      needsForemanTracking: string;
+      needsForemanTrackingDescription: string;
     };
   
   // Property Page
@@ -520,6 +543,7 @@ export interface Translations {
     notes: string;
     submitChecklist: string;
     submitChecklistDescription: string;
+    submitting: string;
     photos: string;
     videos: string;
     whatElementsBadCondition: string;
@@ -693,6 +717,9 @@ export const translations: Record<Language, Translations> = {
       photo: "foto",
       photos: "fotos",
       saveSuccess: "Los datos se han guardado correctamente",
+      trackingEnabled: "Seguimiento de obra activado",
+      trackingDisabled: "Seguimiento de obra desactivado",
+      trackingError: "Error al actualizar seguimiento",
       sections: {
         basicInfo: "Información de la propiedad",
         economicInfo: "Información económica",
@@ -818,6 +845,7 @@ export const translations: Record<Language, Translations> = {
       notes: "Observaciones",
       submitChecklist: "Enviar checklist",
       submitChecklistDescription: "Finalizar y enviar el checklist completado",
+      submitting: "Enviando checklist...",
       photos: "Fotos",
       videos: "Videos",
       whatElementsBadCondition: "¿Qué elementos están en mal estado?",
@@ -1353,6 +1381,7 @@ export const translations: Record<Language, Translations> = {
         noPendingTasks: "No hay tareas pendientes",
         pendingTasks: "Tareas Pendientes",
         total: "total",
+        needsTracking: "Seguimiento",
       },
       // Foreman Filter
       foremanFilter: {
@@ -1362,6 +1391,23 @@ export const translations: Record<Language, Translations> = {
       },
       // Add Visit
       addVisit: "Añadir nueva visita - Próximamente",
+      updateRequests: {
+        title: "Solicitar Actualizaciones de Obra",
+        description: "Marca las propiedades que necesitan seguimiento de obra por parte de los jefes de obra asignados",
+        properties: "propiedades",
+        searchPlaceholder: "Buscar por dirección o ID...",
+        allForemen: "Todos los jefes de obra",
+        noProperties: "No se encontraron propiedades",
+        address: "Dirección",
+        startDate: "Fecha Inicio",
+        daysInProgress: "Días en Progreso",
+        lastUpdate: "Último Update",
+        nextUpdate: "Próximo Update",
+        renoType: "Tipo de Renovación",
+        action: "Acción",
+        trackingActive: "Activo",
+        trackingInactive: "Inactivo",
+      },
     },
     calendar: {
       title: "Calendario de Visitas",
@@ -1475,6 +1521,8 @@ export const translations: Record<Language, Translations> = {
       completeFinalChecklist: "Completa el checklist final para verificar que todas las obras se han realizado correctamente.",
       initialCheckDescription: "Completa el checklist inicial para evaluar el estado de la propiedad antes de comenzar las obras.",
       finalCheckDescription: "Completa el checklist final para verificar que todas las obras se han realizado correctamente.",
+      needsForemanTracking: "Necesita seguimiento de obra",
+      needsForemanTrackingDescription: "Marca esta propiedad para que el jefe de obra asignado la vea en su widget y calendario",
     },
     help: {
       title: "Ayuda",
@@ -1671,6 +1719,9 @@ export const translations: Record<Language, Translations> = {
       photo: "photo",
       photos: "photos",
       saveSuccess: "Data saved successfully",
+      trackingEnabled: "Work follow-up enabled",
+      trackingDisabled: "Work follow-up disabled",
+      trackingError: "Error updating follow-up",
       sections: {
         basicInfo: "Property Information",
         economicInfo: "Economic Information",
@@ -1796,6 +1847,7 @@ export const translations: Record<Language, Translations> = {
       notes: "Observations",
       submitChecklist: "Submit Checklist",
       submitChecklistDescription: "Finalize and submit the completed checklist",
+      submitting: "Submitting checklist...",
       photos: "Photos",
       videos: "Videos",
       whatElementsBadCondition: "What elements are in bad condition?",
@@ -2328,9 +2380,10 @@ export const translations: Record<Language, Translations> = {
         seeMore: "See {count} more",
         allCompleted: "All completed",
         noPendingTasks: "No pending tasks",
-        pendingTasks: "Pending Tasks",
-        total: "total",
-      },
+      pendingTasks: "Pending Tasks",
+      total: "total",
+      needsTracking: "Tracking",
+    },
       // Foreman Filter
       foremanFilter: {
         filterByForeman: "Filter by site manager...",
@@ -2339,6 +2392,23 @@ export const translations: Record<Language, Translations> = {
       },
       // Add Visit
       addVisit: "Add new visit - Coming soon",
+      updateRequests: {
+        title: "Request Work Updates",
+        description: "Mark properties that need work follow-up by assigned foremen",
+        properties: "properties",
+        searchPlaceholder: "Search by address or ID...",
+        allForemen: "All foremen",
+        noProperties: "No properties found",
+        address: "Address",
+        startDate: "Start Date",
+        daysInProgress: "Days in Progress",
+        lastUpdate: "Last Update",
+        nextUpdate: "Next Update",
+        renoType: "Renovation Type",
+        action: "Action",
+        trackingActive: "Active",
+        trackingInactive: "Inactive",
+      },
     },
     calendar: {
       title: "Visits Calendar",
