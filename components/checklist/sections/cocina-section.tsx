@@ -171,7 +171,9 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             delta,
           });
           
-          let units = (item.units || []).map(u => ({ ...u })); // Clonar units también
+          // Type guard: verificar que el item tiene units (todos los tipos de items en cocina tienen units opcional)
+          const itemWithUnits = item as ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem;
+          let units = (itemWithUnits.units || []).map(u => ({ ...u })); // Clonar units también
           
           if (newCantidad > 1) {
             while (units.length < newCantidad) {
@@ -231,8 +233,9 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const itemWithUnits = item as ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem;
+          if (unitIndex !== null && itemWithUnits.units && itemWithUnits.units.length > unitIndex) {
+            const updatedUnits = itemWithUnits.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, estado: status } : { ...unit }
             );
             return { ...item, units: updatedUnits };
@@ -255,8 +258,9 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
     ) => {
       const updatedItems = items.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const itemWithUnits = item as ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem;
+          if (unitIndex !== null && itemWithUnits.units && itemWithUnits.units.length > unitIndex) {
+            const updatedUnits = itemWithUnits.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, badElements } : { ...unit }
             );
             return { ...item, units: updatedUnits };
@@ -296,8 +300,9 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const itemWithUnits = item as ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem;
+          if (unitIndex !== null && itemWithUnits.units && itemWithUnits.units.length > unitIndex) {
+            const updatedUnits = itemWithUnits.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, notes } : { ...unit }
             );
             return { ...item, units: updatedUnits };
@@ -337,8 +342,9 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
+          const itemWithUnits = item as ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem;
+          if (unitIndex !== null && itemWithUnits.units && itemWithUnits.units.length > unitIndex) {
+            const updatedUnits = itemWithUnits.units.map((unit, idx) =>
               idx === unitIndex ? { ...unit, photos } : { ...unit }
             );
             return { ...item, units: updatedUnits };
@@ -381,7 +387,8 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             const cantidad = item.cantidad || 0;
             const needsValidation = cantidad > 0;
             const hasMultipleUnits = cantidad > 1;
-            const units = item.units || [];
+            const itemWithUnits = item as ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem;
+            const units = itemWithUnits.units || [];
             
             // Ensure we're using the latest item state for rendering
             const currentItem = latestItems.find(i => i.id === itemConfig.id) || item;
