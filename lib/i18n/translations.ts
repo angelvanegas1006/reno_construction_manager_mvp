@@ -2526,6 +2526,8 @@ export const translations: Record<Language, Translations> = {
       completeFinalChecklist: "Complete the final checklist to verify that all works have been completed correctly.",
       initialCheckDescription: "Complete the initial checklist to evaluate the property's status before starting the works.",
       finalCheckDescription: "Complete the final checklist to verify that all works have been completed correctly.",
+      needsForemanTracking: "Needs work follow-up",
+      needsForemanTrackingDescription: "Mark this property so the assigned foreman can see it in their widget and calendar",
     },
     propertyPage: {
       property: "Property",
