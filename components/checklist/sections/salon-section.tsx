@@ -17,6 +17,7 @@ interface SalonSectionProps {
   section: ChecklistSection;
   onUpdate: (updates: Partial<ChecklistSection>) => void;
   onContinue?: () => void;
+  hasError?: boolean;
 }
 
 const CARPENTRY_ITEMS = [
@@ -33,7 +34,7 @@ const CLIMATIZATION_ITEMS = [
 const MAX_QUANTITY = 20;
 
 export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
-  ({ section, onUpdate, onContinue }, ref) => {
+  ({ section, onUpdate, onContinue, hasError = false }, ref) => {
     const { t } = useI18n();
 
     // Initialize upload zone for salon photos/video
@@ -100,7 +101,9 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     }, [section.questions, defaultQuestions, onUpdate]);
 
     const handleCarpentryQuantityChange = useCallback((itemId: string, delta: number) => {
-      const currentItems = section.carpentryItems || carpentryItems;
+      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
+        ? [...section.carpentryItems] // Clonar array para evitar mutaciones
+        : [...carpentryItems];
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -132,7 +135,9 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     }, [section.carpentryItems, carpentryItems, onUpdate]);
 
     const handleCarpentryStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
-      const currentItems = section.carpentryItems || carpentryItems;
+      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
+        ? section.carpentryItems 
+        : carpentryItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -151,7 +156,9 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     }, [section.carpentryItems, carpentryItems, onUpdate]);
 
     const handleCarpentryNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
-      const currentItems = section.carpentryItems || carpentryItems;
+      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
+        ? section.carpentryItems 
+        : carpentryItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -170,7 +177,9 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     }, [section.carpentryItems, carpentryItems, onUpdate]);
 
     const handleCarpentryPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      const currentItems = section.carpentryItems || carpentryItems;
+      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
+        ? section.carpentryItems 
+        : carpentryItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -208,7 +217,9 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     }, [section.carpentryItems, carpentryItems, onUpdate]);
 
     const handleClimatizationQuantityChange = useCallback((itemId: string, delta: number) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? [...section.climatizationItems] // Clonar array para evitar mutaciones
+        : [...climatizationItems];
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -240,7 +251,9 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     }, [section.climatizationItems, climatizationItems, onUpdate]);
 
     const handleClimatizationStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? section.climatizationItems 
+        : climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -259,7 +272,9 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     }, [section.climatizationItems, climatizationItems, onUpdate]);
 
     const handleClimatizationNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? section.climatizationItems 
+        : climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -278,7 +293,9 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     }, [section.climatizationItems, climatizationItems, onUpdate]);
 
     const handleClimatizationPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? section.climatizationItems 
+        : climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -326,7 +343,20 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     ], [t]);
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+      <div 
+        ref={ref} 
+        className={cn(
+          "bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
+          hasError && "border-4 border-red-500 bg-red-50 dark:bg-red-900/10"
+        )}
+      >
+        {hasError && (
+          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
+            <p className="text-sm font-medium text-red-900 dark:text-red-100">
+              ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
+            </p>
+          </div>
+        )}
 
         {/* Fotos y vídeo del salón */}
         <Card className="p-4 sm:p-6 space-y-4">
@@ -372,7 +402,10 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
           {/* Quantity Steppers for Ventanas, Persianas, Armarios */}
           <div className="space-y-4">
             {CARPENTRY_ITEMS.map((itemConfig) => {
-              const item = carpentryItems.find(i => i.id === itemConfig.id) || {
+              const itemsToSearch = (section.carpentryItems && section.carpentryItems.length > 0) 
+                ? section.carpentryItems 
+                : carpentryItems;
+              const item = itemsToSearch.find(i => i.id === itemConfig.id) || {
                 id: itemConfig.id,
                 cantidad: 0,
               } as ChecklistCarpentryItem;
@@ -604,7 +637,10 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
 
           <div className="space-y-4">
             {CLIMATIZATION_ITEMS.map((itemConfig) => {
-              const item = climatizationItems.find(i => i.id === itemConfig.id) || {
+              const itemsToSearch = (section.climatizationItems && section.climatizationItems.length > 0) 
+                ? section.climatizationItems 
+                : climatizationItems;
+              const item = itemsToSearch.find(i => i.id === itemConfig.id) || {
                 id: itemConfig.id,
                 cantidad: 0,
               } as ChecklistClimatizationItem;
@@ -818,7 +854,7 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
                   showNotes={false}
                 />
                 {/* Campo de notas obligatorio para describir qué mobiliario existe */}
-                {(mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
+                {(mobiliario.question?.status === "buen_estado" || mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
                   <div className="space-y-2">
                     <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
                       {t.checklist.sections.salon.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>

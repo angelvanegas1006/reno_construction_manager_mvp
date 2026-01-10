@@ -17,6 +17,7 @@ interface EntradaPasillosSectionProps {
   section: ChecklistSection;
   onUpdate: (updates: Partial<ChecklistSection>) => void;
   onContinue?: () => void;
+  hasError?: boolean;
 }
 
 const CARPENTRY_ITEMS = [
@@ -33,7 +34,7 @@ const CLIMATIZATION_ITEMS = [
 const MAX_QUANTITY = 20;
 
 export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillosSectionProps>(
-  ({ section, onUpdate, onContinue }, ref) => {
+  ({ section, onUpdate, onContinue, hasError = false }, ref) => {
     const { t } = useI18n();
 
     // Initialize upload zones
@@ -116,11 +117,21 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
     }, [section.questions, defaultQuestions, onUpdate]);
 
     const handleCarpentryQuantityChange = useCallback((itemId: string, delta: number) => {
-      const currentItems: ChecklistCarpentryItem[] = (section.carpentryItems || carpentryItems) as ChecklistCarpentryItem[];
+      // Siempre usar section.carpentryItems directamente, no el useMemo
+      const currentItems: ChecklistCarpentryItem[] = (section.carpentryItems && section.carpentryItems.length > 0) 
+        ? [...section.carpentryItems] // Clonar array para evitar mutaciones
+        : [...carpentryItems];
       const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
           const currentCantidad = item.cantidad || 0;
           const newCantidad = Math.max(0, Math.min(MAX_QUANTITY, currentCantidad + delta));
+          
+          console.log(`[EntradaPasillos] handleCarpentryQuantityChange:`, {
+            itemId,
+            currentCantidad,
+            newCantidad,
+            delta,
+          });
           
           // Initialize or update units array based on new cantidad
           let units = (item as ChecklistCarpentryItem).units || [];
@@ -147,11 +158,15 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
         }
         return item;
       });
+      
+      console.log(`[EntradaPasillos] Calling onUpdate with carpentryItems:`, updatedItems.map(i => ({ id: i.id, cantidad: i.cantidad })));
       onUpdate({ carpentryItems: updatedItems });
     }, [section.carpentryItems, carpentryItems, onUpdate]);
 
     const handleCarpentryStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
-      const currentItems = section.carpentryItems || carpentryItems;
+      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
+        ? section.carpentryItems 
+        : carpentryItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -170,7 +185,9 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
     }, [section.carpentryItems, carpentryItems, onUpdate]);
 
     const handleCarpentryNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
-      const currentItems = section.carpentryItems || carpentryItems;
+      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
+        ? section.carpentryItems 
+        : carpentryItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -189,7 +206,9 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
     }, [section.carpentryItems, carpentryItems, onUpdate]);
 
     const handleCarpentryPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      const currentItems = section.carpentryItems || carpentryItems;
+      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
+        ? section.carpentryItems 
+        : carpentryItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -208,11 +227,20 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
     }, [section.carpentryItems, carpentryItems, onUpdate]);
 
     const handleClimatizationQuantityChange = useCallback((itemId: string, delta: number) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? [...section.climatizationItems] // Clonar array para evitar mutaciones
+        : [...climatizationItems];
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const currentCantidad = item.cantidad || 0;
           const newCantidad = Math.max(0, Math.min(MAX_QUANTITY, currentCantidad + delta));
+          
+          console.log(`[EntradaPasillos] handleClimatizationQuantityChange:`, {
+            itemId,
+            currentCantidad,
+            newCantidad,
+            delta,
+          });
           
           let units = (item as ChecklistCarpentryItem).units || [];
           
@@ -241,7 +269,9 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
     }, [section.climatizationItems, climatizationItems, onUpdate]);
 
     const handleClimatizationStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? section.climatizationItems 
+        : climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -260,7 +290,9 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
     }, [section.climatizationItems, climatizationItems, onUpdate]);
 
     const handleClimatizationNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? section.climatizationItems 
+        : climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -279,7 +311,9 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
     }, [section.climatizationItems, climatizationItems, onUpdate]);
 
     const handleClimatizationPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? section.climatizationItems 
+        : climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -294,6 +328,8 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
         }
         return item;
       });
+      
+      console.log(`[EntradaPasillos] Calling onUpdate with climatizationItems:`, updatedItems.map(i => ({ id: i.id, cantidad: i.cantidad })));
       onUpdate({ climatizationItems: updatedItems });
     }, [section.climatizationItems, climatizationItems, onUpdate]);
 
@@ -327,7 +363,20 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
     ];
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+      <div 
+        ref={ref} 
+        className={cn(
+          "bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
+          hasError && "border-4 border-red-500 bg-red-50 dark:bg-red-900/10"
+        )}
+      >
+        {hasError && (
+          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
+            <p className="text-sm font-medium text-red-900 dark:text-red-100">
+              ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
+            </p>
+          </div>
+        )}
 
         {/* Cuadro general eléctrico */}
         <Card className="p-4 sm:p-6 space-y-4">
@@ -385,7 +434,11 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
 
           <div className="space-y-6">
             {CARPENTRY_ITEMS.map((itemConfig) => {
-              const item: ChecklistCarpentryItem = carpentryItems.find((i: ChecklistCarpentryItem) => i.id === itemConfig.id) || {
+              // Usar section.carpentryItems directamente si existe, sino usar carpentryItems del useMemo
+              const itemsToSearch = (section.carpentryItems && section.carpentryItems.length > 0) 
+                ? section.carpentryItems 
+                : carpentryItems;
+              const item: ChecklistCarpentryItem = itemsToSearch.find((i: ChecklistCarpentryItem) => i.id === itemConfig.id) || {
                 id: itemConfig.id,
                 cantidad: 0,
               } as ChecklistCarpentryItem;
@@ -609,7 +662,11 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
 
           <div className="space-y-6">
             {CLIMATIZATION_ITEMS.map((itemConfig) => {
-              const item = climatizationItems.find(i => i.id === itemConfig.id) || {
+              // Usar section.climatizationItems directamente si existe, sino usar climatizationItems del useMemo
+              const itemsToSearch = (section.climatizationItems && section.climatizationItems.length > 0) 
+                ? section.climatizationItems 
+                : climatizationItems;
+              const item = itemsToSearch.find(i => i.id === itemConfig.id) || {
                 id: itemConfig.id,
                 cantidad: 0,
               };
@@ -826,12 +883,14 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                   question={mobiliario.question || { id: "mobiliario" }}
                   questionId="mobiliario"
                   label=""
+                  description="Selecciona el estado del mobiliario existente"
                   onUpdate={handleMobiliarioQuestionUpdate}
                   elements={[]}
                   showNotes={false}
+                  showPhotos={true}
                 />
                 {/* Campo de notas obligatorio para describir qué mobiliario existe */}
-                {(mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
+                {(mobiliario.question?.status === "buen_estado" || mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
                   <div className="space-y-2">
                     <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
                       {t.checklist.sections.entradaPasillos.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
@@ -839,7 +898,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                     <Textarea
                       value={mobiliario.question?.notes || ""}
                       onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
-                      placeholder="Describe qué mobiliario existe en la entrada y pasillos..."
+                      placeholder="Describe qué mobiliario existe en entrada y pasillos..."
                       className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
                       required={true}
                     />

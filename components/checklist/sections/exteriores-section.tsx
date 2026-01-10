@@ -16,6 +16,7 @@ interface ExterioresSectionProps {
   section: ChecklistSection;
   onUpdate: (updates: Partial<ChecklistSection>) => void;
   onContinue?: () => void;
+  hasError?: boolean;
 }
 
 const SECURITY_ITEMS = [
@@ -31,7 +32,7 @@ const SYSTEMS_ITEMS = [
 const MAX_QUANTITY = 20;
 
 export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionProps>(
-  ({ section, onUpdate, onContinue }, ref) => {
+  ({ section, onUpdate, onContinue, hasError = false }, ref) => {
     const { t } = useI18n();
 
     // Initialize upload zone for exterior photos/video
@@ -420,7 +421,20 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
     };
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+      <div 
+        ref={ref} 
+        className={cn(
+          "bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
+          hasError && "border-4 border-red-500 bg-red-50 dark:bg-red-900/10"
+        )}
+      >
+        {hasError && (
+          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
+            <p className="text-sm font-medium text-red-900 dark:text-red-100">
+              ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
+            </p>
+          </div>
+        )}
 
         {/* Fotos y vídeo del exterior */}
         <Card className="p-4 sm:p-6 space-y-4">

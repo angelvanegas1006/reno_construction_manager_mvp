@@ -20,6 +20,7 @@ interface HabitacionesSectionProps {
   habitacionIndex?: number; // Index of the specific bedroom (0-based), undefined for main section
   onPropertyUpdate?: (updates: { habitaciones: number }) => void; // To update property.data.habitaciones
   onNavigateToHabitacion?: (index: number) => void; // To navigate to a specific bedroom
+  hasError?: boolean;
 }
 
 const CARPENTRY_ITEMS = [
@@ -36,7 +37,7 @@ const CLIMATIZATION_ITEMS = [
 const MAX_QUANTITY = 20;
 
 export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectionProps>(
-  ({ section, onUpdate, onContinue, habitacionIndex, onPropertyUpdate, onNavigateToHabitacion }, ref) => {
+  ({ section, onUpdate, onContinue, habitacionIndex, onPropertyUpdate, onNavigateToHabitacion, hasError = false }, ref) => {
     const { t } = useI18n();
 
     // Use useMemo to ensure we always get the latest dynamicItems and trigger re-render when it changes
@@ -593,29 +594,46 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
     const handleMobiliarioToggle = useCallback((existeMobiliario: boolean) => {
       if (habitacionIndex === undefined || !habitacion) return;
-      const updatedDynamicItems = [...dynamicItems];
+      // Siempre usar section.dynamicItems directamente para obtener el estado más reciente
+      const currentDynamicItems = section.dynamicItems || dynamicItems;
+      const currentHabitacion = currentDynamicItems[habitacionIndex] || habitacion;
+      const updatedDynamicItems = [...currentDynamicItems];
       updatedDynamicItems[habitacionIndex] = {
-        ...habitacion,
+        ...currentHabitacion,
         mobiliario: {
           existeMobiliario,
-          question: existeMobiliario ? (habitacion?.mobiliario?.question || { id: "mobiliario" }) : undefined,
+          question: existeMobiliario ? (currentHabitacion?.mobiliario?.question || { id: "mobiliario" }) : undefined,
         },
       };
+      console.log(`[HabitacionesSection] handleMobiliarioToggle:`, {
+        habitacionIndex,
+        existeMobiliario,
+        updatedMobiliario: updatedDynamicItems[habitacionIndex].mobiliario,
+      });
       onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [habitacion, dynamicItems, habitacionIndex, onUpdate]);
+    }, [habitacion, section.dynamicItems, dynamicItems, habitacionIndex, onUpdate]);
 
     const handleMobiliarioQuestionUpdate = useCallback((updates: Partial<ChecklistQuestion>) => {
       if (habitacionIndex === undefined || !habitacion) return;
-      const updatedDynamicItems = [...dynamicItems];
+      // Siempre usar section.dynamicItems directamente para obtener el estado más reciente
+      const currentDynamicItems = section.dynamicItems || dynamicItems;
+      const currentHabitacion = currentDynamicItems[habitacionIndex] || habitacion;
+      const currentMobiliario = currentHabitacion.mobiliario || mobiliario;
+      const updatedDynamicItems = [...currentDynamicItems];
       updatedDynamicItems[habitacionIndex] = {
-        ...habitacion,
+        ...currentHabitacion,
         mobiliario: {
-          ...mobiliario,
-          question: { ...(mobiliario.question || { id: "mobiliario" }), ...updates },
+          ...currentMobiliario,
+          question: { ...(currentMobiliario.question || { id: "mobiliario" }), ...updates },
         },
       };
+      console.log(`[HabitacionesSection] handleMobiliarioQuestionUpdate:`, {
+        habitacionIndex,
+        updates,
+        updatedQuestion: updatedDynamicItems[habitacionIndex].mobiliario?.question,
+      });
       onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [habitacion, mobiliario, dynamicItems, habitacionIndex, onUpdate]);
+    }, [habitacion, section.dynamicItems, mobiliario, dynamicItems, habitacionIndex, onUpdate]);
 
     const handleCountChange = useCallback((delta: number) => {
       const newCount = Math.max(0, Math.min(20, dynamicCount + delta));
@@ -1053,7 +1071,20 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentEffectiveClimatizationItems = currentHabitacion.climatizationItems || effectiveClimatizationItems;
       
       return (
-        <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+        <div 
+          ref={ref} 
+          className={cn(
+            "bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
+            hasError && "border-4 border-red-500 bg-red-50 dark:bg-red-900/10"
+          )}
+        >
+          {hasError && (
+            <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
+              <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
+              </p>
+            </div>
+          )}
           <div className="space-y-2">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
               {t.checklist.sections.habitaciones.title}
@@ -1831,15 +1862,22 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                 <Switch
                   checked={(currentHabitacion.mobiliario || effectiveMobiliario).existeMobiliario || false}
                   onCheckedChange={(existeMobiliario) => {
-                    const currentMobiliario = currentHabitacion.mobiliario || effectiveMobiliario;
+                    // Usar habitacionIndex si está disponible, sino usar 0
+                    const index = habitacionIndex !== undefined ? habitacionIndex : 0;
+                    const currentHabitacionForUpdate = dynamicItems[index] || currentHabitacion;
+                    const currentMobiliario = currentHabitacionForUpdate.mobiliario || effectiveMobiliario;
                     const updatedItems = [...dynamicItems];
-                    updatedItems[0] = {
-                      ...currentHabitacion,
+                    updatedItems[index] = {
+                      ...currentHabitacionForUpdate,
                       mobiliario: {
                         existeMobiliario,
                         question: existeMobiliario ? (currentMobiliario.question || { id: "mobiliario" }) : undefined,
                       },
                     };
+                    console.log(`[HabitacionesSection] Updating mobiliario for habitacion ${index}:`, {
+                      existeMobiliario,
+                      hasQuestion: !!updatedItems[index].mobiliario?.question,
+                    });
                     onUpdate({ dynamicItems: updatedItems });
                   }}
                 />
@@ -1852,15 +1890,19 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                     questionId="mobiliario"
                     label=""
                     onUpdate={(updates) => {
-                      const currentMobiliario = currentHabitacion.mobiliario || effectiveMobiliario;
+                      // Usar habitacionIndex si está disponible, sino usar 0
+                      const index = habitacionIndex !== undefined ? habitacionIndex : 0;
+                      const currentHabitacionForUpdate = dynamicItems[index] || currentHabitacion;
+                      const currentMobiliario = currentHabitacionForUpdate.mobiliario || effectiveMobiliario;
                       const updatedItems = [...dynamicItems];
-                      updatedItems[0] = {
-                        ...currentHabitacion,
+                      updatedItems[index] = {
+                        ...currentHabitacionForUpdate,
                         mobiliario: {
                           ...currentMobiliario,
                           question: { ...(currentMobiliario.question || { id: "mobiliario" }), ...updates },
                         },
                       };
+                      console.log(`[HabitacionesSection] Updating mobiliario question for habitacion ${index}:`, updates);
                       onUpdate({ dynamicItems: updatedItems });
                     }}
                     elements={[]}
@@ -1869,7 +1911,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                   {/* Campo de notas obligatorio para describir qué mobiliario existe */}
                   {(() => {
                     const mobiliarioQuestion = (currentHabitacion.mobiliario || effectiveMobiliario).question;
-                    const needsDetails = mobiliarioQuestion?.status === "necesita_reparacion" || mobiliarioQuestion?.status === "necesita_reemplazo";
+                    const needsDetails = mobiliarioQuestion?.status === "buen_estado" || mobiliarioQuestion?.status === "necesita_reparacion" || mobiliarioQuestion?.status === "necesita_reemplazo";
                     return needsDetails && (
                       <div className="space-y-2">
                         <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
@@ -1878,10 +1920,13 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                         <Textarea
                           value={mobiliarioQuestion?.notes || ""}
                           onChange={(e) => {
-                            const currentMobiliario = currentHabitacion.mobiliario || effectiveMobiliario;
+                            // Usar habitacionIndex si está disponible, sino usar 0
+                            const index = habitacionIndex !== undefined ? habitacionIndex : 0;
+                            const currentHabitacionForUpdate = dynamicItems[index] || currentHabitacion;
+                            const currentMobiliario = currentHabitacionForUpdate.mobiliario || effectiveMobiliario;
                             const updatedItems = [...dynamicItems];
-                            updatedItems[0] = {
-                              ...currentHabitacion,
+                            updatedItems[index] = {
+                              ...currentHabitacionForUpdate,
                               mobiliario: {
                                 ...currentMobiliario,
                                 question: { ...(currentMobiliario.question || { id: "mobiliario" }), notes: e.target.value },
@@ -2561,7 +2606,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                     showNotes={false}
                   />
                   {/* Campo de notas obligatorio para describir qué mobiliario existe */}
-                  {(mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
+                  {(mobiliario.question?.status === "buen_estado" || mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
                     <div className="space-y-2">
                       <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
                         {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>

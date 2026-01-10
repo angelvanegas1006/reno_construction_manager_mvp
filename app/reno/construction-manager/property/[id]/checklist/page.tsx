@@ -6,7 +6,7 @@ import { NavbarL3 } from "@/components/layout/navbar-l3";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
-import { ArrowLeft, Menu, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Menu, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileSidebarMenu } from "@/components/property/mobile-sidebar-menu";
 import { CompleteInspectionDialog } from "@/components/reno/complete-inspection-dialog";
@@ -22,7 +22,8 @@ import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseInspection } from "@/hooks/useSupabaseInspection";
-import { areAllActivitiesReported } from "@/lib/checklist-validation";
+import { useRenoProperties } from "@/contexts/reno-properties-context";
+import { areAllActivitiesReported, getFirstIncompleteSection } from "@/lib/checklist-validation";
 import { calculateOverallChecklistProgress, getAllChecklistSectionsProgress } from "@/lib/checklist-progress";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
 
@@ -88,6 +89,9 @@ export default function RenoChecklistPage() {
 
   // Load property from Supabase
   const { property: supabaseProperty, loading: supabaseLoading, error: propertyError, refetch: refetchProperty } = useSupabaseProperty(propertyId);
+  
+  // Get refetch function from context to update kanban/home properties
+  const { refetchProperties } = useRenoProperties();
 
   // Convert Supabase property to Property format
   const property: Property | null = useMemo(() => {
@@ -189,6 +193,9 @@ export default function RenoChecklistPage() {
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [publicUrl, setPublicUrl] = useState<string>("");
+  
+  // State for validation errors - track which section has errors
+  const [sectionWithError, setSectionWithError] = useState<string | null>(null);
 
   // Check if all activities are reported
   const canComplete = useMemo(() => {
@@ -246,8 +253,19 @@ export default function RenoChecklistPage() {
     [updateSection, isChecklistCompleted]
   );
 
-  // Handle section click - NO guardar automáticamente, solo cambiar de sección
-  const handleSectionClick = useCallback((sectionId: string) => {
+  // Handle section click - Guardar antes de cambiar de sección
+  const handleSectionClick = useCallback(async (sectionId: string) => {
+    // Guardar cambios antes de cambiar de sección
+    if (hasUnsavedChanges) {
+      try {
+        await saveCurrentSection();
+        setHasUnsavedChanges(false);
+      } catch (error) {
+        console.error("Error al guardar antes de cambiar de sección:", error);
+        toast.error("Error al guardar cambios. Los cambios no se guardaron.");
+      }
+    }
+    
     setActiveSection(sectionId);
     // Cerrar sidebar móvil al cambiar de sección
     setIsMobileSidebarOpen(false);
@@ -288,7 +306,7 @@ export default function RenoChecklistPage() {
         }
       }, 150); // 150ms de delay para asegurar que React haya renderizado completamente
     });
-  }, []);
+  }, [hasUnsavedChanges, saveCurrentSection]);
 
   // Handle continue - Guarda los cambios y luego cambia de sección
   const handleContinue = useCallback(async (nextSectionId: string) => {
@@ -324,11 +342,62 @@ export default function RenoChecklistPage() {
 
   // Handle complete inspection
   const handleCompleteInspection = useCallback(async () => {
-    if (!inspection || !canComplete || !property) {
-      toast.error("No se puede completar la inspección. Asegúrate de que todas las actividades estén reportadas.");
+    if (!inspection || !property) {
+      toast.error("No se puede completar la inspección.");
       return;
     }
 
+    // Guardar sección actual antes de validar
+    await saveCurrentSection();
+
+    // Validar checklist antes de continuar
+    const incompleteSection = getFirstIncompleteSection(checklist);
+    if (incompleteSection) {
+      // Limpiar error anterior
+      setSectionWithError(null);
+      
+      // Marcar la sección con error
+      setSectionWithError(incompleteSection.sectionRefId);
+      
+      // Cambiar a la sección con error
+      setActiveSection(incompleteSection.sectionRefId);
+      
+      // Scroll a la sección con error
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const sectionRef = sectionRefs.current[incompleteSection.sectionRefId];
+          if (sectionRef) {
+            const scrollContainer = sectionRef.closest('.overflow-y-auto') as HTMLElement;
+            if (scrollContainer) {
+              const containerRect = scrollContainer.getBoundingClientRect();
+              const elementRect = sectionRef.getBoundingClientRect();
+              const scrollOffset = 128 + 20;
+              const scrollPosition = scrollContainer.scrollTop + elementRect.top - containerRect.top - scrollOffset;
+              scrollContainer.scrollTo({
+                top: Math.max(0, scrollPosition),
+                behavior: "smooth"
+              });
+            } else {
+              sectionRef.scrollIntoView({ 
+                behavior: "smooth", 
+                block: "start",
+                inline: "nearest"
+              });
+            }
+          }
+        }, 200);
+      });
+      
+      // Mostrar toast con el error
+      toast.error(incompleteSection.message, {
+        description: "Por favor completa todos los campos requeridos antes de finalizar el checklist.",
+        duration: 5000,
+      });
+      
+      return;
+    }
+
+    // Si todo está completo, continuar con el proceso normal
     setIsCompleting(true);
     try {
       // Guardar sección actual antes de completar
@@ -362,6 +431,24 @@ export default function RenoChecklistPage() {
         setShowCompleteDialog(true);
         toast.success("Checklist completado exitosamente");
         setHasUnsavedChanges(false);
+        
+        // Refrescar la propiedad y las propiedades del contexto para actualizar la fase
+        await refetchProperty();
+        await refetchProperties();
+        
+        // Refrescar los datos del servidor
+        router.refresh();
+        
+        // Redirigir automáticamente después de un breve delay para que se vea el cambio
+        setTimeout(() => {
+          // Si venimos del kanban, volver al kanban
+          if (sourcePage === 'kanban') {
+            router.push("/reno/construction-manager/kanban");
+          } else {
+            // Si no, volver a la página de detalle de propiedad
+            router.push(`/reno/construction-manager/property/${propertyId}`);
+          }
+        }, 2000);
       } else {
         toast.error("Error al finalizar checklist en Airtable");
       }
@@ -370,8 +457,10 @@ export default function RenoChecklistPage() {
       toast.error("Error al completar la inspección");
     } finally {
       setIsCompleting(false);
+      // Limpiar error al finalizar (exitoso o no)
+      setSectionWithError(null);
     }
-  }, [inspection, canComplete, completeInspection, refetchInspection, saveCurrentSection, finalizeChecklist, property, propertyId, checklistType, supabaseProperty]);
+  }, [inspection, checklist, saveCurrentSection, completeInspection, refetchInspection, finalizeChecklist, property, propertyId, checklistType, supabaseProperty, refetchProperty, refetchProperties, router, sourcePage]);
 
   // Format address (main line)
   const formatAddress = () => {
@@ -442,7 +531,11 @@ export default function RenoChecklistPage() {
       });
     }
     updateChecklistSection("entorno-zonas-comunes", updates);
-  }, [updateChecklistSection]);
+    // Limpiar error cuando se actualiza la sección
+    if (sectionWithError === "checklist-entorno-zonas-comunes") {
+      setSectionWithError(null);
+    }
+  }, [updateChecklistSection, sectionWithError]);
 
   // Render active section
   const renderActiveSection = () => {
@@ -492,6 +585,7 @@ export default function RenoChecklistPage() {
                 if (el) sectionRefs.current["checklist-entorno-zonas-comunes"] = el;
               }}
               onContinue={() => handleContinue("checklist-estado-general")}
+              hasError={sectionWithError === "checklist-entorno-zonas-comunes"}
             />
           </Suspense>
         );
@@ -517,11 +611,16 @@ export default function RenoChecklistPage() {
             }}
             onUpdate={(updates) => {
               updateChecklistSection("estado-general", updates);
+              // Limpiar error cuando se actualiza la sección
+              if (sectionWithError === "checklist-estado-general") {
+                setSectionWithError(null);
+              }
             }}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-estado-general"] = el;
             }}
             onContinue={() => handleContinue("checklist-entrada-pasillos")}
+            hasError={sectionWithError === "checklist-estado-general"}
           />
           </Suspense>
         );
@@ -554,11 +653,16 @@ export default function RenoChecklistPage() {
             }}
             onUpdate={(updates) => {
               updateChecklistSection("entrada-pasillos", updates);
+              // Limpiar error cuando se actualiza la sección
+              if (sectionWithError === "checklist-entrada-pasillos") {
+                setSectionWithError(null);
+              }
             }}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-entrada-pasillos"] = el;
             }}
             onContinue={() => handleContinue("checklist-habitaciones")}
+            hasError={sectionWithError === "checklist-entrada-pasillos"}
           />
           </Suspense>
         );
@@ -584,6 +688,10 @@ export default function RenoChecklistPage() {
             section={habitacionesSection}
             onUpdate={(updates) => {
               updateChecklistSection("habitaciones", updates);
+              // Limpiar error cuando se actualiza la sección
+              if (sectionWithError === "checklist-habitaciones") {
+                setSectionWithError(null);
+              }
             }}
             onPropertyUpdate={async (updates: { habitaciones: number }) => {
               // Update property in Supabase
@@ -617,6 +725,7 @@ export default function RenoChecklistPage() {
             ref={(el) => {
               if (el) sectionRefs.current["checklist-habitaciones"] = el;
             }}
+            hasError={sectionWithError === "checklist-habitaciones"}
           />
           </Suspense>
         );
@@ -638,11 +747,16 @@ export default function RenoChecklistPage() {
             }}
             onUpdate={(updates) => {
               updateChecklistSection("salon", updates);
+              // Limpiar error cuando se actualiza la sección
+              if (sectionWithError === "checklist-salon") {
+                setSectionWithError(null);
+              }
             }}
             onContinue={() => handleContinue("checklist-banos")}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-salon"] = el;
             }}
+            hasError={sectionWithError === "checklist-salon"}
           />
           </Suspense>
         );
@@ -668,6 +782,10 @@ export default function RenoChecklistPage() {
             section={banosSection}
             onUpdate={(updates) => {
               updateChecklistSection("banos", updates);
+              // Limpiar error cuando se actualiza la sección
+              if (sectionWithError === "checklist-banos") {
+                setSectionWithError(null);
+              }
             }}
             onPropertyUpdate={async (updates: { banos: number }) => {
               // Update property in Supabase
@@ -693,6 +811,7 @@ export default function RenoChecklistPage() {
             ref={(el) => {
               if (el) sectionRefs.current["checklist-banos"] = el;
             }}
+            hasError={sectionWithError === "checklist-banos"}
           />
           </Suspense>
         );
@@ -730,11 +849,16 @@ export default function RenoChecklistPage() {
             }}
             onUpdate={(updates) => {
               updateChecklistSection("cocina", updates);
+              // Limpiar error cuando se actualiza la sección
+              if (sectionWithError === "checklist-cocina") {
+                setSectionWithError(null);
+              }
             }}
             onContinue={() => handleContinue("checklist-exteriores")}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-cocina"] = el;
             }}
+            hasError={sectionWithError === "checklist-cocina"}
           />
           </Suspense>
         );
@@ -759,10 +883,15 @@ export default function RenoChecklistPage() {
             }}
             onUpdate={(updates) => {
               updateChecklistSection("exteriores", updates);
+              // Limpiar error cuando se actualiza la sección
+              if (sectionWithError === "checklist-exteriores") {
+                setSectionWithError(null);
+              }
             }}
             ref={(el) => {
               if (el) sectionRefs.current["checklist-exteriores"] = el;
             }}
+            hasError={sectionWithError === "checklist-exteriores"}
             onContinue={async () => {
               try {
                 await saveCurrentSection();
@@ -1060,18 +1189,103 @@ export default function RenoChecklistPage() {
                 {
                   label: t.checklist.submitChecklist,
                   onClick: async () => {
-                    if (!property) return;
-                    await finalizeChecklist({
-                      estimatedVisitDate: property.estimatedVisitDate,
-                      autoVisitDate: new Date().toISOString().split('T')[0],
-                      nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
-                    });
-                    setTimeout(() => {
-                      router.push("/reno/construction-manager/kanban");
-                    }, 2000);
+                    if (!property || isCompleting) return;
+                    
+                    // Establecer estado de carga inmediatamente
+                    setIsCompleting(true);
+                    
+                    try {
+                      // Guardar sección actual antes de validar
+                      await saveCurrentSection();
+
+                      // Validar checklist antes de continuar
+                      const incompleteSection = getFirstIncompleteSection(checklist);
+                      if (incompleteSection) {
+                        // Limpiar error anterior
+                        setSectionWithError(null);
+                        
+                        // Marcar la sección con error
+                        setSectionWithError(incompleteSection.sectionRefId);
+                        
+                        // Cambiar a la sección con error
+                        setActiveSection(incompleteSection.sectionRefId);
+                        
+                        // Scroll a la sección con error
+                        requestAnimationFrame(() => {
+                          setTimeout(() => {
+                            const sectionRef = sectionRefs.current[incompleteSection.sectionRefId];
+                            if (sectionRef) {
+                              const scrollContainer = sectionRef.closest('.overflow-y-auto') as HTMLElement;
+                              if (scrollContainer) {
+                                const containerRect = scrollContainer.getBoundingClientRect();
+                                const elementRect = sectionRef.getBoundingClientRect();
+                                const scrollOffset = 128 + 20;
+                                const scrollPosition = scrollContainer.scrollTop + elementRect.top - containerRect.top - scrollOffset;
+                                scrollContainer.scrollTo({
+                                  top: Math.max(0, scrollPosition),
+                                  behavior: "smooth"
+                                });
+                              } else {
+                                sectionRef.scrollIntoView({ 
+                                  behavior: "smooth", 
+                                  block: "start",
+                                  inline: "nearest"
+                                });
+                              }
+                            }
+                          }, 200);
+                        });
+                        
+                        // Mostrar toast con el error
+                        toast.error(incompleteSection.message, {
+                          description: "Por favor completa todos los campos requeridos antes de finalizar el checklist.",
+                          duration: 5000,
+                        });
+                        
+                        setIsCompleting(false);
+                        return;
+                      }
+                      
+                      // Si todo está completo, continuar con el proceso normal
+                      const finalizeSuccess = await finalizeChecklist({
+                        estimatedVisitDate: property.estimatedVisitDate,
+                        autoVisitDate: new Date().toISOString().split('T')[0],
+                        nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
+                      });
+                      
+                      if (finalizeSuccess) {
+                        // Refrescar la propiedad y las propiedades del contexto para actualizar la fase
+                        await refetchProperty();
+                        await refetchProperties();
+                        
+                        // Refrescar los datos del servidor
+                        router.refresh();
+                        
+                        // Limpiar error al finalizar exitosamente
+                        setSectionWithError(null);
+                        
+                        // Redirigir automáticamente después de un breve delay
+                        setTimeout(() => {
+                          // Si venimos del kanban, volver al kanban
+                          if (sourcePage === 'kanban') {
+                            router.push("/reno/construction-manager/kanban");
+                          } else {
+                            // Si no, volver a la página de detalle de propiedad
+                            router.push(`/reno/construction-manager/property/${propertyId}`);
+                          }
+                        }, 2000);
+                      } else {
+                        toast.error("Error al finalizar el checklist");
+                      }
+                    } catch (error) {
+                      console.error("Error al completar checklist:", error);
+                      toast.error("Error al completar el checklist");
+                    } finally {
+                      setIsCompleting(false);
+                    }
                   },
                   variant: "default" as const,
-                  disabled: !canComplete || isCompleting,
+                  disabled: isCompleting,
                 },
               ]
         }
@@ -1157,6 +1371,23 @@ export default function RenoChecklistPage() {
         isOpen={isMobileSidebarOpen}
         onOpenChange={setIsMobileSidebarOpen}
       />
+
+      {/* Overlay de carga cuando se está completando el checklist */}
+      {isCompleting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-lg p-8 shadow-lg flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--prophero-blue-600)]" />
+            <div className="text-center">
+              <p className="text-lg font-semibold text-foreground">
+                {t.checklist.submitting || "Enviando checklist..."}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Por favor espera, esto puede tardar unos momentos
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Complete Inspection Dialog */}
       <CompleteInspectionDialog

@@ -17,6 +17,7 @@ interface EstadoGeneralSectionProps {
   section: ChecklistSection;
   onUpdate: (updates: Partial<ChecklistSection>) => void;
   onContinue?: () => void;
+  hasError?: boolean;
 }
 
 const CLIMATIZATION_ITEMS = [
@@ -29,7 +30,7 @@ const CLIMATIZATION_ITEMS = [
 const MAX_CLIMATIZATION_QUANTITY = 20;
 
 export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSectionProps>(
-  ({ section, onUpdate, onContinue }, ref) => {
+  ({ section, onUpdate, onContinue, hasError = false }, ref) => {
     const { t } = useI18n();
 
     // Initialize upload zone for "Fotos: perspectiva general"
@@ -102,7 +103,9 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
     }, [section.questions, defaultQuestions, onUpdate]);
 
     const handleClimatizationQuantityChange = useCallback((itemId: string, delta: number) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? [...section.climatizationItems] // Clonar array para evitar mutaciones
+        : [...climatizationItems];
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const currentCantidad = item.cantidad || 0;
@@ -140,7 +143,9 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
     }, [section.climatizationItems, climatizationItems, onUpdate]);
 
     const handleClimatizationStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? section.climatizationItems 
+        : climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -161,7 +166,9 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
     }, [section.climatizationItems, climatizationItems, onUpdate]);
 
     const handleClimatizationNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? section.climatizationItems 
+        : climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -182,7 +189,9 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
     }, [section.climatizationItems, climatizationItems, onUpdate]);
 
     const handleClimatizationPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      const currentItems = section.climatizationItems || climatizationItems;
+      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
+        ? section.climatizationItems 
+        : climatizationItems;
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -214,7 +223,20 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
     ];
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+      <div 
+        ref={ref} 
+        className={cn(
+          "bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
+          hasError && "border-4 border-red-500 bg-red-50 dark:bg-red-900/10"
+        )}
+      >
+        {hasError && (
+          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
+            <p className="text-sm font-medium text-red-900 dark:text-red-100">
+              ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
+            </p>
+          </div>
+        )}
         {/* Fotos: perspectiva general */}
         <Card className="p-4 sm:p-6 space-y-4">
           <ChecklistUploadZoneComponent
@@ -258,7 +280,10 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
 
           <div className="space-y-6">
             {CLIMATIZATION_ITEMS.map((itemConfig) => {
-              const item = climatizationItems.find(i => i.id === itemConfig.id) || {
+              const itemsToSearch = (section.climatizationItems && section.climatizationItems.length > 0) 
+                ? section.climatizationItems 
+                : climatizationItems;
+              const item = itemsToSearch.find(i => i.id === itemConfig.id) || {
                 id: itemConfig.id,
                 cantidad: 0,
               };

@@ -16,6 +16,7 @@ interface CocinaSectionProps {
   section: ChecklistSection;
   onUpdate: (updates: Partial<ChecklistSection>) => void;
   onContinue?: () => void;
+  hasError?: boolean;
 }
 
 const CARPENTRY_ITEMS = [
@@ -42,7 +43,7 @@ const APPLIANCES_ITEMS = [
 const MAX_QUANTITY = 20;
 
 export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
-  ({ section, onUpdate, onContinue }, ref) => {
+  ({ section, onUpdate, onContinue, hasError = false }, ref) => {
     const { t } = useI18n();
     
     // Debug: Log section changes
@@ -135,14 +136,20 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         itemsKey,
       });
       
-      // Always get the latest items directly from section
+      // Always get the latest items directly from section and clone to avoid mutations
       const currentItems = (() => {
         if (itemsKey === "carpentryItems") {
-          return section.carpentryItems || [];
+          return (section.carpentryItems && section.carpentryItems.length > 0)
+            ? [...section.carpentryItems] // Clonar array para evitar mutaciones
+            : [...carpentryItems];
         } else if (itemsKey === "storageItems") {
-          return section.storageItems || [];
+          return (section.storageItems && section.storageItems.length > 0)
+            ? [...section.storageItems] // Clonar array para evitar mutaciones
+            : [...storageItems];
         } else if (itemsKey === "appliancesItems") {
-          return section.appliancesItems || [];
+          return (section.appliancesItems && section.appliancesItems.length > 0)
+            ? [...section.appliancesItems] // Clonar array para evitar mutaciones
+            : [...appliancesItems];
         }
         return [];
       })();
@@ -164,7 +171,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             delta,
           });
           
-          let units = item.units || [];
+          let units = (item.units || []).map(u => ({ ...u })); // Clonar units también
           
           if (newCantidad > 1) {
             while (units.length < newCantidad) {
@@ -173,7 +180,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             while (units.length > newCantidad) {
               units.pop();
             }
-            return { ...item, cantidad: newCantidad, units, estado: undefined, notes: undefined, photos: undefined };
+            return { ...item, cantidad: newCantidad, units: units.map(u => ({ ...u })), estado: undefined, notes: undefined, photos: undefined };
           } else if (newCantidad === 1) {
             const singleEstado = units.length > 0 ? units[0].estado : undefined;
             const singleNotes = units.length > 0 ? units[0].notes : undefined;
@@ -195,7 +202,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       onUpdate({ [itemsKey]: updatedItems });
       
       console.log(`✅ [CocinaSection] onUpdate called`);
-    }, [section, onUpdate]);
+    }, [section.carpentryItems, section.storageItems, section.appliancesItems, carpentryItems, storageItems, appliancesItems, onUpdate]);
 
     // Generic handler for status changes
     const handleStatusChange = useCallback((
@@ -204,14 +211,20 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       status: ChecklistStatus,
       itemsKey: "carpentryItems" | "storageItems" | "appliancesItems"
     ) => {
-      // Always get the latest items directly from section
+      // Always get the latest items directly from section and clone to avoid mutations
       const currentItems = (() => {
         if (itemsKey === "carpentryItems") {
-          return section.carpentryItems || [];
+          return (section.carpentryItems && section.carpentryItems.length > 0)
+            ? [...section.carpentryItems]
+            : [...carpentryItems];
         } else if (itemsKey === "storageItems") {
-          return section.storageItems || [];
+          return (section.storageItems && section.storageItems.length > 0)
+            ? [...section.storageItems]
+            : [...storageItems];
         } else if (itemsKey === "appliancesItems") {
-          return section.appliancesItems || [];
+          return (section.appliancesItems && section.appliancesItems.length > 0)
+            ? [...section.appliancesItems]
+            : [...appliancesItems];
         }
         return [];
       })();
@@ -220,17 +233,17 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, estado: status } : unit
+              idx === unitIndex ? { ...unit, estado: status } : { ...unit }
             );
             return { ...item, units: updatedUnits };
           } else {
             return { ...item, estado: status };
           }
         }
-        return item;
+        return { ...item };
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [section, onUpdate]);
+    }, [section.carpentryItems, section.storageItems, section.appliancesItems, carpentryItems, storageItems, appliancesItems, onUpdate]);
 
     // Generic handler for bad elements changes
     const handleBadElementsChange = useCallback((
@@ -244,14 +257,14 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, badElements } : unit
+              idx === unitIndex ? { ...unit, badElements } : { ...unit }
             );
             return { ...item, units: updatedUnits };
           } else {
             return { ...item, badElements };
           }
         }
-        return item;
+        return { ...item };
       });
       onUpdate({ [itemsKey]: updatedItems });
     }, [onUpdate]);
@@ -263,14 +276,20 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       notes: string,
       itemsKey: "carpentryItems" | "storageItems" | "appliancesItems"
     ) => {
-      // Always get the latest items directly from section
+      // Always get the latest items directly from section and clone to avoid mutations
       const currentItems = (() => {
         if (itemsKey === "carpentryItems") {
-          return section.carpentryItems || [];
+          return (section.carpentryItems && section.carpentryItems.length > 0)
+            ? [...section.carpentryItems]
+            : [...carpentryItems];
         } else if (itemsKey === "storageItems") {
-          return section.storageItems || [];
+          return (section.storageItems && section.storageItems.length > 0)
+            ? [...section.storageItems]
+            : [...storageItems];
         } else if (itemsKey === "appliancesItems") {
-          return section.appliancesItems || [];
+          return (section.appliancesItems && section.appliancesItems.length > 0)
+            ? [...section.appliancesItems]
+            : [...appliancesItems];
         }
         return [];
       })();
@@ -279,17 +298,17 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, notes } : unit
+              idx === unitIndex ? { ...unit, notes } : { ...unit }
             );
             return { ...item, units: updatedUnits };
           } else {
             return { ...item, notes };
           }
         }
-        return item;
+        return { ...item };
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [section, onUpdate]);
+    }, [section.carpentryItems, section.storageItems, section.appliancesItems, carpentryItems, storageItems, appliancesItems, onUpdate]);
 
     // Generic handler for photos changes
     const handlePhotosChange = useCallback((
@@ -298,14 +317,20 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       photos: FileUpload[],
       itemsKey: "carpentryItems" | "storageItems" | "appliancesItems"
     ) => {
-      // Always get the latest items directly from section
+      // Always get the latest items directly from section and clone to avoid mutations
       const currentItems = (() => {
         if (itemsKey === "carpentryItems") {
-          return section.carpentryItems || [];
+          return (section.carpentryItems && section.carpentryItems.length > 0)
+            ? [...section.carpentryItems]
+            : [...carpentryItems];
         } else if (itemsKey === "storageItems") {
-          return section.storageItems || [];
+          return (section.storageItems && section.storageItems.length > 0)
+            ? [...section.storageItems]
+            : [...storageItems];
         } else if (itemsKey === "appliancesItems") {
-          return section.appliancesItems || [];
+          return (section.appliancesItems && section.appliancesItems.length > 0)
+            ? [...section.appliancesItems]
+            : [...appliancesItems];
         }
         return [];
       })();
@@ -314,17 +339,17 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, photos } : unit
+              idx === unitIndex ? { ...unit, photos } : { ...unit }
             );
             return { ...item, units: updatedUnits };
           } else {
             return { ...item, photos };
           }
         }
-        return item;
+        return { ...item };
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [section, onUpdate]);
+    }, [section.carpentryItems, section.storageItems, section.appliancesItems, carpentryItems, storageItems, appliancesItems, onUpdate]);
 
     // Render function for items with quantity (carpentry, storage, appliances)
     const renderQuantityItems = (
@@ -566,7 +591,20 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
     };
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+      <div 
+        ref={ref} 
+        className={cn(
+          "bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
+          hasError && "border-4 border-red-500 bg-red-50 dark:bg-red-900/10"
+        )}
+      >
+        {hasError && (
+          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
+            <p className="text-sm font-medium text-red-900 dark:text-red-100">
+              ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
+            </p>
+          </div>
+        )}
 
         {/* Fotos y vídeo de la cocina */}
         <Card className="p-4 sm:p-6 space-y-4">

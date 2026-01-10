@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Menu, Save, ArrowRight } from "lucide-react";
+import { ArrowLeft, Menu, Save, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -125,9 +125,12 @@ export function NavbarL3({
                 <Button
                   onClick={submitAction.onClick}
                   disabled={submitAction.disabled}
-                  className="flex items-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white"
+                  className="flex items-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  {submitAction.icon}
+                  {submitAction.disabled && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  {submitAction.icon && !submitAction.disabled && submitAction.icon}
                   {submitAction.label}
                 </Button>
               )}
@@ -152,9 +155,12 @@ export function NavbarL3({
               <Button
                 onClick={submitAction.onClick}
                 disabled={submitAction.disabled}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-12 text-base font-medium"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-12 text-base font-medium disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {submitAction.icon}
+                {submitAction.disabled && (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                )}
+                {submitAction.icon && !submitAction.disabled && submitAction.icon}
                 {submitAction.label}
               </Button>
             )}

@@ -88,13 +88,24 @@ export function ChecklistQuestion({
       label,
     });
     
-    // If status is "buen_estado" or "no_aplica", clear badElements, notes, and photos
-    if (status === "buen_estado" || status === "no_aplica") {
+    // If status is "no_aplica", clear badElements, notes, and photos
+    if (status === "no_aplica") {
       const updates = { 
         status, 
         badElements: undefined, 
         notes: undefined, 
         photos: undefined 
+      };
+      console.log(`📤 [ChecklistQuestion] Calling onUpdate with:`, updates);
+      onUpdate(updates);
+      console.log(`✅ [ChecklistQuestion] onUpdate called successfully`);
+    } else if (status === "buen_estado") {
+      // For "buen_estado", clear badElements and photos, but keep notes (needed for mobiliario)
+      const updates = { 
+        status, 
+        badElements: undefined, 
+        photos: undefined 
+        // Keep notes - don't clear them
       };
       console.log(`📤 [ChecklistQuestion] Calling onUpdate with:`, updates);
       onUpdate(updates);

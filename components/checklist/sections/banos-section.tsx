@@ -19,6 +19,7 @@ interface BanosSectionProps {
   banoIndex?: number; // Index of the specific bathroom (0-based), undefined for main section
   onPropertyUpdate?: (updates: { banos: number }) => void; // To update property.data.banos
   onNavigateToBano?: (index: number) => void; // To navigate to a specific bathroom
+  hasError?: boolean;
 }
 
 const CARPENTRY_ITEMS = [
@@ -29,7 +30,7 @@ const CARPENTRY_ITEMS = [
 const MAX_QUANTITY = 20;
 
 export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
-  ({ section, onUpdate, onContinue, banoIndex, onPropertyUpdate, onNavigateToBano }, ref) => {
+  ({ section, onUpdate, onContinue, banoIndex, onPropertyUpdate, onNavigateToBano, hasError = false }, ref) => {
     const { t } = useI18n();
 
     // Get dynamic count from section or default to dynamicItems length or 0
@@ -612,7 +613,20 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       const currentUploadZone = currentBano.uploadZone || { id: "fotos-video-banos-1", photos: [], videos: [] };
 
       return (
-        <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+        <div 
+          ref={ref} 
+          className={cn(
+            "bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
+            hasError && "border-4 border-red-500 bg-red-50 dark:bg-red-900/10"
+          )}
+        >
+          {hasError && (
+            <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
+              <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
+              </p>
+            </div>
+          )}
 
           {/* Room Counter */}
           <Card className="p-4 sm:p-6 space-y-4">
@@ -1369,12 +1383,25 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
     }
 
     // Main section: Show counter and list of bathrooms (when dynamicCount > 1)
-    return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
-            {t.checklist.sections.banos.title}
-          </h1>
+      return (
+        <div 
+          ref={ref} 
+          className={cn(
+            "bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
+            hasError && "border-4 border-red-500 bg-red-50 dark:bg-red-900/10"
+          )}
+        >
+          {hasError && (
+            <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
+              <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
+              </p>
+            </div>
+          )}
+          <div className="space-y-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
+              {t.checklist.sections.banos.title}
+            </h1>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed break-words">
             {t.checklist.sections.banos.description}
           </p>

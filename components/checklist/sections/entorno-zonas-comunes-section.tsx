@@ -6,15 +6,17 @@ import { ChecklistUploadZone as ChecklistUploadZoneComponent } from "../checklis
 import { ChecklistQuestion as ChecklistQuestionComponent } from "../checklist-question";
 import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface EntornoZonasComunesSectionProps {
   section: ChecklistSection;
   onUpdate: (updates: Partial<ChecklistSection>) => void;
   onContinue?: () => void;
+  hasError?: boolean;
 }
 
 export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZonasComunesSectionProps>(
-  ({ section, onUpdate, onContinue }, ref) => {
+  ({ section, onUpdate, onContinue, hasError = false }, ref) => {
     const { t } = useI18n();
 
     // Initialize upload zones if they don't exist
@@ -108,7 +110,20 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
     }, [section.questions, defaultQuestions, onUpdate]);
 
     return (
-      <div ref={ref} className="space-y-8">
+      <div 
+        ref={ref} 
+        className={cn(
+          "space-y-8",
+          hasError && "border-4 border-red-500 rounded-lg p-4 bg-red-50 dark:bg-red-900/10"
+        )}
+      >
+        {hasError && (
+          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
+            <p className="text-sm font-medium text-red-900 dark:text-red-100">
+              ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
+            </p>
+          </div>
+        )}
         {/* Upload Zones con títulos fuera del contenedor general */}
         <div className="space-y-6">
           {/* Portal */}

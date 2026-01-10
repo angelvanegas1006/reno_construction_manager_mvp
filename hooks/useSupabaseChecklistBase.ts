@@ -1514,7 +1514,22 @@ export function useSupabaseChecklistBase({
         sectionToSave.dynamicItems.forEach((dynamicItem, index) => {
           const correspondingZone = zonesOfType[index];
           if (correspondingZone) {
+            // Log mobiliario antes de convertir
+            if (dynamicItem.mobiliario) {
+              console.log(`[useSupabaseChecklistBase:${inspectionType}] 📦 Dynamic item ${index + 1} has mobiliario:`, {
+                existeMobiliario: dynamicItem.mobiliario.existeMobiliario,
+                hasQuestion: !!dynamicItem.mobiliario.question,
+                questionStatus: dynamicItem.mobiliario.question?.status,
+              });
+            }
             const dynamicElements = convertDynamicItemToElements(dynamicItem, correspondingZone.id);
+            // Verificar que se crearon elementos de mobiliario
+            const mobiliarioElements = dynamicElements.filter(e => e.element_name === 'mobiliario' || e.element_name === 'mobiliario-detalle');
+            if (mobiliarioElements.length > 0) {
+              console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Created ${mobiliarioElements.length} mobiliario elements for dynamic item ${index + 1}:`, 
+                mobiliarioElements.map(e => ({ element_name: e.element_name, exists: e.exists, condition: e.condition }))
+              );
+            }
             elementsToSave.push(...dynamicElements);
             console.log(`[useSupabaseChecklistBase:${inspectionType}] Processed dynamic item ${index + 1} (${dynamicItem.id}) with zone ${correspondingZone.id}: ${dynamicElements.length} elements`);
           } else {
@@ -1707,6 +1722,30 @@ export function useSupabaseChecklistBase({
               clonedItem.uploadZone.videos = [...item.uploadZone.videos];
             }
           }
+          // Clonar mobiliario si existe
+          if (item.mobiliario) {
+            clonedItem.mobiliario = {
+              ...item.mobiliario,
+            };
+            if (item.mobiliario.question) {
+              clonedItem.mobiliario.question = {
+                ...item.mobiliario.question,
+              };
+              if (item.mobiliario.question.photos) {
+                clonedItem.mobiliario.question.photos = [...item.mobiliario.question.photos];
+              }
+              if (item.mobiliario.question.badElements) {
+                clonedItem.mobiliario.question.badElements = [...item.mobiliario.question.badElements];
+              }
+            }
+            if (itemIdx === 0) {
+              console.log(`🪑 [useSupabaseChecklistBase:${inspectionType}] Cloned mobiliario for habitacion[0]:`, {
+                existeMobiliario: clonedItem.mobiliario.existeMobiliario,
+                hasQuestion: !!clonedItem.mobiliario.question,
+                questionStatus: clonedItem.mobiliario.question?.status,
+              });
+            }
+          }
           return clonedItem;
         });
         console.log(`✅ [useSupabaseChecklistBase:${inspectionType}] Cloned dynamicItems length:`, updatedSection.dynamicItems.length);
@@ -1793,10 +1832,10 @@ export function useSupabaseChecklistBase({
     currentSectionRef.current = sectionId;
     pendingSaveRef.current = { sectionId, sectionData };
     
-    // Guardado automático con debounce (agrupa múltiples cambios en un solo guardado)
-    debouncedSave();
+    // NO guardar automáticamente - solo guardar cuando se cambia de página
+    // El guardado se hará en handleContinue o handleSectionClick
     
-    debugLog(`✅ [useSupabaseChecklistBase:${inspectionType}] updateSection COMPLETED`);
+    debugLog(`✅ [useSupabaseChecklistBase:${inspectionType}] updateSection COMPLETED (sin autoguardado)`);
   }, [inspectionType, debouncedSave]);
 
   // Finalizar checklist
