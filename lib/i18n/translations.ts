@@ -346,6 +346,8 @@ export interface Translations {
       startDate: string;
       daysInProgress: string;
       lastUpdate: string;
+      nextUpdate: string;
+      renoType: string;
       status: string;
       action: string;
       trackingActive: string;
