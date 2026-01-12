@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Plus, CheckCircle2, Wrench, Bell, Edit, Trash2, RefreshCw, CalendarCheck, X, PenTool, Hammer, Filter } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Plus, CheckCircle2, Wrench, Bell, Edit, Trash2, RefreshCw, CalendarCheck, X, FileSignature, Hammer, Filter } from "lucide-react";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { useI18n } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
@@ -680,7 +680,7 @@ export function VisitsCalendar({
       case "reminder":
         return <Bell className="h-4 w-4 text-purple-500" />;
       case "real-settlement-date":
-        return <PenTool className="h-4 w-4 text-indigo-500" />;
+        return <FileSignature className="h-4 w-4 text-[var(--prophero-blue-500)]" />;
       case "reno-start-date":
         return <Hammer className="h-4 w-4 text-orange-500" />;
       default:

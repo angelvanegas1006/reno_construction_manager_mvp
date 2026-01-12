@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, CheckCircle2, PenTool } from "lucide-react";
+import { Calendar, CheckCircle2, FileSignature } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
@@ -222,8 +222,8 @@ export function RenoPropertyCard({
                   onClick={(e) => e.stopPropagation()} // Evitar que el click en el icono active el onClick del card
                   onMouseEnter={(e) => e.stopPropagation()} // Evitar que el hover active otros eventos
                 >
-                  <PenTool 
-                    className="h-5 w-5 text-indigo-600 dark:text-indigo-400 cursor-help" 
+                  <FileSignature 
+                    className="h-5 w-5 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] cursor-help" 
                   />
                   {/* Tooltip personalizado */}
                   <div className="absolute right-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
