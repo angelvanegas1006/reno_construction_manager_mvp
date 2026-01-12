@@ -49,7 +49,6 @@ export async function GET(request: NextRequest) {
           console.error('[Proxy HTML] Error listing directory:', {
             error: listError.message,
             directory,
-            code: listError.statusCode,
           });
         } else {
           const fileExists = files && files.some(f => f.name === fileName);
@@ -78,7 +77,6 @@ export async function GET(request: NextRequest) {
           console.error('[Proxy HTML] Error downloading from Supabase Storage:', {
             error: downloadError.message,
             path: filePath,
-            code: downloadError.statusCode,
           });
           
           // Si es un error de permisos, dar instrucciones
