@@ -27,19 +27,13 @@ export async function uploadChecklistPDFToStorage(
     checklist.checklistType === 'reno_final' ? 'final' : 
     undefined;
 
-  // Generar el HTML estático
-  const htmlContent = checklistType 
-    ? await generateChecklistHTML(
-        checklist,
-        propertyInfo,
-        translations[language],
-        checklistType
-      )
-    : await generateChecklistHTML(
-        checklist,
-        propertyInfo,
-        translations[language]
-      );
+  // Generar el HTML estático - pasar siempre el parámetro (puede ser undefined)
+  const htmlContent = await generateChecklistHTML(
+    checklist,
+    propertyInfo,
+    translations[language],
+    checklistType
+  );
 
   // Convertir HTML a Blob y luego a File
   const htmlBlob = new Blob([htmlContent], { type: 'text/html' });

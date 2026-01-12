@@ -812,7 +812,8 @@ export async function generateChecklistHTML(
     renovatorName?: string;
     driveFolderUrl?: string;
   },
-  translations: any
+  translations: any,
+  checklistType?: 'initial' | 'final'
 ): Promise<string> {
   console.log('[generateChecklistHTML] 📋 Generating HTML with:', {
     propertyId: propertyInfo.propertyId,
@@ -855,13 +856,28 @@ export async function generateChecklistHTML(
     'exteriores',
   ];
 
+  // Determinar el tipo de checklist (inicial o final)
+  // Prioridad: parámetro explícito > checklist.checklistType > inferir desde checklistType
+  let checklistTypeLabel: 'initial' | 'final';
+  if (checklistType) {
+    checklistTypeLabel = checklistType;
+  } else if (checklist.checklistType === 'reno_initial') {
+    checklistTypeLabel = 'initial';
+  } else if (checklist.checklistType === 'reno_final') {
+    checklistTypeLabel = 'final';
+  } else {
+    // Fallback: intentar inferir desde el nombre del tipo
+    const typeStr = String(checklist.checklistType || '').toLowerCase();
+    checklistTypeLabel = typeStr.includes('initial') || typeStr.includes('inicial') ? 'initial' : 'final';
+  }
+
   // Generar HTML base
   let html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Informe de Propiedad - Checklist Detallado</title>
+<title>Informe de Propiedad - Checklist ${checklistTypeLabel === 'initial' ? 'Inicial' : 'Final'}</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
@@ -1290,7 +1306,7 @@ body {
 <header class="header">
 <div class="header-content">
 <h1>Informe de Propiedad</h1>
-<p>Checklist de Inspección Detallado</p>
+<p>Checklist ${checklistTypeLabel === 'initial' ? 'Inicial' : 'Final'}</p>
 </div>
 </header>
 
