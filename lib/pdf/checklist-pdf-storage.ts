@@ -21,11 +21,17 @@ export async function uploadChecklistPDFToStorage(
 ): Promise<string> {
   const supabase = createClient();
 
+  // Determinar el tipo de checklist
+  const checklistType = checklist.checklistType === 'reno_initial' ? 'initial' : 
+                        checklist.checklistType === 'reno_final' ? 'final' : 
+                        undefined;
+
   // Generar el HTML estático
   const htmlContent = await generateChecklistHTML(
     checklist,
     propertyInfo,
-    translations[language]
+    translations[language],
+    checklistType as 'initial' | 'final' | undefined
   );
 
   // Convertir HTML a Blob y luego a File
@@ -33,10 +39,11 @@ export async function uploadChecklistPDFToStorage(
   const htmlFile = new File([htmlBlob], 'checklist.html', { type: 'text/html' });
 
   // Construir path: checklists/{propertyId}/{type}/checklist.html
-  const checklistType = checklist.checklistType === 'reno_initial' ? 'initial' : 
-                        checklist.checklistType === 'reno_final' ? 'final' : 
-                        checklist.checklistType;
-  const path = `${propertyInfo.propertyId}/${checklistType}/checklist.html`;
+  // Usar el checklistType ya determinado arriba, con fallback si es undefined
+  const pathType = checklistType || (checklist.checklistType === 'reno_initial' ? 'initial' : 
+                                     checklist.checklistType === 'reno_final' ? 'final' : 
+                                     'initial'); // Fallback a 'initial' si no se puede determinar
+  const path = `${propertyInfo.propertyId}/${pathType}/checklist.html`;
 
   // Subir archivo
   const { data, error } = await supabase.storage
