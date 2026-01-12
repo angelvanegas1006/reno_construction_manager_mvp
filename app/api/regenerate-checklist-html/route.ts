@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
           
           if (matchingInspection) {
             inspection = matchingInspection;
-          } else {
+        } else {
             inspError = { code: 'PGRST116', message: `No ${inspectionType} inspection found` };
           }
         }
@@ -204,10 +204,17 @@ export async function POST(request: NextRequest) {
       translations.es
     );
 
-    // 6. Subir a Storage usando cliente admin para evitar RLS
-    const htmlBuffer = Buffer.from(htmlContent, 'utf-8');
+    // 6. Eliminar archivo anterior si existe (para forzar actualización)
     const storagePath = `${propertyId}/${type}/checklist.html`;
     const adminSupabase = createAdminClient();
+    
+    // Intentar eliminar el archivo anterior
+    await adminSupabase.storage
+      .from('checklists')
+      .remove([storagePath]);
+
+    // 7. Subir nuevo HTML a Storage usando cliente admin para evitar RLS
+    const htmlBuffer = Buffer.from(htmlContent, 'utf-8');
 
     const { data: uploadData, error: uploadError } = await adminSupabase.storage
       .from('checklists')
@@ -223,14 +230,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 7. Obtener URL pública
+    // 8. Obtener URL pública
     const { data: publicUrlData } = adminSupabase.storage
       .from('checklists')
       .getPublicUrl(uploadData.path);
 
     const htmlUrl = publicUrlData.publicUrl;
 
-    // 8. Actualizar inspección con URL
+    // 9. Actualizar inspección con URL
     const { error: updateError } = await supabase
       .from('property_inspections')
       .update({ pdf_url: htmlUrl })
@@ -240,7 +247,7 @@ export async function POST(request: NextRequest) {
       console.warn('[regenerate-checklist-html] Error updating inspection:', updateError);
     }
 
-    // 9. Generar link público
+    // 10. Generar link público
     const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://dev.vistral.io'}/checklist-public/${propertyId}/${type}`;
 
     return NextResponse.json({

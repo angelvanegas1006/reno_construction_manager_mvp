@@ -1,4 +1,4 @@
-import { ChecklistData, ChecklistStatus } from '@/lib/checklist-storage';
+import { ChecklistData, ChecklistStatus, ChecklistSection, FileUpload } from '@/lib/checklist-storage';
 
 /**
  * Helper para obtener el label traducido de un elemento
@@ -11,7 +11,6 @@ function getTranslatedLabel(
 ): string {
   const section = translations.checklist?.sections?.[sectionId];
   if (!section) {
-    // Si no hay traducción, capitalizar y formatear el ID
     const words = itemId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1));
     return words.join(' ');
   }
@@ -34,7 +33,6 @@ function getTranslatedLabel(
     return section[category].items[itemId];
   }
 
-  // Si no hay traducción, capitalizar y formatear el ID
   const words = itemId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1));
   return words.join(' ');
 }
@@ -82,7 +80,6 @@ function getUploadZoneLabel(
   sectionId: string,
   zoneId: string
 ): string {
-  // Remover prefijos como "0=", "fotos-", etc.
   let cleanId = zoneId.replace(/^[0-9]+=/, '').replace(/^fotos-/, '').replace(/^video-/, '');
   
   const section = translations.checklist?.sections?.[sectionId];
@@ -90,7 +87,6 @@ function getUploadZoneLabel(
     return section.uploadZones[zoneId];
   }
 
-  // Capitalizar primera letra y convertir guiones a espacios
   const words = cleanId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1));
   return words.join(' ');
 }
@@ -99,16 +95,16 @@ function getUploadZoneLabel(
  * Helper para obtener el label de estado traducido
  */
 function getStatusLabel(status: string | undefined, translations: any): string {
-  if (!status) return 'Buen Estado';
+  if (!status) return 'Buen estado';
   
   const statusMap: Record<string, string> = {
-    buen_estado: 'Buen Estado',
-    necesita_reparacion: 'Necesita Reparación',
-    necesita_reemplazo: 'Necesita Reemplazo',
-    no_aplica: 'No Aplica',
+    buen_estado: 'Buen estado',
+    necesita_reparacion: 'Necesita reparación',
+    necesita_reemplazo: 'Necesita reemplazo',
+    no_aplica: 'No aplica',
   };
 
-  return statusMap[status] || 'Buen Estado';
+  return statusMap[status] || 'Buen estado';
 }
 
 /**
@@ -116,14 +112,14 @@ function getStatusLabel(status: string | undefined, translations: any): string {
  */
 function getStatusBadgeClasses(status: string | undefined): string {
   if (!status) {
-    return 'bg-status-good-bg text-status-good-text ring-status-good-border';
+    return 'bg-green-50 text-green-800 border-green-200';
   }
   
   const statusClasses: Record<string, string> = {
-    buen_estado: 'bg-status-good-bg text-status-good-text ring-status-good-border',
-    necesita_reparacion: 'bg-yellow-50 text-yellow-800 ring-yellow-200',
-    necesita_reemplazo: 'bg-red-50 text-red-800 ring-red-200',
-    no_aplica: 'bg-gray-50 text-gray-800 ring-gray-200',
+    buen_estado: 'bg-green-50 text-green-800 border-green-200',
+    necesita_reparacion: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+    necesita_reemplazo: 'bg-red-50 text-red-800 border-red-200',
+    no_aplica: 'bg-gray-50 text-gray-800 border-gray-200',
   };
 
   return statusClasses[status] || statusClasses.buen_estado;
@@ -144,7 +140,669 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Genera HTML estático del checklist completo con diseño exacto del HTML proporcionado
+ * Interfaz para imágenes con metadata
+ */
+interface ImageWithMetadata {
+  url: string;
+  label?: string;
+  notes?: string;
+  source: 'uploadZone' | 'question' | 'item' | 'dynamicItem';
+}
+
+/**
+ * Recolecta todas las imágenes de una sección
+ */
+function collectSectionImages(
+  section: ChecklistSection,
+  sectionId: string,
+  translations: any
+): ImageWithMetadata[] {
+  const images: ImageWithMetadata[] = [];
+
+  // Imágenes de upload zones
+  if (section.uploadZones) {
+    for (const zone of section.uploadZones) {
+      if (zone.photos && zone.photos.length > 0) {
+        const zoneLabel = getUploadZoneLabel(translations, sectionId, zone.id);
+        for (const photo of zone.photos) {
+          if (photo.data) {
+            images.push({
+              url: photo.data,
+              label: zoneLabel,
+              source: 'uploadZone',
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Imágenes de questions
+  if (section.questions) {
+    for (const question of section.questions) {
+      if (question.photos && question.photos.length > 0) {
+        const questionLabel = getQuestionLabel(translations, sectionId, question.id);
+        for (const photo of question.photos) {
+          if (photo.data) {
+            images.push({
+              url: photo.data,
+              label: questionLabel,
+              notes: question.notes,
+              source: 'question',
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Imágenes de items (carpentry, climatization, etc.)
+  const itemCategories = [
+    'carpentryItems',
+    'climatizationItems',
+    'storageItems',
+    'appliancesItems',
+    'securityItems',
+    'systemsItems',
+  ];
+
+  for (const categoryKey of itemCategories) {
+    const items = (section as any)[categoryKey];
+    if (!items || !Array.isArray(items)) continue;
+
+    for (const item of items) {
+      if (!item.cantidad || item.cantidad === 0) continue;
+
+      const itemLabel = getTranslatedLabel(
+        translations,
+        sectionId,
+        categoryKey.replace('Items', ''),
+        item.id
+      );
+
+      // Si tiene unidades, recolectar fotos de cada unidad
+      if (item.units && Array.isArray(item.units)) {
+        for (const unit of item.units) {
+          if (unit.photos && unit.photos.length > 0) {
+            for (const photo of unit.photos) {
+              if (photo.data) {
+                images.push({
+                  url: photo.data,
+                  label: `${itemLabel} ${unit.id || ''}`,
+                  notes: unit.notes,
+                  source: 'item',
+                });
+              }
+            }
+          }
+        }
+      } else {
+        // Si no tiene unidades, usar fotos del item directamente
+        if (item.photos && item.photos.length > 0) {
+          for (const photo of item.photos) {
+            if (photo.data) {
+              images.push({
+                url: photo.data,
+                label: itemLabel,
+                notes: item.notes,
+                source: 'item',
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Imágenes de dynamic items (habitaciones, baños)
+  if (section.dynamicItems) {
+    for (const dynamicItem of section.dynamicItems) {
+      // Upload zone del dynamic item
+      if (dynamicItem.uploadZone?.photos) {
+        for (const photo of dynamicItem.uploadZone.photos) {
+          if (photo.data) {
+            images.push({
+              url: photo.data,
+              label: dynamicItem.id,
+              source: 'dynamicItem',
+            });
+          }
+        }
+      }
+
+      // Questions del dynamic item
+      if (dynamicItem.questions) {
+        for (const question of dynamicItem.questions) {
+          if (question.photos && question.photos.length > 0) {
+            for (const photo of question.photos) {
+              if (photo.data) {
+                images.push({
+                  url: photo.data,
+                  label: `${dynamicItem.id} - ${question.id}`,
+                  notes: question.notes,
+                  source: 'dynamicItem',
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Items del dynamic item (carpentry)
+      if (dynamicItem.carpentryItems) {
+        for (const item of dynamicItem.carpentryItems) {
+          if (!item.cantidad || item.cantidad === 0) continue;
+          
+          const itemLabel = getTranslatedLabel(translations, sectionId, 'carpinteria', item.id);
+          
+          // Si tiene unidades, recolectar fotos de cada unidad
+          if (item.units && Array.isArray(item.units)) {
+            for (const unit of item.units) {
+              if (unit.photos && unit.photos.length > 0) {
+                for (const photo of unit.photos) {
+                  if (photo.data) {
+                    images.push({
+                      url: photo.data,
+                      label: `${dynamicItem.id} - ${itemLabel} ${unit.id || ''}`,
+                      notes: unit.notes || item.notes,
+                      source: 'dynamicItem',
+                    });
+                  }
+                }
+              }
+            }
+          } else {
+            // Si no tiene unidades, usar fotos del item directamente
+            if (item.photos && item.photos.length > 0) {
+              for (const photo of item.photos) {
+                if (photo.data) {
+                  images.push({
+                    url: photo.data,
+                    label: `${dynamicItem.id} - ${itemLabel}`,
+                    notes: item.notes,
+                    source: 'dynamicItem',
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Items del dynamic item (climatization)
+      if (dynamicItem.climatizationItems) {
+        for (const item of dynamicItem.climatizationItems) {
+          if (!item.cantidad || item.cantidad === 0) continue;
+          
+          const itemLabel = getTranslatedLabel(translations, sectionId, 'climatizacion', item.id);
+          
+          // Si tiene unidades, recolectar fotos de cada unidad
+          if (item.units && Array.isArray(item.units)) {
+            for (const unit of item.units) {
+              if (unit.photos && unit.photos.length > 0) {
+                for (const photo of unit.photos) {
+                  if (photo.data) {
+                    images.push({
+                      url: photo.data,
+                      label: `${dynamicItem.id} - ${itemLabel} ${unit.id || ''}`,
+                      notes: unit.notes || item.notes,
+                      source: 'dynamicItem',
+                    });
+                  }
+                }
+              }
+            }
+          } else {
+            // Si no tiene unidades, usar fotos del item directamente
+            if (item.photos && item.photos.length > 0) {
+              for (const photo of item.photos) {
+                if (photo.data) {
+                  images.push({
+                    url: photo.data,
+                    label: `${dynamicItem.id} - ${itemLabel}`,
+                    notes: item.notes,
+                    source: 'dynamicItem',
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Mobiliario del dynamic item
+      if (dynamicItem.mobiliario?.existeMobiliario && dynamicItem.mobiliario.question) {
+        if (dynamicItem.mobiliario.question.photos && dynamicItem.mobiliario.question.photos.length > 0) {
+          for (const photo of dynamicItem.mobiliario.question.photos) {
+            if (photo.data) {
+              images.push({
+                url: photo.data,
+                label: `${dynamicItem.id} - Mobiliario`,
+                notes: dynamicItem.mobiliario.question.notes,
+                source: 'dynamicItem',
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Mobiliario de la sección (no dinámico)
+  if (section.mobiliario?.existeMobiliario && section.mobiliario.question) {
+    if (section.mobiliario.question.photos && section.mobiliario.question.photos.length > 0) {
+      const mobiliarioLabel = translations.checklist?.sections?.[sectionId]?.mobiliario?.existeMobiliario || 'Mobiliario';
+      for (const photo of section.mobiliario.question.photos) {
+        if (photo.data) {
+          images.push({
+            url: photo.data,
+            label: mobiliarioLabel,
+            notes: section.mobiliario.question.notes,
+            source: 'question',
+          });
+        }
+      }
+    }
+  }
+
+  return images;
+}
+
+/**
+ * Interfaz para elementos agrupados por categoría
+ */
+interface CategorizedElement {
+  id: string;
+  label: string;
+  status?: ChecklistStatus;
+  notes?: string;
+  category: string;
+  type: 'question' | 'item' | 'uploadZone';
+}
+
+/**
+ * Agrupa elementos de una sección por categoría
+ */
+function groupElementsByCategory(
+  section: ChecklistSection,
+  sectionId: string,
+  translations: any
+): Record<string, CategorizedElement[]> {
+  const categorized: Record<string, CategorizedElement[]> = {};
+
+  // Helper para agregar elemento a categoría
+  const addToCategory = (category: string, element: CategorizedElement) => {
+    if (!categorized[category]) {
+      categorized[category] = [];
+    }
+    categorized[category].push(element);
+  };
+
+  // Questions - mapear a categorías según su ID
+  if (section.questions) {
+    for (const question of section.questions) {
+      const questionLabel = getQuestionLabel(translations, sectionId, question.id);
+      const questionId = question.id.toLowerCase();
+
+      let category = 'Otros';
+      if (questionId.includes('acabados') || questionId.includes('finishes')) {
+        category = 'Acabados';
+      } else if (questionId.includes('comunicaciones') || questionId.includes('communications')) {
+        category = 'Comunicaciones';
+      } else if (questionId.includes('electricidad') || questionId.includes('electricity')) {
+        category = 'Electricidad';
+      }
+
+      addToCategory(category, {
+        id: question.id,
+        label: questionLabel,
+        status: question.status,
+        notes: question.notes,
+        category,
+        type: 'question',
+      });
+    }
+  }
+
+  // Carpentry items
+  if (section.carpentryItems) {
+    for (const item of section.carpentryItems) {
+      if (!item.cantidad || item.cantidad === 0) continue;
+
+      const itemLabel = getTranslatedLabel(translations, sectionId, 'carpinteria', item.id);
+      const status = item.estado || (item.units && item.units[0]?.estado);
+
+      if (item.units && item.units.length > 0) {
+        // Si tiene unidades, crear un elemento por unidad
+        for (let i = 0; i < item.units.length; i++) {
+          const unit = item.units[i];
+          addToCategory('Carpintería', {
+            id: `${item.id}-${i + 1}`,
+            label: `${itemLabel} ${i + 1}`,
+            status: unit.estado || status,
+            notes: unit.notes || item.notes,
+            category: 'Carpintería',
+            type: 'item',
+          });
+        }
+      } else {
+        addToCategory('Carpintería', {
+          id: item.id,
+          label: itemLabel,
+          status,
+          notes: item.notes,
+          category: 'Carpintería',
+          type: 'item',
+        });
+      }
+    }
+  }
+
+  // Climatization items
+  if (section.climatizationItems) {
+    for (const item of section.climatizationItems) {
+      if (!item.cantidad || item.cantidad === 0) continue;
+
+      const itemLabel = getTranslatedLabel(translations, sectionId, 'climatizacion', item.id);
+      const status = item.estado || (item.units && item.units[0]?.estado);
+
+      if (item.units && item.units.length > 0) {
+        for (let i = 0; i < item.units.length; i++) {
+          const unit = item.units[i];
+          addToCategory('Climatización', {
+            id: `${item.id}-${i + 1}`,
+            label: `${itemLabel} ${i + 1}`,
+            status: unit.estado || status,
+            notes: unit.notes || item.notes,
+            category: 'Climatización',
+            type: 'item',
+          });
+        }
+      } else {
+        addToCategory('Climatización', {
+          id: item.id,
+          label: itemLabel,
+          status,
+          notes: item.notes,
+          category: 'Climatización',
+          type: 'item',
+        });
+      }
+    }
+  }
+
+  // Storage items
+  if (section.storageItems) {
+    for (const item of section.storageItems) {
+      if (!item.cantidad || item.cantidad === 0) continue;
+
+      const itemLabel = getTranslatedLabel(translations, sectionId, 'almacenamiento', item.id);
+      const status = item.estado || (item.units && item.units[0]?.estado);
+
+      if (item.units && item.units.length > 0) {
+        for (let i = 0; i < item.units.length; i++) {
+          const unit = item.units[i];
+          addToCategory('Almacenamiento', {
+            id: `${item.id}-${i + 1}`,
+            label: `${itemLabel} ${i + 1}`,
+            status: unit.estado || status,
+            notes: unit.notes || item.notes,
+            category: 'Almacenamiento',
+            type: 'item',
+          });
+        }
+      } else {
+        addToCategory('Almacenamiento', {
+          id: item.id,
+          label: itemLabel,
+          status,
+          notes: item.notes,
+          category: 'Almacenamiento',
+          type: 'item',
+        });
+      }
+    }
+  }
+
+  // Appliances items
+  if (section.appliancesItems) {
+    for (const item of section.appliancesItems) {
+      if (!item.cantidad || item.cantidad === 0) continue;
+
+      const itemLabel = getTranslatedLabel(translations, sectionId, 'electrodomesticos', item.id);
+      const status = item.estado || (item.units && item.units[0]?.estado);
+
+      if (item.units && item.units.length > 0) {
+        for (let i = 0; i < item.units.length; i++) {
+          const unit = item.units[i];
+          addToCategory('Electrodomésticos', {
+            id: `${item.id}-${i + 1}`,
+            label: `${itemLabel} ${i + 1}`,
+            status: unit.estado || status,
+            notes: unit.notes || item.notes,
+            category: 'Electrodomésticos',
+            type: 'item',
+          });
+        }
+      } else {
+        addToCategory('Electrodomésticos', {
+          id: item.id,
+          label: itemLabel,
+          status,
+          notes: item.notes,
+          category: 'Electrodomésticos',
+          type: 'item',
+        });
+      }
+    }
+  }
+
+  // Security items
+  if (section.securityItems) {
+    for (const item of section.securityItems) {
+      if (!item.cantidad || item.cantidad === 0) continue;
+
+      const itemLabel = getTranslatedLabel(translations, sectionId, 'seguridad', item.id);
+      const status = item.estado || (item.units && item.units[0]?.estado);
+
+      if (item.units && item.units.length > 0) {
+        for (let i = 0; i < item.units.length; i++) {
+          const unit = item.units[i];
+          addToCategory('Seguridad', {
+            id: `${item.id}-${i + 1}`,
+            label: `${itemLabel} ${i + 1}`,
+            status: unit.estado || status,
+            notes: unit.notes || item.notes,
+            category: 'Seguridad',
+            type: 'item',
+          });
+        }
+      } else {
+        addToCategory('Seguridad', {
+          id: item.id,
+          label: itemLabel,
+          status,
+          notes: item.notes,
+          category: 'Seguridad',
+          type: 'item',
+        });
+      }
+    }
+  }
+
+  // Systems items
+  if (section.systemsItems) {
+    for (const item of section.systemsItems) {
+      if (!item.cantidad || item.cantidad === 0) continue;
+
+      const itemLabel = getTranslatedLabel(translations, sectionId, 'sistemas', item.id);
+      const status = item.estado || (item.units && item.units[0]?.estado);
+
+      if (item.units && item.units.length > 0) {
+        for (let i = 0; i < item.units.length; i++) {
+          const unit = item.units[i];
+          addToCategory('Sistemas', {
+            id: `${item.id}-${i + 1}`,
+            label: `${itemLabel} ${i + 1}`,
+            status: unit.estado || status,
+            notes: unit.notes || item.notes,
+            category: 'Sistemas',
+            type: 'item',
+          });
+        }
+      } else {
+        addToCategory('Sistemas', {
+          id: item.id,
+          label: itemLabel,
+          status,
+          notes: item.notes,
+          category: 'Sistemas',
+          type: 'item',
+        });
+      }
+    }
+  }
+
+  // Mobiliario de la sección (no dinámico)
+  if (section.mobiliario?.existeMobiliario && section.mobiliario.question) {
+    const mobiliarioLabel = translations.checklist?.sections?.[sectionId]?.mobiliario?.existeMobiliario || 'Mobiliario';
+    addToCategory('Mobiliario', {
+      id: 'mobiliario',
+      label: mobiliarioLabel,
+      status: section.mobiliario.question.status,
+      notes: section.mobiliario.question.notes,
+      category: 'Mobiliario',
+      type: 'question',
+    });
+  }
+
+  return categorized;
+}
+
+/**
+ * Recolecta todas las notas de una sección para el modal
+ */
+function collectSectionNotes(
+  section: ChecklistSection,
+  sectionId: string,
+  translations: any
+): string[] {
+  const notes: string[] = [];
+
+  // Notes de questions
+  if (section.questions) {
+    for (const question of section.questions) {
+      if (question.notes && question.notes.trim()) {
+        const questionLabel = getQuestionLabel(translations, sectionId, question.id);
+        notes.push(`${questionLabel}: ${question.notes}`);
+      }
+    }
+  }
+
+  // Notes de items
+  const itemCategories = [
+    'carpentryItems',
+    'climatizationItems',
+    'storageItems',
+    'appliancesItems',
+    'securityItems',
+    'systemsItems',
+  ];
+
+  for (const categoryKey of itemCategories) {
+    const items = (section as any)[categoryKey];
+    if (!items || !Array.isArray(items)) continue;
+
+    for (const item of items) {
+      if (!item.cantidad || item.cantidad === 0) continue;
+
+      const itemLabel = getTranslatedLabel(
+        translations,
+        sectionId,
+        categoryKey.replace('Items', ''),
+        item.id
+      );
+
+      if (item.units && Array.isArray(item.units)) {
+        for (let i = 0; i < item.units.length; i++) {
+          const unit = item.units[i];
+          if (unit.notes && unit.notes.trim()) {
+            notes.push(`${itemLabel} ${i + 1}: ${unit.notes}`);
+          }
+        }
+      } else if (item.notes && item.notes.trim()) {
+        notes.push(`${itemLabel}: ${item.notes}`);
+      }
+    }
+  }
+
+  // Notes de dynamic items
+  if (section.dynamicItems) {
+    for (const dynamicItem of section.dynamicItems) {
+      if (dynamicItem.questions) {
+        for (const question of dynamicItem.questions) {
+          if (question.notes && question.notes.trim()) {
+            notes.push(`${dynamicItem.id} - ${question.id}: ${question.notes}`);
+          }
+        }
+      }
+
+      // Notes de items de dynamic items (carpentry, climatization)
+      if (dynamicItem.carpentryItems) {
+        for (const item of dynamicItem.carpentryItems) {
+          if (!item.cantidad || item.cantidad === 0) continue;
+          
+          if (item.units && Array.isArray(item.units)) {
+            for (let i = 0; i < item.units.length; i++) {
+              const unit = item.units[i];
+              if (unit.notes && unit.notes.trim()) {
+                notes.push(`${dynamicItem.id} - ${item.id} ${i + 1}: ${unit.notes}`);
+              }
+            }
+          } else if (item.notes && item.notes.trim()) {
+            notes.push(`${dynamicItem.id} - ${item.id}: ${item.notes}`);
+          }
+        }
+      }
+
+      if (dynamicItem.climatizationItems) {
+        for (const item of dynamicItem.climatizationItems) {
+          if (!item.cantidad || item.cantidad === 0) continue;
+          
+          if (item.units && Array.isArray(item.units)) {
+            for (let i = 0; i < item.units.length; i++) {
+              const unit = item.units[i];
+              if (unit.notes && unit.notes.trim()) {
+                notes.push(`${dynamicItem.id} - ${item.id} ${i + 1}: ${unit.notes}`);
+              }
+            }
+          } else if (item.notes && item.notes.trim()) {
+            notes.push(`${dynamicItem.id} - ${item.id}: ${item.notes}`);
+          }
+        }
+      }
+
+      // Notes de mobiliario en dynamic items
+      if (dynamicItem.mobiliario?.existeMobiliario && dynamicItem.mobiliario.question) {
+        if (dynamicItem.mobiliario.question.notes && dynamicItem.mobiliario.question.notes.trim()) {
+          notes.push(`${dynamicItem.id} - Mobiliario: ${dynamicItem.mobiliario.question.notes}`);
+        }
+      }
+    }
+  }
+
+  // Notes de mobiliario de la sección (no dinámico)
+  if (section.mobiliario?.existeMobiliario && section.mobiliario.question) {
+    if (section.mobiliario.question.notes && section.mobiliario.question.notes.trim()) {
+      notes.push(`Mobiliario: ${section.mobiliario.question.notes}`);
+    }
+  }
+
+  return notes;
+}
+
+/**
+ * Genera HTML estático del checklist completo con nuevo diseño Figma
  */
 export async function generateChecklistHTML(
   checklist: ChecklistData,
@@ -156,22 +814,11 @@ export async function generateChecklistHTML(
   },
   translations: any
 ): Promise<string> {
-  // Log para debugging
   console.log('[generateChecklistHTML] 📋 Generating HTML with:', {
     propertyId: propertyInfo.propertyId,
     hasDriveFolderUrl: !!propertyInfo.driveFolderUrl,
-    driveFolderUrl: propertyInfo.driveFolderUrl,
     sectionsCount: Object.keys(checklist.sections || {}).length,
   });
-
-  // Contar preguntas con notas
-  let totalQuestionsWithNotes = 0;
-  Object.values(checklist.sections || {}).forEach((section: any) => {
-    if (section.questions) {
-      totalQuestionsWithNotes += section.questions.filter((q: any) => q.notes).length;
-    }
-  });
-  console.log('[generateChecklistHTML] 📝 Questions with notes:', totalQuestionsWithNotes);
 
   const completedDate = checklist.completedAt
     ? new Date(checklist.completedAt).toLocaleDateString('es-ES', {
@@ -189,24 +836,12 @@ export async function generateChecklistHTML(
   const sectionTitleMap: Record<string, string> = {
     'entorno-zonas-comunes': 'Entorno y Zonas Comunes',
     'estado-general': 'Estado General',
-    'entrada-pasillos': 'Entrada y Pasillos',
+    'entrada-pasillos': 'Entrada y Pasillos de la Vivienda',
     'habitaciones': 'Habitaciones',
     'salon': 'Salón',
     'banos': 'Baños',
     'cocina': 'Cocina',
     'exteriores': 'Exteriores de la Vivienda',
-  };
-
-  // Mapeo de iconos Material Symbols
-  const sectionIcons: Record<string, string> = {
-    'entorno-zonas-comunes': 'apartment',
-    'estado-general': 'info',
-    'entrada-pasillos': 'door_front',
-    'habitaciones': 'bed',
-    'salon': 'living',
-    'banos': 'bathtub',
-    'cocina': 'kitchen',
-    'exteriores': 'home',
   };
 
   const sectionOrder = [
@@ -220,6 +855,7 @@ export async function generateChecklistHTML(
     'exteriores',
   ];
 
+  // Generar HTML base
   let html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -229,91 +865,448 @@ export async function generateChecklistHTML(
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
-<script>
-tailwind.config = {
-    darkMode: "class",
-    theme: {
-        extend: {
-            colors: {
-                primary: "#0F172A",
-                accent: "#3B82F6",
-                "background-light": "#F8FAFC",
-                "background-dark": "#0B1120", 
-                "card-light": "#FFFFFF",
-                "card-dark": "#1E293B",
-                "status-good-bg": "#ECFDF5",
-                "status-good-text": "#065F46",
-                "status-good-border": "#A7F3D0",
-            },
-            fontFamily: {
-                sans: ['Inter', 'sans-serif'],
-                display: ['Inter', 'sans-serif'],
-            },
-            borderRadius: {
-                DEFAULT: "0.5rem",
-            },
-        },
-    },
-};
-</script>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #F8FAFC;
+  color: #1E293B;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  color: white;
+  padding: 30px 20px;
+  margin-bottom: 30px;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.header p {
+  font-size: 14px;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.property-info {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.property-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.property-info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.property-info-label {
+  font-size: 12px;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+}
+
+.property-info-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1E293B;
+}
+
+.section-container {
+  background: white;
+  border-radius: 8px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #E2E8F0;
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.see-all-images-link {
+  color: #3B82F6;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.see-all-images-link:hover {
+  color: #2563EB;
+}
+
+.section-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+@media (max-width: 768px) {
+  .section-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Image Carousel */
+.image-carousel {
+  position: relative;
+  width: 100%;
+}
+
+.carousel-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #F1F5F9;
+}
+
+.carousel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.carousel-image.active {
+  display: block;
+}
+
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #1E293B;
+  transition: background 0.2s;
+  z-index: 10;
+}
+
+.carousel-nav:hover {
+  background: white;
+}
+
+.carousel-nav.prev {
+  left: 10px;
+}
+
+.carousel-nav.next {
+  right: 10px;
+}
+
+.carousel-counter {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+/* Conditions List */
+.conditions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.category-group {
+  border-bottom: 1px solid #E2E8F0;
+  padding-bottom: 15px;
+}
+
+.category-group:last-child {
+  border-bottom: none;
+}
+
+.category-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.condition-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px 0;
+  gap: 15px;
+}
+
+.condition-label {
+  flex: 1;
+  font-size: 14px;
+  color: #1E293B;
+  font-weight: 500;
+}
+
+.condition-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.condition-notes {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #64748B;
+  line-height: 1.5;
+}
+
+.condition-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal-overlay.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  padding: 30px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #E2E8F0;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #64748B;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.modal-close:hover {
+  background: #F1F5F9;
+}
+
+.modal-main-image {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  background: #F1F5F9;
+}
+
+.modal-observations {
+  margin-bottom: 20px;
+}
+
+.modal-observations-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1E293B;
+  margin-bottom: 10px;
+}
+
+.modal-observations-text {
+  font-size: 14px;
+  color: #64748B;
+  line-height: 1.6;
+}
+
+.modal-thumbnails {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 10px 0;
+}
+
+.modal-thumbnail {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.modal-thumbnail:hover {
+  border-color: #3B82F6;
+}
+
+.modal-thumbnail.active {
+  border-color: #3B82F6;
+}
+
+.modal-done-button {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  background: #3B82F6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-done-button:hover {
+  background: #2563EB;
+}
+
+/* Dynamic sections (Habitaciones, Baños) */
+.dynamic-section {
+  margin-bottom: 30px;
+}
+
+.dynamic-section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1E293B;
+  margin-bottom: 20px;
+}
+</style>
 </head>
-<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 font-sans transition-colors duration-200 antialiased">
-<header class="bg-primary w-full py-10 px-6 border-b border-slate-800 shadow-xl relative overflow-hidden">
-<div class="absolute inset-0 bg-gradient-to-r from-slate-900 to-slate-800 opacity-90"></div>
-<div class="relative z-10 max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-<div>
-<h1 class="text-3xl font-bold text-white tracking-tight">Informe de Propiedad</h1>
-<p class="text-slate-400 text-sm mt-1 uppercase tracking-widest font-medium">Checklist de Inspección</p>
-</div>
-<div class="flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50 backdrop-blur-sm">
-<span class="material-symbols-outlined text-accent">verified</span>
-<span class="text-white font-medium">Revisión Finalizada</span>
-</div>
+<body>
+<div class="container">
+<header class="header">
+<div class="header-content">
+<h1>Informe de Propiedad</h1>
+<p>Checklist de Inspección Detallado</p>
 </div>
 </header>
-<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-<section class="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 md:p-8">
-<div class="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">
-<span class="material-symbols-outlined text-slate-400">info</span>
-<h2 class="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">Información General</h2>
+
+<div class="property-info">
+<div class="property-info-grid">
+<div class="property-info-item">
+<div class="property-info-label">Dirección</div>
+<div class="property-info-value">${escapeHtml(propertyInfo.address)}</div>
 </div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
-<div class="flex flex-col gap-1">
-<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dirección</span>
-<span class="text-lg font-medium text-slate-800 dark:text-slate-200">${escapeHtml(propertyInfo.address)}</span>
+<div class="property-info-item">
+<div class="property-info-label">ID Propiedad</div>
+<div class="property-info-value">${escapeHtml(propertyInfo.propertyId)}</div>
 </div>
-<div class="flex flex-col gap-1">
-<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ID Propiedad</span>
-<span class="font-mono text-base text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded w-fit">${escapeHtml(propertyInfo.propertyId)}</span>
-</div>
-<div class="flex flex-col gap-1 md:col-span-2">
-<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Fecha de Inspección</span>
-<span class="text-base text-slate-700 dark:text-slate-300">${escapeHtml(completedDate)}</span>
+<div class="property-info-item">
+<div class="property-info-label">Fecha de Inspección</div>
+<div class="property-info-value">${escapeHtml(completedDate)}</div>
 </div>`;
 
-  // Añadir enlace de Drive si existe
   if (propertyInfo.driveFolderUrl && propertyInfo.driveFolderUrl.trim().length > 0) {
-    console.log('[generateChecklistHTML] 🔗 Adding Drive folder link:', propertyInfo.driveFolderUrl);
     html += `
-<div class="flex flex-col gap-1 md:col-span-2">
-<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Carpeta de Drive</span>
-<a href="${escapeHtml(propertyInfo.driveFolderUrl)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-accent hover:text-accent/80 transition-colors text-base font-medium">
-<span class="material-symbols-outlined text-lg">folder</span>
-<span>Abrir carpeta en Google Drive</span>
-<span class="material-symbols-outlined text-sm">open_in_new</span>
+<div class="property-info-item">
+<div class="property-info-label">Carpeta de Drive</div>
+<div class="property-info-value">
+<a href="${escapeHtml(propertyInfo.driveFolderUrl)}" target="_blank" rel="noopener noreferrer" style="color: #3B82F6; text-decoration: none;">
+Abrir carpeta en Google Drive →
 </a>
+</div>
 </div>`;
-  } else {
-    console.log('[generateChecklistHTML] ⚠️ No Drive folder URL provided:', {
-      hasDriveFolderUrl: !!propertyInfo.driveFolderUrl,
-      driveFolderUrl: propertyInfo.driveFolderUrl,
-    });
   }
 
   html += `</div>
-</section>`;
+</div>`;
 
   // Generar secciones
   for (const sectionId of sectionOrder) {
@@ -321,245 +1314,292 @@ tailwind.config = {
     if (!section) continue;
 
     const sectionTitle = sectionTitleMap[sectionId] || sectionId;
-    const icon = sectionIcons[sectionId] || 'info';
 
-    html += `
-<section>
-<div class="flex items-center gap-3 mb-6">
-<div class="p-2 bg-accent/10 rounded-lg">
-<span class="material-symbols-outlined text-accent">${icon}</span>
-</div>
-<h3 class="text-2xl font-bold text-slate-900 dark:text-white">${escapeHtml(sectionTitle)}</h3>
-</div>
-<div class="space-y-6">`;
-
-    // Upload Zones
-    if (section.uploadZones && section.uploadZones.length > 0) {
-      for (const uploadZone of section.uploadZones) {
-        const zoneLabel = getUploadZoneLabel(translations, sectionId, uploadZone.id);
-        // Upload zones no tienen status, siempre se muestran como "Buen Estado"
-        const zoneStatus: ChecklistStatus = 'buen_estado';
-        const zoneStatusLabel = getStatusLabel(zoneStatus, translations);
-        const zoneStatusClasses = getStatusBadgeClasses(zoneStatus);
-        html += `
-<div class="bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-<div class="flex items-center gap-3">
-<span class="material-symbols-outlined text-slate-400">door_front</span>
-<h4 class="text-xl font-semibold text-slate-900 dark:text-white">${escapeHtml(zoneLabel)}</h4>
-</div>
-<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ring-1 ring-inset ${zoneStatusClasses}">
-<span class="material-symbols-outlined text-sm">check_circle</span>
-${escapeHtml(zoneStatusLabel)}
-</span>
-</div>`;
-
-        if (uploadZone.photos && uploadZone.photos.length > 0) {
-          html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
-          for (const photo of uploadZone.photos.slice(0, 2)) {
-            if (photo.data) {
-              html += `<div class="relative group overflow-hidden rounded-lg shadow-sm border border-slate-100 dark:border-slate-800 aspect-[4/3]">
-<img alt="${escapeHtml(zoneLabel)}" class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105" src="${escapeHtml(photo.data)}"/>
-</div>`;
-            }
-          }
-          html += `</div>`;
-        } else {
-          html += `<div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50 flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500 text-sm">
-<span class="material-symbols-outlined text-lg">image_not_supported</span>
-<span>Sin imágenes adjuntas</span>
-</div>`;
-        }
-
-        html += `</div>`;
-      }
-    }
-
-    // Items con cantidad (Carpintería, Climatización, etc.)
-    const itemCategories = [
-      { key: 'carpentryItems', label: 'Carpintería', icon: 'door_sliding' },
-      { key: 'climatizationItems', label: 'Climatización', icon: 'ac_unit' },
-      { key: 'storageItems', label: 'Almacenamiento', icon: 'inventory_2' },
-      { key: 'appliancesItems', label: 'Electrodomésticos', icon: 'kitchen' },
-      { key: 'securityItems', label: 'Seguridad', icon: 'lock' },
-      { key: 'systemsItems', label: 'Sistemas', icon: 'settings' },
-    ];
-
-    for (const category of itemCategories) {
-      const items = (section as any)[category.key];
-      if (!items || items.length === 0) continue;
-
-      html += `
-<div class="flex items-center gap-3 mb-6">
-<div class="p-2 bg-accent/10 rounded-lg">
-<span class="material-symbols-outlined text-accent">${category.icon}</span>
-</div>
-<h3 class="text-xl font-bold text-slate-900 dark:text-white">${escapeHtml(category.label)}</h3>
-</div>
-<div class="grid grid-cols-1 gap-6">`;
-
-      for (const item of items) {
-        if (!item.cantidad || item.cantidad === 0) continue;
-
-        const itemLabel = getTranslatedLabel(translations, sectionId, category.key.replace('Items', ''), item.id);
-        const status = item.estado || (item.units && item.units[0]?.estado) || 'buen_estado';
-        const statusLabel = getStatusLabel(status, translations);
-        const statusClasses = getStatusBadgeClasses(status);
-
-        html += `
-<div class="bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-<div class="flex items-center gap-3">
-<h4 class="text-lg font-semibold text-slate-900 dark:text-white">${escapeHtml(itemLabel)}</h4>
-<span class="bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium">${item.cantidad} ud.</span>
-</div>
-<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ring-1 ring-inset ${statusClasses}">
-<span class="material-symbols-outlined text-sm">check_circle</span>
-${escapeHtml(statusLabel)}
-</span>
-</div>`;
-
-        const photos = item.photos || (item.units && item.units[0]?.photos) || [];
-        if (photos.length > 0) {
-          html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
-          for (const photo of photos.slice(0, 2)) {
-            if (photo.data) {
-              html += `<div class="relative group overflow-hidden rounded-lg shadow-sm border border-slate-100 dark:border-slate-800 aspect-[3/4] md:aspect-video">
-<img alt="${escapeHtml(itemLabel)}" class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105" src="${escapeHtml(photo.data)}"/>
-</div>`;
-            }
-          }
-          html += `</div>`;
-        } else {
-          html += `<div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50 flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500 text-sm">
-<span class="material-symbols-outlined text-lg">image_not_supported</span>
-<span>Sin imágenes adjuntas</span>
-</div>`;
-        }
-
-        html += `</div>`;
-      }
-
-      html += `</div>`;
-    }
-
-    // Questions
-    if (section.questions && section.questions.length > 0) {
-      const questionsToShow = section.questions.filter(q => q.status || q.notes || (q.photos && q.photos.length > 0));
-      
-      if (questionsToShow.length > 0) {
-        for (const question of questionsToShow) {
-          const questionLabel = getQuestionLabel(translations, sectionId, question.id);
-          const statusLabel = getStatusLabel(question.status, translations);
-          const statusClasses = getStatusBadgeClasses(question.status);
-
-          // Log para debugging de notas
-          if (question.notes) {
-            console.log(`[generateChecklistHTML] 📝 Question with notes:`, {
-              sectionId,
-              questionId: question.id,
-              questionLabel,
-              notesLength: question.notes.length,
-              notesPreview: question.notes.substring(0, 100),
-            });
-          }
-
-          html += `
-<div class="bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-<div class="flex items-center gap-3">
-<h4 class="text-lg font-semibold text-slate-900 dark:text-white">${escapeHtml(questionLabel)}</h4>
-</div>
-<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ring-1 ring-inset ${statusClasses}">
-<span class="material-symbols-outlined text-sm">check_circle</span>
-${escapeHtml(statusLabel)}
-</span>
-</div>`;
-
-          // Mostrar notas si existen (verificar tanto question.notes como que no esté vacío)
-          if (question.notes && question.notes.trim().length > 0) {
-            html += `
-<div class="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-<div class="flex items-start gap-2">
-<span class="material-symbols-outlined text-slate-400 text-lg flex-shrink-0 mt-0.5">note</span>
-<div class="flex-1">
-<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">Notas</span>
-<p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">${escapeHtml(question.notes)}</p>
-</div>
-</div>
-</div>`;
-          }
-
-          // Mostrar fotos si existen
-          if (question.photos && question.photos.length > 0) {
-            html += `
-<div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-${question.photos.slice(0, 4).map((photo: any) => photo.data ? `
-<div class="relative group overflow-hidden rounded-lg shadow-sm border border-slate-100 dark:border-slate-800 aspect-video">
-<img alt="${escapeHtml(questionLabel)}" class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105" src="${escapeHtml(photo.data)}"/>
-</div>
-` : '').join('')}
-</div>`;
-          }
-
-          html += `</div>`;
-        }
-      }
-    }
-
-    // Dynamic Items (Habitaciones, Baños)
+    // Para secciones dinámicas (habitaciones, baños), crear una sección por cada item
     if (section.dynamicItems && section.dynamicItems.length > 0) {
       for (const dynamicItem of section.dynamicItems) {
         const itemNumber = dynamicItem.id.match(/\d+/)?.[0] || '';
         const itemLabel = sectionId === 'habitaciones'
-          ? `${translations.checklist?.sections?.habitaciones?.bedroom || 'Habitación'} ${itemNumber}`
+          ? `Habitación ${itemNumber}`
           : sectionId === 'banos'
-          ? `${translations.checklist?.sections?.banos?.bathroom || 'Baño'} ${itemNumber}`
+          ? `Baño ${itemNumber}`
           : dynamicItem.id;
 
-        html += `
-<div class="bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-<div class="flex items-center gap-3">
-<h4 class="text-xl font-semibold text-slate-900 dark:text-white">${escapeHtml(itemLabel)}</h4>`;
+        // Crear sección para este dynamic item
+        const dynamicSection: ChecklistSection = {
+          id: dynamicItem.id,
+          uploadZones: dynamicItem.uploadZone ? [dynamicItem.uploadZone] : undefined,
+          questions: dynamicItem.questions,
+          carpentryItems: dynamicItem.carpentryItems,
+          climatizationItems: dynamicItem.climatizationItems,
+          mobiliario: dynamicItem.mobiliario,
+        };
 
-        html += `</div>
-<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-status-good-bg text-status-good-text ring-1 ring-inset ring-status-good-border">
-<span class="material-symbols-outlined text-sm">check_circle</span>
-Buen Estado
-</span>
-</div>`;
-
-        if (dynamicItem.uploadZone?.photos && dynamicItem.uploadZone.photos.length > 0) {
-          html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
-          for (const photo of dynamicItem.uploadZone.photos.slice(0, 2)) {
-            if (photo.data) {
-              html += `<div class="relative group overflow-hidden rounded-lg shadow-sm border border-slate-100 dark:border-slate-800 aspect-[3/4]">
-<img alt="${escapeHtml(itemLabel)}" class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105" src="${escapeHtml(photo.data)}"/>
-</div>`;
-            }
-          }
-          html += `</div>`;
-        }
-
-        html += `</div>`;
+        html += generateSectionHTML(
+          dynamicSection,
+          itemLabel,
+          `dynamic-${dynamicItem.id}`,
+          translations
+        );
       }
+    } else {
+      // Sección normal
+      html += generateSectionHTML(section, sectionTitle, sectionId, translations);
     }
-
-    html += `</div>
-</section>`;
   }
 
-  html += `
-</main>
-<footer class="bg-card-light dark:bg-card-dark border-t border-slate-200 dark:border-slate-800 py-10 mt-16">
-<div class="max-w-6xl mx-auto px-4 text-center">
-<p class="text-sm text-slate-500 dark:text-slate-400 font-medium">© 2025 PropHero. Todos los derechos reservados.</p>
+  // JavaScript para carrusel y modal
+        html += `
+<script>
+// Carrusel functionality
+function initCarousel(sectionId) {
+  const carousel = document.querySelector(\`#carousel-\${sectionId}\`);
+  if (!carousel) return;
+
+  const images = carousel.querySelectorAll('.carousel-image');
+  const prevBtn = carousel.querySelector('.carousel-nav.prev');
+  const nextBtn = carousel.querySelector('.carousel-nav.next');
+  const counter = carousel.querySelector('.carousel-counter');
+
+  if (images.length === 0) return;
+
+  let currentIndex = 0;
+
+  function showImage(index) {
+    images.forEach((img, i) => {
+      img.classList.toggle('active', i === index);
+    });
+    if (counter) {
+      counter.textContent = \`\${index + 1} de \${images.length}\`;
+    }
+  }
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      currentIndex = (currentIndex - 1 + images.length) % images.length;
+      showImage(currentIndex);
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      currentIndex = (currentIndex + 1) % images.length;
+      showImage(currentIndex);
+    });
+  }
+
+  showImage(0);
+}
+
+// Modal functionality
+function openModal(sectionId) {
+  const modal = document.getElementById(\`modal-\${sectionId}\`);
+  if (!modal) return;
+
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  // Initialize modal carousel
+  const thumbnails = modal.querySelectorAll('.modal-thumbnail');
+  const mainImage = modal.querySelector('.modal-main-image');
+  if (thumbnails.length > 0 && mainImage) {
+    thumbnails.forEach((thumb, index) => {
+      thumb.addEventListener('click', () => {
+        thumbnails.forEach(t => t.classList.remove('active'));
+        thumb.classList.add('active');
+        mainImage.src = thumb.src;
+      });
+    });
+    // Set first thumbnail as active
+    if (thumbnails[0]) {
+      thumbnails[0].classList.add('active');
+      mainImage.src = thumbnails[0].src;
+    }
+  }
+}
+
+function closeModal(sectionId) {
+  const modal = document.getElementById(\`modal-\${sectionId}\`);
+  if (!modal) return;
+
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// Close modal on overlay click
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal-overlay')) {
+    const modal = e.target;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+});
+
+// Initialize all carousels
+document.addEventListener('DOMContentLoaded', () => {
+  const sections = document.querySelectorAll('.section-container');
+  sections.forEach(section => {
+    const sectionId = section.getAttribute('data-section-id');
+    if (sectionId) {
+      initCarousel(sectionId);
+    }
+  });
+});
+</script>
 </div>
-</footer>
 </body>
 </html>`;
 
   return html;
 }
 
+/**
+ * Genera el HTML de una sección individual
+ */
+function generateSectionHTML(
+  section: ChecklistSection,
+  sectionTitle: string,
+  sectionId: string,
+  translations: any
+): string {
+  // Recolectar imágenes y elementos
+  const images = collectSectionImages(section, sectionId, translations);
+  const categorized = groupElementsByCategory(section, sectionId, translations);
+  const notes = collectSectionNotes(section, sectionId, translations);
+
+  let html = `
+<section class="section-container" data-section-id="${sectionId}">
+<div class="section-header">
+<h2 class="section-title">${escapeHtml(sectionTitle)}</h2>`;
+
+  // Solo mostrar "Ver todas las imágenes" si hay imágenes
+  if (images.length > 0) {
+    html += `<a href="#" class="see-all-images-link" onclick="event.preventDefault(); openModal('${sectionId}'); return false;">Ver todas las imágenes</a>`;
+  }
+
+  html += `</div>
+<div class="section-content">`;
+
+  // Carrusel de imágenes (izquierda)
+  html += `<div class="image-carousel">`;
+  if (images.length > 0) {
+    html += `<div class="carousel-container" id="carousel-${sectionId}">`;
+    images.forEach((img, index) => {
+      html += `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.label || '')}" class="carousel-image ${index === 0 ? 'active' : ''}" />`;
+    });
+    if (images.length > 1) {
+      html += `<button class="carousel-nav prev">‹</button>
+<button class="carousel-nav next">›</button>
+<div class="carousel-counter">1 of ${images.length}</div>`;
+          }
+          html += `</div>`;
+        } else {
+    html += `<div class="carousel-container" style="display: flex; align-items: center; justify-content: center; color: #94A3B8;">
+<p>No hay imágenes disponibles</p>
+</div>`;
+        }
+        html += `</div>`;
+
+  // Lista de condiciones (derecha)
+  html += `<div class="conditions-list">`;
+
+  const categoryOrder = ['Acabados', 'Comunicaciones', 'Electricidad', 'Carpintería', 'Climatización', 'Almacenamiento', 'Electrodomésticos', 'Seguridad', 'Sistemas', 'Mobiliario', 'Otros'];
+
+  for (const category of categoryOrder) {
+    const elements = categorized[category];
+    if (!elements || elements.length === 0) continue;
+
+    html += `<div class="category-group">
+<h3 class="category-title">${escapeHtml(category)}</h3>`;
+
+    for (const element of elements) {
+      const statusLabel = getStatusLabel(element.status, translations);
+      const statusClasses = getStatusBadgeClasses(element.status);
+
+      html += `<div class="condition-item">
+<div class="condition-item-wrapper">
+<div class="condition-label">${escapeHtml(element.label)}</div>`;
+      
+      if (element.notes) {
+        html += `<div class="condition-notes">${escapeHtml(element.notes)}</div>`;
+      }
+
+      html += `</div>
+<span class="condition-badge ${statusClasses}">${escapeHtml(statusLabel)}</span>
+</div>`;
+          }
+
+          html += `</div>`;
+        }
+
+    // Si no hay elementos categorizados, mostrar mensaje
+    if (Object.keys(categorized).length === 0) {
+      html += `<div class="category-group">
+<p style="color: #94A3B8; font-size: 14px;">No se han reportado condiciones</p>
+</div>`;
+    }
+
+        html += `</div>
+</div>`;
+
+  // Modal para esta sección
+  if (images.length > 0) {
+    html += generateModalHTML(sectionId, sectionTitle, images, notes);
+  }
+
+  html += `</section>`;
+
+  return html;
+}
+
+/**
+ * Genera el HTML del modal/lightbox
+ */
+function generateModalHTML(
+  sectionId: string,
+  sectionTitle: string,
+  images: ImageWithMetadata[],
+  notes: string[]
+): string {
+  const firstImage = images[0];
+
+  let html = `
+<div class="modal-overlay" id="modal-${sectionId}">
+<div class="modal-content">
+<div class="modal-header">
+<h3 class="modal-title">${escapeHtml(sectionTitle)}</h3>
+<button class="modal-close" onclick="closeModal('${sectionId}')">×</button>
+</div>
+<img src="${escapeHtml(firstImage.url)}" alt="${escapeHtml(firstImage.label || '')}" class="modal-main-image" />`;
+
+  // Observations section
+  if (notes.length > 0) {
+    html += `<div class="modal-observations">
+<h4 class="modal-observations-title">Observaciones</h4>
+<div class="modal-observations-text">`;
+    
+    notes.forEach((note, index) => {
+      html += `<p>${escapeHtml(note)}</p>`;
+      if (index < notes.length - 1) {
+        html += `<br />`;
+      }
+    });
+
+    html += `</div>
+</div>`;
+  }
+
+  // Thumbnails
+  html += `<div class="modal-thumbnails">`;
+  images.forEach((img, index) => {
+    html += `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.label || '')}" class="modal-thumbnail ${index === 0 ? 'active' : ''}" />`;
+  });
+  html += `</div>`;
+
+  // Done button
+  html += `<button class="modal-done-button" onclick="closeModal('${sectionId}')">Hecho</button>
+</div>
+</div>`;
+
+  return html;
+}
