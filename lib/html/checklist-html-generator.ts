@@ -1000,21 +1000,37 @@ body {
 .carousel-container {
   position: relative;
   width: 100%;
-  height: 400px;
+  min-height: 400px;
   overflow: hidden;
   border-radius: 8px;
   background: #F1F5F9;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+.carousel-images-group {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.carousel-images-group.active {
+  display: flex;
 }
 
 .carousel-image {
   width: 100%;
-  height: 100%;
+  height: 300px;
   object-fit: cover;
-  display: none;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
-.carousel-image.active {
-  display: block;
+.carousel-image.single {
+  height: 400px;
 }
 
 .carousel-nav {
@@ -1356,39 +1372,47 @@ function initCarousel(sectionId) {
   const carousel = document.querySelector(\`#carousel-\${sectionId}\`);
   if (!carousel) return;
 
-  const images = carousel.querySelectorAll('.carousel-image');
+  const imageGroups = carousel.querySelectorAll('.carousel-images-group');
   const prevBtn = carousel.querySelector('.carousel-nav.prev');
   const nextBtn = carousel.querySelector('.carousel-nav.next');
   const counter = carousel.querySelector('.carousel-counter');
 
-  if (images.length === 0) return;
+  if (imageGroups.length === 0) return;
 
-  let currentIndex = 0;
+  let currentGroupIndex = 0;
+  const imagesPerGroup = 2;
+  const totalImages = parseInt(carousel.getAttribute('data-total-images') || '0');
 
-  function showImage(index) {
-    images.forEach((img, i) => {
-      img.classList.toggle('active', i === index);
+  function showGroup(groupIndex) {
+    imageGroups.forEach((group, i) => {
+      group.classList.toggle('active', i === groupIndex);
     });
-    if (counter) {
-      counter.textContent = \`\${index + 1} de \${images.length}\`;
+    if (counter && totalImages > 0) {
+      const startImage = groupIndex * imagesPerGroup + 1;
+      const endImage = Math.min((groupIndex + 1) * imagesPerGroup, totalImages);
+      if (startImage === endImage) {
+        counter.textContent = \`\${startImage} de \${totalImages}\`;
+      } else {
+        counter.textContent = \`\${endImage} de \${totalImages}\`;
+      }
     }
   }
 
   if (prevBtn) {
     prevBtn.addEventListener('click', () => {
-      currentIndex = (currentIndex - 1 + images.length) % images.length;
-      showImage(currentIndex);
+      currentGroupIndex = (currentGroupIndex - 1 + imageGroups.length) % imageGroups.length;
+      showGroup(currentGroupIndex);
     });
   }
 
   if (nextBtn) {
     nextBtn.addEventListener('click', () => {
-      currentIndex = (currentIndex + 1) % images.length;
-      showImage(currentIndex);
+      currentGroupIndex = (currentGroupIndex + 1) % imageGroups.length;
+      showGroup(currentGroupIndex);
     });
   }
 
-  showImage(0);
+  showGroup(0);
 }
 
 // Modal functionality
@@ -1483,22 +1507,47 @@ function generateSectionHTML(
   // Carrusel de imágenes (izquierda)
   html += `<div class="image-carousel">`;
   if (images.length > 0) {
-    html += `<div class="carousel-container" id="carousel-${sectionId}">`;
-    images.forEach((img, index) => {
-      html += `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.label || '')}" class="carousel-image ${index === 0 ? 'active' : ''}" />`;
-    });
-    if (images.length > 1) {
+    html += `<div class="carousel-container" id="carousel-${sectionId}" data-total-images="${images.length}">`;
+    
+    // Si hay más de 2 imágenes, agruparlas de 2 en 2
+    if (images.length > 2) {
+      const imagesPerGroup = 2;
+      const totalGroups = Math.ceil(images.length / imagesPerGroup);
+      
+      for (let groupIndex = 0; groupIndex < totalGroups; groupIndex++) {
+        const startIndex = groupIndex * imagesPerGroup;
+        const endIndex = Math.min(startIndex + imagesPerGroup, images.length);
+        
+        html += `<div class="carousel-images-group ${groupIndex === 0 ? 'active' : ''}">`;
+        for (let i = startIndex; i < endIndex; i++) {
+          html += `<img src="${escapeHtml(images[i].url)}" alt="${escapeHtml(images[i].label || '')}" class="carousel-image" />`;
+        }
+        html += `</div>`;
+      }
+      
       html += `<button class="carousel-nav prev">‹</button>
 <button class="carousel-nav next">›</button>
-<div class="carousel-counter">1 of ${images.length}</div>`;
-          }
-          html += `</div>`;
-        } else {
+<div class="carousel-counter">${Math.min(2, images.length)} de ${images.length}</div>`;
+    } else {
+      // Si hay 1 o 2 imágenes, mostrarlas todas sin agrupar
+      html += `<div class="carousel-images-group active">`;
+      images.forEach((img) => {
+        html += `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.label || '')}" class="carousel-image ${images.length === 1 ? 'single' : ''}" />`;
+      });
+      html += `</div>`;
+      
+      if (images.length > 1) {
+        html += `<div class="carousel-counter">${images.length} de ${images.length}</div>`;
+      }
+    }
+    
+    html += `</div>`;
+  } else {
     html += `<div class="carousel-container" style="display: flex; align-items: center; justify-content: center; color: #94A3B8;">
 <p>No hay imágenes disponibles</p>
 </div>`;
-        }
-        html += `</div>`;
+  }
+  html += `</div>`;
 
   // Lista de condiciones (derecha)
   html += `<div class="conditions-list">`;
