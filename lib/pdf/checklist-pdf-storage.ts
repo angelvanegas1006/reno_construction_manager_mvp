@@ -22,17 +22,24 @@ export async function uploadChecklistPDFToStorage(
   const supabase = createClient();
 
   // Determinar el tipo de checklist
-  const checklistType = checklist.checklistType === 'reno_initial' ? 'initial' : 
-                        checklist.checklistType === 'reno_final' ? 'final' : 
-                        undefined;
+  const checklistType: 'initial' | 'final' | undefined = 
+    checklist.checklistType === 'reno_initial' ? 'initial' : 
+    checklist.checklistType === 'reno_final' ? 'final' : 
+    undefined;
 
   // Generar el HTML estático
-  const htmlContent = await generateChecklistHTML(
-    checklist,
-    propertyInfo,
-    translations[language],
-    checklistType as 'initial' | 'final' | undefined
-  );
+  const htmlContent = checklistType 
+    ? await generateChecklistHTML(
+        checklist,
+        propertyInfo,
+        translations[language],
+        checklistType
+      )
+    : await generateChecklistHTML(
+        checklist,
+        propertyInfo,
+        translations[language]
+      );
 
   // Convertir HTML a Blob y luego a File
   const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
