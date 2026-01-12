@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronRight, ChevronDown, CheckCircle2 } from "lucide-react";
+import { ChevronRight, ChevronDown, CheckCircle2, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { Property } from "@/lib/property-storage";
@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 import { TodoWidgetModal } from "./todo-widget-modal";
 import { Badge } from "@/components/ui/badge";
 import { needsUpdateThisWeek, calculateNextUpdateDate, needsUpdate } from "@/lib/reno/update-calculator";
+import { useAppAuth } from "@/lib/auth/app-auth-context";
+import { matchesTechnicalConstruction } from "@/lib/supabase/user-name-utils";
 
 interface RenoHomeTodoWidgetsProps {
   propertiesByPhase?: Record<RenoKanbanPhase, Property[]>;
@@ -29,6 +31,7 @@ interface TodoWidget {
 export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsProps) {
   const { t } = useI18n();
   const router = useRouter();
+  const { role, user } = useAppAuth();
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [selectedWidgetType, setSelectedWidgetType] = useState<'estimated-visit' | 'initial-check' | 'renovator' | 'work-update' | 'final-check' | null>(null);
@@ -78,9 +81,19 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         .filter(prop => !prop.renovador || prop.renovador.trim() === '')
     ], 'daysToStartRenoSinceRSD');
 
-    // 4. Actualizacion de obra - solo propiedades que necesitan update esta semana (lunes a domingo)
+    // 4. Actualizacion de obra - propiedades que necesitan update esta semana O que necesitan seguimiento
     // Las actualizaciones se calculan desde la fecha de inicio de la obra (reno_start_date)
-    const pendingWorkUpdateProps = (propertiesByPhase['reno-in-progress'] || [])
+    const allRenoInProgressProps = (propertiesByPhase['reno-in-progress'] || []);
+    
+    // Filtrar por jefe de obra si es foreman
+    const filteredRenoInProgressProps = role === 'foreman' && user?.email
+      ? allRenoInProgressProps.filter(prop => {
+          const technicalConstruction = (prop as any).supabaseProperty?.["Technical construction"];
+          return matchesTechnicalConstruction(technicalConstruction, user.email);
+        })
+      : allRenoInProgressProps;
+    
+    const pendingWorkUpdateProps = filteredRenoInProgressProps
       .map(prop => {
         // Calcular proximaActualizacion desde la fecha de inicio de la obra si no existe
         // Si tiene next_update en BD, usarlo; sino calcular desde fecha de inicio
@@ -97,14 +110,26 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         const renoStartDate = prop.inicio || (prop as any).supabaseProperty?.["Reno Start Date"] || (prop as any).supabaseProperty?.start_date;
         const isOverdue = needsUpdate(proximaActualizacion, prop.renoType, renoStartDate) && !needsUpdateThisWeek(proximaActualizacion);
         
+        // Verificar si necesita seguimiento de obra
+        const needsTracking = (prop as any).supabaseProperty?.needs_foreman_notification || false;
+        
         return {
           ...prop,
           proximaActualizacion: proximaActualizacion || undefined,
           isOverdue,
+          needsTracking,
         };
       })
       .filter(prop => {
-        // Solo mostrar propiedades que necesitan update esta semana (lunes a domingo)
+        // Para jefes de obra: mostrar si necesita seguimiento O si necesita update esta semana
+        if (role === 'foreman') {
+          return prop.needsTracking || needsUpdateThisWeek(prop.proximaActualizacion);
+        }
+        // Para construction_manager/admin: mostrar si necesita seguimiento O si necesita update esta semana
+        if (role === 'construction_manager' || role === 'admin') {
+          return prop.needsTracking || needsUpdateThisWeek(prop.proximaActualizacion);
+        }
+        // Para otros roles: solo mostrar si necesita update esta semana
         return needsUpdateThisWeek(prop.proximaActualizacion);
       })
       .sort((a, b) => {
@@ -118,19 +143,26 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
           return 4; // Otros últimos
         };
         
-        // Primero: propiedades overdue (rojas) primero
+        // Primero: propiedades que necesitan seguimiento primero (para jefes de obra y construction_manager)
+        if (role === 'foreman' || role === 'construction_manager' || role === 'admin') {
+          if (a.needsTracking !== b.needsTracking) {
+            return a.needsTracking ? -1 : 1;
+          }
+        }
+        
+        // Segundo: propiedades overdue (rojas) primero
         if (a.isOverdue !== b.isOverdue) {
           return a.isOverdue ? -1 : 1;
         }
         
-        // Segundo: ordenar por tipo de renovación (Major > Medium > Light)
+        // Tercero: ordenar por tipo de renovación (Major > Medium > Light)
         const aPriority = getRenoTypePriority(a.renoType);
         const bPriority = getRenoTypePriority(b.renoType);
         if (aPriority !== bPriority) {
           return aPriority - bPriority;
         }
         
-        // Tercero: ordenar por proximaActualizacion (más antiguas primero)
+        // Cuarto: ordenar por proximaActualizacion (más antiguas primero)
         const aDate = a.proximaActualizacion ? new Date(a.proximaActualizacion) : new Date(0);
         const bDate = b.proximaActualizacion ? new Date(b.proximaActualizacion) : new Date(0);
         return aDate.getTime() - bDate.getTime();
@@ -276,6 +308,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         );
       
       case 'work-update':
+        const needsTracking = (property as any).needsTracking === true;
         return (
           <div className="space-y-1.5 min-w-0 w-full">
             <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
@@ -358,6 +391,8 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
               {widget.properties.map((property, index) => {
                 // Verificar si la propiedad está overdue (debería haberse actualizado antes)
                 const isOverdue = (property as any).isOverdue === true;
+                // Verificar si necesita seguimiento de obra
+                const needsTracking = (property as any).needsTracking === true;
                 
                 return (
                   <div
@@ -371,10 +406,25 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                       "min-w-0 w-full",
                       isOverdue 
                         ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
+                        : needsTracking && widget.id === 'work-update'
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20 border-l-4"
                         : "border-border/60 hover:border-border"
                     )}
                   >
-                    {renderPropertyInfo(property, widget.id)}
+                    <div className="flex items-start gap-2 min-w-0">
+                      <div className="flex-1 min-w-0">
+                        {renderPropertyInfo(property, widget.id)}
+                      </div>
+                      {needsTracking && widget.id === 'work-update' && (
+                        <Badge 
+                          variant="default" 
+                          className="flex items-center justify-center flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white p-1.5 rounded-full"
+                          title={t.dashboard?.todoWidgets?.needsTracking || "Seguimiento"}
+                        >
+                          <Bell className="h-3 w-3 w-3.5 h-3.5" />
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 );
               })}

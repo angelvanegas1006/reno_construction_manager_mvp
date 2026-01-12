@@ -1,6 +1,6 @@
 "use client";
 
-import { Wrench, Calendar, Clock, User, FileText } from "lucide-react";
+import { Wrench, Calendar, Clock, User, FileText, Bell } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,10 @@ import { createClient } from "@/lib/supabase/client";
 import { getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
 import { RenovatorCombobox } from "@/components/reno/renovator-combobox";
 import { RenoInProgressPhotoUpload } from "@/components/reno/reno-in-progress-photo-upload";
+import { useAppAuth } from "@/lib/auth/app-auth-context";
+import { usePropertyTracking } from "@/hooks/usePropertyTracking";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface PropertyActionTabProps {
   property: Property;
@@ -37,11 +41,24 @@ export function PropertyActionTab({
 }: PropertyActionTabProps) {
   const { t, language } = useI18n();
   const supabase = createClient();
+  const { role } = useAppAuth();
+  const { updateTracking, isLoading: isUpdatingTracking } = usePropertyTracking({
+    onSuccess: () => {
+      // Refrescar la página o actualizar el estado
+      window.location.reload();
+    },
+  });
 
   // Determinar la fase correctamente usando el mapeo de Set Up Status si es necesario
   const renoPhase = supabaseProperty 
     ? (getPropertyRenoPhaseFromSupabase(supabaseProperty) || supabaseProperty?.reno_phase || "upcoming-settlements")
     : "upcoming-settlements";
+  
+  // Obtener el estado de needs_foreman_notification
+  const needsForemanNotification = supabaseProperty?.needs_foreman_notification || false;
+  
+  // Verificar si el usuario puede marcar seguimiento
+  const canMarkTracking = (role === "construction_manager" || role === "admin") && renoPhase === "reno-in-progress";
   
   // Debug: Log para verificar la fase detectada
   useEffect(() => {
@@ -299,6 +316,35 @@ export function PropertyActionTab({
           <p className="text-sm text-foreground break-words">
             {formatDate(estimatedVisitDate)}
           </p>
+        </div>
+      )}
+
+      {/* Toggle para marcar seguimiento de obra (solo para Gerente de Construcción en fase reno-in-progress) */}
+      {canMarkTracking && (
+        <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Bell className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <Label htmlFor="foreman-tracking" className="text-base md:text-lg font-semibold cursor-pointer">
+                  {t.propertyAction?.needsForemanTracking || "Necesita seguimiento de obra"}
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t.propertyAction?.needsForemanTrackingDescription || "Marca esta propiedad para que el jefe de obra asignado la vea en su widget y calendario"}
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="foreman-tracking"
+              checked={needsForemanNotification}
+              onCheckedChange={(checked) => {
+                if (propertyId) {
+                  updateTracking(propertyId, checked);
+                }
+              }}
+              disabled={isUpdatingTracking}
+            />
+          </div>
         </div>
       )}
 

@@ -10,6 +10,7 @@ import { VisitsCalendar } from "@/components/reno/visits-calendar";
 import { RenoHomeRecentProperties } from "@/components/reno/reno-home-recent-properties";
 import { RenoHomePortfolio } from "@/components/reno/reno-home-portfolio";
 import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
+import { RenoHomeUpdateRequests } from "@/components/reno/reno-home-update-requests";
 import { ForemanFilterCombobox } from "@/components/reno/foreman-filter-combobox";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
@@ -282,6 +283,14 @@ export default function RenoConstructionManagerHomePage() {
                 onPropertyClick={handlePropertyClick}
                 onAddVisit={handleAddVisit}
               />
+
+              {/* Update Requests Section - Solo para construction_manager */}
+              {role === 'construction_manager' && (
+                <RenoHomeUpdateRequests
+                  propertiesByPhase={propertiesByPhase}
+                  selectedForemanEmails={selectedForemanEmails}
+                />
+              )}
 
               {/* Recent Properties and Portfolio Row */}
               <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
