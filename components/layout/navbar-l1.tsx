@@ -60,7 +60,7 @@ export function NavbarL1({
   const { t } = useI18n();
 
   return (
-    <nav className="border-b bg-card px-3 md:px-4 lg:px-6 py-3 md:py-4 relative">
+    <nav className="border-b bg-card px-4 md:px-3 lg:px-4 py-3 md:py-3 relative">
       {/* Mobile Layout */}
       <div className="flex flex-col md:hidden gap-3">
         {/* Title */}
