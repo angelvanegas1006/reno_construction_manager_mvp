@@ -326,7 +326,7 @@ export function PropertyActionTab({
             <div className="flex items-center gap-3">
               <Bell className="h-5 w-5 text-muted-foreground" />
               <div>
-                <Label htmlFor="foreman-tracking" className="text-base md:text-lg font-semibold cursor-pointer">
+                <Label className="text-base md:text-lg font-semibold cursor-pointer">
                   {t.propertyAction?.needsForemanTracking || "Necesita seguimiento de obra"}
                 </Label>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -335,7 +335,6 @@ export function PropertyActionTab({
               </div>
             </div>
             <Switch
-              id="foreman-tracking"
               checked={needsForemanNotification}
               onCheckedChange={(checked) => {
                 if (propertyId) {
