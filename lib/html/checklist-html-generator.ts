@@ -886,7 +886,7 @@ body {
 }
 
 .header {
-  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  background: #141D57;
   color: white;
   padding: 30px 20px;
   margin-bottom: 30px;
