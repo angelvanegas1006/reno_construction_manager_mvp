@@ -206,9 +206,7 @@ export function NavbarL1({
           )}
 
           {/* Separador visual */}
-          {(onFilterClick || onViewModeChange || primaryAction || secondaryActions) && (
-            <div className="h-10 w-px bg-border" />
-          )}
+          <div className="h-10 w-px bg-border" />
 
           {/* Acciones secundarias */}
           {secondaryActions?.map((action, index) => (
