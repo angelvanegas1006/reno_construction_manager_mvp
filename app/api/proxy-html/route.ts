@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     // Esto funciona incluso si el bucket no es público, siempre que las políticas RLS lo permitan
     try {
       const { createClient } = await import('@/lib/supabase/server');
-      const supabase = createClient();
+      const supabase = await createClient();
       
       // Extraer el path del archivo desde la URL
       // URL formato: https://xxx.supabase.co/storage/v1/object/public/checklists/{path}
