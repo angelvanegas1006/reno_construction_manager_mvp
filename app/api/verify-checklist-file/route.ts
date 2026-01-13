@@ -118,17 +118,15 @@ export async function GET(request: NextRequest) {
       .download(filePath);
 
     if (downloadError) {
-      results.download = {
-        success: false,
-        error: downloadError.message,
-        statusCode: downloadError.statusCode,
-      };
+        results.download = {
+          success: false,
+          error: downloadError.message,
+        };
 
       return NextResponse.json(
         { 
           error: 'Error descargando archivo',
           details: downloadError.message,
-          statusCode: downloadError.statusCode,
           results,
         },
         { status: 500 }
