@@ -513,23 +513,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       filters: activeFilters,
     });
     
-    // Debug: Test matchesAll for furnishing properties
-    if (allProperties.furnishing.length > 0) {
-      const testProp = allProperties.furnishing[0];
-      const testMatchesQuery = !query || matchesQuery(testProp);
-      const testMatchesFilter = matchesFilters(testProp);
-      const testMatchesAll = testMatchesQuery && testMatchesFilter;
-      console.log('[RenoKanbanBoard] Testing matchesAll for furnishing property:', {
-        propertyId: testProp.id,
-        matchesQuery: testMatchesQuery,
-        matchesFilter: testMatchesFilter,
-        matchesAll: testMatchesAll,
-        query,
-        hasActiveFilters,
-        filters: activeFilters,
-        propertyPhase: testProp.renoPhase,
-      });
-    }
+    // Debug log removed for production
 
     // Sort each column: expired first (even after filtering)
     // For reno-budget phases, sort: first red cards (exceeding 25 days), then by Days to Start Reno (Since RSD) descending
