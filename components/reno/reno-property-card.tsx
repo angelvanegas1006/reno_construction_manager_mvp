@@ -63,17 +63,7 @@ export function RenoPropertyCard({
                         property.renoType?.toLowerCase().includes('medium') ? 14 : 
                         property.renoType?.toLowerCase().includes('major') ? 30 : 7;
     
-    console.log(`[RenoPropertyCard] ${property.id}:`, {
-      renoType: property.renoType,
-      renoStartDate,
-      daysSinceStart,
-      intervalDays,
-      needsUpdate: daysSinceStart !== null ? daysSinceStart >= intervalDays : 'no start date',
-      needsUpdateNow,
-      needsUpdateThisWeekFlag,
-      isOverdue,
-      proximaActualizacionCalculada,
-    });
+    // Debug log removed for production
   }
 
   // Check if property exceeds duration limit based on reno type (for reno-in-progress)

@@ -311,28 +311,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "orphaned": [],
     };
     
-    // Debug log for furnishing and cleaning
-    console.log('[RenoKanbanBoard] allProperties calculated:', {
-      furnishingCount: sorted.furnishing.length,
-      cleaningCount: sorted.cleaning.length,
-      furnishingIds: sorted.furnishing.slice(0, 3).map(p => p.id),
-      cleaningIds: sorted.cleaning.slice(0, 3).map(p => p.id),
-      transformPropertiesFurnishing: transformProperties.furnishing?.length || 0,
-      transformPropertiesCleaning: transformProperties.cleaning?.length || 0,
-    });
+    // Debug log removed for production
     
     return sorted;
   }, [isMounted, supabaseLoading, transformProperties]);
 
   // Filter properties based on search query and filters
   const filteredProperties = useMemo(() => {
-    // Debug: Check allProperties before filtering
-    console.log('[RenoKanbanBoard] Before filtering:', {
-      furnishingCount: allProperties.furnishing.length,
-      cleaningCount: allProperties.cleaning.length,
-      furnishingIds: allProperties.furnishing.slice(0, 3).map(p => p.id),
-      cleaningIds: allProperties.cleaning.slice(0, 3).map(p => p.id),
-    });
+    // Debug log removed for production
     
     const activeFilters = filters || {
       renovatorNames: [],
@@ -1589,16 +1575,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           const properties = filteredProperties[column.key] || [];
           const title = t.kanban[column.translationKey];
           
-          // Debug log for furnishing and cleaning
-          if (column.key === 'furnishing' || column.key === 'cleaning') {
-            console.log(`[RenoKanbanBoard] Rendering ${column.key} column:`, {
-              columnKey: column.key,
-              propertiesCount: properties.length,
-              propertiesIds: properties.slice(0, 3).map(p => p.id),
-              title,
-              filteredPropertiesCount: filteredProperties[column.key]?.length || 0,
-            });
-          }
+          // Debug log removed for production
           
           return (
             <RenoKanbanColumn
@@ -1621,16 +1598,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           const properties = filteredProperties[column.key] || [];
           const title = t.kanban[column.translationKey];
           
-          // Debug log for furnishing and cleaning
-          if (column.key === 'furnishing' || column.key === 'cleaning') {
-            console.log(`[RenoKanbanBoard] Rendering ${column.key} column:`, {
-              columnKey: column.key,
-              propertiesCount: properties.length,
-              propertiesIds: properties.slice(0, 3).map(p => p.id),
-              title,
-              filteredPropertiesCount: filteredProperties[column.key]?.length || 0,
-            });
-          }
+          // Debug log removed for production
           
           return (
             <RenoKanbanColumn
