@@ -1,0 +1,583 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronRight, ChevronDown, CheckCircle2, Bell } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
+import { Property } from "@/lib/property-storage";
+import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
+import { useRouter } from "next/navigation";
+import { TodoWidgetModal } from "./todo-widget-modal";
+import { Badge } from "@/components/ui/badge";
+import { needsUpdateThisWeek, calculateNextUpdateDate, needsUpdate } from "@/lib/reno/update-calculator";
+import { useAppAuth } from "@/lib/auth/app-auth-context";
+import { matchesTechnicalConstruction } from "@/lib/supabase/user-name-utils";
+
+interface RenoHomeTodoWidgetsProps {
+  propertiesByPhase?: Record<RenoKanbanPhase, Property[]>;
+}
+
+interface TodoWidget {
+  id: string;
+  title: string;
+  count: number;
+  properties: Property[];
+  phaseFilter?: RenoKanbanPhase[];
+  onClick?: () => void;
+}
+
+export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsProps) {
+  const { t } = useI18n();
+  const router = useRouter();
+  const { role, user } = useAppAuth();
+  const [openItems, setOpenItems] = useState<Set<string>>(new Set());
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedWidgetType, setSelectedWidgetType] = useState<'estimated-visit' | 'initial-check' | 'renovator' | 'work-update' | 'final-check' | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Obtener todas las propiedades para el combobox de renovadores
+  const allProperties = useMemo(() => {
+    if (!propertiesByPhase) return [];
+    return Object.values(propertiesByPhase).flat();
+  }, [propertiesByPhase]);
+
+  const todoWidgets = useMemo(() => {
+    if (!propertiesByPhase) {
+      return [];
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Helper para ordenar por fecha (días para visitar/empezar)
+    // Ordena descendente: más días primero (las que llevan más tiempo en la fase)
+    const sortByDays = (props: Property[], field: 'daysToVisit' | 'daysToStartRenoSinceRSD' | 'renoDuration' | 'daysToPropertyReady') => {
+      return [...props].sort((a, b) => {
+        const aValue = a[field] ?? -Infinity;
+        const bValue = b[field] ?? -Infinity;
+        // Ordenar por valor descendente (más días primero, luego los que no tienen fecha al final)
+        return bValue - aValue;
+      });
+    };
+
+    // 1. Definir Visita Estimada - ordenar por daysToVisit
+    const pendingEstimatedVisitProps = sortByDays([
+      ...(propertiesByPhase['upcoming-settlements'] || [])
+        .filter(prop => !prop.estimatedVisitDate || prop.estimatedVisitDate.trim() === ''),
+      ...(propertiesByPhase['initial-check'] || [])
+        .filter(prop => !prop.estimatedVisitDate || prop.estimatedVisitDate.trim() === '')
+    ], 'daysToVisit');
+
+    // 2. Check Inicial - ordenar por daysToVisit
+    const pendingInitialCheckProps = sortByDays((propertiesByPhase['initial-check'] || []), 'daysToVisit');
+
+    // 3. Rellenar Renovador - ordenar por daysToStartRenoSinceRSD
+    const pendingRenovatorProps = sortByDays([
+      ...(propertiesByPhase['reno-budget-renovator'] || [])
+        .filter(prop => !prop.renovador || prop.renovador.trim() === ''),
+      ...(propertiesByPhase['reno-budget-client'] || [])
+        .filter(prop => !prop.renovador || prop.renovador.trim() === '')
+    ], 'daysToStartRenoSinceRSD');
+
+    // 4. Actualizacion de obra - propiedades que necesitan update esta semana O que necesitan seguimiento
+    // Las actualizaciones se calculan desde la fecha de inicio de la obra (reno_start_date)
+    const allRenoInProgressProps = (propertiesByPhase['reno-in-progress'] || []);
+    
+    // Filtrar por jefe de obra si es foreman
+    const filteredRenoInProgressProps = role === 'foreman' && user?.email
+      ? allRenoInProgressProps.filter(prop => {
+          const technicalConstruction = (prop as any).supabaseProperty?.["Technical construction"];
+          return matchesTechnicalConstruction(technicalConstruction, user.email);
+        })
+      : allRenoInProgressProps;
+    
+    const pendingWorkUpdateProps = filteredRenoInProgressProps
+      .map(prop => {
+        // Calcular proximaActualizacion desde la fecha de inicio de la obra si no existe
+        // Si tiene next_update en BD, usarlo; sino calcular desde fecha de inicio
+        let proximaActualizacion = prop.proximaActualizacion;
+        if (!proximaActualizacion) {
+          // Obtener fecha de inicio de la obra
+          const renoStartDate = prop.inicio || (prop as any).supabaseProperty?.["Reno Start Date"] || (prop as any).supabaseProperty?.start_date;
+          // Calcular desde fecha de inicio de la obra
+          const calculated = calculateNextUpdateDate(null, prop.renoType, renoStartDate);
+          proximaActualizacion = calculated || undefined;
+        }
+        
+        // Verificar si debería haberse actualizado la semana pasada o antes (para resaltar en rojo)
+        const renoStartDate = prop.inicio || (prop as any).supabaseProperty?.["Reno Start Date"] || (prop as any).supabaseProperty?.start_date;
+        const isOverdue = needsUpdate(proximaActualizacion, prop.renoType, renoStartDate) && !needsUpdateThisWeek(proximaActualizacion);
+        
+        // Verificar si necesita seguimiento de obra
+        const needsTracking = (prop as any).supabaseProperty?.needs_foreman_notification || false;
+        
+        return {
+          ...prop,
+          proximaActualizacion: proximaActualizacion || undefined,
+          isOverdue,
+          needsTracking,
+        };
+      })
+      .filter(prop => {
+        // Para jefes de obra: mostrar si necesita seguimiento O si necesita update esta semana
+        if (role === 'foreman') {
+          return prop.needsTracking || needsUpdateThisWeek(prop.proximaActualizacion);
+        }
+        // Para construction_manager/admin: mostrar si necesita seguimiento O si necesita update esta semana
+        if (role === 'construction_manager' || role === 'admin') {
+          return prop.needsTracking || needsUpdateThisWeek(prop.proximaActualizacion);
+        }
+        // Para otros roles: solo mostrar si necesita update esta semana
+        return needsUpdateThisWeek(prop.proximaActualizacion);
+      })
+      .sort((a, b) => {
+        // Función helper para obtener prioridad del tipo de renovación
+        const getRenoTypePriority = (renoType?: string | null): number => {
+          if (!renoType) return 4; // Sin tipo = último
+          const typeLower = renoType.toLowerCase();
+          if (typeLower.includes('major')) return 1; // Major primero
+          if (typeLower.includes('medium')) return 2; // Medium segundo
+          if (typeLower.includes('light')) return 3; // Light tercero
+          return 4; // Otros últimos
+        };
+        
+        // Primero: propiedades que necesitan seguimiento primero (para jefes de obra y construction_manager)
+        if (role === 'foreman' || role === 'construction_manager' || role === 'admin') {
+          if (a.needsTracking !== b.needsTracking) {
+            return a.needsTracking ? -1 : 1;
+          }
+        }
+        
+        // Segundo: propiedades overdue (rojas) primero
+        if (a.isOverdue !== b.isOverdue) {
+          return a.isOverdue ? -1 : 1;
+        }
+        
+        // Tercero: ordenar por tipo de renovación (Major > Medium > Light)
+        const aPriority = getRenoTypePriority(a.renoType);
+        const bPriority = getRenoTypePriority(b.renoType);
+        if (aPriority !== bPriority) {
+          return aPriority - bPriority;
+        }
+        
+        // Cuarto: ordenar por proximaActualizacion (más antiguas primero)
+        const aDate = a.proximaActualizacion ? new Date(a.proximaActualizacion) : new Date(0);
+        const bDate = b.proximaActualizacion ? new Date(b.proximaActualizacion) : new Date(0);
+        return aDate.getTime() - bDate.getTime();
+      });
+
+    // 5. Check Final - ordenar por daysToPropertyReady
+    const pendingFinalCheckProps = sortByDays((propertiesByPhase['final-check'] || []), 'daysToPropertyReady');
+
+    // Ordenar widgets según el orden del kanban: upcoming-settlements, initial-check, reno-budget-renovator, reno-budget-client, reno-budget-start, reno-in-progress, furnishing, final-check, cleaning
+    const widgets: TodoWidget[] = [
+      {
+        id: 'estimated-visit',
+        title: t.dashboard?.todoWidgets?.defineEstimatedVisit || "Definir Visita Estimada",
+        count: pendingEstimatedVisitProps.length,
+        properties: pendingEstimatedVisitProps,
+        phaseFilter: ['upcoming-settlements', 'initial-check'],
+        onClick: () => {
+          router.push('/reno/construction-manager/kanban?phase=upcoming-settlements');
+        },
+      },
+      {
+        id: 'initial-check',
+        title: t.dashboard?.todoWidgets?.initialCheck || "Revisión Inicial",
+        count: pendingInitialCheckProps.length,
+        properties: pendingInitialCheckProps,
+        phaseFilter: ['initial-check'],
+        onClick: () => {
+          router.push('/reno/construction-manager/kanban?phase=initial-check');
+        },
+      },
+      {
+        id: 'renovator',
+        title: t.dashboard?.todoWidgets?.fillRenovator || "Rellenar Renovador",
+        count: pendingRenovatorProps.length,
+        properties: pendingRenovatorProps,
+        phaseFilter: ['reno-budget-renovator', 'reno-budget-client'],
+        onClick: () => {
+          router.push('/reno/construction-manager/kanban?phase=reno-budget-renovator');
+        },
+      },
+      {
+        id: 'work-update',
+        title: t.dashboard?.todoWidgets?.workUpdate || "Actualización de Obra",
+        count: pendingWorkUpdateProps.length,
+        properties: pendingWorkUpdateProps,
+        phaseFilter: ['reno-in-progress'],
+        onClick: () => {
+          router.push('/reno/construction-manager/kanban?phase=reno-in-progress');
+        },
+      },
+      {
+        id: 'final-check',
+        title: t.dashboard?.todoWidgets?.finalCheck || "Revisión Final",
+        count: pendingFinalCheckProps.length,
+        properties: pendingFinalCheckProps,
+        phaseFilter: ['final-check'],
+        onClick: () => {
+          router.push('/reno/construction-manager/kanban?phase=final-check');
+        },
+      },
+    ];
+
+    return widgets;
+  }, [propertiesByPhase, router]);
+
+  const toggleItem = (id: string) => {
+    setOpenItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handlePropertyClick = (e: React.MouseEvent, property: Property, widgetId: string) => {
+    e.stopPropagation();
+    
+    const widgetTypeMap: Record<string, 'estimated-visit' | 'initial-check' | 'renovator' | 'work-update' | 'final-check'> = {
+      'estimated-visit': 'estimated-visit',
+      'initial-check': 'initial-check',
+      'renovator': 'renovator',
+      'work-update': 'work-update',
+      'final-check': 'final-check',
+    };
+    
+    const widgetType = widgetTypeMap[widgetId] || null;
+    setSelectedProperty(property);
+    setSelectedWidgetType(widgetType);
+    setIsModalOpen(true);
+  };
+
+  // Helper para renderizar información relevante según el tipo de widget
+  const renderPropertyInfo = (property: Property, widgetId: string) => {
+    const address = property.address || property.fullAddress || 'Sin dirección';
+    const supabaseProperty = (property as any)?.supabaseProperty;
+    
+    switch (widgetId) {
+      case 'estimated-visit':
+        return (
+          <div className="space-y-1.5 min-w-0 w-full">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
+              {address}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
+              {property.daysToVisit !== null && property.daysToVisit !== undefined && (
+                <span className="whitespace-nowrap truncate max-w-full">{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
+              )}
+              {property.region && <span className="whitespace-nowrap truncate max-w-full">• {property.region}</span>}
+            </div>
+          </div>
+        );
+      
+      case 'initial-check':
+        return (
+          <div className="space-y-1.5 min-w-0 w-full">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
+              {address}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
+              {property.daysToVisit !== null && property.daysToVisit !== undefined && (
+                <span className="whitespace-nowrap truncate max-w-full">{t.dashboard?.todoWidgets?.daysToVisit || "Días para visitar"}: {property.daysToVisit}</span>
+              )}
+              {property.renovador && <span className="whitespace-nowrap truncate max-w-full">• {property.renovador}</span>}
+            </div>
+          </div>
+        );
+      
+      case 'renovator':
+        return (
+          <div className="space-y-1.5 min-w-0 w-full">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
+              {address}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
+              {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
+                <span className="whitespace-nowrap truncate max-w-full">{t.dashboard?.todoWidgets?.daysToStart || "Días para empezar"}: {property.daysToStartRenoSinceRSD}</span>
+              )}
+            </div>
+          </div>
+        );
+      
+      case 'work-update':
+        const needsTracking = (property as any).needsTracking === true;
+        return (
+          <div className="space-y-1.5 min-w-0 w-full">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
+              {address}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
+              {property.renovador && <span className="whitespace-nowrap truncate max-w-full">{property.renovador}</span>}
+              {property.renoType && (
+                <span className="whitespace-nowrap truncate max-w-full">• {property.renoType}</span>
+              )}
+            </div>
+          </div>
+        );
+      
+      case 'final-check':
+        return (
+          <div className="space-y-1.5 min-w-0 w-full">
+            <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
+              {address}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
+              {property.renovador && <span className="whitespace-nowrap truncate max-w-full">{property.renovador}</span>}
+              {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
+                <span className="whitespace-nowrap truncate max-w-full">• {t.dashboard?.todoWidgets?.daysToReady || "Días para lista"}: {property.daysToPropertyReady}</span>
+              )}
+            </div>
+          </div>
+        );
+      
+      default:
+        return (
+          <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0 w-full">
+            {address}
+          </div>
+        );
+    }
+  };
+
+  // Componente para card individual (desktop) - Rediseñado con principios Apple/Revolut
+  const WidgetCard = ({ widget }: { widget: TodoWidget }) => {
+    const hasItems = widget.count > 0;
+    
+    return (
+      <Card 
+        className={cn(
+          "relative overflow-hidden border-2 h-full flex flex-col min-h-[400px] max-h-[600px]",
+          "bg-card shadow-sm hover:shadow-md transition-shadow duration-200",
+          hasItems 
+            ? "border-border" 
+            : "border-border/50 opacity-75"
+        )}
+      >
+        <CardHeader 
+          className={cn(
+            "relative z-10 flex flex-row items-start gap-3 py-4 cursor-pointer flex-shrink-0",
+            "border-b border-border/50"
+          )}
+          onClick={widget.onClick}
+        >
+          <CardTitle className="text-sm font-semibold text-foreground leading-relaxed flex-1 min-w-0 break-words pt-0.5">
+            {widget.title}
+          </CardTitle>
+          
+          {/* Smaller number badge aligned with title */}
+          <div className={cn(
+            "relative z-10 flex items-center justify-center min-w-[32px] h-7 px-2 rounded-md flex-shrink-0",
+            "font-medium text-sm whitespace-nowrap",
+            hasItems 
+              ? "bg-muted/50 text-foreground" 
+              : "bg-muted/30 text-muted-foreground"
+          )}>
+            {widget.count}
+          </div>
+        </CardHeader>
+        
+        <CardContent className="relative z-10 flex-1 flex flex-col pt-4 pb-4 px-4 min-h-0 overflow-hidden">
+          {/* Lista de propiedades pendientes */}
+          {hasItems && widget.properties.length > 0 && (
+            <div className="space-y-3 flex-1 overflow-y-auto max-h-[500px] pr-2 scrollbar-overlay min-w-0">
+              {widget.properties.map((property, index) => {
+                // Verificar si la propiedad está overdue (debería haberse actualizado antes)
+                const isOverdue = (property as any).isOverdue === true;
+                // Verificar si necesita seguimiento de obra
+                const needsTracking = (property as any).needsTracking === true;
+                
+                return (
+                  <div
+                    key={property.id}
+                    onClick={(e) => handlePropertyClick(e, property, widget.id)}
+                    className={cn(
+                      "p-3 rounded-lg cursor-pointer transition-all duration-150",
+                      "bg-white dark:bg-[#0a0a0a]",
+                      "hover:bg-muted/40 hover:shadow-sm",
+                      "border-2 overflow-hidden",
+                      "min-w-0 w-full",
+                      isOverdue 
+                        ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
+                        : needsTracking && widget.id === 'work-update'
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20 border-l-4"
+                        : "border-border/60 hover:border-border"
+                    )}
+                  >
+                    <div className="flex items-start gap-2 min-w-0">
+                      <div className="flex-1 min-w-0">
+                        {renderPropertyInfo(property, widget.id)}
+                      </div>
+                      {needsTracking && widget.id === 'work-update' && (
+                        <Badge 
+                          variant="default" 
+                          className="flex items-center justify-center flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white p-1.5 rounded-full"
+                          title={t.dashboard?.todoWidgets?.needsTracking || "Seguimiento"}
+                        >
+                          <Bell className="h-3 w-3 w-3.5 h-3.5" />
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
+          {!hasItems && (
+            <div className="flex-1 flex items-center justify-center py-8">
+              <div className="text-center space-y-2">
+                <div className="flex justify-center">
+                  <div className="p-3 rounded-full bg-muted/30">
+                    <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">{t.dashboard?.todoWidgets?.allCompleted || "Todo completado"}</p>
+                <p className="text-xs text-muted-foreground/70">{t.dashboard?.todoWidgets?.noPendingTasks || "No hay tareas pendientes"}</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Título */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">{t.dashboard?.todoWidgets?.pendingTasks || "Tareas Pendientes"}</h2>
+        </div>
+        <Badge variant="secondary" className="text-xs">
+          {todoWidgets.reduce((sum, w) => sum + w.count, 0)} {t.dashboard?.todoWidgets?.total || "total"}
+        </Badge>
+      </div>
+      
+      {/* Desktop: Grid de cards mejorado con mejor aprovechamiento del espacio */}
+      <div className="hidden md:grid md:grid-cols-5 gap-5 lg:gap-6 xl:gap-7 min-h-[400px]">
+        {todoWidgets.map((widget) => (
+          <WidgetCard key={widget.id} widget={widget} />
+        ))}
+      </div>
+
+      {/* Mobile: Card única con acordeón mejorado */}
+      <Card className="bg-card md:hidden border-2">
+        <CardContent className="p-0">
+          <div className="divide-y divide-border/50">
+            {todoWidgets.map((widget, index) => {
+              const isOpen = openItems.has(widget.id);
+              const isLast = index === todoWidgets.length - 1;
+              const hasItems = widget.count > 0;
+              
+              return (
+                <Collapsible
+                  key={widget.id}
+                  open={isOpen}
+                  onOpenChange={() => toggleItem(widget.id)}
+                >
+                  <CollapsibleTrigger
+                    className={cn(
+                      "w-full flex items-center justify-between p-4",
+                      "hover:bg-muted/30",
+                      isOpen && "bg-muted/30",
+                      !isLast && "border-b border-border/50"
+                    )}
+                  >
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="text-sm font-semibold text-foreground leading-normal break-words">
+                        {widget.title}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className={cn(
+                        "flex items-center justify-center min-w-[32px] h-7 rounded-md font-medium text-sm",
+                        hasItems 
+                          ? "bg-muted/50 text-foreground" 
+                          : "bg-muted/30 text-muted-foreground"
+                      )}>
+                        {widget.count}
+                      </div>
+                      
+                      <div className={cn(
+                        isOpen && "rotate-90"
+                      )}>
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  
+                  {hasItems && widget.properties.length > 0 && (
+                    <CollapsibleContent className="px-4 pb-4">
+                      <div className="pt-3 space-y-3">
+                        {widget.properties.map((property) => {
+                          // Verificar si la propiedad está overdue (debería haberse actualizado antes)
+                          const isOverdue = (property as any).isOverdue === true;
+                          
+                          return (
+                            <div
+                              key={property.id}
+                              onClick={(e) => handlePropertyClick(e, property, widget.id)}
+                              className={cn(
+                                "p-3 rounded-lg cursor-pointer transition-all duration-150",
+                                "bg-white dark:bg-[#0a0a0a]",
+                                "hover:bg-muted/40 hover:shadow-sm",
+                                "border-2 overflow-hidden",
+                                "min-w-0 w-full",
+                                isOverdue 
+                                  ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
+                                  : "border-border/60 hover:border-border"
+                              )}
+                            >
+                              {renderPropertyInfo(property, widget.id)}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CollapsibleContent>
+                  )}
+                  
+                  {!hasItems && (
+                    <CollapsibleContent className="px-4 pb-4">
+                      <div className="pt-3 text-center py-6">
+                        <div className="flex justify-center mb-2">
+                          <div className="p-3 rounded-full bg-muted/30">
+                            <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        </div>
+                        <p className="text-sm font-medium text-muted-foreground">{t.dashboard?.todoWidgets?.allCompleted || "Todo completado"}</p>
+                      </div>
+                    </CollapsibleContent>
+                  )}
+                </Collapsible>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Modal */}
+      <TodoWidgetModal
+        open={isModalOpen}
+        onOpenChange={(open) => {
+          setIsModalOpen(open);
+          if (!open) {
+            setSelectedProperty(null);
+            setSelectedWidgetType(null);
+          }
+        }}
+        property={selectedProperty}
+        widgetType={selectedWidgetType}
+        allProperties={allProperties}
+      />
+    </div>
+  );
+}

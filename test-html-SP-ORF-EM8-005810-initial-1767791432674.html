@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Informe de Propiedad - Checklist Detallado</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script>
+tailwind.config = {
+    darkMode: "class",
+    theme: {
+        extend: {
+            colors: {
+                primary: "#0F172A",
+                accent: "#3B82F6",
+                "background-light": "#F8FAFC",
+                "background-dark": "#0B1120", 
+                "card-light": "#FFFFFF",
+                "card-dark": "#1E293B",
+                "status-good-bg": "#ECFDF5",
+                "status-good-text": "#065F46",
+                "status-good-border": "#A7F3D0",
+            },
+            fontFamily: {
+                sans: ['Inter', 'sans-serif'],
+                display: ['Inter', 'sans-serif'],
+            },
+            borderRadius: {
+                DEFAULT: "0.5rem",
+            },
+        },
+    },
+};
+</script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 font-sans transition-colors duration-200 antialiased">
+<header class="bg-primary w-full py-10 px-6 border-b border-slate-800 shadow-xl relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-slate-900 to-slate-800 opacity-90"></div>
+<div class="relative z-10 max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h1 class="text-3xl font-bold text-white tracking-tight">Informe de Propiedad</h1>
+<p class="text-slate-400 text-sm mt-1 uppercase tracking-widest font-medium">Checklist de Inspección</p>
+</div>
+<div class="flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50 backdrop-blur-sm">
+<span class="material-symbols-outlined text-accent">verified</span>
+<span class="text-white font-medium">Revisión Finalizada</span>
+</div>
+</div>
+</header>
+<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+<section class="bg-card-light dark:bg-card-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 md:p-8">
+<div class="flex items-center gap-2 mb-6 border-b border-slate-100 dark:border-slate-700 pb-4">
+<span class="material-symbols-outlined text-slate-400">info</span>
+<h2 class="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-wide">Información General</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
+<div class="flex flex-col gap-1">
+<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dirección</span>
+<span class="text-lg font-medium text-slate-800 dark:text-slate-200">Calle Prueba Kick Off</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ID Propiedad</span>
+<span class="font-mono text-base text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded w-fit">SP-ORF-EM8-005810</span>
+</div>
+<div class="flex flex-col gap-1 md:col-span-2">
+<span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Fecha de Inspección</span>
+<span class="text-base text-slate-700 dark:text-slate-300">7 de enero de 2026</span>
+</div></div>
+</section>
+<section>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">apartment</span>
+</div>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">Entorno y Zonas Comunes</h3>
+</div>
+<div class="space-y-6"></div>
+</section>
+<section>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">info</span>
+</div>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">Estado General</h3>
+</div>
+<div class="space-y-6"></div>
+</section>
+<section>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">door_front</span>
+</div>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">Entrada y Pasillos</h3>
+</div>
+<div class="space-y-6"></div>
+</section>
+<section>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">bed</span>
+</div>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">Habitaciones</h3>
+</div>
+<div class="space-y-6">
+<div class="bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+<div class="flex items-center gap-3">
+<h4 class="text-xl font-semibold text-slate-900 dark:text-white">Habitación 1</h4></div>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-status-good-bg text-status-good-text ring-1 ring-inset ring-status-good-border">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+Buen Estado
+</span>
+</div></div></div>
+</section>
+<section>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">living</span>
+</div>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">Salón</h3>
+</div>
+<div class="space-y-6"></div>
+</section>
+<section>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">bathtub</span>
+</div>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">Baños</h3>
+</div>
+<div class="space-y-6">
+<div class="bg-card-light dark:bg-card-dark border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+<div class="flex items-center gap-3">
+<h4 class="text-xl font-semibold text-slate-900 dark:text-white">Baño 1</h4></div>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-status-good-bg text-status-good-text ring-1 ring-inset ring-status-good-border">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+Buen Estado
+</span>
+</div></div></div>
+</section>
+<section>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">kitchen</span>
+</div>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">Cocina</h3>
+</div>
+<div class="space-y-6">
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">door_sliding</span>
+</div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-white">Carpintería</h3>
+</div>
+<div class="grid grid-cols-1 gap-6"></div>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">inventory_2</span>
+</div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-white">Almacenamiento</h3>
+</div>
+<div class="grid grid-cols-1 gap-6"></div>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">kitchen</span>
+</div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-white">Electrodomésticos</h3>
+</div>
+<div class="grid grid-cols-1 gap-6"></div></div>
+</section>
+<section>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">home</span>
+</div>
+<h3 class="text-2xl font-bold text-slate-900 dark:text-white">Exteriores de la Vivienda</h3>
+</div>
+<div class="space-y-6">
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">lock</span>
+</div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-white">Seguridad</h3>
+</div>
+<div class="grid grid-cols-1 gap-6"></div>
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-accent/10 rounded-lg">
+<span class="material-symbols-outlined text-accent">settings</span>
+</div>
+<h3 class="text-xl font-bold text-slate-900 dark:text-white">Sistemas</h3>
+</div>
+<div class="grid grid-cols-1 gap-6"></div></div>
+</section>
+</main>
+<footer class="bg-card-light dark:bg-card-dark border-t border-slate-200 dark:border-slate-800 py-10 mt-16">
+<div class="max-w-6xl mx-auto px-4 text-center">
+<p class="text-sm text-slate-500 dark:text-slate-400 font-medium">© 2025 PropHero. Todos los derechos reservados.</p>
+</div>
+</footer>
+</body>
+</html>
