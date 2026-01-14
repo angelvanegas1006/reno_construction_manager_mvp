@@ -68,9 +68,7 @@ export const config = {
    * App URLs
    */
   urls: {
-    partner: process.env.NEXT_PUBLIC_PARTNER_URL || 'http://localhost:3000/partner',
     reno: process.env.NEXT_PUBLIC_RENO_URL || 'http://localhost:3000/reno',
-    superAdmin: process.env.NEXT_PUBLIC_SUPER_ADMIN_URL || 'http://localhost:3000/vistral-vision',
   },
 };
 
