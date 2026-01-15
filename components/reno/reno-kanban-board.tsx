@@ -10,6 +10,7 @@ import { Property } from "@/lib/property-storage";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { calculateOverallProgress } from "@/lib/property-validation";
 import { useI18n } from "@/lib/i18n";
+import { useCategoriesProgress } from "@/hooks/useCategoriesProgress";
 import { visibleRenoKanbanColumns, RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { sortPropertiesByExpired, isPropertyExpired, isDelayedWork } from "@/lib/property-sorting";
 import { KanbanFilters } from "./reno-kanban-filters";
@@ -111,6 +112,13 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
 
   // Load properties from shared context (no duplicate fetch)
   const { propertiesByPhase: supabasePropertiesByPhase, loading: supabaseLoading, error: supabaseError } = useRenoProperties();
+  
+  // Get progress for all reno-in-progress properties
+  const renoInProgressPropertyIds = useMemo(() => {
+    return (supabasePropertiesByPhase['reno-in-progress'] || []).map(p => p.id);
+  }, [supabasePropertiesByPhase]);
+  
+  const { progressByPropertyId } = useCategoriesProgress(renoInProgressPropertyIds);
 
   const handleCardClick = (property: Property) => {
     // For construction manager, navigate to view-only page
@@ -1610,6 +1618,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               onCardClick={handleCardClick}
               highlightedPropertyId={highlightedPropertyId}
               onColumnRef={(el) => setColumnRef(column.key, el)}
+              progressByPropertyId={progressByPropertyId}
             />
           );
         })}
@@ -1642,6 +1651,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               onCardClick={handleCardClick}
               highlightedPropertyId={highlightedPropertyId}
               onColumnRef={(el) => setColumnRef(column.key, el)}
+              progressByPropertyId={progressByPropertyId}
             />
           );
         })}

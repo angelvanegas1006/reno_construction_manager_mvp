@@ -19,6 +19,7 @@ interface RenoPropertyCardProps {
   disabled?: boolean;
   isHighlighted?: boolean;
   showRenoDetails?: boolean; // Show reno-specific info (renovador, fechas, etc.)
+  categoriesProgress?: number; // Progress percentage (0-100) from dynamic categories
 }
 
 export function RenoPropertyCard({
@@ -28,6 +29,7 @@ export function RenoPropertyCard({
   disabled = false,
   isHighlighted = false,
   showRenoDetails = true,
+  categoriesProgress,
 }: RenoPropertyCardProps) {
   const { t, language } = useI18n();
   const { track } = useMixpanel();
@@ -269,13 +271,44 @@ export function RenoPropertyCard({
         </div>
       </div>
       
-      {/* Address with region integrated */}
+      {/* Address with region integrated and progress circle for reno-in-progress */}
       <div className="mb-2 min-w-0">
-        <div className="text-sm font-medium text-foreground break-words line-clamp-2">
-          {property.fullAddress}
-          {property.region && showRenoDetails && (
-            <span className="text-xs text-muted-foreground ml-1">({property.region})</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Progress Circle - only for reno-in-progress phase */}
+          {stage === "reno-in-progress" && categoriesProgress !== undefined && (
+            <div className="relative w-8 h-8 flex-shrink-0">
+              <svg className="w-8 h-8 transform -rotate-90" viewBox="0 0 36 36">
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
+                />
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeDasharray={`${categoriesProgress} ${100 - categoriesProgress}`}
+                  className="text-[var(--prophero-blue-500)] transition-all duration-300"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-foreground">{categoriesProgress}%</span>
+              </div>
+            </div>
           )}
+          <div className="text-sm font-medium text-foreground break-words line-clamp-2 flex-1 min-w-0">
+            {property.fullAddress}
+            {property.region && showRenoDetails && (
+              <span className="text-xs text-muted-foreground ml-1">({property.region})</span>
+            )}
+          </div>
         </div>
       </div>
 

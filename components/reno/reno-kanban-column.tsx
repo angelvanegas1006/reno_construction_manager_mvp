@@ -17,6 +17,7 @@ interface RenoKanbanColumnProps {
   onCardClick?: (property: Property) => void;
   highlightedPropertyId?: string | null;
   onColumnRef?: (element: HTMLDivElement | null) => void;
+  progressByPropertyId?: Record<string, number>; // Progress percentage (0-100) for each property
 }
 
 export function RenoKanbanColumn({ 
@@ -26,7 +27,8 @@ export function RenoKanbanColumn({
   properties, 
   onCardClick, 
   highlightedPropertyId, 
-  onColumnRef 
+  onColumnRef,
+  progressByPropertyId = {}
 }: RenoKanbanColumnProps) {
   const { t } = useI18n();
   const [isHovered, setIsHovered] = useState(false);
@@ -116,6 +118,7 @@ export function RenoKanbanColumn({
                 onClick={() => onCardClick?.(property)}
                 isHighlighted={highlightedPropertyId === property.id}
                 showRenoDetails={true}
+                categoriesProgress={progressByPropertyId[property.id]}
               />
             ))
           )}
