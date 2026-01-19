@@ -200,8 +200,9 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   // Estado para controlar qué categoría está mostrando el modal de fotos
   const [photoDialogOpen, setPhotoDialogOpen] = useState<Record<string, boolean>>({});
 
-  // Show extract button only if: budget_pdf_url exists AND no categories created
-  const showExtractButton = property.budget_pdf_url && categories.length === 0;
+  // Show extract button if: budget_pdf_url exists AND (no categories OR categories without activities)
+  const hasCategoriesWithoutActivities = categories.length > 0 && categories.every(cat => !cat.activities_text || cat.activities_text.trim().length === 0);
+  const showExtractButton = property.budget_pdf_url && (categories.length === 0 || hasCategoriesWithoutActivities);
 
   // Initialize local and saved percentages from categories
   useEffect(() => {
@@ -612,10 +613,26 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       return;
     }
 
-    // Verificar si ya tiene categorías (evitar llamadas duplicadas)
-    if (categories.length > 0) {
-      toast.info("Esta propiedad ya tiene categorías definidas");
+    // Si ya tiene categorías con actividades, no re-extraer
+    const hasCategoriesWithActivities = categories.some(cat => cat.activities_text && cat.activities_text.trim().length > 0);
+    if (hasCategoriesWithActivities) {
+      toast.info("Esta propiedad ya tiene categorías con actividades definidas");
       return;
+    }
+    
+    // Si tiene categorías sin actividades, eliminarlas primero para re-extraer
+    if (categories.length > 0) {
+      toast.info("Eliminando categorías sin actividades para re-extraer...");
+      try {
+        const deletePromises = categories.map(cat => deleteCategory(cat.id));
+        await Promise.all(deletePromises);
+        // Esperar un momento para que se eliminen
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (err) {
+        console.error('Error eliminando categorías:', err);
+        toast.error("Error al eliminar categorías existentes");
+        return;
+      }
     }
 
     setIsExtracting(true);
@@ -927,7 +944,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                     className="w-full"
                   >
                     <Download className="mr-2 h-4 w-4" />
-                    {isExtracting ? "Extrayendo..." : "Extraer Información PDF"}
+                    {isExtracting ? "Extrayendo..." : hasCategoriesWithoutActivities ? "Re-extraer Información PDF" : "Extraer Información PDF"}
                   </Button>
                 </div>
               ) : (
@@ -937,7 +954,9 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                   </p>
                   {property.budget_pdf_url ? (
                     <p className="text-xs text-muted-foreground">
-                      Tienes un presupuesto PDF disponible. Haz clic en "Extraer Información PDF" para crear las categorías automáticamente.
+                      {hasCategoriesWithoutActivities 
+                        ? "Las categorías existentes no tienen actividades. Haz clic en 'Re-extraer Información PDF' para procesar los PDFs nuevamente."
+                        : "Tienes un presupuesto PDF disponible. Haz clic en 'Extraer Información PDF' para crear las categorías automáticamente."}
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
