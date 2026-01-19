@@ -687,20 +687,56 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
         }
 
         successCount++;
-        console.log(`[Extract PDF] ✅ Presupuesto ${budgetIndex} procesado correctamente`);
+        console.log(`[Extract PDF] ✅ Webhook del presupuesto ${budgetIndex} llamado correctamente`);
 
-        // Si hay más PDFs, esperar antes de procesar el siguiente
-        // Esto da tiempo a n8n para procesar e insertar las categorías en la base de datos
+        // Si hay más PDFs, esperar y verificar que las categorías se hayan guardado con actividades
         if (index < urls.length - 1) {
-          console.log(`[Extract PDF] Esperando 20 segundos antes de procesar el siguiente PDF...`);
-          toast.info(`Presupuesto ${budgetIndex} procesado. Esperando antes de procesar el siguiente...`, {
-            duration: 20000,
+          console.log(`[Extract PDF] Esperando a que n8n procese el presupuesto ${budgetIndex}...`);
+          toast.info(`Presupuesto ${budgetIndex} procesado. Esperando a que se extraigan las categorías...`, {
+            duration: 40000,
           });
-          await new Promise(resolve => setTimeout(resolve, 20000)); // Esperar 20 segundos
           
-          // Verificar que las categorías se hayan guardado antes de continuar
-          console.log(`[Extract PDF] Verificando que las categorías del presupuesto ${budgetIndex} se hayan guardado...`);
-          await refetch(); // Refrescar las categorías
+          // Esperar y verificar periódicamente que las categorías se hayan guardado con actividades
+          let categoriesFound = false;
+          let attempts = 0;
+          const maxAttempts = 10; // Máximo 10 intentos (50 segundos total)
+          
+          while (!categoriesFound && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Esperar 5 segundos entre intentos
+            attempts++;
+            
+            console.log(`[Extract PDF] Intento ${attempts}/${maxAttempts}: Verificando categorías del presupuesto ${budgetIndex}...`);
+            await refetch(); // Refrescar las categorías
+            
+            // Verificar si hay categorías con el budget_index correspondiente que tengan actividades
+            const { data: currentCategories } = await supabase
+              .from('property_dynamic_categories')
+              .select('id, category_name, activities_text, budget_index')
+              .eq('property_id', property.id)
+              .eq('budget_index', budgetIndex);
+            
+            if (currentCategories && currentCategories.length > 0) {
+              const hasActivities = currentCategories.some(cat => 
+                cat.activities_text && cat.activities_text.trim().length > 0
+              );
+              
+              if (hasActivities) {
+                categoriesFound = true;
+                console.log(`[Extract PDF] ✅ Categorías del presupuesto ${budgetIndex} encontradas con actividades`);
+              } else {
+                console.log(`[Extract PDF] ⏳ Categorías encontradas pero aún sin actividades, esperando...`);
+              }
+            } else {
+              console.log(`[Extract PDF] ⏳ Aún no hay categorías para el presupuesto ${budgetIndex}, esperando...`);
+            }
+          }
+          
+          if (!categoriesFound) {
+            console.warn(`[Extract PDF] ⚠️ No se encontraron categorías con actividades después de ${maxAttempts} intentos. Continuando con el siguiente PDF...`);
+            toast.warning(`Las categorías del presupuesto ${budgetIndex} pueden tardar más en procesarse. Continuando...`, {
+              duration: 5000,
+            });
+          }
         }
       }
 
@@ -708,29 +744,32 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
         throw new Error("Error al llamar a los webhooks de n8n");
       }
 
-      // Programar actualización de budget_index después de que n8n procese todas las categorías
-      // Esperamos 15 segundos adicionales después del último PDF para dar tiempo a que n8n procese e inserte
+      // Si hay múltiples PDFs, esperar un poco más y luego actualizar budget_index
+      // Solo si realmente hay múltiples URLs
       if (successCount > 0 && urls.length > 1) {
-        console.log(`[Extract PDF] Esperando 15 segundos adicionales antes de actualizar budget_index...`);
-        setTimeout(async () => {
-          try {
-            const response = await fetch('/api/update-budget-index', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ propertyId: property.id }),
-            });
-            const result = await response.json();
-            if (result.success && result.updated > 0) {
-              console.log(`[Budget Index Updater] Updated ${result.updated} categories with budget_index`);
-              // Refrescar las categorías después de actualizar budget_index
-              await refetch();
-            }
-          } catch (err) {
-            console.error('[Budget Index Updater] Error:', err);
+        console.log(`[Extract PDF] Esperando 10 segundos adicionales antes de actualizar budget_index...`);
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        
+        try {
+          const response = await fetch('/api/update-budget-index', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ propertyId: property.id }),
+          });
+          const result = await response.json();
+          if (result.success && result.updated > 0) {
+            console.log(`[Budget Index Updater] Updated ${result.updated} categories with budget_index`);
           }
-        }, 15000);
+          // Refrescar las categorías después de actualizar budget_index
+          await refetch();
+        } catch (err) {
+          console.error('[Budget Index Updater] Error:', err);
+        }
+      } else if (successCount > 0) {
+        // Si solo hay un PDF, simplemente refrescar las categorías
+        await refetch();
       }
 
       if (successCount < totalCount) {
