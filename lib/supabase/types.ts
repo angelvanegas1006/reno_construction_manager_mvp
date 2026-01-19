@@ -354,6 +354,7 @@ export type Database = {
       property_dynamic_categories: {
         Row: {
           activities_text: string | null
+          budget_index: number | null
           category_name: string
           created_at: string
           id: string
@@ -363,6 +364,7 @@ export type Database = {
         }
         Insert: {
           activities_text?: string | null
+          budget_index?: number | null
           category_name: string
           created_at?: string
           id?: string
@@ -372,6 +374,7 @@ export type Database = {
         }
         Update: {
           activities_text?: string | null
+          budget_index?: number | null
           category_name?: string
           created_at?: string
           id?: string
