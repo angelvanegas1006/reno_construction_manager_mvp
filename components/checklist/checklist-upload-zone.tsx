@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ChecklistUploadZone as ChecklistUploadZoneType, FileUpload } from "@/lib/checklist-storage";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 interface ChecklistUploadZoneProps {
@@ -36,6 +37,8 @@ export function ChecklistUploadZone({
   hideTitle = false,
   readOnly = false,
 }: ChecklistUploadZoneProps) {
+  const { t } = useI18n();
+  
   // Detectar si estamos en mobile o tablet (no desktop)
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
   
