@@ -203,6 +203,18 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   // Show extract button if: budget_pdf_url exists AND (no categories OR categories without activities)
   const hasCategoriesWithoutActivities = categories.length > 0 && categories.every(cat => !cat.activities_text || cat.activities_text.trim().length === 0);
   const showExtractButton = property.budget_pdf_url && (categories.length === 0 || hasCategoriesWithoutActivities);
+  
+  // Debug logs
+  useEffect(() => {
+    console.log('[DynamicCategoriesProgress] Debug:', {
+      hasBudgetPdfUrl: !!property.budget_pdf_url,
+      categoriesCount: categories.length,
+      hasCategoriesWithoutActivities,
+      showExtractButton,
+      loading,
+      categories: categories.map(c => ({ id: c.id, name: c.category_name, hasActivities: !!c.activities_text && c.activities_text.trim().length > 0 }))
+    });
+  }, [property.budget_pdf_url, categories.length, hasCategoriesWithoutActivities, showExtractButton, loading, categories]);
 
   // Initialize local and saved percentages from categories
   useEffect(() => {
@@ -929,7 +941,20 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
 
         {/* Lista de Categorías */}
         <div className="space-y-4">
-          <Label className="text-base font-semibold">Categorías</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-base font-semibold">Categorías</Label>
+            {showExtractButton && categories.length > 0 && (
+              <Button
+                onClick={handleExtractPdfInfo}
+                disabled={isExtracting}
+                variant="outline"
+                size="sm"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {isExtracting ? "Extrayendo..." : "Re-extraer Información PDF"}
+              </Button>
+            )}
+          </div>
           {categories.length === 0 ? (
             <div className="space-y-3">
               {showExtractButton ? (
@@ -967,7 +992,27 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
               )}
             </div>
           ) : (
-            groupedCategories.map((group) => {
+            <>
+              {showExtractButton && hasCategoriesWithoutActivities && (
+                <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 space-y-3 mb-4">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+                    ⚠️ Las categorías no tienen actividades definidas
+                  </p>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                    Las categorías fueron creadas pero no se extrajeron las actividades del PDF. Haz clic en "Re-extraer Información PDF" para procesar los PDFs nuevamente y obtener las actividades.
+                  </p>
+                  <Button
+                    onClick={handleExtractPdfInfo}
+                    disabled={isExtracting}
+                    variant="outline"
+                    className="w-full border-yellow-300 dark:border-yellow-700"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {isExtracting ? "Extrayendo..." : "Re-extraer Información PDF"}
+                  </Button>
+                </div>
+              )}
+              {groupedCategories.map((group) => {
               // Si hay múltiples presupuestos con la misma categoría, mostrar todas
               // Si solo hay una, mostrar como antes
               const hasMultipleBudgets = group.categories.length > 1;
@@ -1276,7 +1321,8 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                   </div>
                 </Collapsible>
               );
-            })
+            })}
+            </>
           )}
         </div>
 
