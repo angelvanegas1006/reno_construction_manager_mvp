@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/lib/supabase/types';
 import { toast } from 'sonner';
@@ -33,9 +33,10 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
   const [categories, setCategories] = useState<DynamicCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const budgetIndexUpdateRef = useRef(false);
   const supabase = createClient();
 
-  const fetchCategories = useCallback(async () => {
+  const fetchCategories = useCallback(async (skipBudgetIndexCheck = false) => {
     if (!propertyId) {
       setCategories([]);
       setLoading(false);
@@ -55,45 +56,52 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
       if (fetchError) throw fetchError;
 
       // Verificar si hay categorías sin budget_index y actualizarlas automáticamente
-      const categoriesWithoutBudgetIndex = (data || []).filter(cat => !cat.budget_index || cat.budget_index === 1);
-      
-      if (categoriesWithoutBudgetIndex.length > 0 && data && data.length > 0) {
-        // Obtener la propiedad para verificar si tiene múltiples presupuestos
-        const { data: property } = await supabase
-          .from('properties')
-          .select('budget_pdf_url')
-          .eq('id', propertyId)
-          .single();
+      // Solo hacerlo una vez para evitar loops infinitos
+      if (!skipBudgetIndexCheck && !budgetIndexUpdateRef.current && data && data.length > 0) {
+        const categoriesWithoutBudgetIndex = (data || []).filter(cat => !cat.budget_index || cat.budget_index === 1);
+        
+        if (categoriesWithoutBudgetIndex.length > 0) {
+          // Obtener la propiedad para verificar si tiene múltiples presupuestos
+          const { data: property } = await supabase
+            .from('properties')
+            .select('budget_pdf_url')
+            .eq('id', propertyId)
+            .single();
 
-        if (property?.budget_pdf_url) {
-          const urls = property.budget_pdf_url
-            .split(',')
-            .map(url => url.trim())
-            .filter(url => url.length > 0 && url.startsWith('http'));
+          if (property?.budget_pdf_url) {
+            const urls = property.budget_pdf_url
+              .split(',')
+              .map(url => url.trim())
+              .filter(url => url.length > 0 && url.startsWith('http'));
 
-          // Si hay múltiples URLs, actualizar budget_index usando el endpoint API
-          if (urls.length > 1) {
-            // Llamar al endpoint API en lugar de usar la función directamente
-            fetch('/api/update-budget-index', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ propertyId }),
-            })
-              .then(response => response.json())
-              .then(result => {
-                if (result.success && result.updated > 0) {
-                  console.log(`[useDynamicCategories] Updated ${result.updated} categories with budget_index`);
-                  // Refetch para obtener los datos actualizados después de un pequeño delay
-                  setTimeout(() => {
-                    fetchCategories();
-                  }, 1000);
-                }
+            // Si hay múltiples URLs, actualizar budget_index usando el endpoint API
+            if (urls.length > 1) {
+              budgetIndexUpdateRef.current = true; // Marcar que ya estamos actualizando
+              // Llamar al endpoint API en lugar de usar la función directamente
+              fetch('/api/update-budget-index', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ propertyId }),
               })
-              .catch(err => {
-                console.error('[useDynamicCategories] Error updating budget_index:', err);
-              });
+                .then(response => response.json())
+                .then(result => {
+                  if (result.success && result.updated > 0) {
+                    console.log(`[useDynamicCategories] Updated ${result.updated} categories with budget_index`);
+                    // Refetch para obtener los datos actualizados después de un pequeño delay
+                    setTimeout(() => {
+                      fetchCategories(true); // Skip budget index check para evitar loop
+                    }, 1000);
+                  } else {
+                    budgetIndexUpdateRef.current = false;
+                  }
+                })
+                .catch(err => {
+                  console.error('[useDynamicCategories] Error updating budget_index:', err);
+                  budgetIndexUpdateRef.current = false;
+                });
+            }
           }
         }
       }
@@ -103,6 +111,7 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
       setError(err instanceof Error ? err.message : 'Error fetching categories');
       console.error('Error fetching dynamic categories:', err);
       setCategories([]);
+      budgetIndexUpdateRef.current = false; // Reset en caso de error
     } finally {
       setLoading(false);
     }
@@ -284,8 +293,10 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
   }, [supabase, updatePropertyLastUpdate, fetchCategories, categories]);
 
   useEffect(() => {
+    budgetIndexUpdateRef.current = false; // Reset flag cuando cambia propertyId
     fetchCategories();
-  }, [fetchCategories]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propertyId]); // Solo dependemos de propertyId para evitar loops
 
   return {
     categories,
