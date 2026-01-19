@@ -526,7 +526,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                                 {unitRequiresDetails && (
                                   <div className="space-y-2">
                                     <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                      {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                                      {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                                     </Label>
                                     <Textarea
                                       value={unit.notes || ""}
@@ -595,7 +595,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                           })() && (
                             <div className="space-y-2">
                               <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                                {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                               </Label>
                               <Textarea
                                 value={(item as ChecklistCarpentryItem).notes || ""}
@@ -754,7 +754,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                                 {unitRequiresDetails && (
                                   <div className="space-y-2">
                                     <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                      {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                                      {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                                     </Label>
                                     <Textarea
                                       value={unit.notes || ""}
@@ -823,7 +823,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                           })() && (
                             <div className="space-y-2">
                               <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                                {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                               </Label>
                               <Textarea
                                 value={(item as ChecklistClimatizationItem).notes || ""}
@@ -893,7 +893,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                 {(mobiliario.question?.status === "buen_estado" || mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
                   <div className="space-y-2">
                     <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                      {t.checklist.sections.entradaPasillos.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                      {t.checklist.sections.entradaPasillos.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                     </Label>
                     <Textarea
                       value={mobiliario.question?.notes || ""}

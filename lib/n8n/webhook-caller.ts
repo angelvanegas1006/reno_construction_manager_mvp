@@ -15,6 +15,7 @@ interface WebhookPayload {
   client_email: string | null;
   renovation_type: string | null;
   area_cluster: string | null;
+  budget_index?: number; // Índice del presupuesto (1, 2, 3, etc.)
 }
 
 interface DriveFolderWebhookPayload {
@@ -106,25 +107,45 @@ export async function callN8nCategoriesWebhook(payload: WebhookPayload): Promise
 
 /**
  * Prepara el payload del webhook desde los datos de una propiedad de Supabase
+ * @param property Datos de la propiedad
+ * @param budgetIndex Índice del presupuesto a procesar (1-based). Si no se proporciona, toma el primero.
  */
-export function prepareWebhookPayload(property: {
-  id: string;
-  budget_pdf_url: string | null;
-  "Unique ID From Engagements": string | null;
-  name: string | null;
-  address: string | null;
-  "Client Name": string | null;
-  "Client email": string | null;
-  renovation_type: string | null;
-  area_cluster: string | null;
-}): WebhookPayload | null {
+export function prepareWebhookPayload(
+  property: {
+    id: string;
+    budget_pdf_url: string | null;
+    "Unique ID From Engagements": string | null;
+    name: string | null;
+    address: string | null;
+    "Client Name": string | null;
+    "Client email": string | null;
+    renovation_type: string | null;
+    area_cluster: string | null;
+  },
+  budgetIndex: number = 1
+): WebhookPayload | null {
   // Validar que existe budget_pdf_url
   if (!property.budget_pdf_url) {
     return null;
   }
 
-  // Si budget_pdf_url tiene múltiples URLs separadas por comas, tomar solo la primera
-  const budgetPdfUrl = property.budget_pdf_url.split(',')[0].trim();
+  // Separar múltiples URLs por comas
+  const urls = property.budget_pdf_url
+    .split(',')
+    .map(url => url.trim())
+    .filter(url => url.length > 0 && url.startsWith('http'));
+
+  if (urls.length === 0) {
+    return null;
+  }
+
+  // Seleccionar la URL según el índice (1-based)
+  const budgetIndexZeroBased = budgetIndex - 1;
+  if (budgetIndexZeroBased < 0 || budgetIndexZeroBased >= urls.length) {
+    return null;
+  }
+
+  const budgetPdfUrl = urls[budgetIndexZeroBased];
 
   return {
     budget_pdf_url: budgetPdfUrl,
@@ -136,6 +157,7 @@ export function prepareWebhookPayload(property: {
     client_email: property["Client email"] || null,
     renovation_type: property.renovation_type || null,
     area_cluster: property.area_cluster || null,
+    budget_index: budgetIndex, // Incluir budget_index en el payload
   };
 }
 

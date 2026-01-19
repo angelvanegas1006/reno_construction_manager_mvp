@@ -157,6 +157,11 @@ export interface Translations {
     noPropertiesInState: string;
     noPropertiesFound: string;
     applyFilters: string;
+    // Supply Kanban phases
+    inReview: string;
+    inNegotiation: string;
+    arras: string;
+    pendingToSettlement: string;
       // Reno Construction Manager phases
       upcomingSettlements: string;
       initialCheck: string;
@@ -193,6 +198,18 @@ export interface Translations {
   sectionInfo: {
     requiredFields: string;
     requiredFieldsDescription: string;
+  };
+  
+  // Form labels and placeholders
+  formLabels: {
+    onlyRequiredForPublishing: string;
+    indicateIfPropertyHas: string;
+    confirmExactAmount: string;
+    confirmExactAmountIBI: string;
+    confirmExactAmountCommunity: string;
+    example: string;
+    required: string;
+    optional: string;
   };
   
   // UI Labels
@@ -735,14 +752,14 @@ export const translations: Record<Language, Translations> = {
       },
     },
     kanban: {
-      draft: "Borradores",
+      draft: "Borrador",
       review: "En Revisión",
       needsCorrection: "Necesita Corrección",
-      negotiation: "Negociación",
+      negotiation: "En Negociación",
       pendingArras: "Pendiente Arras",
-      settlement: "Liquidación",
+      settlement: "Settlement",
       sold: "Vendido",
-      rejected: "Rechazado",
+      rejected: "Rejected",
       searchPlaceholder: "Buscar por ID, Calle o Precio",
       addProperty: "Añadir propiedad",
       filterProperties: "Filtrar propiedades",
@@ -758,6 +775,11 @@ export const translations: Record<Language, Translations> = {
       noPropertiesInState: "No hay propiedades en este estado",
       noPropertiesFound: "No se encontraron propiedades",
       applyFilters: "Aplicar filtros",
+      // Supply Kanban phases
+      inReview: "En Revisión",
+      inNegotiation: "En Negociación",
+      arras: "Arras",
+      pendingToSettlement: "Pending to Settlement",
       // Reno Construction Manager phases
       upcomingSettlements: "Próximas Renovaciones",
       initialCheck: "Revisión Inicial",
@@ -790,6 +812,18 @@ export const translations: Record<Language, Translations> = {
     sectionInfo: {
       requiredFields: "Campos requeridos para la revisión inicial",
       requiredFieldsDescription: "Todos los campos de esta sección son obligatorios para poder enviar la propiedad a revisión.",
+    },
+    
+    // Form labels and placeholders
+    formLabels: {
+      onlyRequiredForPublishing: "Solo requerido para publicar la propiedad",
+      indicateIfPropertyHas: "Indica si la propiedad tiene las siguientes características",
+      confirmExactAmount: "Confirmo que este es el importe exacto.",
+      confirmExactAmountIBI: "Confirmo que este es el importe exacto del IBI anual.",
+      confirmExactAmountCommunity: "Confirmo que este es el importe exacto de los gastos de comunidad.",
+      example: "Ej:",
+      required: "Obligatorio",
+      optional: "Opcional",
     },
     labels: {
       completed: "Completado",
@@ -1738,10 +1772,10 @@ export const translations: Record<Language, Translations> = {
       },
     },
     kanban: {
-      draft: "Drafts",
+      draft: "Draft",
       review: "In Review",
       needsCorrection: "Needs Correction",
-      negotiation: "Negotiation",
+      negotiation: "In Negotiation",
       pendingArras: "Pending Arras",
       settlement: "Settlement",
       sold: "Sold",
@@ -1761,6 +1795,11 @@ export const translations: Record<Language, Translations> = {
       noPropertiesInState: "No properties in this state",
       noPropertiesFound: "No properties found",
       applyFilters: "Apply Filters",
+      // Supply Kanban phases
+      inReview: "In Review",
+      inNegotiation: "In Negotiation",
+      arras: "Arras",
+      pendingToSettlement: "Pending to Settlement",
       // Reno Construction Manager phases
       upcomingSettlements: "Upcoming Reno",
       initialCheck: "Initial Check",
@@ -1793,6 +1832,18 @@ export const translations: Record<Language, Translations> = {
     sectionInfo: {
       requiredFields: "Required fields for initial review",
       requiredFieldsDescription: "All fields in this section are mandatory to submit the property for review.",
+    },
+    
+    // Form labels and placeholders
+    formLabels: {
+      onlyRequiredForPublishing: "Only required to publish the property",
+      indicateIfPropertyHas: "Indicate if the property has the following characteristics",
+      confirmExactAmount: "I confirm that this is the exact amount.",
+      confirmExactAmountIBI: "I confirm that this is the exact amount of the annual IBI.",
+      confirmExactAmountCommunity: "I confirm that this is the exact amount of the community fees.",
+      example: "E.g.:",
+      required: "Required",
+      optional: "Optional",
     },
     labels: {
       completed: "Completed",

@@ -7,6 +7,7 @@ import { KanbanColumn } from "./kanban-column";
 import { getAllProperties, Property } from "@/lib/property-storage";
 import { calculateOverallProgress } from "@/lib/property-validation";
 import { useI18n } from "@/lib/i18n";
+import { visibleSupplyKanbanColumns, SupplyKanbanPhase } from "@/lib/supply-kanban-config";
 
 interface KanbanBoardProps {
   searchQuery: string;
@@ -15,63 +16,43 @@ interface KanbanBoardProps {
 // Dummy data for demonstration
 const dummyProperties = {
   draft: [
-    { id: "4463739", address: "Calle Martinez de la Rosa 43, 08014 - Barcelona", completion: 25, timeCreated: "2 días", timeInStage: "2 días" },
-    { id: "4463740", address: "Avenida Diagonal 345, 08013 - Barcelona", completion: 45, timeCreated: "3 días", timeInStage: "3 días" },
-    { id: "4463741", address: "Calle Gran Vía 12, 28013 - Madrid", completion: 30, timeCreated: "1 día", timeInStage: "1 día" },
-    { id: "4463742", address: "Paseo de Gracia 89, 08008 - Barcelona", completion: 60, timeCreated: "4 días", timeInStage: "4 días" },
-    { id: "4463743", address: "Calle Serrano 15, 28001 - Madrid", completion: 15, timeCreated: "5 días", timeInStage: "5 días" },
-    { id: "4463744", address: "Rambla Catalunya 234, 08008 - Barcelona", completion: 75, timeCreated: "2 días", timeInStage: "2 días" },
+    { id: "4463739", address: "Calle Martinez de la Vega 26, 28014, Madrid", completion: 25, timeCreated: "2 días", timeInStage: "2 días" },
+    { id: "4463740", address: "Avenida Diagonal 345, 08013, Barcelona", completion: 45, timeCreated: "3 días", timeInStage: "3 días" },
   ],
-  review: [
-    { id: "4463745", address: "Calle Provença 156, 08036 - Barcelona", analyst: "SA", timeInStage: "3 días", timeCreated: "7 días" },
-    { id: "4463746", address: "Calle Valencia 78, 28012 - Madrid", analyst: "SA", timeInStage: "2 días", timeCreated: "8 días" },
-    { id: "4463747", address: "Passeig de Sant Joan 124, 08037 - Barcelona", analyst: "SA", timeInStage: "4 días", timeCreated: "9 días" },
-    { id: "4463748", address: "Calle Princesa 45, 28008 - Madrid", analyst: "SA", timeInStage: "1 día", timeCreated: "6 días" },
-    { id: "4463749", address: "Avinguda Tibidabo 12, 08022 - Barcelona", analyst: "SA", timeInStage: "5 días", timeCreated: "10 días" },
-    { id: "4463750", address: "Calle Alcalá 234, 28028 - Madrid", analyst: "SA", timeInStage: "3 días", timeCreated: "7 días" },
+  "in-review": [
+    { id: "4463745", address: "Calle de Vallehermoso 25, 28015, Madrid", analyst: "SA Supply Analyst", timeInStage: "3 días", timeCreated: "7 días" },
   ],
-  "needs-correction": [
-    { id: "4463751", address: "Calle Muntaner 67, 08021 - Barcelona", analyst: "SA", correctionsCount: 3, timeInStage: "3 días", timeCreated: "10 días" },
-    { id: "4463752", address: "Calle Fuencarral 123, 28004 - Madrid", analyst: "SA", correctionsCount: 2, timeInStage: "2 días", timeCreated: "11 días" },
-    { id: "4463753", address: "Calle Balmes 189, 08006 - Barcelona", analyst: "SA", correctionsCount: 4, timeInStage: "4 días", timeCreated: "9 días" },
-    { id: "4463754", address: "Calle Hortaleza 56, 28004 - Madrid", analyst: "SA", correctionsCount: 1, timeInStage: "1 día", timeCreated: "8 días" },
-    { id: "4463755", address: "Calle Girona 234, 08025 - Barcelona", analyst: "SA", correctionsCount: 5, timeInStage: "5 días", timeCreated: "12 días" },
-    { id: "4463756", address: "Calle Barquillo 12, 28004 - Madrid", analyst: "SA", correctionsCount: 2, timeInStage: "3 días", timeCreated: "10 días" },
-  ],
-  negotiation: [
-    { id: "4463757", address: "Calle Diputació 345, 08013 - Barcelona", price: 86334.0, analyst: "SA", timeInStage: "2 días", timeCreated: "15 días" },
-    { id: "4463758", address: "Calle Velázquez 89, 28006 - Madrid", price: 125000.0, analyst: "SA", timeInStage: "3 días", timeCreated: "17 días" },
-    { id: "4463759", address: "Calle Mallorca 234, 08008 - Barcelona", price: 98000.0, analyst: "SA", timeInStage: "1 día", timeCreated: "14 días" },
-    { id: "4463760", address: "Calle Génova 12, 28004 - Madrid", price: 115000.0, analyst: "SA", timeInStage: "4 días", timeCreated: "16 días" },
-    { id: "4463761", address: "Calle Pau Claris 189, 08009 - Barcelona", price: 145000.0, analyst: "SA", timeInStage: "2 días", timeCreated: "13 días" },
-    { id: "4463762", address: "Calle Lagasca 67, 28001 - Madrid", price: 195000.0, analyst: "SA", timeInStage: "5 días", timeCreated: "18 días" },
-  ],
-  "pending-arras": [
-    { id: "4463763", address: "Calle Aragó 234, 08007 - Barcelona", price: 320000, timeInStage: "1 día", timeCreated: "20 días" },
-    { id: "4463764", address: "Calle Claudio Coello 89, 28006 - Madrid", price: 450000, timeInStage: "2 días", timeCreated: "23 días" },
-  ],
-  settlement: [
-    { id: "4463765", address: "Calle Passeig de Gràcia 92, 08008 - Barcelona", price: 580000, timeInStage: "5 días", timeCreated: "30 días" },
-  ],
-  sold: [
-    { id: "4463766", address: "Calle Gracia 123, 08012 - Barcelona", price: 620000, timeInStage: "10 días", timeCreated: "40 días" },
-  ],
+  "needs-correction": [],
+  "in-negotiation": [],
+  arras: [],
+  "pending-to-settlement": [],
+  settlement: [],
   rejected: [],
 };
 
 export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
   const { t } = useI18n();
   
-  const columns = [
-    { key: "draft", title: t.kanban.draft, stage: "draft" as const },
-    { key: "review", title: t.kanban.review, stage: "review" as const },
-    { key: "needs-correction", title: t.kanban.needsCorrection, stage: "needs-correction" as const },
-    { key: "negotiation", title: t.kanban.negotiation, stage: "negotiation" as const },
-    { key: "pending-arras", title: t.kanban.pendingArras, stage: "pending-arras" as const },
-    { key: "settlement", title: t.kanban.settlement, stage: "settlement" as const },
-    { key: "sold", title: t.kanban.sold, stage: "sold" as const },
-    { key: "rejected", title: t.kanban.rejected, stage: "rejected" as const },
-  ];
+  // Use Supply Kanban configuration
+  const columns = visibleSupplyKanbanColumns.map((col) => {
+    // Map translation keys to actual translations
+    const translationMap: Record<string, string> = {
+      draft: t.kanban.draft,
+      inReview: t.kanban.inReview,
+      needsCorrection: t.kanban.needsCorrection,
+      inNegotiation: t.kanban.inNegotiation,
+      arras: t.kanban.arras,
+      pendingToSettlement: t.kanban.pendingToSettlement,
+      settlement: t.kanban.settlement,
+      rejected: t.kanban.rejected,
+    };
+    
+    return {
+      key: col.key,
+      title: translationMap[col.translationKey] || col.key,
+      stage: col.stage,
+    };
+  });
   const [isHovered, setIsHovered] = useState(false);
   const [realProperties, setRealProperties] = useState<Property[]>([]);
   const router = useRouter();
@@ -128,12 +109,12 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
 
     const transformed: Record<string, CardData[]> = {
       draft: [],
-      review: [],
+      "in-review": [],
       "needs-correction": [],
-      negotiation: [],
-      "pending-arras": [],
+      "in-negotiation": [],
+      arras: [],
+      "pending-to-settlement": [],
       settlement: [],
-      sold: [],
       rejected: [],
     };
 
@@ -192,23 +173,23 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
     // Mark dummy properties as not real
     const markedDummyProperties: Record<string, CardData[]> = {
       draft: dummyProperties.draft.map((p: any) => ({ ...p, isReal: false })),
-      review: dummyProperties.review.map((p: any) => ({ ...p, isReal: false })),
+      "in-review": dummyProperties["in-review"].map((p: any) => ({ ...p, isReal: false })),
       "needs-correction": dummyProperties["needs-correction"].map((p: any) => ({ ...p, isReal: false })),
-      negotiation: dummyProperties.negotiation.map((p: any) => ({ ...p, isReal: false })),
-      "pending-arras": dummyProperties["pending-arras"].map((p: any) => ({ ...p, isReal: false })),
+      "in-negotiation": dummyProperties["in-negotiation"].map((p: any) => ({ ...p, isReal: false })),
+      arras: dummyProperties.arras.map((p: any) => ({ ...p, isReal: false })),
+      "pending-to-settlement": dummyProperties["pending-to-settlement"].map((p: any) => ({ ...p, isReal: false })),
       settlement: dummyProperties.settlement.map((p: any) => ({ ...p, isReal: false })),
-      sold: dummyProperties.sold.map((p: any) => ({ ...p, isReal: false })),
       rejected: (dummyProperties.rejected || []).map((p: any) => ({ ...p, isReal: false })),
     };
 
     const combined: Record<string, CardData[]> = {
       draft: [...(transformProperties.draft || []), ...markedDummyProperties.draft],
-      review: [...(transformProperties.review || []), ...markedDummyProperties.review],
+      "in-review": [...(transformProperties["in-review"] || []), ...markedDummyProperties["in-review"]],
       "needs-correction": [...(transformProperties["needs-correction"] || []), ...markedDummyProperties["needs-correction"]],
-      negotiation: [...(transformProperties.negotiation || []), ...markedDummyProperties.negotiation],
-      "pending-arras": [...(transformProperties["pending-arras"] || []), ...markedDummyProperties["pending-arras"]],
+      "in-negotiation": [...(transformProperties["in-negotiation"] || []), ...markedDummyProperties["in-negotiation"]],
+      arras: [...(transformProperties.arras || []), ...markedDummyProperties.arras],
+      "pending-to-settlement": [...(transformProperties["pending-to-settlement"] || []), ...markedDummyProperties["pending-to-settlement"]],
       settlement: [...(transformProperties.settlement || []), ...markedDummyProperties.settlement],
-      sold: [...(transformProperties.sold || []), ...markedDummyProperties.sold],
       rejected: [...(transformProperties.rejected || []), ...markedDummyProperties.rejected],
     };
     return combined;
@@ -266,12 +247,12 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
     // Filter each column explicitly to ensure all are processed
     const filtered: typeof allProperties = {
       draft: allProperties.draft.filter(matchesQuery),
-      review: allProperties.review.filter(matchesQuery),
+      "in-review": allProperties["in-review"].filter(matchesQuery),
       "needs-correction": allProperties["needs-correction"].filter(matchesQuery),
-      negotiation: allProperties.negotiation.filter(matchesQuery),
-      "pending-arras": allProperties["pending-arras"].filter(matchesQuery),
+      "in-negotiation": allProperties["in-negotiation"].filter(matchesQuery),
+      arras: allProperties.arras.filter(matchesQuery),
+      "pending-to-settlement": allProperties["pending-to-settlement"].filter(matchesQuery),
       settlement: allProperties.settlement.filter(matchesQuery),
-      sold: allProperties.sold.filter(matchesQuery),
       rejected: allProperties.rejected.filter(matchesQuery),
     };
 

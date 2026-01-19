@@ -1722,7 +1722,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       {/* Notes */}
                                       <div className="space-y-2">
                                         <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                          {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                                          {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                                         </Label>
                                         <Textarea
                                           value={unit.notes || ""}
@@ -1801,7 +1801,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                 {/* Notes */}
                                 <div className="space-y-2">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                    {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                                    {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                                   </Label>
                                   <Textarea
                                     value={(() => {
@@ -1915,7 +1915,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                     return needsDetails && (
                       <div className="space-y-2">
                         <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                          {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                          {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                         </Label>
                         <Textarea
                           value={mobiliarioQuestion?.notes || ""}
@@ -2438,7 +2438,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       {/* Notes */}
                                       <div className="space-y-2">
                                         <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                          {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                                          {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                                         </Label>
                                         <Textarea
                                           value={unit.notes || ""}
@@ -2531,7 +2531,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                 {/* Notes */}
                                 <div className="space-y-2">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                    {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                                    {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                                   </Label>
                                   <Textarea
                                     value={(() => {
@@ -2609,7 +2609,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                   {(mobiliario.question?.status === "buen_estado" || mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
                     <div className="space-y-2">
                       <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                        {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                        {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                       </Label>
                       <Textarea
                         value={mobiliario.question?.notes || ""}

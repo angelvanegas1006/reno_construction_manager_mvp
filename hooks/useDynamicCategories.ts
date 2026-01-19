@@ -54,6 +54,50 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
 
       if (fetchError) throw fetchError;
 
+      // Verificar si hay categorías sin budget_index y actualizarlas automáticamente
+      const categoriesWithoutBudgetIndex = (data || []).filter(cat => !cat.budget_index || cat.budget_index === 1);
+      
+      if (categoriesWithoutBudgetIndex.length > 0 && data && data.length > 0) {
+        // Obtener la propiedad para verificar si tiene múltiples presupuestos
+        const { data: property } = await supabase
+          .from('properties')
+          .select('budget_pdf_url')
+          .eq('id', propertyId)
+          .single();
+
+        if (property?.budget_pdf_url) {
+          const urls = property.budget_pdf_url
+            .split(',')
+            .map(url => url.trim())
+            .filter(url => url.length > 0 && url.startsWith('http'));
+
+          // Si hay múltiples URLs, actualizar budget_index usando el endpoint API
+          if (urls.length > 1) {
+            // Llamar al endpoint API en lugar de usar la función directamente
+            fetch('/api/update-budget-index', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ propertyId }),
+            })
+              .then(response => response.json())
+              .then(result => {
+                if (result.success && result.updated > 0) {
+                  console.log(`[useDynamicCategories] Updated ${result.updated} categories with budget_index`);
+                  // Refetch para obtener los datos actualizados después de un pequeño delay
+                  setTimeout(() => {
+                    fetchCategories();
+                  }, 1000);
+                }
+              })
+              .catch(err => {
+                console.error('[useDynamicCategories] Error updating budget_index:', err);
+              });
+          }
+        }
+      }
+
       setCategories(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error fetching categories');

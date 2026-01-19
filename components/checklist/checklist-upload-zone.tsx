@@ -330,7 +330,7 @@ export function ChecklistUploadZone({
               {title} {isRequired && (
                 <span className="text-red-500">
                   <span className="text-red-500">*</span>
-                  <span className="ml-1 text-red-500">Obligatorio</span>
+                  <span className="ml-1 text-red-500">{t.formLabels.required}</span>
                 </span>
               )}
             </Label>

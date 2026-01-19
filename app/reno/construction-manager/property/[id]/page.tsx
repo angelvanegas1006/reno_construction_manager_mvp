@@ -39,6 +39,11 @@ const PdfViewer = dynamic(() => import("@/components/reno/pdf-viewer").then(mod 
     </div>
   ),
 });
+
+// Importar MultiBudgetViewer
+const MultiBudgetViewer = dynamic(() => import("@/components/reno/multi-budget-viewer").then(mod => ({ default: mod.MultiBudgetViewer })), {
+  ssr: false,
+});
 import { appendSetUpNotesToAirtable } from "@/lib/airtable/initial-check-sync";
 import { updateAirtableWithRetry, findTransactionsRecordIdByUniqueId } from "@/lib/airtable/client";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
@@ -101,7 +106,6 @@ export default function RenoPropertyDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isEditingDate, setIsEditingDate] = useState(false);
-  const [pdfError, setPdfError] = useState<string | null>(null);
 
   // Determine phase using "Set Up Status" from Supabase
   const getPropertyRenoPhase = useCallback((): RenoKanbanPhase | null => {
@@ -127,40 +131,94 @@ export default function RenoPropertyDetailPage() {
     hasCheckedInitialTab.current = false;
   }, [propertyId]);
 
-  // Verificar el PDF cuando estamos en la tab de presupuesto y existe budget_pdf_url
+  // Estado para errores de múltiples PDFs
+  const [pdfErrors, setPdfErrors] = useState<Record<number, string | null>>({});
+
+  // Verificar los PDFs cuando estamos en la tab de presupuesto y existe budget_pdf_url
   useEffect(() => {
     // Validar que budget_pdf_url sea un string válido
     const budgetPdfUrl = supabaseProperty?.budget_pdf_url && typeof supabaseProperty.budget_pdf_url === 'string' && supabaseProperty.budget_pdf_url.trim().length > 0
       ? supabaseProperty.budget_pdf_url.trim()
       : null;
     
-    if (activeTab !== "presupuesto-reforma" || !budgetPdfUrl || !budgetPdfUrl.startsWith('http')) {
-      setPdfError(null);
+    if (activeTab !== "presupuesto-reforma" || !budgetPdfUrl) {
+      setPdfErrors({});
       return;
     }
 
-    const proxyPdfUrl = `/api/proxy-pdf?url=${encodeURIComponent(budgetPdfUrl)}`;
+    // Separar múltiples URLs por comas
+    const urls = budgetPdfUrl
+      .split(',')
+      .map(url => url.trim())
+      .filter(url => url.length > 0 && url.startsWith('http'));
+
+    if (urls.length === 0) {
+      setPdfErrors({});
+      return;
+    }
+
+    // Verificar cada PDF
+    const errors: Record<number, string | null> = {};
+    const checkPromises = urls.map((url, index) => {
+      const proxyPdfUrl = `/api/proxy-pdf?url=${encodeURIComponent(url)}`;
+      
+      return fetch(proxyPdfUrl)
+        .then((response) => {
+          if (!response.ok) {
+            return response.json().then((data) => {
+              throw new Error(data.error || `Error ${response.status}: ${response.statusText}`);
+            });
+          }
+          // Si la respuesta es OK, verificar que sea un PDF
+          const contentType = response.headers.get('content-type');
+          if (contentType && !contentType.includes('application/pdf')) {
+            throw new Error('La URL no apunta a un PDF válido');
+          }
+          errors[index] = null;
+        })
+        .catch((error) => {
+          console.error(`[PDF Viewer] Error verificando PDF ${index + 1}:`, error);
+          errors[index] = error.message || 'Error al cargar el PDF';
+        });
+    });
+
+    Promise.all(checkPromises).then(() => {
+      setPdfErrors(errors);
+    });
+  }, [activeTab, supabaseProperty?.budget_pdf_url]);
+
+  const handleRetryPdf = (index: number) => {
+    const budgetPdfUrl = supabaseProperty?.budget_pdf_url && typeof supabaseProperty.budget_pdf_url === 'string' && supabaseProperty.budget_pdf_url.trim().length > 0
+      ? supabaseProperty.budget_pdf_url.trim()
+      : null;
     
-    // Verificar que el PDF sea accesible antes de cargarlo
+    if (!budgetPdfUrl) return;
+
+    const urls = budgetPdfUrl
+      .split(',')
+      .map(url => url.trim())
+      .filter(url => url.length > 0 && url.startsWith('http'));
+
+    if (index >= urls.length) return;
+
+    const url = urls[index];
+    const proxyPdfUrl = `/api/proxy-pdf?url=${encodeURIComponent(url)}`;
+    
+    setPdfErrors(prev => ({ ...prev, [index]: null }));
+    
     fetch(proxyPdfUrl)
       .then((response) => {
         if (!response.ok) {
           return response.json().then((data) => {
-            throw new Error(data.error || `Error ${response.status}: ${response.statusText}`);
+            throw new Error(data.error || `Error ${response.status}`);
           });
         }
-        // Si la respuesta es OK, verificar que sea un PDF
-        const contentType = response.headers.get('content-type');
-        if (contentType && !contentType.includes('application/pdf')) {
-          throw new Error('La URL no apunta a un PDF válido');
-        }
-        setPdfError(null);
+        setPdfErrors(prev => ({ ...prev, [index]: null }));
       })
       .catch((error) => {
-        console.error('[PDF Viewer] Error verificando PDF:', error);
-        setPdfError(error.message || 'Error al cargar el PDF');
+        setPdfErrors(prev => ({ ...prev, [index]: error.message || 'Error al cargar el PDF' }));
       });
-  }, [activeTab, supabaseProperty?.budget_pdf_url]);
+  };
 
   // Auto-switch to summary tab for reno-budget and furnishing-cleaning phases without tasks
   // PERO solo si no viene un tab específico en la URL
@@ -891,68 +949,34 @@ export default function RenoPropertyDetailPage() {
           ? supabaseProperty.budget_pdf_url.trim()
           : null;
         
-        // Crear URL del proxy si existe el PDF
-        const proxyPdfUrl = budgetPdfUrl && budgetPdfUrl.startsWith('http')
-          ? `/api/proxy-pdf?url=${encodeURIComponent(budgetPdfUrl)}`
-          : null;
+        // Separar múltiples URLs por comas
+        const budgetUrls = budgetPdfUrl
+          ? budgetPdfUrl
+              .split(',')
+              .map(url => url.trim())
+              .filter(url => url.length > 0 && url.startsWith('http'))
+          : [];
         
         return (
           <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
-            {budgetPdfUrl && proxyPdfUrl ? (
+            {budgetUrls.length > 0 ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">{t.propertyPage.renovationBudget}</h2>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(proxyPdfUrl, '_blank')}
-                    className="flex items-center gap-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Abrir en nueva pestaña
-                  </Button>
+                  {budgetUrls.length > 1 && (
+                    <p className="text-sm text-muted-foreground">
+                      {budgetUrls.length} presupuestos
+                    </p>
+                  )}
                 </div>
-                {pdfError ? (
-                  <div className="w-full border rounded-lg p-6 bg-muted/50">
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                      <AlertTriangle className="h-12 w-12 text-destructive" />
-                      <div className="text-center">
-                        <p className="font-semibold text-lg">Error al cargar el PDF</p>
-                        <p className="text-sm text-muted-foreground mt-2">{pdfError}</p>
-                        <p className="text-xs text-muted-foreground mt-4 break-all">URL: {budgetPdfUrl}</p>
-                      </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setPdfError(null);
-                          // Forzar verificación nuevamente
-                          fetch(proxyPdfUrl)
-                            .then((response) => {
-                              if (!response.ok) {
-                                return response.json().then((data) => {
-                                  throw new Error(data.error || `Error ${response.status}`);
-                                });
-                              }
-                              setPdfError(null);
-                            })
-                            .catch((error) => {
-                              setPdfError(error.message || 'Error al cargar el PDF');
-                            });
-                        }}
-                      >
-                        Reintentar
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <PdfViewer 
-                    fileUrl={proxyPdfUrl} 
-                    fileName={budgetPdfUrl?.split('/').pop() || 'budget.pdf'} 
-                  />
-                )}
+                <MultiBudgetViewer 
+                  budgetUrls={budgetUrls}
+                  pdfErrors={pdfErrors}
+                  onRetry={handleRetryPdf}
+                />
               </div>
             ) : (
-            <p className="text-muted-foreground">{t.propertyPage.renovationBudget} - {t.propertyPage.comingSoon}</p>
+              <p className="text-muted-foreground">{t.propertyPage.renovationBudget} - {t.propertyPage.comingSoon}</p>
             )}
           </div>
         );

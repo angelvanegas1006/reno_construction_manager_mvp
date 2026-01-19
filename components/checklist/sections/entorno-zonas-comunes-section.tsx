@@ -128,8 +128,8 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
         <div className="space-y-6">
           {/* Portal */}
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-foreground">
-              {t.checklist.sections.entornoZonasComunes.portal} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+            <h2 className="text-xl font-bold text-foreground">
+              {t.checklist.sections.entornoZonasComunes.portal} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
             </h2>
             <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">
@@ -149,7 +149,7 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
           {/* Fachada */}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold text-foreground">
-              {t.checklist.sections.entornoZonasComunes.fachada} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+              {t.checklist.sections.entornoZonasComunes.fachada} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
             </h2>
             <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">
@@ -169,7 +169,7 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
           {/* Entorno */}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold text-foreground">
-              {t.checklist.sections.entornoZonasComunes.entorno} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+              {t.checklist.sections.entornoZonasComunes.entorno} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
             </h2>
             <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">

@@ -318,7 +318,7 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
                                   {/* Notes */}
                                   <div className="space-y-2">
                                     <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                      {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                                      {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                                     </Label>
                                     <Textarea
                                       value={unit.notes || ""}
@@ -382,7 +382,7 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
                             {/* Notes */}
                             <div className="space-y-2">
                               <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">Obligatorio</span></span>
+                                {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
                               </Label>
                               <Textarea
                                 value={item.notes || ""}

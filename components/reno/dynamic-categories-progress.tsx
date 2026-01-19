@@ -257,7 +257,35 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
     });
   }, [categories]);
 
-  // Sort categories by their order number (extracted from category_name)
+  // Agrupar categorías por nombre y ordenar
+  const groupedCategories = useMemo(() => {
+    // Agrupar por nombre de categoría
+    const grouped = new Map<string, typeof categories>();
+    
+    categories.forEach(cat => {
+      const key = cat.category_name;
+      if (!grouped.has(key)) {
+        grouped.set(key, []);
+      }
+      grouped.get(key)!.push(cat);
+    });
+
+    // Convertir a array y ordenar por número de orden
+    const groupedArray = Array.from(grouped.entries()).map(([categoryName, cats]) => ({
+      categoryName,
+      categories: cats.sort((a, b) => {
+        // Ordenar por budget_index primero, luego por created_at
+        const budgetDiff = (a.budget_index || 1) - (b.budget_index || 1);
+        if (budgetDiff !== 0) return budgetDiff;
+        return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      }),
+      orderNumber: extractCategoryOrderNumber(categoryName),
+    }));
+
+    return groupedArray.sort((a, b) => a.orderNumber - b.orderNumber);
+  }, [categories]);
+
+  // Sort categories by their order number (extracted from category_name) - mantener para compatibilidad
   const sortedCategories = useMemo(() => {
     return [...categories].sort((a, b) => {
       const orderA = extractCategoryOrderNumber(a.category_name);
@@ -576,7 +604,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
     }
   }, [deleteCategory]);
 
-  // Handle PDF extraction - Llama al webhook de n8n
+  // Handle PDF extraction - Llama al webhook de n8n para múltiples presupuestos
   const handleExtractPdfInfo = useCallback(async () => {
     // Validación: verificar que existe budget_pdf_url
     if (!property?.budget_pdf_url) {
@@ -594,22 +622,79 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
     setError(null);
 
     try {
-      // Preparar payload del webhook
-      const payload = prepareWebhookPayload(property);
-      if (!payload) {
-        throw new Error("No se pudo preparar el payload del webhook");
+      // Separar múltiples URLs por comas
+      const urls = property.budget_pdf_url
+        .split(',')
+        .map(url => url.trim())
+        .filter(url => url.length > 0 && url.startsWith('http'));
+
+      if (urls.length === 0) {
+        throw new Error("No se encontraron URLs válidas de presupuesto");
       }
 
-      // Llamar al webhook de n8n
-      const success = await callN8nCategoriesWebhook(payload);
+      // Procesar cada presupuesto automáticamente
+      const promises = urls.map(async (url, index) => {
+        const budgetIndex = index + 1; // 1-based index
+        
+        // Preparar payload del webhook para este presupuesto
+        const payload = prepareWebhookPayload(property, budgetIndex);
+        if (!payload) {
+          console.warn(`No se pudo preparar el payload para el presupuesto ${budgetIndex}`);
+          return false;
+        }
 
-      if (!success) {
-        throw new Error("Error al llamar al webhook de n8n");
-      }
+        // Llamar al webhook de n8n
+        const success = await callN8nCategoriesWebhook(payload);
+        
+        if (!success) {
+          console.error(`Error al llamar al webhook para el presupuesto ${budgetIndex}`);
+          return false;
+        }
 
-      toast.success("Extracción de información PDF iniciada correctamente", {
-        description: "El proceso de extracción se está ejecutando. Las categorías aparecerán cuando se complete el procesamiento.",
+        return true;
       });
+
+      // Esperar a que todos los webhooks se ejecuten
+      const results = await Promise.all(promises);
+      const successCount = results.filter(r => r).length;
+      const totalCount = urls.length;
+
+      if (successCount === 0) {
+        throw new Error("Error al llamar a los webhooks de n8n");
+      }
+
+      // Programar actualización de budget_index después de que n8n procese las categorías
+      // Esperamos 15 segundos para dar tiempo a que n8n procese e inserte las categorías
+      // Usar el endpoint API en lugar de la función directa
+      if (successCount > 0 && urls.length > 1) {
+        setTimeout(async () => {
+          try {
+            const response = await fetch('/api/update-budget-index', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ propertyId: property.id }),
+            });
+            const result = await response.json();
+            if (result.success && result.updated > 0) {
+              console.log(`[Budget Index Updater] Updated ${result.updated} categories with budget_index`);
+            }
+          } catch (err) {
+            console.error('[Budget Index Updater] Error:', err);
+          }
+        }, 15000);
+      }
+
+      if (successCount < totalCount) {
+        toast.warning("Extracción parcialmente iniciada", {
+          description: `Se inició la extracción para ${successCount} de ${totalCount} presupuesto(s). Las categorías aparecerán cuando se complete el procesamiento.`,
+        });
+      } else {
+        toast.success("Extracción de información PDF iniciada correctamente", {
+          description: `Se inició la extracción para ${totalCount} presupuesto(s). Las categorías aparecerán cuando se complete el procesamiento.`,
+        });
+      }
     } catch (err) {
       console.error('Error al extraer información del PDF:', err);
       const errorMessage = err instanceof Error ? err.message : "Ha ocurrido un error inesperado.";
@@ -863,24 +948,30 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
               )}
             </div>
           ) : (
-            sortedCategories.map((category) => {
-              const percentage = localPercentages[category.id] ?? category.percentage ?? 0;
-              const savedValue = savedPercentages[category.id] ?? category.percentage ?? 0;
-              const minAllowedValue = getMinAllowedValue(category.id);
-              const hasChanged = percentage !== savedValue;
-              const isEditingInput = editingInput[category.id] || false;
-              const isExpanded = expandedCategories[category.id] || false;
+            groupedCategories.map((group) => {
+              // Si hay múltiples presupuestos con la misma categoría, mostrar todas
+              // Si solo hay una, mostrar como antes
+              const hasMultipleBudgets = group.categories.length > 1;
               
-              // Parsear partidas del activities_text
-              const partidas = category.activities_text 
-                ? parseActivitiesText(category.activities_text)
-                : [];
+              // Calcular porcentaje promedio si hay múltiples presupuestos
+              const averagePercentage = hasMultipleBudgets
+                ? Math.round(
+                    group.categories.reduce((sum, cat) => {
+                      const pct = localPercentages[cat.id] ?? cat.percentage ?? 0;
+                      return sum + pct;
+                    }, 0) / group.categories.length
+                  )
+                : (localPercentages[group.categories[0].id] ?? group.categories[0].percentage ?? 0);
+
+              // Usar el primer ID para el estado de expansión si hay múltiples
+              const firstCategoryId = group.categories[0].id;
+              const isExpanded = expandedCategories[firstCategoryId] || false;
 
               return (
                 <Collapsible
-                  key={category.id}
+                  key={group.categoryName}
                   open={isExpanded}
-                  onOpenChange={(open) => setExpandedCategories(prev => ({ ...prev, [category.id]: open }))}
+                  onOpenChange={(open) => setExpandedCategories(prev => ({ ...prev, [firstCategoryId]: open }))}
                 >
                   <div className="border rounded-lg bg-background overflow-hidden">
                     {/* Header del acordeón - siempre visible */}
@@ -892,16 +983,25 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                           <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         )}
                         <div className="flex-1 text-left">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-foreground">{category.category_name}</h3>
-                            {hasChanged && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-foreground">{group.categoryName}</h3>
+                            {hasMultipleBudgets && (
+                              <Badge variant="secondary" className="text-xs">
+                                {group.categories.length} presupuestos
+                              </Badge>
+                            )}
+                            {group.categories.some(cat => {
+                              const pct = localPercentages[cat.id] ?? cat.percentage ?? 0;
+                              const saved = savedPercentages[cat.id] ?? cat.percentage ?? 0;
+                              return pct !== saved;
+                            }) && (
                               <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700">
                                 Sin guardar
                               </Badge>
                             )}
                           </div>
                         </div>
-                        <span className="text-sm font-semibold min-w-[3rem] text-right">{percentage}%</span>
+                        <span className="text-sm font-semibold min-w-[3rem] text-right">{averagePercentage}%</span>
                       </CollapsibleTrigger>
                     </div>
 
@@ -910,145 +1010,225 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                       <div className="flex items-center justify-between">
                         <Label className="text-sm">Progreso</Label>
                         <div className="flex items-center gap-2">
-                          {/* Botón para agregar fotos/videos si hay cambios */}
-                          {hasChanged && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const isOpening = !photoDialogOpen[category.id];
-                                setPhotoDialogOpen(prev => ({ ...prev, [category.id]: isOpening }));
-                                // Si se abre, expandir la categoría; si se cierra, colapsarla
-                                if (isOpening) {
-                                  setExpandedCategories(prev => ({ ...prev, [category.id]: true }));
-                                } else {
-                                  setExpandedCategories(prev => ({ ...prev, [category.id]: false }));
-                                }
-                              }}
-                              className="h-7 text-xs"
-                            >
-                              <Camera className="h-3 w-3 mr-1" />
-                              {photoDialogOpen[category.id] ? 'Ocultar' : 'Fotos'}
-                            </Button>
-                          )}
-                          {isEditingInput ? (
-                            <div className="flex items-center gap-1">
-                              <Input
-                                type="number"
-                                min={minAllowedValue}
-                                max={100}
-                                value={percentage}
-                                onChange={(e) => handleInputChange(category.id, e.target.value)}
-                                onBlur={() => setEditingInput(prev => ({ ...prev, [category.id]: false }))}
-                                className="w-16 h-7 text-sm text-center"
-                                autoFocus
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                              <span className="text-sm text-muted-foreground">%</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingInput(prev => ({ ...prev, [category.id]: false }));
-                                }}
-                              >
-                                ✓
-                              </Button>
+                          {/* Si hay múltiples presupuestos, mostrar controles para cada uno */}
+                          {hasMultipleBudgets ? (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              Promedio de {group.categories.length} presupuestos
                             </div>
-                          ) : null}
+                          ) : (
+                            <>
+                              {/* Botón para agregar fotos/videos si hay cambios */}
+                              {group.categories.some(cat => {
+                                const pct = localPercentages[cat.id] ?? cat.percentage ?? 0;
+                                const saved = savedPercentages[cat.id] ?? cat.percentage ?? 0;
+                                return pct !== saved;
+                              }) && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const isOpening = !photoDialogOpen[firstCategoryId];
+                                    setPhotoDialogOpen(prev => ({ ...prev, [firstCategoryId]: isOpening }));
+                                    if (isOpening) {
+                                      setExpandedCategories(prev => ({ ...prev, [firstCategoryId]: true }));
+                                    } else {
+                                      setExpandedCategories(prev => ({ ...prev, [firstCategoryId]: false }));
+                                    }
+                                  }}
+                                  className="h-7 text-xs"
+                                >
+                                  <Camera className="h-3 w-3 mr-1" />
+                                  {photoDialogOpen[firstCategoryId] ? 'Ocultar' : 'Fotos'}
+                                </Button>
+                              )}
+                            </>
+                          )}
                         </div>
                       </div>
-                      {/* Slider with blue background and visible thumb */}
+                      {/* Slider con promedio si hay múltiples presupuestos */}
                       <div className="relative h-3 overflow-visible rounded-lg" onClick={(e) => e.stopPropagation()}>
-                        {/* Background track (full width, blue) */}
                         <div className="absolute inset-0 h-3 rounded-lg bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]" />
-                        {/* Progress fill (blue primary) */}
                         <div 
-                          className={`absolute inset-y-0 left-0 bg-primary transition-all duration-150 ease-out ${percentage >= 100 ? 'rounded-lg' : 'rounded-l-lg'}`}
+                          className={`absolute inset-y-0 left-0 bg-primary transition-all duration-150 ease-out ${averagePercentage >= 100 ? 'rounded-lg' : 'rounded-l-lg'}`}
                           style={{
-                            width: `${Math.min(100, percentage)}%`,
+                            width: `${Math.min(100, averagePercentage)}%`,
                           }}
                         />
-                        {/* Slider input on top - transparent track, thumb invisible */}
-                        <input
-                          type="range"
-                          min={minAllowedValue}
-                          max={100}
-                          step={1}
-                          value={Math.max(minAllowedValue, Math.min(100, percentage))}
-                          onInput={(e) => {
-                            const newValue = parseInt((e.target as HTMLInputElement).value, 10);
-                            handleSliderChange(category.id, newValue);
-                          }}
-                          onChange={(e) => {
-                            const newValue = parseInt(e.target.value, 10);
-                            handleSliderChange(category.id, newValue);
-                          }}
-                          className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-30"
-                          style={{ touchAction: 'pan-y' }}
-                          title={`Mínimo permitido: ${minAllowedValue}%`}
-                        />
-                        {/* Circle indicator at the end of progress - always visible, positioned based on slider value */}
-                        <div 
-                          className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white dark:bg-white border-2 border-primary shadow-md z-20 pointer-events-none transition-all duration-150 ease-out"
-                          style={{
-                            left: percentage > 0 
-                              ? `calc(${Math.min(100, percentage)}% - 10px)` 
-                              : '-10px',
-                          }}
-                        />
+                        {/* Si solo hay un presupuesto, mostrar slider interactivo */}
+                        {!hasMultipleBudgets && (
+                          <>
+                            <input
+                              type="range"
+                              min={getMinAllowedValue(firstCategoryId)}
+                              max={100}
+                              step={1}
+                              value={Math.max(getMinAllowedValue(firstCategoryId), Math.min(100, averagePercentage))}
+                              onInput={(e) => {
+                                const newValue = parseInt((e.target as HTMLInputElement).value, 10);
+                                handleSliderChange(firstCategoryId, newValue);
+                              }}
+                              onChange={(e) => {
+                                const newValue = parseInt(e.target.value, 10);
+                                handleSliderChange(firstCategoryId, newValue);
+                              }}
+                              className="absolute inset-0 w-full h-3 rounded-lg appearance-none cursor-pointer slider-blue z-30"
+                              style={{ touchAction: 'pan-y' }}
+                              title={`Mínimo permitido: ${getMinAllowedValue(firstCategoryId)}%`}
+                            />
+                            <div 
+                              className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white dark:bg-white border-2 border-primary shadow-md z-20 pointer-events-none transition-all duration-150 ease-out"
+                              style={{
+                                left: averagePercentage > 0 
+                                  ? `calc(${Math.min(100, averagePercentage)}% - 10px)` 
+                                  : '-10px',
+                              }}
+                            />
+                          </>
+                        )}
                       </div>
-                      {minAllowedValue > 0 && (
+                      {!hasMultipleBudgets && getMinAllowedValue(firstCategoryId) > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          Mínimo permitido: {minAllowedValue}% (último valor guardado)
+                          Mínimo permitido: {getMinAllowedValue(firstCategoryId)}% (último valor guardado)
                         </p>
                       )}
                     </div>
 
-                    {/* Contenido colapsable - partidas */}
+                    {/* Contenido colapsable - partidas por presupuesto */}
                     <CollapsibleContent>
-                      <div className="px-4 pb-4 space-y-3 border-t pt-4">
-                        {partidas.length > 0 ? (
-                          partidas.map((partida, index) => (
-                            <PartidaItem key={`${category.id}-${partida.number}-${index}`} partida={partida} />
-                          ))
-                        ) : category.activities_text ? (
-                          <div className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
-                            {category.activities_text}
-                          </div>
+                      <div className="px-4 pb-4 space-y-4 border-t pt-4">
+                        {hasMultipleBudgets ? (
+                          // Mostrar partidas agrupadas por presupuesto
+                          group.categories.map((category) => {
+                            const budgetIndex = category.budget_index || 1;
+                            const partidas = category.activities_text 
+                              ? parseActivitiesText(category.activities_text)
+                              : [];
+                            const categoryPercentage = localPercentages[category.id] ?? category.percentage ?? 0;
+                            const categorySavedValue = savedPercentages[category.id] ?? category.percentage ?? 0;
+                            const categoryHasChanged = categoryPercentage !== categorySavedValue;
+                            const categoryMinAllowed = getMinAllowedValue(category.id);
+
+                            return (
+                              <div key={category.id} className="space-y-2 border rounded-lg p-3 bg-muted/20">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      Presupuesto {budgetIndex}
+                                    </Badge>
+                                    {categoryHasChanged && (
+                                      <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400">
+                                        Sin guardar
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-semibold">{categoryPercentage}%</span>
+                                </div>
+                                
+                                {/* Slider individual para cada presupuesto */}
+                                <div className="relative h-2 overflow-visible rounded-lg" onClick={(e) => e.stopPropagation()}>
+                                  <div className="absolute inset-0 h-2 rounded-lg bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]" />
+                                  <div 
+                                    className={`absolute inset-y-0 left-0 bg-primary transition-all duration-150 ease-out ${categoryPercentage >= 100 ? 'rounded-lg' : 'rounded-l-lg'}`}
+                                    style={{
+                                      width: `${Math.min(100, categoryPercentage)}%`,
+                                    }}
+                                  />
+                                  <input
+                                    type="range"
+                                    min={categoryMinAllowed}
+                                    max={100}
+                                    step={1}
+                                    value={Math.max(categoryMinAllowed, Math.min(100, categoryPercentage))}
+                                    onInput={(e) => {
+                                      const newValue = parseInt((e.target as HTMLInputElement).value, 10);
+                                      handleSliderChange(category.id, newValue);
+                                    }}
+                                    onChange={(e) => {
+                                      const newValue = parseInt(e.target.value, 10);
+                                      handleSliderChange(category.id, newValue);
+                                    }}
+                                    className="absolute inset-0 w-full h-2 rounded-lg appearance-none cursor-pointer slider-blue z-30"
+                                    style={{ touchAction: 'pan-y' }}
+                                  />
+                                </div>
+
+                                {/* Partidas de este presupuesto */}
+                                {partidas.length > 0 ? (
+                                  <div className="space-y-2 mt-3">
+                                    {partidas.map((partida, index) => (
+                                      <PartidaItem key={`${category.id}-${partida.number}-${index}`} partida={partida} />
+                                    ))}
+                                  </div>
+                                ) : category.activities_text ? (
+                                  <div className="text-sm text-muted-foreground p-2 bg-muted/30 rounded-lg mt-2">
+                                    {category.activities_text}
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-muted-foreground p-2 bg-muted/30 rounded-lg mt-2">
+                                    No hay actividades definidas para este presupuesto.
+                                  </div>
+                                )}
+
+                                {/* Updates de esta categoría específica */}
+                                <CategoryUpdatesList categoryId={category.id} />
+                              </div>
+                            );
+                          })
                         ) : (
-                          <div className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
-                            No hay actividades definidas para esta categoría.
-                          </div>
+                          // Un solo presupuesto - mostrar como antes
+                          (() => {
+                            const category = group.categories[0];
+                            const partidas = category.activities_text 
+                              ? parseActivitiesText(category.activities_text)
+                              : [];
+
+                            return (
+                              <>
+                                {partidas.length > 0 ? (
+                                  partidas.map((partida, index) => (
+                                    <PartidaItem key={`${category.id}-${partida.number}-${index}`} partida={partida} />
+                                  ))
+                                ) : category.activities_text ? (
+                                  <div className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
+                                    {category.activities_text}
+                                  </div>
+                                ) : (
+                                  <div className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
+                                    No hay actividades definidas para esta categoría.
+                                  </div>
+                                )}
+                                <CategoryUpdatesList categoryId={category.id} />
+                              </>
+                            );
+                          })()
                         )}
                       </div>
-                      
-                      {/* Mostrar updates recientes con fotos/videos */}
-                      <CategoryUpdatesList categoryId={category.id} />
                     </CollapsibleContent>
                     
-                    {/* Componente de fotos/videos - fuera del CollapsibleContent para que siempre sea visible cuando está abierto */}
-                    {hasChanged && photoDialogOpen[category.id] && (
+                    {/* Componente de fotos/videos - solo para un solo presupuesto */}
+                    {!hasMultipleBudgets && group.categories.some(cat => {
+                      const pct = localPercentages[cat.id] ?? cat.percentage ?? 0;
+                      const saved = savedPercentages[cat.id] ?? cat.percentage ?? 0;
+                      return pct !== saved;
+                    }) && photoDialogOpen[firstCategoryId] && (
                       <CategoryPhotoUpload
-                        categoryId={category.id}
+                        categoryId={firstCategoryId}
                         propertyId={property.id}
                         open={true}
                         onOpenChange={(open) => {
-                          setPhotoDialogOpen(prev => ({ ...prev, [category.id]: open }));
+                          setPhotoDialogOpen(prev => ({ ...prev, [firstCategoryId]: open }));
                           if (!open) {
-                            setExpandedCategories(prev => ({ ...prev, [category.id]: false }));
+                            setExpandedCategories(prev => ({ ...prev, [firstCategoryId]: false }));
                           }
                         }}
                         onSave={(data) => {
                           // Guardar notas cuando cambian
                           setCategoryUpdateData(prev => ({
                             ...prev,
-                            [category.id]: {
-                              uploadZone: prev[category.id]?.uploadZone,
+                            [firstCategoryId]: {
+                              uploadZone: prev[firstCategoryId]?.uploadZone,
                               notes: data.notes || "",
                             },
                           }));
@@ -1057,20 +1237,20 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                           // Guardar el uploadZone completo (incluye base64) para subirlo cuando se guarde el progreso
                           setCategoryUpdateData(prev => ({
                             ...prev,
-                            [category.id]: {
+                            [firstCategoryId]: {
                               uploadZone,
-                              notes: prev[category.id]?.notes || "",
+                              notes: prev[firstCategoryId]?.notes || "",
                             },
                           }));
                         }}
                         initialData={{
-                          photos: categoryUpdateData[category.id]?.uploadZone?.photos
+                          photos: categoryUpdateData[firstCategoryId]?.uploadZone?.photos
                             .filter(p => p.data && p.data.startsWith('http'))
                             .map(p => p.data) || [],
-                          videos: categoryUpdateData[category.id]?.uploadZone?.videos
+                          videos: categoryUpdateData[firstCategoryId]?.uploadZone?.videos
                             .filter(v => v.data && v.data.startsWith('http'))
                             .map(v => v.data) || [],
-                          notes: categoryUpdateData[category.id]?.notes || "",
+                          notes: categoryUpdateData[firstCategoryId]?.notes || "",
                         }}
                       />
                     )}
