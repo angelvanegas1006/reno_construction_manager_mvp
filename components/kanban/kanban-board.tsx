@@ -47,10 +47,22 @@ export function KanbanBoard({ searchQuery }: KanbanBoardProps) {
       rejected: t.kanban.rejected,
     };
     
+    // Map SupplyKanbanPhase to the stage type expected by KanbanColumn
+    const stageMap: Record<SupplyKanbanPhase, "draft" | "review" | "needs-correction" | "negotiation" | "pending-arras" | "settlement" | "sold" | "rejected" | "initial-check" | "upcoming" | "reno-in-progress" | "furnishing-cleaning" | "final-check" | "reno-fixes" | "done"> = {
+      "draft": "draft",
+      "in-review": "review",
+      "needs-correction": "needs-correction",
+      "in-negotiation": "negotiation",
+      "arras": "pending-arras",
+      "pending-to-settlement": "pending-arras",
+      "settlement": "settlement",
+      "rejected": "rejected",
+    };
+    
     return {
       key: col.key,
       title: translationMap[col.translationKey] || col.key,
-      stage: col.stage,
+      stage: stageMap[col.stage],
     };
   });
   const [isHovered, setIsHovered] = useState(false);
