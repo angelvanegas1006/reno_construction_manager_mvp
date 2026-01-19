@@ -689,54 +689,20 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
         successCount++;
         console.log(`[Extract PDF] ✅ Webhook del presupuesto ${budgetIndex} llamado correctamente`);
 
-        // Si hay más PDFs, esperar y verificar que las categorías se hayan guardado con actividades
+        // Si hay más PDFs, esperar un tiempo razonable para que n8n procese
+        // Pero no bloqueamos - las categorías se mostrarán aunque no tengan actividades todavía
         if (index < urls.length - 1) {
-          console.log(`[Extract PDF] Esperando a que n8n procese el presupuesto ${budgetIndex}...`);
-          toast.info(`Presupuesto ${budgetIndex} procesado. Esperando a que se extraigan las categorías...`, {
-            duration: 40000,
+          console.log(`[Extract PDF] Esperando 30 segundos antes de procesar el siguiente PDF...`);
+          toast.info(`Presupuesto ${budgetIndex} procesado. Esperando antes de procesar el siguiente...`, {
+            duration: 30000,
           });
           
-          // Esperar y verificar periódicamente que las categorías se hayan guardado con actividades
-          let categoriesFound = false;
-          let attempts = 0;
-          const maxAttempts = 10; // Máximo 10 intentos (50 segundos total)
+          // Esperar 30 segundos para dar tiempo a n8n de procesar
+          await new Promise(resolve => setTimeout(resolve, 30000));
           
-          while (!categoriesFound && attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Esperar 5 segundos entre intentos
-            attempts++;
-            
-            console.log(`[Extract PDF] Intento ${attempts}/${maxAttempts}: Verificando categorías del presupuesto ${budgetIndex}...`);
-            await refetch(); // Refrescar las categorías
-            
-            // Verificar si hay categorías con el budget_index correspondiente que tengan actividades
-            const { data: currentCategories } = await supabase
-              .from('property_dynamic_categories')
-              .select('id, category_name, activities_text, budget_index')
-              .eq('property_id', property.id)
-              .eq('budget_index', budgetIndex);
-            
-            if (currentCategories && currentCategories.length > 0) {
-              const hasActivities = currentCategories.some(cat => 
-                cat.activities_text && cat.activities_text.trim().length > 0
-              );
-              
-              if (hasActivities) {
-                categoriesFound = true;
-                console.log(`[Extract PDF] ✅ Categorías del presupuesto ${budgetIndex} encontradas con actividades`);
-              } else {
-                console.log(`[Extract PDF] ⏳ Categorías encontradas pero aún sin actividades, esperando...`);
-              }
-            } else {
-              console.log(`[Extract PDF] ⏳ Aún no hay categorías para el presupuesto ${budgetIndex}, esperando...`);
-            }
-          }
-          
-          if (!categoriesFound) {
-            console.warn(`[Extract PDF] ⚠️ No se encontraron categorías con actividades después de ${maxAttempts} intentos. Continuando con el siguiente PDF...`);
-            toast.warning(`Las categorías del presupuesto ${budgetIndex} pueden tardar más en procesarse. Continuando...`, {
-              duration: 5000,
-            });
-          }
+          // Refrescar las categorías para mostrar las que ya se hayan guardado
+          console.log(`[Extract PDF] Refrescando categorías antes de procesar el siguiente PDF...`);
+          await refetch();
         }
       }
 
@@ -1288,7 +1254,10 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                                   </div>
                                 ) : (
                                   <div className="text-sm text-muted-foreground p-2 bg-muted/30 rounded-lg mt-2">
-                                    No hay actividades definidas para este presupuesto.
+                                    <div className="flex items-center gap-2">
+                                      <div className="animate-spin h-4 w-4 border-2 border-muted-foreground border-t-transparent rounded-full"></div>
+                                      <span>Las actividades se están procesando desde el PDF...</span>
+                                    </div>
                                   </div>
                                 )}
 
@@ -1317,7 +1286,10 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                                   </div>
                                 ) : (
                                   <div className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
-                                    No hay actividades definidas para esta categoría.
+                                    <div className="flex items-center gap-2">
+                                      <div className="animate-spin h-4 w-4 border-2 border-muted-foreground border-t-transparent rounded-full"></div>
+                                      <span>Las actividades se están procesando desde el PDF...</span>
+                                    </div>
                                   </div>
                                 )}
                                 <CategoryUpdatesList categoryId={category.id} />
