@@ -661,41 +661,57 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
         throw new Error("No se encontraron URLs válidas de presupuesto");
       }
 
-      // Procesar cada presupuesto automáticamente
-      const promises = urls.map(async (url, index) => {
+      // Procesar cada presupuesto SECUENCIALMENTE (uno después del otro)
+      // Esto asegura que n8n procese correctamente cada PDF y guarde las categorías antes del siguiente
+      let successCount = 0;
+      const totalCount = urls.length;
+
+      for (let index = 0; index < urls.length; index++) {
         const budgetIndex = index + 1; // 1-based index
+        
+        console.log(`[Extract PDF] Procesando presupuesto ${budgetIndex} de ${totalCount}...`);
         
         // Preparar payload del webhook para este presupuesto
         const payload = prepareWebhookPayload(property, budgetIndex);
         if (!payload) {
-          console.warn(`No se pudo preparar el payload para el presupuesto ${budgetIndex}`);
-          return false;
+          console.warn(`[Extract PDF] No se pudo preparar el payload para el presupuesto ${budgetIndex}`);
+          continue;
         }
 
         // Llamar al webhook de n8n
         const success = await callN8nCategoriesWebhook(payload);
         
         if (!success) {
-          console.error(`Error al llamar al webhook para el presupuesto ${budgetIndex}`);
-          return false;
+          console.error(`[Extract PDF] Error al llamar al webhook para el presupuesto ${budgetIndex}`);
+          continue;
         }
 
-        return true;
-      });
+        successCount++;
+        console.log(`[Extract PDF] ✅ Presupuesto ${budgetIndex} procesado correctamente`);
 
-      // Esperar a que todos los webhooks se ejecuten
-      const results = await Promise.all(promises);
-      const successCount = results.filter(r => r).length;
-      const totalCount = urls.length;
+        // Si hay más PDFs, esperar antes de procesar el siguiente
+        // Esto da tiempo a n8n para procesar e insertar las categorías en la base de datos
+        if (index < urls.length - 1) {
+          console.log(`[Extract PDF] Esperando 20 segundos antes de procesar el siguiente PDF...`);
+          toast.info(`Presupuesto ${budgetIndex} procesado. Esperando antes de procesar el siguiente...`, {
+            duration: 20000,
+          });
+          await new Promise(resolve => setTimeout(resolve, 20000)); // Esperar 20 segundos
+          
+          // Verificar que las categorías se hayan guardado antes de continuar
+          console.log(`[Extract PDF] Verificando que las categorías del presupuesto ${budgetIndex} se hayan guardado...`);
+          await refetch(); // Refrescar las categorías
+        }
+      }
 
       if (successCount === 0) {
         throw new Error("Error al llamar a los webhooks de n8n");
       }
 
-      // Programar actualización de budget_index después de que n8n procese las categorías
-      // Esperamos 15 segundos para dar tiempo a que n8n procese e inserte las categorías
-      // Usar el endpoint API en lugar de la función directa
+      // Programar actualización de budget_index después de que n8n procese todas las categorías
+      // Esperamos 15 segundos adicionales después del último PDF para dar tiempo a que n8n procese e inserte
       if (successCount > 0 && urls.length > 1) {
+        console.log(`[Extract PDF] Esperando 15 segundos adicionales antes de actualizar budget_index...`);
         setTimeout(async () => {
           try {
             const response = await fetch('/api/update-budget-index', {
@@ -708,6 +724,8 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
             const result = await response.json();
             if (result.success && result.updated > 0) {
               console.log(`[Budget Index Updater] Updated ${result.updated} categories with budget_index`);
+              // Refrescar las categorías después de actualizar budget_index
+              await refetch();
             }
           } catch (err) {
             console.error('[Budget Index Updater] Error:', err);
@@ -716,12 +734,12 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       }
 
       if (successCount < totalCount) {
-        toast.warning("Extracción parcialmente iniciada", {
-          description: `Se inició la extracción para ${successCount} de ${totalCount} presupuesto(s). Las categorías aparecerán cuando se complete el procesamiento.`,
+        toast.warning("Extracción parcialmente completada", {
+          description: `Se procesaron ${successCount} de ${totalCount} presupuesto(s). Las categorías aparecerán cuando se complete el procesamiento.`,
         });
       } else {
-        toast.success("Extracción de información PDF iniciada correctamente", {
-          description: `Se inició la extracción para ${totalCount} presupuesto(s). Las categorías aparecerán cuando se complete el procesamiento.`,
+        toast.success("Extracción de información PDF completada", {
+          description: `Se procesaron ${totalCount} presupuesto(s) secuencialmente. Las categorías aparecerán cuando n8n termine de procesarlas (puede tardar unos minutos).`,
         });
       }
     } catch (err) {
@@ -734,7 +752,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
     } finally {
       setIsExtracting(false);
     }
-  }, [property, categories.length]);
+  }, [property, categories.length, refetch]);
 
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return 'No definida';
