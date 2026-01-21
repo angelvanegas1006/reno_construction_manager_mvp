@@ -184,6 +184,9 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({}); // Control de acordeones
+  // Estado para rastrear qué PDFs necesitan extracción de actividades (corner cases)
+  const [pdfsNeedingExtraction, setPdfsNeedingExtraction] = useState<Set<number>>(new Set());
+  const [extractingPdfs, setExtractingPdfs] = useState<Set<number>>(new Set()); // PDFs que se están procesando actualmente
   const [isScheduleVisitOpen, setIsScheduleVisitOpen] = useState(false);
   const [visitDate, setVisitDate] = useState<string | undefined>(undefined);
   const [visitNotes, setVisitNotes] = useState("");
@@ -200,9 +203,21 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   // Estado para controlar qué categoría está mostrando el modal de fotos
   const [photoDialogOpen, setPhotoDialogOpen] = useState<Record<string, boolean>>({});
 
-  // Show extract button if: budget_pdf_url exists AND (no categories OR categories without activities)
+  // Verificar si hay categorías sin actividades
   const hasCategoriesWithoutActivities = categories.length > 0 && categories.every(cat => !cat.activities_text || cat.activities_text.trim().length === 0);
-  const showExtractButton = property.budget_pdf_url && (categories.length === 0 || hasCategoriesWithoutActivities);
+  
+  // Verificar si hay múltiples PDFs (corner case)
+  const budgetUrls = property.budget_pdf_url
+    ? property.budget_pdf_url.split(',').map(url => url.trim()).filter(url => url.length > 0 && url.startsWith('http'))
+    : [];
+  const hasMultiplePdfs = budgetUrls.length >= 2;
+  
+  // Corner case: múltiples PDFs (2+) Y categorías sin actividades
+  const isCornerCase = hasMultiplePdfs && hasCategoriesWithoutActivities && categories.length > 0;
+  
+  // Show extract button SOLO cuando NO hay categorías (caso inicial)
+  // NO mostrar si ya hay categorías (incluso sin actividades) - eso se maneja con los botones por PDF
+  const showExtractButton = property.budget_pdf_url && categories.length === 0;
   
   // Debug logs
   useEffect(() => {
@@ -210,11 +225,156 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       hasBudgetPdfUrl: !!property.budget_pdf_url,
       categoriesCount: categories.length,
       hasCategoriesWithoutActivities,
+      hasMultiplePdfs,
+      isCornerCase,
+      pdfsNeedingExtraction: Array.from(pdfsNeedingExtraction),
       showExtractButton,
       loading,
-      categories: categories.map(c => ({ id: c.id, name: c.category_name, hasActivities: !!c.activities_text && c.activities_text.trim().length > 0 }))
+      categories: categories.map(c => ({ id: c.id, name: c.category_name, hasActivities: !!c.activities_text && c.activities_text.trim().length > 0, budgetIndex: c.budget_index }))
     });
-  }, [property.budget_pdf_url, categories.length, hasCategoriesWithoutActivities, showExtractButton, loading, categories]);
+  }, [property.budget_pdf_url, categories.length, hasCategoriesWithoutActivities, hasMultiplePdfs, isCornerCase, pdfsNeedingExtraction, showExtractButton, loading, categories]);
+
+  // Detectar corner cases: SOLO cuando hay múltiples PDFs (2+) Y categorías sin actividades
+  useEffect(() => {
+    // Solo verificar si es un corner case real: múltiples PDFs Y categorías sin actividades
+    if (!property.budget_pdf_url || categories.length === 0 || loading || !hasMultiplePdfs || !hasCategoriesWithoutActivities) {
+      setPdfsNeedingExtraction(new Set());
+      return;
+    }
+
+    // Verificar inmediatamente si hay categorías sin actividades (no esperar 90 segundos)
+    // Agrupar categorías por budget_index y verificar cuáles no tienen actividades
+    const pdfsNeedingExtractionSet = new Set<number>();
+    
+    // Obtener todos los budget_index únicos
+    const budgetIndexes = new Set(
+      categories.map(cat => cat.budget_index || 1)
+    );
+
+    budgetIndexes.forEach(budgetIndex => {
+      // Obtener categorías para este budget_index
+      const categoriesForBudget = categories.filter(
+        cat => (cat.budget_index || 1) === budgetIndex
+      );
+
+      // Verificar si todas las categorías de este budget_index no tienen actividades
+      const allWithoutActivities = categoriesForBudget.every(
+        cat => !cat.activities_text || cat.activities_text.trim().length === 0
+      );
+
+      if (allWithoutActivities && categoriesForBudget.length > 0) {
+        pdfsNeedingExtractionSet.add(budgetIndex);
+        console.log(`[DynamicCategoriesProgress] Corner case detected: budget_index ${budgetIndex} has ${categoriesForBudget.length} categories without activities`);
+      }
+    });
+
+    setPdfsNeedingExtraction(pdfsNeedingExtractionSet);
+    
+    if (pdfsNeedingExtractionSet.size > 0) {
+      console.log(`[DynamicCategoriesProgress] Found ${pdfsNeedingExtractionSet.size} PDF(s) needing activity extraction (corner case: multiple PDFs without activities)`);
+    }
+  }, [property.budget_pdf_url, categories, loading, hasMultiplePdfs, hasCategoriesWithoutActivities]);
+
+  // Función para extraer actividades de un PDF específico (corner case)
+  const handleExtractActivitiesForPdf = useCallback(async (budgetIndex: number) => {
+    if (extractingPdfs.has(budgetIndex)) {
+      return; // Ya se está procesando
+    }
+
+    setExtractingPdfs(prev => new Set(prev).add(budgetIndex));
+    
+    try {
+      console.log(`[Extract Activities] Starting extraction for budgetIndex ${budgetIndex}`);
+      console.log(`[Extract Activities] Property ID: ${property.id}`);
+      toast.info(`Extrayendo actividades del Presupuesto ${budgetIndex}...`);
+
+      const response = await fetch('/api/extract-pdf-activities', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          propertyId: property.id,
+          budgetIndex,
+        }),
+      });
+
+      console.log(`[Extract Activities] Response status: ${response.status} ${response.statusText}`);
+
+      // Leer el texto de la respuesta primero para debugging
+      const responseText = await response.text();
+      console.log(`[Extract Activities] Response text:`, responseText.substring(0, 500));
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error(`[Extract Activities] Failed to parse JSON response:`, parseError);
+        throw new Error(`Error en la respuesta del servidor: ${responseText.substring(0, 200)}`);
+      }
+
+      console.log(`[Extract Activities] Parsed result:`, result);
+
+      if (!response.ok) {
+        const errorMessage = result.error || result.message || `Error ${response.status}: ${response.statusText}`;
+        console.error(`[Extract Activities] API error:`, errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      if (result.success) {
+        if (result.totalUpdated > 0) {
+          toast.success(`Actividades extraídas del Presupuesto ${budgetIndex}`, {
+            description: `Se actualizaron ${result.totalUpdated} categoría(s)`,
+          });
+          
+          // Remover este PDF del conjunto de PDFs que necesitan extracción
+          setPdfsNeedingExtraction(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(budgetIndex);
+            return newSet;
+          });
+
+          // Refrescar categorías
+          await refetch();
+        } else {
+          // Mostrar detalles de los errores si los hay
+          const errorDetails = result.results?.[0]?.errors || [];
+          
+          if (errorDetails.length === 0) {
+            // No hay errores pero tampoco se actualizó nada - probablemente no hay categorías en ese PDF
+            console.log(`[Extract Activities] No activities updated for Presupuesto ${budgetIndex}, but no errors. Categories may not exist in this PDF.`);
+            toast.info(`Presupuesto ${budgetIndex} procesado`, {
+              description: 'No se encontraron categorías en este PDF para extraer actividades',
+              duration: 5000,
+            });
+          } else {
+            const errorMessage = errorDetails.slice(0, 3).join('; ') + (errorDetails.length > 3 ? '...' : '');
+            console.warn(`[Extract Activities] No activities updated. Errors:`, errorDetails);
+            toast.warning(`No se encontraron actividades en el Presupuesto ${budgetIndex}`, {
+              description: errorMessage,
+              duration: 8000,
+            });
+          }
+        }
+      } else {
+        throw new Error(result.error || 'La extracción no fue exitosa');
+      }
+    } catch (err) {
+      console.error(`[Extract Activities] Error for budgetIndex ${budgetIndex}:`, err);
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      console.error(`[Extract Activities] Full error:`, err);
+      toast.error(`Error al extraer actividades del Presupuesto ${budgetIndex}`, {
+        description: errorMessage,
+        duration: 10000,
+      });
+    } finally {
+      setExtractingPdfs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(budgetIndex);
+        return newSet;
+      });
+    }
+  }, [property.id, extractingPdfs, refetch]);
 
   // Initialize local and saved percentages from categories
   useEffect(() => {
@@ -271,11 +431,17 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   }, [categories]);
 
   // Agrupar categorías por nombre y ordenar
+  // IMPORTANTE: Solo mostrar categorías que tienen actividades_text (que realmente existen en algún PDF)
   const groupedCategories = useMemo(() => {
+    // Filtrar categorías que tienen actividades_text
+    const categoriesWithActivities = categories.filter(
+      cat => cat.activities_text && cat.activities_text.trim().length > 0
+    );
+    
     // Agrupar por nombre de categoría
     const grouped = new Map<string, typeof categories>();
     
-    categories.forEach(cat => {
+    categoriesWithActivities.forEach(cat => {
       const key = cat.category_name;
       if (!grouped.has(key)) {
         grouped.set(key, []);
@@ -299,12 +465,15 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   }, [categories]);
 
   // Sort categories by their order number (extracted from category_name) - mantener para compatibilidad
+  // IMPORTANTE: Solo incluir categorías que tienen actividades_text
   const sortedCategories = useMemo(() => {
-    return [...categories].sort((a, b) => {
-      const orderA = extractCategoryOrderNumber(a.category_name);
-      const orderB = extractCategoryOrderNumber(b.category_name);
-      return orderA - orderB;
-    });
+    return [...categories]
+      .filter(cat => cat.activities_text && cat.activities_text.trim().length > 0)
+      .sort((a, b) => {
+        const orderA = extractCategoryOrderNumber(a.category_name);
+        const orderB = extractCategoryOrderNumber(b.category_name);
+        return orderA - orderB;
+      });
   }, [categories]);
 
   // Calculate global progress (average of all categories)
@@ -966,7 +1135,9 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label className="text-base font-semibold">Categorías</Label>
-            {showExtractButton && categories.length > 0 && (
+            {/* NO mostrar botón del header si hay categorías con actividades o si es corner case */}
+            {/* Solo mostrar cuando no hay categorías (caso inicial) */}
+            {showExtractButton && categories.length === 0 && (
               <Button
                 onClick={handleExtractPdfInfo}
                 disabled={isExtracting}
@@ -974,7 +1145,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                 size="sm"
               >
                 <Download className="mr-2 h-4 w-4" />
-                {isExtracting ? "Extrayendo..." : "Re-extraer Información PDF"}
+                {isExtracting ? "Extrayendo..." : "Extraer Información PDF"}
               </Button>
             )}
           </div>
@@ -992,7 +1163,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                     className="w-full"
                   >
                     <Download className="mr-2 h-4 w-4" />
-                    {isExtracting ? "Extrayendo..." : hasCategoriesWithoutActivities ? "Re-extraer Información PDF" : "Extraer Información PDF"}
+                    {isExtracting ? "Extrayendo..." : "Extraer Información PDF"}
                   </Button>
                 </div>
               ) : (
@@ -1016,25 +1187,40 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
             </div>
           ) : (
             <>
-              {showExtractButton && hasCategoriesWithoutActivities && (
+              {/* Mostrar botones de extracción de actividades por PDF (corner cases) */}
+              {pdfsNeedingExtraction.size > 0 && (
                 <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 space-y-3 mb-4">
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
-                    ⚠️ Las categorías no tienen actividades definidas
-                  </p>
-                  <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                    Las categorías fueron creadas pero no se extrajeron las actividades del PDF. Haz clic en "Re-extraer Información PDF" para procesar los PDFs nuevamente y obtener las actividades.
-                  </p>
-                  <Button
-                    onClick={handleExtractPdfInfo}
-                    disabled={isExtracting}
-                    variant="outline"
-                    className="w-full border-yellow-300 dark:border-yellow-700"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    {isExtracting ? "Extrayendo..." : "Re-extraer Información PDF"}
-                  </Button>
+                  <div className="flex items-start gap-2">
+                    <span className="text-yellow-800 dark:text-yellow-200 text-lg">⚠️</span>
+                    <div className="flex-1">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium mb-1">
+                        Algunos presupuestos no tienen actividades extraídas
+                      </p>
+                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
+                        Las categorías fueron creadas pero algunas actividades no se extrajeron del PDF. Selecciona el presupuesto específico que deseas procesar:
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        {Array.from(pdfsNeedingExtraction).sort().map(budgetIndex => (
+                          <Button
+                            key={budgetIndex}
+                            onClick={() => handleExtractActivitiesForPdf(budgetIndex)}
+                            disabled={extractingPdfs.has(budgetIndex)}
+                            variant="outline"
+                            className="w-full justify-start border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            {extractingPdfs.has(budgetIndex) 
+                              ? `Extrayendo actividades del Presupuesto ${budgetIndex}...` 
+                              : `📄 Presupuesto ${budgetIndex} - Extraer Actividades`}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
+              {/* NO mostrar este mensaje si ya hay botones por PDF (corner case) */}
+              {/* Solo mostrar si es un caso inicial sin categorías */}
               {groupedCategories.map((group) => {
               // Si hay múltiples presupuestos con la misma categoría, mostrar todas
               // Si solo hay una, mostrar como antes
@@ -1253,12 +1439,16 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                                     {category.activities_text}
                                   </div>
                                 ) : (
-                                  <div className="text-sm text-muted-foreground p-2 bg-muted/30 rounded-lg mt-2">
-                                    <div className="flex items-center gap-2">
-                                      <div className="animate-spin h-4 w-4 border-2 border-muted-foreground border-t-transparent rounded-full"></div>
-                                      <span>Las actividades se están procesando desde el PDF...</span>
+                                  // Si es corner case (múltiples PDFs sin actividades), no mostrar spinner
+                                  // Los botones de extracción aparecerán arriba
+                                  pdfsNeedingExtraction.size > 0 ? null : (
+                                    <div className="text-sm text-muted-foreground p-2 bg-muted/30 rounded-lg mt-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className="animate-spin h-4 w-4 border-2 border-muted-foreground border-t-transparent rounded-full"></div>
+                                        <span>Las actividades se están procesando desde el PDF...</span>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )
                                 )}
 
                                 {/* Updates de esta categoría específica */}
@@ -1285,12 +1475,16 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                                     {category.activities_text}
                                   </div>
                                 ) : (
-                                  <div className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
-                                    <div className="flex items-center gap-2">
-                                      <div className="animate-spin h-4 w-4 border-2 border-muted-foreground border-t-transparent rounded-full"></div>
-                                      <span>Las actividades se están procesando desde el PDF...</span>
+                                  // Si es corner case (múltiples PDFs sin actividades), no mostrar spinner
+                                  // Los botones de extracción aparecerán arriba
+                                  pdfsNeedingExtraction.size > 0 ? null : (
+                                    <div className="text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg">
+                                      <div className="flex items-center gap-2">
+                                        <div className="animate-spin h-4 w-4 border-2 border-muted-foreground border-t-transparent rounded-full"></div>
+                                        <span>Las actividades se están procesando desde el PDF...</span>
+                                      </div>
                                     </div>
-                                  </div>
+                                  )
                                 )}
                                 <CategoryUpdatesList categoryId={category.id} />
                               </>

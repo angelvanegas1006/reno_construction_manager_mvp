@@ -236,8 +236,9 @@ export function calculateSectionProgress(section: ChecklistSection | undefined):
 /**
  * Calcula el progreso general del checklist
  * Calcula el promedio de TODAS las secciones, incluyendo las que tienen 0%
+ * @param excludeSurroundings Si es true, excluye "entorno-zonas-comunes" del cálculo (para final-check)
  */
-export function calculateOverallChecklistProgress(checklist: ChecklistData | null): number {
+export function calculateOverallChecklistProgress(checklist: ChecklistData | null, excludeSurroundings: boolean = false): number {
   if (!checklist || !checklist.sections) return 0;
 
   const sectionIds = [
@@ -249,7 +250,7 @@ export function calculateOverallChecklistProgress(checklist: ChecklistData | nul
     "banos",
     "cocina",
     "exteriores",
-  ];
+  ].filter(id => !excludeSurroundings || id !== "entorno-zonas-comunes");
 
   const progressValues: number[] = [];
 

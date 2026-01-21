@@ -16,7 +16,7 @@ export function ArchitecturalWireframeBackground() {
     else tried.current.add("fallback");
   };
   return (
-    <div className="relative h-full w-full bg-white">
+    <div className="relative h-full w-full bg-white min-h-screen">
       {tried.current.has("fallback") ? (
         // Fallback minimal placeholder if the image is missing
         <svg aria-hidden viewBox="0 0 1200 1200" className="absolute inset-0 h-full w-full">
@@ -36,6 +36,7 @@ export function ArchitecturalWireframeBackground() {
           sizes="50vw"
           className="object-cover"
           onError={tryNext}
+          unoptimized={process.env.NODE_ENV === 'development'}
         />
       )}
     </div>

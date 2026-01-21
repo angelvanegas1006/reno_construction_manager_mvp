@@ -88,11 +88,10 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
                 .then(response => response.json())
                 .then(result => {
                   if (result.success && result.updated > 0) {
-                    console.log(`[useDynamicCategories] Updated ${result.updated} categories with budget_index`);
-                    // Refetch para obtener los datos actualizados después de un pequeño delay
-                    setTimeout(() => {
-                      fetchCategories(true); // Skip budget index check para evitar loop
-                    }, 1000);
+                    // Silently update - no need to log this frequently
+                    // Refetch inmediatamente sin delay para evitar doble carga visible
+                    // El delay causa que se vea una carga inicial y luego otra después del delay
+                    fetchCategories(true); // Skip budget index check para evitar loop
                   } else {
                     budgetIndexUpdateRef.current = false;
                   }

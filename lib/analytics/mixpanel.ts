@@ -4,6 +4,7 @@ import mixpanel from "mixpanel-browser";
 
 // Track initialization state
 let isInitialized = false;
+let initializationWarningShown = false;
 
 /**
  * Initialize Mixpanel
@@ -13,13 +14,15 @@ export function initMixpanel() {
   const token = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
   
   if (!token) {
-    console.warn("[Mixpanel] Token not configured. Analytics will be disabled.");
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[Mixpanel] Token not configured. Analytics will be disabled.");
+    }
     return;
   }
 
   // Initialize Mixpanel
   mixpanel.init(token, {
-    debug: process.env.NODE_ENV === "development",
+    debug: false, // Disable debug logs in production
     track_pageview: true, // Automatically track page views
     persistence: "localStorage", // Store user data in localStorage
     ignore_dnt: false, // Respect Do Not Track
@@ -27,7 +30,9 @@ export function initMixpanel() {
   });
 
   isInitialized = true;
-  console.log("[Mixpanel] Initialized successfully");
+  if (process.env.NODE_ENV === "development") {
+    console.log("[Mixpanel] Initialized successfully");
+  }
 }
 
 /**
@@ -35,7 +40,11 @@ export function initMixpanel() {
  */
 function checkInitialized(): boolean {
   if (!isInitialized) {
-    console.warn("[Mixpanel] Not initialized. Call initMixpanel() first.");
+    // Only show warning once to avoid console spam
+    if (!initializationWarningShown && process.env.NODE_ENV === "development") {
+      console.warn("[Mixpanel] Not initialized. Call initMixpanel() first.");
+      initializationWarningShown = true;
+    }
     return false;
   }
   return true;

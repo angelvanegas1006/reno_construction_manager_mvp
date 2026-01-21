@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Excluir pdf-parse del bundler para que funcione correctamente en server-side
+  // En Next.js 16.1.1+, serverExternalPackages está en el nivel superior, no en experimental
+  serverExternalPackages: ['pdf-parse'],
   // Deshabilitar prerender de rutas de error para evitar problemas con context providers
   experimental: {
     // Esto ayuda a evitar problemas con SSR en error boundaries

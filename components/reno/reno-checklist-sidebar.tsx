@@ -45,8 +45,8 @@ export function RenoChecklistSidebar({
     "estado-caracteristicas",
   ]);
 
-  // Calculate overall progress
-  const overallProgress = calculateOverallChecklistProgress(checklist || null);
+  // Calculate overall progress - exclude "entorno-zonas-comunes" for final-check
+  const overallProgress = calculateOverallChecklistProgress(checklist || null, isFinalCheck);
   
   // Calculate section progress
   const sectionProgress = getAllChecklistSectionsProgress(checklist || null);
@@ -64,10 +64,11 @@ export function RenoChecklistSidebar({
       id: "estado-caracteristicas",
       name: t.sidebar.statusCharacteristics,
       sections: [
-        {
+        // Excluir "entorno-zonas-comunes" para final-check
+        ...(isFinalCheck ? [] : [{
           sectionId: "checklist-entorno-zonas-comunes",
           name: t.checklist.sections.entornoZonasComunes.title,
-        },
+        }]),
         {
           sectionId: "checklist-estado-general",
           name: t.checklist.sections.estadoGeneral.title,

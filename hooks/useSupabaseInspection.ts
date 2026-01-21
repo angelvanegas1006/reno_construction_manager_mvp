@@ -87,10 +87,16 @@ export function useSupabaseInspection(
         .limit(1)
         .maybeSingle();
 
-      // Si el error es que la columna no existe (42883), buscar sin inspection_type
-      if (inspectionError && (inspectionError.code === '42883' || inspectionError.message?.includes('column') || inspectionError.message?.includes('does not exist'))) {
-        console.warn('Campo inspection_type no existe aún, buscando sin filtro:', inspectionError);
+      // Si el error es que la columna no existe (42883) o 406 (Not Acceptable), buscar sin inspection_type
+      if (inspectionError && (
+        inspectionError.code === '42883' || 
+        inspectionError.message?.includes('column') || 
+        inspectionError.message?.includes('does not exist') ||
+        inspectionError.message?.includes('406') ||
+        inspectionError.code === 'PGRST116'
+      )) {
         // Buscar sin filtro de inspection_type (solo por property_id), ordenar por fecha descendente
+        // Silently fallback - no need to log this as it's expected behavior
         const { data: allInspections, error: allError } = await supabase
           .from('property_inspections')
           .select('*')
@@ -108,8 +114,8 @@ export function useSupabaseInspection(
         throw inspectionError;
       }
 
-      // Log para debugging
-      if (inspectionData) {
+      // Log para debugging (solo en desarrollo)
+      if (inspectionData && process.env.NODE_ENV === "development") {
         console.log('[useSupabaseInspection] ✅ Found inspection:', {
           id: inspectionData.id,
           propertyId,

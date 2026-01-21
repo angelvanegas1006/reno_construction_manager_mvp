@@ -101,9 +101,15 @@ export function PropertyStatusSidebar({
           .eq("inspection_type", checklistType)
           .single();
 
-        // If the error is that the column doesn't exist, try without inspection_type
-        if (error && (error.code === '42883' || error.message?.includes('column') || error.message?.includes('does not exist'))) {
-          console.warn('Campo inspection_type no existe aún, buscando sin filtro:', error);
+        // Handle errors: 406 (Not Acceptable) or column doesn't exist - try without inspection_type
+        if (error && (
+          error.code === '42883' || 
+          error.message?.includes('column') || 
+          error.message?.includes('does not exist') ||
+          error.message?.includes('406') ||
+          error.code === 'PGRST116'
+        )) {
+          // Try without inspection_type filter
           const { data: allData, error: allError } = await supabase
             .from("property_inspections")
             .select("id, inspection_status, completed_at")
@@ -113,13 +119,13 @@ export function PropertyStatusSidebar({
             .maybeSingle();
           
           if (allError && allError.code !== 'PGRST116') {
-            console.error('Error fetching checklist:', allError);
+            // Silently fail - checklist might not exist yet
             return;
           }
           data = allData;
           error = null;
         } else if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching checklist:', error);
+          // Silently fail for other errors
           return;
         }
 

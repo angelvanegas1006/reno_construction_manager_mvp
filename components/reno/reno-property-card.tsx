@@ -3,12 +3,15 @@
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { CircularProgress } from "@/components/ui/circular-progress";
 import { Calendar, CheckCircle2, FileSignature } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { isPropertyExpired } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
 import { useMixpanel } from "@/hooks/useMixpanel";
 import { needsUpdate, calculateNextUpdateDate, needsUpdateThisWeek } from "@/lib/reno/update-calculator";
+import { useDynamicCategories } from "@/hooks/useDynamicCategories";
+import { useMemo } from "react";
 
 type RenoStage = "upcoming-settlements" | "initial-check" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "upcoming" | "reno-in-progress" | "furnishing" | "final-check" | "cleaning" | "furnishing-cleaning" | "reno-fixes" | "done" | "orphaned";
 
@@ -32,6 +35,20 @@ export function RenoPropertyCard({
   const { t, language } = useI18n();
   const { track } = useMixpanel();
   const isExpired = isPropertyExpired(property);
+  
+  // Get dynamic categories progress for reno-in-progress phase
+  const { categories: dynamicCategories } = useDynamicCategories(
+    stage === "reno-in-progress" ? property.id : null
+  );
+  
+  // Calculate average progress from dynamic categories
+  const renoProgress = useMemo(() => {
+    if (stage !== "reno-in-progress" || dynamicCategories.length === 0) {
+      return null;
+    }
+    const total = dynamicCategories.reduce((sum, cat) => sum + (cat.percentage || 0), 0);
+    return Math.round(total / dynamicCategories.length);
+  }, [stage, dynamicCategories]);
 
   // Calculate proximaActualizacion for reno-in-progress phase
   // RESET ÚNICO: Siempre calcular desde mañana, ignorando cualquier fecha antigua de la BD
@@ -235,8 +252,19 @@ export function RenoPropertyCard({
       
       {/* ID and Expired tag aligned at top */}
       <div className="flex items-center justify-between mb-2 gap-2 min-w-0">
-        <div className="text-xs font-semibold text-muted-foreground truncate min-w-0">
-          ID {property.uniqueIdFromEngagements || property.id}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {/* Circular progress for reno-in-progress */}
+          {stage === "reno-in-progress" && renoProgress !== null && (
+            <CircularProgress 
+              percentage={renoProgress} 
+              size={40}
+              strokeWidth={3}
+              className="flex-shrink-0"
+            />
+          )}
+          <div className="text-xs font-semibold text-muted-foreground truncate min-w-0">
+            ID {property.uniqueIdFromEngagements || property.id}
+          </div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           {/* Solo mostrar badges de actualización en fase reno-in-progress cuando necesita actualización a cliente */}

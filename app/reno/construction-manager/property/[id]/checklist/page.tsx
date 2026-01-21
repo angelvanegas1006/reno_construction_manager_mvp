@@ -217,22 +217,28 @@ export default function RenoChecklistPage() {
   const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
   
-  // Initialize activeSection - always start with first checklist section
+  // Initialize activeSection - start with first checklist section
+  // For final-check, skip "entorno-zonas-comunes" and start with "estado-general"
   const [activeSection, setActiveSection] = useState<string>(() => {
+    if (phase === "final-check") {
+      return "checklist-estado-general";
+    }
     return "checklist-entorno-zonas-comunes";
   });
   
   // Calculate overall progress
   // For reno-in-progress phase, use average of dynamic categories
   // For other phases, use checklist progress
+  // For final-check, exclude "entorno-zonas-comunes" from calculation
   const overallProgress = useMemo(() => {
     if (phase === "reno-in-progress" && dynamicCategories.length > 0) {
       // Calculate average of all dynamic categories
       const total = dynamicCategories.reduce((sum, cat) => sum + (cat.percentage || 0), 0);
       return Math.round(total / dynamicCategories.length);
     }
-    // For other phases, use checklist progress
-    return calculateOverallChecklistProgress(checklist || null);
+    // For final-check, exclude "entorno-zonas-comunes" from calculation
+    const excludeSurroundings = phase === "final-check";
+    return calculateOverallChecklistProgress(checklist || null, excludeSurroundings);
   }, [phase, dynamicCategories, checklist]);
   
   const sectionProgress = getAllChecklistSectionsProgress(checklist || null);
@@ -1305,6 +1311,7 @@ export default function RenoChecklistPage() {
         onCompleteInspection={handleCompleteInspection}
         canCompleteInspection={canComplete && !isCompleting}
         isCompleting={isCompleting}
+        isFinalCheck={isFinalCheck}
       />
 
       {/* Main Content */}

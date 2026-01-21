@@ -502,16 +502,18 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "orphaned": allProperties["orphaned"].filter(matchesAll),
     };
     
-    // Debug: Check filtered results
-    console.log('[RenoKanbanBoard] After filtering:', {
-      furnishingCount: filtered.furnishing.length,
-      cleaningCount: filtered.cleaning.length,
-      furnishingIds: filtered.furnishing.slice(0, 3).map(p => p.id),
-      cleaningIds: filtered.cleaning.slice(0, 3).map(p => p.id),
-      hasActiveFilters,
-      query,
-      filters: activeFilters,
-    });
+    // Debug: Check filtered results (only in development and when filters are active)
+    if (process.env.NODE_ENV === "development" && (hasActiveFilters || query.trim())) {
+      console.log('[RenoKanbanBoard] After filtering:', {
+        furnishingCount: filtered.furnishing.length,
+        cleaningCount: filtered.cleaning.length,
+        furnishingIds: filtered.furnishing.slice(0, 3).map(p => p.id),
+        cleaningIds: filtered.cleaning.slice(0, 3).map(p => p.id),
+        hasActiveFilters,
+        query,
+        filters: activeFilters,
+      });
+    }
     
     // Debug log removed for production
 
