@@ -218,13 +218,16 @@ export default function RenoChecklistPage() {
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
   
   // Initialize activeSection - start with first checklist section
-  // For final-check, skip "entorno-zonas-comunes" and start with "estado-general"
-  const [activeSection, setActiveSection] = useState<string>(() => {
-    if (phase === "final-check") {
-      return "checklist-estado-general";
+  // For final-check phases (final-check, furnishing, cleaning), skip "entorno-zonas-comunes" and start with "estado-general"
+  const [activeSection, setActiveSection] = useState<string>("checklist-entorno-zonas-comunes");
+  
+  // Update activeSection when phase is determined (for final-check phases, skip entorno-zonas-comunes)
+  useEffect(() => {
+    if (isFinalCheck && activeSection === "checklist-entorno-zonas-comunes") {
+      // For final-check phases, always start with estado-general
+      setActiveSection("checklist-estado-general");
     }
-    return "checklist-entorno-zonas-comunes";
-  });
+  }, [isFinalCheck, activeSection]);
   
   // Calculate overall progress
   // For reno-in-progress phase, use average of dynamic categories
