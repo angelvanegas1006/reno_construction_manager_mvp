@@ -54,7 +54,7 @@ interface UseSupabaseChecklistBaseReturn {
   checklist: ChecklistData | null;
   isLoading: boolean;
   updateSection: (sectionId: string, sectionData: Partial<ChecklistSection>) => Promise<void>;
-  saveCurrentSection: () => Promise<void>;
+  saveCurrentSection: (sectionId?: string) => Promise<void>; // sectionId opcional para forzar guardar una sección específica
   finalizeChecklist: (data?: {
     estimatedVisitDate?: string;
     autoVisitDate?: string;
@@ -853,7 +853,7 @@ export function useSupabaseChecklistBase({
   }, [zones.length, elements.length, propertyId, checklistType, bedroomsCount, bathroomsCount, inspectionId, inspectionLoading, hasSupabaseProperty, hasInspection, inspectionType, inspection]);
 
   // Guardar sección actual en Supabase
-  const saveCurrentSection = useCallback(async () => {
+  const saveCurrentSection = useCallback(async (sectionIdOverride?: string) => {
     if (savingRef.current) {
       debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Save already in progress, skipping...`);
       return;
@@ -868,10 +868,16 @@ export function useSupabaseChecklistBase({
       return;
     }
 
-    const sectionId = currentSectionRef.current;
+    // Usar sectionIdOverride si se proporciona, sino usar currentSectionRef
+    const sectionId = sectionIdOverride || currentSectionRef.current;
     if (!sectionId) {
       debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ No current section to save`);
       return;
+    }
+    
+    // Si se proporciona sectionIdOverride, establecer currentSectionRef para futuras operaciones
+    if (sectionIdOverride) {
+      currentSectionRef.current = sectionIdOverride;
     }
 
     savingRef.current = true;

@@ -361,14 +361,26 @@ export default function RenoChecklistPage() {
   const handleSave = useCallback(async () => {
     if (!checklist) return;
     try {
-      await saveCurrentSection();
+      // IMPORTANTE: Convertir "checklist-estado-general" -> "estado-general"
+      // y pasar el sectionId directamente a saveCurrentSection
+      const sectionIdWithoutPrefix = activeSection.replace(/^checklist-/, '');
+      
+      // Verificar que la sección existe
+      if (!checklist.sections[sectionIdWithoutPrefix]) {
+        console.warn('[RenoChecklistPage] ⚠️ No se encontró la sección:', sectionIdWithoutPrefix);
+        toast.error("Error: No se encontró la sección a guardar");
+        return;
+      }
+      
+      // Pasar sectionId directamente a saveCurrentSection para forzar guardar esta sección
+      await saveCurrentSection(sectionIdWithoutPrefix);
       setHasUnsavedChanges(false);
       toast.success(t.messages.saveSuccess);
     } catch (error) {
       console.error("Error al guardar:", error);
       toast.error("Error al guardar cambios");
     }
-  }, [checklist, t, saveCurrentSection]);
+  }, [checklist, t, saveCurrentSection, activeSection]);
 
   // Handle complete inspection
   const handleCompleteInspection = useCallback(async () => {
