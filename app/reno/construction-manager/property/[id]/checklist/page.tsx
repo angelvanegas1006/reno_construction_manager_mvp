@@ -163,6 +163,7 @@ export default function RenoChecklistPage() {
   // Check if checklist is completed (read-only mode)
   // IMPORTANTE: Verificar que la inspección corresponde al tipo correcto antes de verificar si está completada
   // Esto evita que el final check aparezca como completado cuando en realidad el initial check es el completado
+  // ADICIONALMENTE: Verificar que el checklist realmente esté completo según la validación
   const isChecklistCompleted = useMemo(() => {
     if (!inspection) {
       return false;
@@ -182,9 +183,29 @@ export default function RenoChecklistPage() {
       return false;
     }
     
-    // Solo considerar completado si el tipo coincide y está completada
-    return inspection.inspection_status === 'completed' || inspection.completed_at !== null;
-  }, [inspection, inspectionType]);
+    // Verificar que está marcado como completado en la BD
+    const isMarkedAsCompleted = inspection.inspection_status === 'completed' || inspection.completed_at !== null;
+    
+    if (!isMarkedAsCompleted) {
+      return false;
+    }
+    
+    // CRÍTICO: Aunque esté marcado como completado en la BD, verificar que realmente esté completo
+    // Si no pasa la validación, permitir edición (no considerar completado)
+    const isActuallyComplete = areAllActivitiesReported(checklist);
+    
+    if (!isActuallyComplete) {
+      console.log('[ChecklistPage] ⚠️ Checklist marked as completed in DB but validation fails - allowing editing:', {
+        inspectionId: inspection.id,
+        inspectionStatus: inspection.inspection_status,
+        isActuallyComplete,
+      });
+      return false; // Permitir edición si no está realmente completo
+    }
+    
+    // Solo considerar completado si el tipo coincide, está marcado como completado Y realmente está completo
+    return true;
+  }, [inspection, inspectionType, checklist]);
 
   // Get dynamic categories for reno-in-progress phase
   const { categories: dynamicCategories } = useDynamicCategories(propertyId);
