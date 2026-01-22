@@ -1838,6 +1838,70 @@ export function useSupabaseChecklistBase({
     debugLog(`✅ [useSupabaseChecklistBase:${inspectionType}] updateSection COMPLETED (sin autoguardado)`);
   }, [inspectionType, debouncedSave]);
 
+  // Guardar todas las secciones antes de finalizar
+  // Esta función guarda todas las secciones del checklist, no solo la actual
+  // IMPORTANTE: Esta función debe ejecutarse ANTES de finalizar para asegurar que todas las fotos y datos se guarden
+  const saveAllSections = useCallback(async () => {
+    if (!checklist || !inspection?.id || !supabaseProperty) {
+      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Cannot save all sections - missing data`);
+      return;
+    }
+
+    // Si ya hay un guardado en progreso, esperar a que termine
+    if (savingRef.current) {
+      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Save already in progress, waiting...`);
+      // Esperar hasta que termine el guardado actual
+      while (savingRef.current) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    debugLog(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving ALL sections before finalizing...`);
+    
+    const sectionIds = Object.keys(checklist.sections);
+    debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📋 Found ${sectionIds.length} sections to save:`, sectionIds);
+    
+    // Guardar cada sección usando la misma lógica que saveCurrentSection
+    // Pero temporalmente cambiando currentSectionRef para cada una
+    const originalSectionRef = currentSectionRef.current;
+    
+    try {
+      for (const sectionId of sectionIds) {
+        const section = checklist.sections[sectionId];
+        if (!section) {
+          debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping empty section: ${sectionId}`);
+          continue;
+        }
+
+        // Temporalmente cambiar currentSectionRef para que saveCurrentSection guarde esta sección
+        currentSectionRef.current = sectionId;
+        
+        debugLog(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving section: ${sectionId}`);
+        
+        // Guardar esta sección (saveCurrentSection maneja subida de archivos y guardado de elementos)
+        // Usar directamente la lógica de saveCurrentSection pero sin el flag de protección
+        // porque estamos iterando secuencialmente
+        await saveCurrentSection();
+        
+        // Pequeña pausa para evitar rate limiting y asegurar que el guardado anterior termine
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      // Restaurar sección original
+      currentSectionRef.current = originalSectionRef;
+      
+      // Refetch para asegurar que todos los datos estén actualizados
+      await refetchInspection();
+      
+      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ All sections saved successfully`);
+    } catch (error) {
+      // Restaurar sección original incluso si hay error
+      currentSectionRef.current = originalSectionRef;
+      debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error saving all sections:`, error);
+      throw error;
+    }
+  }, [checklist, inspection, supabaseProperty, saveCurrentSection, refetchInspection, inspectionType]);
+
   // Finalizar checklist
   const finalizeChecklist = useCallback(async (data?: {
     estimatedVisitDate?: string;
@@ -1852,6 +1916,10 @@ export function useSupabaseChecklistBase({
     try {
       // Guardar sección actual antes de finalizar
       await saveCurrentSection();
+      
+      // IMPORTANTE: Guardar TODAS las secciones antes de finalizar
+      // Esto asegura que todas las fotos y datos se guarden, no solo la sección actual
+      await saveAllSections();
 
       // Calcular progreso
       const sections = Object.values(checklist.sections);
