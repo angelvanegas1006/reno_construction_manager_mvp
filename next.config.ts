@@ -2,9 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  // Excluir pdf-parse del bundler para que funcione correctamente en server-side
+  // Excluir pdf-parse, lightningcss y @tailwindcss/oxide del bundler para que funcionen correctamente en server-side
   // En Next.js 16.1.1+, serverExternalPackages está en el nivel superior, no en experimental
-  serverExternalPackages: ['pdf-parse'],
+  serverExternalPackages: [
+    'pdf-parse', 
+    'lightningcss', 
+    'lightningcss-darwin-arm64',
+    '@tailwindcss/oxide',
+    '@tailwindcss/oxide-darwin-arm64'
+  ],
   // Deshabilitar prerender de rutas de error para evitar problemas con context providers
   experimental: {
     // Esto ayuda a evitar problemas con SSR en error boundaries
@@ -28,6 +34,17 @@ const nextConfig: NextConfig = {
         ...config.resolve.fallback,
         canvas: false,
       };
+    }
+    
+    // Configurar para que webpack no intente empaquetar módulos nativos
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({
+        'lightningcss': 'commonjs lightningcss',
+        'lightningcss-darwin-arm64': 'commonjs lightningcss-darwin-arm64',
+        '@tailwindcss/oxide': 'commonjs @tailwindcss/oxide',
+        '@tailwindcss/oxide-darwin-arm64': 'commonjs @tailwindcss/oxide-darwin-arm64',
+      });
     }
     
     // Asegurar que los alias se resuelvan correctamente
