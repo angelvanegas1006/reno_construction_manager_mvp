@@ -496,23 +496,26 @@ export async function finalizeInitialCheckInAirtable(
     //   2. Visit Date: fecha del día que se envía
     //   3. Reno checklist form: link público del PDF del checklist
     // Para reno_final:
-    //   1. Set up status: "Cleaning" (pasa de Final check -> Cleaning)
-    //   2. Visit Date: fecha del día que se envía
+    //   1. Set up status: NO se actualiza (se mantiene el actual)
+    //   2. Visit Date: NO se actualiza (se mantiene el actual)
     //   3. Reno checklist form: link público del PDF del checklist
     const updates: Record<string, any> = {};
 
     // 1. Set Up Status: fldE95fZPdw45XV2J
     //    - reno_initial -> "Pending to budget (from renovator)"
-    //    - reno_final -> "Cleaning" (pasa de Final check -> Cleaning)
-    if (checklistType === 'reno_final') {
-      updates['fldE95fZPdw45XV2J'] = 'Cleaning';
-    } else {
+    //    - reno_final -> NO se actualiza
+    if (checklistType === 'reno_initial') {
       updates['fldE95fZPdw45XV2J'] = 'Pending to budget (from renovator)';
     }
+    // Para reno_final, no agregamos Set Up Status a updates
 
     // 2. Visit Date: flddFKqUl6WiDe97c -> fecha del día que se envía
-    const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    updates['flddFKqUl6WiDe97c'] = todayDate;
+    //    Solo para reno_initial, no para reno_final
+    if (checklistType === 'reno_initial') {
+      const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      updates['flddFKqUl6WiDe97c'] = todayDate;
+    }
+    // Para reno_final, no agregamos Visit Date a updates
 
     // 3. Reno checklist form: fldBOpKEktOI2GnZK -> link público del PDF del checklist
     const checklistPublicUrl = pdfUrl || generateChecklistPublicUrl(propertyId, checklistType);
@@ -540,13 +543,9 @@ export async function finalizeInitialCheckInAirtable(
           setUpStatus: 'Pending to budget (from renovator)',
           renoPhase: 'reno-budget-renovator',
         });
-      } else if (checklistType === 'reno_final') {
-        // Checklist final: pasar de Final Check -> Cleaning
-        await updatePropertyPhaseConsistent(propertyId, {
-          setUpStatus: 'Cleaning',
-          renoPhase: 'cleaning',
-        });
       }
+      // Para reno_final, NO actualizamos Set Up Status ni reno_phase en Supabase
+      // Se mantiene el estado actual de la propiedad
     } else {
       console.error(`[Initial Check Sync] Failed to update Airtable for property ${propertyId}`);
     }
