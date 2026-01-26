@@ -279,42 +279,70 @@ export async function finalizeInitialCheckInAirtable(
       return false;
     }
 
-    // Preparar actualizaciones
-    const updates: Record<string, any> = {
-      'Set Up Status': 'Pending to budget (from Renovator)',
-      'Initial Check Complete': true,
-    };
+    // Preparar actualizaciones según la lógica especificada:
+    // Para reno_initial:
+    //   1. Set up status: "Pending to budget (from renovator)"
+    //   2. Visit Date: fecha del día que se envía
+    //   3. Reno checklist form: link público del PDF del checklist
+    // Para reno_final:
+    //   1. NO se actualiza Set Up Status (se mantiene como está)
+    //   2. NO se actualiza Visit Date (ese es solo para initial check)
+    //   3. Reno checklist form: link público del PDF del checklist
+    const updates: Record<string, any> = {};
 
-    // Field IDs específicos de Airtable
-    if (data.estimatedVisitDate) {
-      updates['fldIhqPOAFL52MMBn'] = data.estimatedVisitDate; // Estimated visit date
+    // 1. Set Up Status: Solo para reno_initial
+    //    - reno_initial -> "Pending to budget (from renovator)"
+    //    - reno_final -> NO se actualiza (se mantiene como está)
+    if (checklistType === 'reno_initial') {
+      updates['Set Up Status'] = 'Pending to budget (from Renovator)';
+      updates['Initial Check Complete'] = true;
     }
-    
-    if (data.autoVisitDate) {
-      updates['Auto Visit Date'] = data.autoVisitDate;
+    // Para reno_final, NO actualizamos Set Up Status
+
+    // 2. Visit Date: Solo para reno_initial (el Visit Date es de la visita inicial)
+    //    - Para reno_final, NO se actualiza
+    if (checklistType === 'reno_initial') {
+      if (data.estimatedVisitDate) {
+        updates['fldIhqPOAFL52MMBn'] = data.estimatedVisitDate; // Estimated visit date
+      }
+      
+      if (data.autoVisitDate) {
+        updates['Auto Visit Date'] = data.autoVisitDate;
+      }
     }
-    
+    // Para reno_final, NO actualizamos Visit Date
+
+    // 3. Next Reno Steps: Solo si se proporciona
     if (data.nextRenoSteps) {
       updates['fldwzJJY5jWtaUvl'] = data.nextRenoSteps; // Next Reno Steps
     }
     
-    // Generar URL pública del checklist
+    // 4. Reno checklist form: fldBOpKEktOI2GnZK -> link público del PDF del checklist
+    //    - Se actualiza tanto para initial como para final
     const checklistPublicUrl = generateChecklistPublicUrl(propertyId, checklistType);
-    updates['fldBOpKEktOI2GnZK'] = checklistPublicUrl; // Reno Checklist form
+    updates['fldBOpKEktOI2GnZK'] = checklistPublicUrl;
 
     const success = await updateAirtableWithRetry(tableName, recordId, updates);
 
     if (success) {
       console.log(`✅ Finalized initial check in Airtable for property ${propertyId}`);
       
-      // También actualizar fase en Supabase
-      await supabase
-        .from('properties')
-        .update({
-          'Set Up Status': 'Pending to budget (from Renovator)',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', propertyId);
+      // También actualizar fase en Supabase usando helper
+      const { updatePropertyPhaseConsistent } = await import('@/lib/supabase/phase-update-helper');
+      
+      if (checklistType === 'reno_initial') {
+        // Checklist inicial: mover a reno-budget-renovator
+        await updatePropertyPhaseConsistent(propertyId, {
+          setUpStatus: 'Pending to budget (from renovator)',
+          renoPhase: 'reno-budget-renovator',
+        });
+      } else if (checklistType === 'reno_final') {
+        // Checklist final: pasar de Final Check -> Cleaning
+        await updatePropertyPhaseConsistent(propertyId, {
+          setUpStatus: 'Cleaning',
+          renoPhase: 'cleaning',
+        });
+      }
     }
 
     return success;
