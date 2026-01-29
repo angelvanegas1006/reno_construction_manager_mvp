@@ -45,6 +45,20 @@ interface ClientUpdateEmail {
   created_by: string | null;
 }
 
+/** Fotos de avance de obra (subidas en fase obras en proceso) */
+interface ProgressPhoto {
+  id: string;
+  file_url: string;
+  file_name: string | null;
+  uploaded_at: string;
+}
+
+/** Fotos agrupadas por fecha de envío (YYYY-MM-DD) */
+interface ProgressPhotosByDate {
+  date: string;
+  photos: ProgressPhoto[];
+}
+
 interface PropertyStatusTabProps {
   propertyId: string;
 }
@@ -58,10 +72,13 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
   const { t, language } = useI18n();
   const [checklists, setChecklists] = useState<ChecklistHistory[]>([]);
   const [progressHistory, setProgressHistory] = useState<ProgressSaveHistory[]>([]);
+  const [progressPhotosByDate, setProgressPhotosByDate] = useState<ProgressPhotosByDate[]>([]);
   const [clientUpdates, setClientUpdates] = useState<ClientUpdateEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const { property: supabaseProperty } = useSupabaseProperty(propertyId);
+  // UUID resuelto: en BD las fotos se guardan por properties.id (UUID); la URL puede ser Unique ID
+  const resolvedPropertyId = supabaseProperty?.id ?? propertyId;
 
   // Calcular fase actual de la propiedad de forma estable
   const currentPhase = supabaseProperty 
@@ -85,7 +102,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
 
   useEffect(() => {
     const fetchChecklists = async () => {
-      if (!propertyId) return;
+      if (!resolvedPropertyId) return;
 
       const supabase = createClient();
       
@@ -95,7 +112,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
       let { data, error } = await supabase
         .from('property_inspections')
         .select('id, inspection_type, inspection_status, created_at, completed_at, created_by, pdf_url')
-        .eq('property_id', propertyId)
+        .eq('property_id', resolvedPropertyId)
         .order('created_at', { ascending: false });
 
       // If the error is that the column doesn't exist, try without inspection_type
@@ -104,7 +121,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
         const { data: allData, error: allError } = await supabase
           .from('property_inspections')
           .select('id, inspection_status, created_at, completed_at, created_by, pdf_url')
-          .eq('property_id', propertyId)
+          .eq('property_id', resolvedPropertyId)
           .order('created_at', { ascending: false });
         
         if (allError) {
@@ -275,24 +292,56 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
     };
 
     fetchChecklists();
-  }, [propertyId, currentPhase]);
+  }, [resolvedPropertyId, currentPhase]);
 
   // Cargar historial de progreso y updates enviados (solo si fase >= reno-in-progress)
   useEffect(() => {
     const fetchProgressHistory = async () => {
-      if (!propertyId || !shouldShowProgressHistory) {
+      if (!resolvedPropertyId || !shouldShowProgressHistory) {
         setProgressHistory([]);
+        setProgressPhotosByDate([]);
         setClientUpdates([]);
         return;
       }
 
       const supabase = createClient();
 
+      // 0. Cargar fotos de avance de obra (property_progress_photos) — siempre por UUID
+      const { data: progressPhotos, error: photosError } = await supabase
+        .from('property_progress_photos')
+        .select('id, file_url, file_name, uploaded_at')
+        .eq('property_id', resolvedPropertyId)
+        .order('uploaded_at', { ascending: false });
+
+      console.log('[PropertyStatusTab] Fotos de avance:', {
+        resolvedPropertyId,
+        count: progressPhotos?.length ?? 0,
+        error: photosError?.message ?? null,
+      });
+
+      if (photosError) {
+        console.error('[PropertyStatusTab] Error fetching progress photos:', photosError);
+        setProgressPhotosByDate([]);
+      } else if (progressPhotos?.length) {
+        const groupedByDate = new Map<string, ProgressPhoto[]>();
+        progressPhotos.forEach((p: ProgressPhoto) => {
+          const date = new Date(p.uploaded_at).toISOString().split('T')[0];
+          if (!groupedByDate.has(date)) groupedByDate.set(date, []);
+          groupedByDate.get(date)!.push(p);
+        });
+        const byDate: ProgressPhotosByDate[] = Array.from(groupedByDate.entries())
+          .map(([date, photos]) => ({ date, photos }))
+          .sort((a, b) => b.date.localeCompare(a.date));
+        setProgressPhotosByDate(byDate);
+      } else {
+        setProgressPhotosByDate([]);
+      }
+
       // 1. Cargar category_updates
       const { data: categoryUpdates, error: updatesError } = await supabase
         .from('category_updates')
         .select('id, category_id, category_text, photos, videos, notes, previous_percentage, new_percentage, created_at, created_by')
-        .eq('property_id', propertyId)
+        .eq('property_id', resolvedPropertyId)
         .order('created_at', { ascending: false });
 
       // Obtener nombres de categorías
@@ -358,7 +407,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
       const { data: updateEmails, error: emailsError } = await supabase
         .from('client_update_emails')
         .select('id, html_content, client_email, subject, sent_at, created_by')
-        .eq('property_id', propertyId)
+        .eq('property_id', resolvedPropertyId)
         .order('sent_at', { ascending: false });
 
       if (emailsError) {
@@ -410,7 +459,7 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
     };
 
     fetchProgressHistory();
-  }, [propertyId, shouldShowProgressHistory, userNames]);
+  }, [resolvedPropertyId, shouldShowProgressHistory, userNames]);
 
   if (loading) {
     return (
@@ -420,20 +469,17 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
     );
   }
 
-  if (checklists.length === 0) {
-    return (
-      <div className="bg-card rounded-lg border p-6 shadow-sm">
-        <p className="text-muted-foreground">{t.propertyStatusTab.noChecklistsYet}</p>
-      </div>
-    );
-  }
-
   const locale = language === "es" ? "es-ES" : "en-US";
 
   return (
     <div className="space-y-4">
-      {/* Checklists (siempre visible) */}
-      {checklists.map((checklist) => {
+      {/* Checklists (si hay; si no, mensaje pero seguimos mostrando fotos e historial) */}
+      {checklists.length === 0 ? (
+        <div className="bg-card rounded-lg border p-6 shadow-sm">
+          <p className="text-muted-foreground">{t.propertyStatusTab.noChecklistsYet}</p>
+        </div>
+      ) : (
+      checklists.map((checklist) => {
         // Considerar completado si tiene completed_at O si inspection_status es 'completed'
         const isCompleted = checklist.completed_at !== null || checklist.inspection_status === 'completed';
         
@@ -538,7 +584,8 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
             </div>
           </div>
         );
-      })}
+      })
+      )}
 
       {/* Historial de progreso guardado (solo si fase >= reno-in-progress) */}
       {shouldShowProgressHistory && progressHistory.length > 0 && (
@@ -602,6 +649,52 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
                         </div>
                       )}
                     </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Fotos de avance de obra (subidas por el usuario, agrupadas por fecha) */}
+      {shouldShowProgressHistory && progressPhotosByDate.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-foreground mb-4">
+            {t.propertyStatusTab.progressPhotosTitle}
+          </h2>
+          {progressPhotosByDate.map((group) => {
+            const groupDate = new Date(group.date).toLocaleDateString(locale, {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            });
+            return (
+              <div key={group.date} className="bg-card rounded-lg border p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <Image className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {t.propertyStatusTab.uploadedOn}: {groupDate}
+                  </h3>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {group.photos.map((photo) => (
+                    <a
+                      key={photo.id}
+                      href={photo.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative group aspect-square rounded-lg overflow-hidden border border-border bg-muted"
+                    >
+                      <img
+                        src={photo.file_url}
+                        alt={photo.file_name || "Foto de avance"}
+                        className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-end justify-center">
+                        <Image className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 mb-1" />
+                      </div>
+                    </a>
                   ))}
                 </div>
               </div>

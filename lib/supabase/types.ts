@@ -168,6 +168,8 @@ export type Database = {
           created_at: string | null
           drive_folder_id: string | null
           drive_folder_url: string | null
+          drive_folder_reno_updates_id: string | null
+          drive_folder_reno_updates_url: string | null
           estimated_end_date: string | null
           garage: string | null
           has_elevator: boolean | null
@@ -214,6 +216,8 @@ export type Database = {
           created_at?: string | null
           drive_folder_id?: string | null
           drive_folder_url?: string | null
+          drive_folder_reno_updates_id?: string | null
+          drive_folder_reno_updates_url?: string | null
           estimated_end_date?: string | null
           garage?: string | null
           has_elevator?: boolean | null
@@ -260,6 +264,8 @@ export type Database = {
           created_at?: string | null
           drive_folder_id?: string | null
           drive_folder_url?: string | null
+          drive_folder_reno_updates_id?: string | null
+          drive_folder_reno_updates_url?: string | null
           estimated_end_date?: string | null
           garage?: string | null
           has_elevator?: boolean | null

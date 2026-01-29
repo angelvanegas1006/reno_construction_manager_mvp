@@ -2,7 +2,11 @@
  * Script para verificar la configuración de Airtable
  */
 
+import { loadEnvConfig } from '@next/env';
 import Airtable from 'airtable';
+
+// Cargar variables de entorno desde .env.local
+loadEnvConfig(process.cwd());
 
 async function main() {
   const apiKey = process.env.NEXT_PUBLIC_AIRTABLE_API_KEY;

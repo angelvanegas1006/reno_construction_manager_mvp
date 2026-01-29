@@ -942,7 +942,9 @@ export default function RenoPropertyDetailPage() {
       case "resumen":
         return <PropertySummaryTab property={property} supabaseProperty={supabaseProperty} />;
       case "estado-propiedad":
-        return propertyId ? <PropertyStatusTab propertyId={propertyId} /> : null;
+        return propertyId ? (
+          <PropertyStatusTab propertyId={supabaseProperty?.id ?? propertyId} />
+        ) : null;
       case "presupuesto-reforma":
         // Validar que budget_pdf_url sea un string válido
         const budgetPdfUrl = supabaseProperty?.budget_pdf_url && typeof supabaseProperty.budget_pdf_url === 'string' && supabaseProperty.budget_pdf_url.trim().length > 0
