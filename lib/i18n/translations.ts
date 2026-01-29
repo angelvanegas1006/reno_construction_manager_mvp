@@ -522,6 +522,8 @@ export interface Translations {
     completedOn: string;
     createdBy: string;
     viewDetails: string;
+    progressPhotosTitle: string;
+    uploadedOn: string;
   };
   
   // Property Card
@@ -1629,6 +1631,8 @@ export const translations: Record<Language, Translations> = {
       completedOn: "Completado",
       createdBy: "Creado por",
       viewDetails: "Ver detalles",
+      progressPhotosTitle: "Fotos de avance de obra",
+      uploadedOn: "Subido el",
     },
     propertyCard: {
       expired: "Vencida",
@@ -2602,6 +2606,8 @@ export const translations: Record<Language, Translations> = {
       completedOn: "Completed",
       createdBy: "Created by",
       viewDetails: "View details",
+      progressPhotosTitle: "Progress photos",
+      uploadedOn: "Uploaded on",
     },
     propertyCard: {
       expired: "Expired",
