@@ -507,6 +507,41 @@ export type Database = {
           },
         ]
       }
+      property_progress_photos: {
+        Row: {
+          id: string
+          property_id: string
+          file_url: string
+          file_name: string | null
+          uploaded_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          file_url: string
+          file_name?: string | null
+          uploaded_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          file_url?: string
+          file_name?: string | null
+          uploaded_at?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_progress_photos_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_comments: {
         Row: {
           id: string
