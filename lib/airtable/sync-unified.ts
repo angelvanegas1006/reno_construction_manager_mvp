@@ -449,18 +449,23 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
     });
 
     // Paso 3: Obtener todas las propiedades existentes en Supabase
+    // Incluir "Unique ID From Engagements" para buscar por ese campo (Airtable usa Unique ID, Supabase id puede ser UUID)
     const { data: existingProperties, error: fetchError } = await supabase
       .from('properties')
-      .select('id, reno_phase, airtable_property_id');
+      .select('id, reno_phase, airtable_property_id, "Unique ID From Engagements"');
 
     if (fetchError) {
       throw new Error(`Error fetching existing properties: ${fetchError.message}`);
     }
 
-    const existingPropertyIds = new Set(existingProperties?.map(p => p.id) || []);
-    const existingPropertyMap = new Map(
-      existingProperties?.map(p => [p.id, p]) || []
-    );
+    // Mapa por Unique ID From Engagements para encontrar la fila de Supabase desde el mapping (que usa Unique ID)
+    const existingByUniqueId = new Map<string, { id: string; reno_phase: string | null }>();
+    (existingProperties || []).forEach((p: any) => {
+      const uniqueId = p['Unique ID From Engagements'];
+      if (uniqueId) {
+        existingByUniqueId.set(uniqueId, { id: p.id, reno_phase: p.reno_phase });
+      }
+    });
 
     // Crear set de IDs de Airtable que están en alguna vista
     const airtableIdsInViews = new Set(
@@ -473,7 +478,9 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
     for (const mapping of propertyMappings) {
       try {
         const supabaseData = mapAirtablePropertyToSupabase(mapping.propertyData);
-        const exists = existingPropertyIds.has(mapping.propertyId);
+        const existingProperty = existingByUniqueId.get(mapping.propertyId);
+        const exists = !!existingProperty;
+        const supabaseId = existingProperty?.id;
         
         // Determinar fase final (manejar upcoming-settlements con fecha)
         let finalPhase: RenoKanbanPhase = mapping.phase;
@@ -491,11 +498,9 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
 
         supabaseData.reno_phase = finalPhase;
 
-        if (exists) {
-          // Verificar si necesita actualización
-          const currentProperty = existingPropertyMap.get(mapping.propertyId);
-          const needsPhaseUpdate = currentProperty?.reno_phase !== finalPhase;
-          
+        if (exists && supabaseId) {
+          const needsPhaseUpdate = existingProperty.reno_phase !== finalPhase;
+
           if (needsPhaseUpdate) {
             const { error: updateError } = await supabase
               .from('properties')
@@ -503,7 +508,7 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
                 ...supabaseData,
                 reno_phase: finalPhase,
               })
-              .eq('id', mapping.propertyId);
+              .eq('id', supabaseId);
 
             if (updateError) {
               result.totalErrors++;
@@ -513,11 +518,10 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
               result.details.push(`Updated: ${mapping.propertyId} → ${finalPhase}`);
             }
           } else {
-            // Actualizar otros campos aunque la fase no cambie
             const { error: updateError } = await supabase
               .from('properties')
               .update(supabaseData)
-              .eq('id', mapping.propertyId);
+              .eq('id', supabaseId);
 
             if (updateError) {
               result.totalErrors++;
@@ -528,7 +532,7 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
             }
           }
         } else {
-          // Crear nueva propiedad
+          // Crear nueva propiedad (solo si no existe en Supabase)
           const { error: insertError } = await supabase
             .from('properties')
             .insert({
