@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { RenoKanbanColumn } from "./reno-kanban-column";
 import { ColumnSelectorDialog } from "./column-selector-dialog";
-import { RenoHomeLoader } from "./reno-home-loader";
+import { VistralLogoLoader } from "./vistral-logo-loader";
 import { Property } from "@/lib/property-storage";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { calculateOverallProgress } from "@/lib/property-validation";
 import { useI18n } from "@/lib/i18n";
-import { visibleRenoKanbanColumns, RenoKanbanPhase } from "@/lib/reno-kanban-config";
+import { visibleRenoKanbanColumns, RenoKanbanPhase, type RenoKanbanColumn as RenoKanbanColumnConfig } from "@/lib/reno-kanban-config";
 import { sortPropertiesByExpired, isPropertyExpired, isDelayedWork } from "@/lib/property-sorting";
 import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,6 +36,12 @@ interface RenoKanbanBoardProps {
   filters?: KanbanFilters;
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
+  /** When set (e.g. kanban-projects), use this instead of context propertiesByPhase */
+  propertiesByPhaseOverride?: Record<RenoKanbanPhase, Property[]>;
+  /** When set (e.g. kanban-projects), use these columns instead of visibleRenoKanbanColumns */
+  visibleColumnsOverride?: RenoKanbanColumnConfig[];
+  /** Query param "from" when navigating to property detail (default "kanban") */
+  fromParam?: string;
 }
 
 // Dummy data and helper functions removed - now using Supabase
@@ -66,7 +72,7 @@ const COLUMN_CONFIG: ColumnConfig[] = [
   { key: "status", label: "Estado", defaultVisible: true },
 ];
 
-export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onViewModeChange }: RenoKanbanBoardProps) {
+export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onViewModeChange, propertiesByPhaseOverride, visibleColumnsOverride, fromParam = "kanban" }: RenoKanbanBoardProps) {
   const { t, language } = useI18n();
   const { user } = useSupabaseAuth();
   const supabase = createClient();
@@ -76,12 +82,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [selectedPhaseFilter, setSelectedPhaseFilter] = useState<RenoKanbanPhase | "all">("all");
+
+  const visibleColumns = visibleColumnsOverride ?? visibleRenoKanbanColumns;
   
   // Column visibility state per phase - Map<phase, Set<columns>>
   const [visibleColumnsByPhase, setVisibleColumnsByPhase] = useState<Map<RenoKanbanPhase, Set<SortColumn>>>(() => {
     const defaultColumns = new Set(COLUMN_CONFIG.filter(col => col.defaultVisible).map(col => col.key));
     const map = new Map<RenoKanbanPhase, Set<SortColumn>>();
-    visibleRenoKanbanColumns.forEach(col => {
+    visibleColumns.forEach(col => {
       map.set(col.key, new Set(defaultColumns));
     });
     return map;
@@ -117,15 +125,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     // Always go to "tareas" tab when clicking from kanban
     // Pass viewMode as query param to remember the current view
     startTransition(() => {
-      router.push(`/reno/construction-manager/property/${property.id}?tab=tareas&viewMode=${viewMode}&from=kanban`);
+      router.push(`/reno/construction-manager/property/${property.id}?tab=tareas&viewMode=${viewMode}&from=${fromParam}`);
     });
   };
 
-  // Use properties from Supabase (no transformation needed, already grouped by phase)
+  // Use properties from Supabase or override (e.g. kanban-projects)
   const transformProperties = useMemo(() => {
-    // Return Supabase properties directly, already grouped by phase
-    return supabasePropertiesByPhase;
-  }, [supabasePropertiesByPhase]);
+    return propertiesByPhaseOverride ?? supabasePropertiesByPhase;
+  }, [propertiesByPhaseOverride, supabasePropertiesByPhase]);
 
   // Mock data initialization removed - now using Supabase only
 
@@ -667,7 +674,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       return null;
     }
     
-    for (const column of visibleRenoKanbanColumns) {
+    for (const column of visibleColumns) {
       const properties = filteredProperties[column.key] || [];
       if (properties.length > 0) {
         return properties[0].id;
@@ -682,7 +689,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     if (!highlightedPropertyId) return;
 
     let targetColumnKey: RenoKanbanPhase | null = null;
-    for (const column of visibleRenoKanbanColumns) {
+    for (const column of visibleColumns) {
       const properties = filteredProperties[column.key] || [];
       if (properties.some(p => p.id === highlightedPropertyId)) {
         targetColumnKey = column.key;
@@ -790,7 +797,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'orphaned': [],
     };
 
-    visibleRenoKanbanColumns.forEach((column) => {
+    visibleColumns.forEach((column) => {
       const properties = filteredProperties[column.key] || [];
       grouped[column.key] = properties.map(p => ({ ...p, currentPhase: column.key }));
     });
@@ -947,9 +954,9 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   // Filter phases based on selected filter (must be before early returns)
   const filteredPhases = useMemo(() => {
     if (selectedPhaseFilter === "all") {
-      return visibleRenoKanbanColumns;
+      return visibleColumns;
     }
-    return visibleRenoKanbanColumns.filter(col => col.key === selectedPhaseFilter);
+    return visibleColumns.filter(col => col.key === selectedPhaseFilter);
   }, [selectedPhaseFilter]);
 
   // Helper functions for sorting (used in list view) - MUST be before early returns
@@ -1008,14 +1015,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   if (supabaseLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <RenoHomeLoader />
+        <VistralLogoLoader />
       </div>
     );
   }
 
   // Render List View
   const renderListView = () => {
-    const hasAnyProperties = visibleRenoKanbanColumns.some(
+    const hasAnyProperties = visibleColumns.some(
       column => (propertiesByPhaseForList[column.key] || []).length > 0
     );
 
@@ -1061,7 +1068,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
             >
               <span>All ({totalCount})</span>
               {(() => {
-                const totalAlertCount = visibleRenoKanbanColumns.reduce((sum, col) => {
+                const totalAlertCount = visibleColumns.reduce((sum, col) => {
                   const props = propertiesByPhaseForList[col.key] || [];
                   return sum + props.filter((p: Property) => {
                     return isDelayedWork(p, col.key) || isPropertyExpired(p);
@@ -1076,7 +1083,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
             </button>
             
             {/* Phase Buttons */}
-            {visibleRenoKanbanColumns.map((column) => {
+            {visibleColumns.map((column) => {
               const properties = propertiesByPhaseForList[column.key] || [];
               const count = properties.length;
               const alertCount = properties.filter(p => {
@@ -1569,7 +1576,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     >
       {/* Mobile: Clean vertical layout */}
       <div className="flex flex-col md:hidden gap-1 pb-20 px-1">
-        {visibleRenoKanbanColumns.map((column) => {
+        {visibleColumns.map((column) => {
           const properties = filteredProperties[column.key] || [];
           const title = t.kanban[column.translationKey];
           
@@ -1592,7 +1599,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
 
       {/* Desktop: Horizontal layout */}
       <div className="hidden md:flex h-full gap-4 px-1" style={{ minWidth: "fit-content" }}>
-        {visibleRenoKanbanColumns.map((column) => {
+        {visibleColumns.map((column) => {
           const properties = filteredProperties[column.key] || [];
           const title = t.kanban[column.translationKey];
           
@@ -1631,7 +1638,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           columns={COLUMN_CONFIG}
           visibleColumns={getVisibleColumnsForPhase(columnSelectorOpen.phase)}
           phase={columnSelectorOpen.phase}
-          phaseLabel={t.kanban[visibleRenoKanbanColumns.find(col => col.key === columnSelectorOpen.phase)?.translationKey || "upcomingSettlements"]}
+          phaseLabel={t.kanban[visibleColumns.find(col => col.key === columnSelectorOpen.phase)?.translationKey || "upcomingSettlements"]}
           onSave={(visibleColumns, columnOrder) => {
             if (columnSelectorOpen.phase) {
               handleColumnSave(columnSelectorOpen.phase, visibleColumns, columnOrder);

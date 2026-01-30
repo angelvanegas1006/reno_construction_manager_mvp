@@ -5,7 +5,7 @@ import { useRef, startTransition, useEffect, useCallback, useMemo, useState, use
 import { NavbarL3 } from "@/components/layout/navbar-l3";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { RenoChecklistSidebar } from "@/components/reno/reno-checklist-sidebar";
-import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
+import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { ArrowLeft, Menu, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileSidebarMenu } from "@/components/property/mobile-sidebar-menu";
@@ -483,9 +483,11 @@ export default function RenoChecklistPage() {
         
         // Redirigir automáticamente después de un breve delay para que se vea el cambio
         setTimeout(() => {
-          // Si venimos del kanban, volver al kanban
+          // Si venimos del kanban o kanban-projects, volver allí
           if (sourcePage === 'kanban') {
-            router.push("/reno/construction-manager/kanban");
+            router.push(`/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`);
+          } else if (sourcePage === 'kanban-projects') {
+            router.push(`/reno/construction-manager/kanban-projects${viewMode === 'list' ? '?viewMode=list' : ''}`);
           } else {
             // Si no, volver a la página de detalle de propiedad
             router.push(`/reno/construction-manager/property/${propertyId}`);
@@ -1071,7 +1073,7 @@ export default function RenoChecklistPage() {
     return (
       <div className="flex h-screen overflow-hidden">
         <div className="flex flex-1 items-center justify-center">
-          <RenoHomeLoader />
+          <VistralLogoLoader />
         </div>
       </div>
     );
@@ -1110,7 +1112,7 @@ export default function RenoChecklistPage() {
     return (
       <div className="flex h-screen overflow-hidden">
         <div className="flex flex-1 items-center justify-center">
-          <RenoHomeLoader />
+          <VistralLogoLoader />
         </div>
       </div>
     );
@@ -1201,13 +1203,18 @@ export default function RenoChecklistPage() {
       <NavbarL3
         onBack={() => {
           console.log("🔙 Back button clicked - Source:", sourcePage, "ViewMode:", viewMode);
-          // Si viene del kanban, redirigir al kanban con el viewMode correspondiente
+          // Si viene del kanban o kanban-projects, redirigir con el viewMode correspondiente
           if (sourcePage === 'kanban') {
             const kanbanUrl = viewMode === 'list' 
               ? '/reno/construction-manager/kanban?viewMode=list'
               : '/reno/construction-manager/kanban';
             console.log("🔙 Redirecting to kanban:", kanbanUrl);
             router.push(kanbanUrl);
+          } else if (sourcePage === 'kanban-projects') {
+            const url = viewMode === 'list'
+              ? '/reno/construction-manager/kanban-projects?viewMode=list'
+              : '/reno/construction-manager/kanban-projects';
+            router.push(url);
           } else {
             // Si no viene del kanban, volver a la página de detalle de propiedad
             console.log("🔙 Redirecting to property detail:", `/reno/construction-manager/property/${property?.id}`);
@@ -1308,11 +1315,11 @@ export default function RenoChecklistPage() {
                         
                         // Redirigir automáticamente después de un breve delay
                         setTimeout(() => {
-                          // Si venimos del kanban, volver al kanban
                           if (sourcePage === 'kanban') {
-                            router.push("/reno/construction-manager/kanban");
+                            router.push(`/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`);
+                          } else if (sourcePage === 'kanban-projects') {
+                            router.push(`/reno/construction-manager/kanban-projects${viewMode === 'list' ? '?viewMode=list' : ''}`);
                           } else {
-                            // Si no, volver a la página de detalle de propiedad
                             router.push(`/reno/construction-manager/property/${propertyId}`);
                           }
                         }, 2000);
