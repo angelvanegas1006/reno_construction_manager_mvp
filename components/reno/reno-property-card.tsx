@@ -297,72 +297,69 @@ export function RenoPropertyCard({
         </div>
       </div>
 
-      {/* Tags */}
-      {showRenoDetails && property.renoType && (() => {
-        // Función para obtener los estilos del badge según el tipo de renovación
-        // - Light Reno: Verde fuerte (bg-green-600) sin borde ni hover
-        // - Medium Reno: Verde claro (bg-green-100)
-        // - Major Reno: Amarillo-naranja claro (bg-yellow-200)
-        const getRenoTypeBadgeStyles = (renoType?: string) => {
-          if (!renoType) return null;
-          
-          const typeLower = renoType.toLowerCase();
-          
-          // Light Reno: Verde fuerte sin borde ni hover
-          if (typeLower.includes('light')) {
-            return {
-              bg: 'bg-green-600 dark:bg-green-600',
-              text: 'text-white dark:text-white',
-              border: 'border-0',
-              hover: ''
-            };
+      {/* Tags: reno type + type (Unit/Building) desde Supabase */}
+      {showRenoDetails && (() => {
+        // Badge tipo propiedad (Unit = azul oscuro, Building = azul claro)
+        const propertyTypeRaw = (property as any).propertyType ?? (property as any).type ?? '';
+        const propertyTypeNormalized = typeof propertyTypeRaw === 'string' ? propertyTypeRaw.trim() : '';
+        const isUnit = propertyTypeNormalized.toLowerCase() === 'unit';
+        const isBuilding = propertyTypeNormalized.toLowerCase() === 'building';
+        const showTypeTag = isUnit || isBuilding;
+
+        const getTypeTagStyles = () => {
+          if (isUnit) {
+            return 'bg-blue-700 dark:bg-blue-800 text-white dark:text-white';
           }
-          
-          // Medium Reno: Verde claro
-          if (typeLower.includes('medium')) {
-            return {
-              bg: 'bg-green-100 dark:bg-green-900/30',
-              text: 'text-green-800 dark:text-green-300',
-              border: 'border border-green-200 dark:border-green-800/30',
-              hover: ''
-            };
+          if (isBuilding) {
+            return 'bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/50';
           }
-          
-          // Major Reno: Amarillo-naranja claro
-          if (typeLower.includes('major')) {
-            return {
-              bg: 'bg-yellow-200 dark:bg-yellow-900/30',
-              text: 'text-yellow-900 dark:text-yellow-200',
-              border: 'border border-yellow-300 dark:border-yellow-800/30',
-              hover: ''
-            };
-          }
-          
-          // Default: verde claro (por si acaso)
-          return {
-            bg: 'bg-green-100 dark:bg-green-900/30',
-            text: 'text-green-800 dark:text-green-300',
-            border: 'border border-green-200 dark:border-green-800/30',
-            hover: ''
-          };
+          return '';
         };
 
-        const badgeStyles = getRenoTypeBadgeStyles(property.renoType);
-        if (!badgeStyles) return null;
-        
+        // Función para obtener los estilos del badge según el tipo de renovación
+        const getRenoTypeBadgeStyles = (renoType?: string) => {
+          if (!renoType) return null;
+          const typeLower = renoType.toLowerCase();
+          if (typeLower.includes('light')) {
+            return { bg: 'bg-green-600 dark:bg-green-600', text: 'text-white dark:text-white', border: 'border-0', hover: '' };
+          }
+          if (typeLower.includes('medium')) {
+            return { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-800 dark:text-green-300', border: 'border border-green-200 dark:border-green-800/30', hover: '' };
+          }
+          if (typeLower.includes('major')) {
+            return { bg: 'bg-yellow-200 dark:bg-yellow-900/30', text: 'text-yellow-900 dark:text-yellow-200', border: 'border border-yellow-300 dark:border-yellow-800/30', hover: '' };
+          }
+          return { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-800 dark:text-green-300', border: 'border border-green-200 dark:border-green-800/30', hover: '' };
+        };
+
+        const badgeStyles = property.renoType ? getRenoTypeBadgeStyles(property.renoType) : null;
+        if (!badgeStyles && !showTypeTag) return null;
+
         return (
           <div className="flex flex-wrap gap-2 mb-3">
-            <span 
-              className={cn(
-                badgeStyles.bg,
-                badgeStyles.text,
-                badgeStyles.border,
-                badgeStyles.hover,
-                "inline-flex items-center rounded-full text-xs font-medium px-2 py-1"
-              )}
-            >
-              {property.renoType}
-            </span>
+            {property.renoType && badgeStyles && (
+              <span
+                className={cn(
+                  badgeStyles.bg,
+                  badgeStyles.text,
+                  badgeStyles.border,
+                  badgeStyles.hover,
+                  "inline-flex items-center rounded-full text-xs font-medium px-2 py-1"
+                )}
+              >
+                {property.renoType}
+              </span>
+            )}
+            {showTypeTag && (
+              <span
+                className={cn(
+                  getTypeTagStyles(),
+                  "inline-flex items-center rounded-full text-xs font-medium px-2 py-1"
+                )}
+              >
+                {propertyTypeNormalized}
+              </span>
+            )}
           </div>
         );
       })()}

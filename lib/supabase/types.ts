@@ -168,8 +168,6 @@ export type Database = {
           created_at: string | null
           drive_folder_id: string | null
           drive_folder_url: string | null
-          drive_folder_reno_updates_id: string | null
-          drive_folder_reno_updates_url: string | null
           estimated_end_date: string | null
           garage: string | null
           has_elevator: boolean | null
@@ -216,8 +214,6 @@ export type Database = {
           created_at?: string | null
           drive_folder_id?: string | null
           drive_folder_url?: string | null
-          drive_folder_reno_updates_id?: string | null
-          drive_folder_reno_updates_url?: string | null
           estimated_end_date?: string | null
           garage?: string | null
           has_elevator?: boolean | null
@@ -264,8 +260,6 @@ export type Database = {
           created_at?: string | null
           drive_folder_id?: string | null
           drive_folder_url?: string | null
-          drive_folder_reno_updates_id?: string | null
-          drive_folder_reno_updates_url?: string | null
           estimated_end_date?: string | null
           garage?: string | null
           has_elevator?: boolean | null
@@ -504,41 +498,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "properties_activities_view"
             referencedColumns: ["property_id"]
-          },
-        ]
-      }
-      property_progress_photos: {
-        Row: {
-          id: string
-          property_id: string
-          file_url: string
-          file_name: string | null
-          uploaded_at: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          property_id: string
-          file_url: string
-          file_name?: string | null
-          uploaded_at?: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          property_id?: string
-          file_url?: string
-          file_name?: string | null
-          uploaded_at?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "property_progress_photos_property_id_fkey"
-            columns: ["property_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
           },
         ]
       }

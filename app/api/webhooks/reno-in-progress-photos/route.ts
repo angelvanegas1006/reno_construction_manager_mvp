@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
 
 // Configuración para Next.js 13+ App Router
 // Usar runtime nodejs para tener más control sobre el procesamiento
@@ -8,7 +7,6 @@ export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 segundos de timeout
 
 const RENO_IN_PROGRESS_PHOTOS_WEBHOOK = 'https://n8n.prod.prophero.com/webhook/reno_in_progress_photos';
-const RENO_UPDATES_FOLDER_CREATION_WEBHOOK = 'https://n8n.prod.prophero.com/webhook/reno/updates/foldercreation';
 const STORAGE_BUCKET = 'inspection-images';
 
 interface PhotoImage {
@@ -87,10 +85,9 @@ export async function POST(request: NextRequest) {
     console.log('[Reno In Progress Photos API] 🔍 Fetching property data for ID:', propertyId);
     
     // Intentar buscar por UUID primero (id)
-    const propertySelect = 'id, address, drive_folder_id, drive_folder_url, drive_folder_reno_updates_id, drive_folder_reno_updates_url, "Unique ID From Engagements"';
     let { data: property, error: propertyError } = await supabase
       .from('properties')
-      .select(propertySelect)
+      .select('id, address, drive_folder_id, drive_folder_url, "Unique ID From Engagements"')
       .eq('id', propertyId)
       .single();
     
@@ -99,7 +96,7 @@ export async function POST(request: NextRequest) {
       console.log('[Reno In Progress Photos API] Property not found by UUID, trying Unique ID From Engagements...');
       const { data: propertyByUniqueId, error: uniqueIdError } = await supabase
         .from('properties')
-        .select(propertySelect)
+        .select('id, address, drive_folder_id, drive_folder_url, "Unique ID From Engagements"')
         .eq('"Unique ID From Engagements"', propertyId)
         .single();
       
@@ -156,64 +153,6 @@ export async function POST(request: NextRequest) {
         { error: 'Property does not have an address' },
         { status: 400 }
       );
-    }
-
-    // Si no tenemos subcarpeta de reno updates, crearla primero (una sola vez)
-    if (!property.drive_folder_reno_updates_id) {
-      console.log('[Reno In Progress Photos API] 📁 No reno updates folder, calling folder creation webhook...');
-      const folderPayload = {
-        address: property.address,
-        uniqueId: property['Unique ID From Engagements'] ?? null,
-        drive_folder_id: property.drive_folder_id,
-        drive_folder_url: property.drive_folder_url ?? undefined,
-      };
-      const folderRes = await fetch(RENO_UPDATES_FOLDER_CREATION_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(folderPayload),
-      });
-      if (!folderRes.ok) {
-        const errText = await folderRes.text();
-        console.error('[Reno In Progress Photos API] ❌ Folder creation webhook failed:', folderRes.status, errText);
-        return NextResponse.json(
-          {
-            error: 'No se pudo crear la carpeta de avances en Drive',
-            details: errText.substring(0, 300),
-          },
-          { status: 502 }
-        );
-      }
-      const folderData = (await folderRes.json().catch(() => ({}))) as { drive_folder_id?: string; drive_folder_url?: string };
-      const subfolderId = folderData.drive_folder_id;
-      const subfolderUrl = folderData.drive_folder_url;
-      if (subfolderId) {
-        const updateData: Record<string, string | null> = { drive_folder_reno_updates_id: subfolderId };
-        if (subfolderUrl != null) updateData.drive_folder_reno_updates_url = subfolderUrl;
-        const { error: updateErr } = await supabase
-          .from('properties')
-          .update(updateData)
-          .eq('id', property.id)
-          .is('drive_folder_reno_updates_id', null);
-        if (!updateErr) {
-          (property as any).drive_folder_reno_updates_id = subfolderId;
-          if (subfolderUrl != null) (property as any).drive_folder_reno_updates_url = subfolderUrl;
-          console.log('[Reno In Progress Photos API] ✅ Reno updates folder saved:', subfolderId);
-        }
-      }
-      // El segundo POST debe enviar solo los id de la subcarpeta recién creada, nunca la carpeta principal
-      if (!(property as any).drive_folder_reno_updates_id) {
-        console.error('[Reno In Progress Photos API] ❌ Folder webhook did not return drive_folder_id');
-        return NextResponse.json(
-          {
-            error: 'No se recibió el id de la carpeta de avances desde el servicio. No se pueden subir fotos.',
-          },
-          { status: 502 }
-        );
-      }
-      // Dar tiempo al workflow de n8n a terminar y a que los datos estén disponibles antes del siguiente POST
-      const FOLDER_CREATION_DELAY_MS = 3500;
-      console.log('[Reno In Progress Photos API] ⏳ Esperando', FOLDER_CREATION_DELAY_MS / 1000, 's antes de subir fotos...');
-      await new Promise((resolve) => setTimeout(resolve, FOLDER_CREATION_DELAY_MS));
     }
 
     // Subir todas las fotos a Supabase Storage en paralelo
@@ -307,42 +246,11 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    // Registrar en BD para mostrarlas en Estado de la propiedad
-    const rows = successfulUploads.map((r) => ({
-      property_id: property.id,
-      file_url: r.url!,
-      file_name: r.filename,
-    }));
-    let insertClient = supabase;
-    try {
-      insertClient = createAdminClient();
-    } catch {
-      // Si no hay SUPABASE_SERVICE_ROLE_KEY, usar cliente de sesión (RLS aplica)
-    }
-    const { error: insertError } = await insertClient
-      .from('property_progress_photos')
-      .insert(rows);
-    const photosSavedToStatus = !insertError;
-    if (insertError) {
-      console.error('[Reno In Progress Photos API] ❌ Error guardando fotos en property_progress_photos:', insertError.message, insertError.code);
-    } else {
-      console.log('[Reno In Progress Photos API] ✅ Fotos registradas en BD:', rows.length, 'para property_id:', property.id);
-    }
-
-    // Preparar payload para n8n: enviar solo los id/url de la subcarpeta de reno updates (la última creada), nunca la carpeta principal
-    const renoUpdatesFolderId = property.drive_folder_reno_updates_id;
-    const renoUpdatesFolderUrl = property.drive_folder_reno_updates_url ?? undefined;
-    if (!renoUpdatesFolderId) {
-      console.error('[Reno In Progress Photos API] ❌ Missing drive_folder_reno_updates_id before photo webhook');
-      return NextResponse.json(
-        { error: 'Falta la carpeta de avances en Drive. Intenta de nuevo.' },
-        { status: 500 }
-      );
-    }
+    
+    // Preparar payload para n8n con todas las fotos (usar URLs de Storage si están disponibles, sino usar base64)
     const payload: PhotosWebhookPayload = {
-      driveFolder_id: renoUpdatesFolderId,
-      drive_folder_url: renoUpdatesFolderUrl,
+      driveFolder_id: property.drive_folder_id,
+      drive_folder_url: property.drive_folder_url || undefined,
       propertyAddress: property.address,
       images: uploadResults.map((result) => ({
         url: result.url || photoUrls[result.index].url, // Usar URL de Storage si está disponible, sino base64 original
@@ -408,9 +316,6 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'Photos uploaded successfully',
         response: responseData,
-        photosSavedToStatus,
-        propertyIdUsed: property.id,
-        ...(insertError && { insertError: insertError.message, insertCode: insertError.code }),
       });
     } catch (fetchError: any) {
       clearTimeout(timeoutId);

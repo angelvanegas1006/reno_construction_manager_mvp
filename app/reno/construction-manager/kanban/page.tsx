@@ -46,6 +46,7 @@ export default function RenoConstructionManagerKanbanPage() {
     technicalConstructors: filters.technicalConstructors,
     areaClusters: filters.areaClusters,
     delayedWorks: filters.delayedWorks,
+    propertyTypes: filters.propertyTypes ?? [],
   };
 
   return (
@@ -99,6 +100,7 @@ export default function RenoConstructionManagerKanbanPage() {
               technicalConstructors: newFilters.technicalConstructors,
               areaClusters: newFilters.areaClusters,
               delayedWorks: newFilters.delayedWorks,
+              propertyTypes: newFilters.propertyTypes ?? [],
             });
           }}
         />

@@ -89,37 +89,28 @@ export function RenoInProgressPhotoUpload({
       const BATCH_SIZE = 3;
       const uploadedBatchPhotos: string[] = [];
       const failedBatchPhotos: string[] = [];
-      const failedBatchErrorMessages: string[] = [];
-      let anyBatchNotSavedToStatus = false;
-
+      
       for (let i = 0; i < photoUrls.length; i += BATCH_SIZE) {
         const batch = photoUrls.slice(i, i + BATCH_SIZE);
         const batchPhotoIds = photosWithData.slice(i, i + BATCH_SIZE).map(p => p.id);
-
+        
         console.log(`[RenoInProgressPhotoUpload] 📤 Subiendo lote ${Math.floor(i / BATCH_SIZE) + 1} de ${Math.ceil(photoUrls.length / BATCH_SIZE)}:`, {
           batchSize: batch.length,
           photos: batch.map(p => p.filename),
         });
-
-        const result = await uploadRenoInProgressPhotos(propertyId, batch);
-
-        if (result.success) {
+        
+        const batchSuccess = await uploadRenoInProgressPhotos(propertyId, batch);
+        
+        if (batchSuccess) {
+          // Marcar las fotos de este lote como subidas
           batchPhotoIds.forEach(id => uploadedBatchPhotos.push(id));
           console.log(`[RenoInProgressPhotoUpload] ✅ Lote ${Math.floor(i / BATCH_SIZE) + 1} subido correctamente`);
-          if (result.photosSavedToStatus === false) anyBatchNotSavedToStatus = true;
         } else {
+          // Marcar las fotos de este lote como fallidas
           batchPhotoIds.forEach(id => failedBatchPhotos.push(id));
-          const errMsg = result.errorMessage || 'Error desconocido';
-          console.error(`[RenoInProgressPhotoUpload] ❌ Error en lote ${Math.floor(i / BATCH_SIZE) + 1}:`, errMsg);
-          failedBatchErrorMessages.push(errMsg);
+          console.error(`[RenoInProgressPhotoUpload] ❌ Error en lote ${Math.floor(i / BATCH_SIZE) + 1}`);
+          // Continuar con el siguiente lote aunque este falle
         }
-      }
-
-      if (anyBatchNotSavedToStatus) {
-        toast.warning("Fotos subidas a Drive, pero no en Estado de la propiedad", {
-          description: "Añade SUPABASE_SERVICE_ROLE_KEY en Vercel (Environment Variables) para que las fotos aparezcan en el tab Estado de la propiedad.",
-          duration: 10000,
-        });
       }
 
       // Actualizar estado con las fotos subidas exitosamente
@@ -136,11 +127,10 @@ export function RenoInProgressPhotoUpload({
         });
       }
       
-      // Mostrar error si alguna foto falló (con mensaje de la API si está disponible)
+      // Mostrar error si alguna foto falló
       if (failedBatchPhotos.length > 0) {
-        const firstError = failedBatchErrorMessages[0];
         toast.error("Algunas fotos no se pudieron subir", {
-          description: firstError || `${failedBatchPhotos.length} foto${failedBatchPhotos.length > 1 ? 's' : ''} no se ${failedBatchPhotos.length > 1 ? 'pudieron' : 'pudo'} subir. Verifica que la propiedad tenga una carpeta de Drive configurada o contacta al administrador.`,
+          description: `${failedBatchPhotos.length} foto${failedBatchPhotos.length > 1 ? 's' : ''} no se ${failedBatchPhotos.length > 1 ? 'pudieron' : 'pudo'} subir. Verifica que la propiedad tenga una carpeta de Drive configurada o contacta al administrador.`,
           duration: 6000,
         });
       }
@@ -162,17 +152,18 @@ export function RenoInProgressPhotoUpload({
     }
   }, [propertyId, photos, uploadedPhotos]);
 
-  const removePhoto = useCallback((photoId: string) => {
-    setPhotos(prev => prev.filter(p => p.id !== photoId));
-    setUploadedPhotos(prev => {
-      const next = new Set(prev);
-      next.delete(photoId);
-      return next;
-    });
-  }, []);
+  const removePhoto = useCallback((index: number) => {
+    const photo = photos[index];
+    setPhotos(prev => prev.filter((_, i) => i !== index));
+    // Remover de uploadedPhotos si estaba marcada como subida
+    if (photo && uploadedPhotos.has(photo.id)) {
+      const newUploadedPhotos = new Set(uploadedPhotos);
+      newUploadedPhotos.delete(photo.id);
+      setUploadedPhotos(newUploadedPhotos);
+    }
+  }, [photos, uploadedPhotos]);
 
-  const pendingPhotos = photos.filter(p => !uploadedPhotos.has(p.id));
-  const hasUnuploadedPhotos = pendingPhotos.length > 0;
+  const hasUnuploadedPhotos = photos.some(p => !uploadedPhotos.has(p.id));
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -239,58 +230,68 @@ export function RenoInProgressPhotoUpload({
           </label>
         </div>
 
-        {/* Photo Grid: solo fotos pendientes de subir (las ya subidas no se muestran) */}
-        {pendingPhotos.length > 0 && (
+        {/* Photo Grid */}
+        {photos.length > 0 && (
           <div className="mt-4 space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {pendingPhotos.map((photo) => (
-                <div
-                  key={photo.id}
-                  className="relative group aspect-square rounded-lg overflow-hidden border border-border bg-muted"
-                >
-                  <img
-                    src={photo.data || ""}
-                    alt={photo.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100">
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => removePhoto(photo.id)}
-                        title="Eliminar"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+              {photos.map((photo, index) => {
+                const isUploaded = uploadedPhotos.has(photo.id);
+                return (
+                  <div
+                    key={photo.id}
+                    className="relative group aspect-square rounded-lg overflow-hidden border border-border bg-muted"
+                  >
+                    <img
+                      src={photo.data || ""}
+                      alt={photo.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {isUploaded && (
+                      <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                        Subida
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100">
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => removePhoto(index)}
+                          title="Eliminar"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Upload Button */}
-            <Button
-              onClick={handleUpload}
-              disabled={isUploading}
-              className="w-full"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Subiendo fotos...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Subir {pendingPhotos.length} foto{pendingPhotos.length > 1 ? 's' : ''}
-                </>
-              )}
-            </Button>
+            {hasUnuploadedPhotos && (
+              <Button
+                onClick={handleUpload}
+                disabled={isUploading || !hasUnuploadedPhotos}
+                className="w-full"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Subiendo fotos...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Subir {photos.filter(p => !uploadedPhotos.has(p.id)).length} foto{photos.filter(p => !uploadedPhotos.has(p.id)).length > 1 ? 's' : ''}
+                  </>
+                )}
+              </Button>
+            )}
 
             <p className="text-sm text-muted-foreground text-center">
-              {pendingPhotos.length} {pendingPhotos.length === 1 ? 'foto' : 'fotos'} pendiente{pendingPhotos.length > 1 ? 's' : ''} de subir
+              {photos.length} {photos.length === 1 ? 'foto' : 'fotos'} seleccionada{photos.length > 1 ? 's' : ''}
               {photos.length < MAX_FILES && ` (máximo ${MAX_FILES})`}
             </p>
           </div>

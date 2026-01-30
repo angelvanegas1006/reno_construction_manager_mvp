@@ -77,6 +77,8 @@ function mapPhaseToAirtable(phase: string): string {
     'final-check': 'Final Check',
     'completed': 'Completed',
     'nuevas-escrituras': 'Nuevas Escrituras',
+    'furnishing': 'Furnishing',
+    'cleaning': 'Cleaning',
   };
 
   return mapping[phase] || phase;

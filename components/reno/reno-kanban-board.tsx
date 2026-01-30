@@ -325,13 +325,15 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       technicalConstructors: [],
       areaClusters: [],
       delayedWorks: false,
+      propertyTypes: [],
     };
 
     const hasActiveFilters = 
       activeFilters.renovatorNames.length > 0 ||
       activeFilters.technicalConstructors.length > 0 ||
       activeFilters.areaClusters.length > 0 ||
-      activeFilters.delayedWorks;
+      activeFilters.delayedWorks ||
+      (activeFilters.propertyTypes?.length ?? 0) > 0;
 
     const query = searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -419,12 +421,15 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       const technicalConstructor = (property as any).supabaseProperty?.["Technical construction"];
       const areaCluster = (property as any).region || 
                          (property as any).supabaseProperty?.area_cluster;
+      const propertyTypeRaw = (property as any).propertyType ?? (property as any).type ?? '';
+      const propertyTypeNormalized = typeof propertyTypeRaw === 'string' ? propertyTypeRaw.trim().toLowerCase() : '';
 
       // Lógica OR: la propiedad debe cumplir al menos uno de los filtros seleccionados
       // Dentro de cada tipo de filtro también es OR (cualquiera de los seleccionados)
       let matchesRenovator = false;
       let matchesTechnical = false;
       let matchesArea = false;
+      let matchesType = false;
 
       // Si hay filtros de renovator, verificar si coincide con alguno
       if (activeFilters.renovatorNames.length > 0) {
@@ -462,12 +467,19 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
         }
       }
 
+      // Si hay filtros de tipo (Unit / Building), verificar si coincide
+      const selectedTypes = activeFilters.propertyTypes ?? [];
+      if (selectedTypes.length > 0 && propertyTypeNormalized) {
+        matchesType = selectedTypes.some(t => propertyTypeNormalized === t.trim().toLowerCase());
+      }
+
       // OR lógico entre tipos de filtros: debe cumplir al menos uno de los tipos de filtros activos
       // Si un tipo de filtro no está activo, no se considera en el OR
       const activeFilterTypes: boolean[] = [];
       if (activeFilters.renovatorNames.length > 0) activeFilterTypes.push(matchesRenovator);
       if (activeFilters.technicalConstructors.length > 0) activeFilterTypes.push(matchesTechnical);
       if (activeFilters.areaClusters.length > 0) activeFilterTypes.push(matchesArea);
+      if (selectedTypes.length > 0) activeFilterTypes.push(matchesType);
 
       // Si solo está activo el filtro de obras tardías (sin otros filtros), mostrar todas las tardías
       if (activeFilters.delayedWorks && activeFilterTypes.length === 0) {

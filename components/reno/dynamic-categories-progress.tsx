@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DateTimePicker } from '@/components/property/datetime-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { useDynamicCategories } from '@/hooks/useDynamicCategories';
@@ -26,6 +27,9 @@ import type { Database } from '@/lib/supabase/types';
 import { callN8nCategoriesWebhook, prepareWebhookPayload } from '@/lib/n8n/webhook-caller';
 import { calculateNextUpdateDate } from '@/lib/reno/update-calculator';
 import { RenoInProgressPhotoUpload } from './reno-in-progress-photo-upload';
+import { updatePropertyPhaseConsistent } from '@/lib/supabase/phase-update-helper';
+import { syncPhaseToAirtable } from '@/lib/airtable/phase-sync';
+import { useI18n } from '@/lib/i18n';
 
 type SupabaseProperty = Database['public']['Tables']['properties']['Row'];
 
@@ -34,6 +38,9 @@ interface DynamicCategoriesProgressProps {
   onSaveRef?: (saveFn: () => Promise<void>) => void;
   onSendRef?: (sendFn: () => void) => void;
   onHasUnsavedChangesChange?: (hasChanges: boolean) => void;
+  onCanFinalizeChange?: (can: boolean) => void;
+  onFinalizeRef?: (openModal: () => void) => void;
+  onPhaseChanged?: () => void;
 }
 
 // Componente para mostrar los updates de una categoría
@@ -171,7 +178,8 @@ function extractCategoryOrderNumber(categoryName: string): number {
   return 9999; // Sin número, va al final
 }
 
-export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHasUnsavedChangesChange }: DynamicCategoriesProgressProps) {
+export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHasUnsavedChangesChange, onCanFinalizeChange, onFinalizeRef, onPhaseChanged }: DynamicCategoriesProgressProps) {
+  const { t } = useI18n();
   const { categories, loading, saveAllProgress, deleteCategory, refetch } = useDynamicCategories(property.id);
   const supabase = createClient();
   const [localPercentages, setLocalPercentages] = useState<Record<string, number>>({});
@@ -202,6 +210,12 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   
   // Estado para controlar qué categoría está mostrando el modal de fotos
   const [photoDialogOpen, setPhotoDialogOpen] = useState<Record<string, boolean>>({});
+
+  // Dar obra por finalizada: modal, checkboxes por grupo y por partida (dentro de cada categoría)
+  const [finalizeModalOpen, setFinalizeModalOpen] = useState(false);
+  const [finalizeCheckboxes, setFinalizeCheckboxes] = useState<Record<string, boolean>>({});
+  const [finalizeItemCheckboxes, setFinalizeItemCheckboxes] = useState<Record<string, boolean>>({});
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
   // Verificar si hay categorías sin actividades
   const hasCategoriesWithoutActivities = categories.length > 0 && categories.every(cat => !cat.activities_text || cat.activities_text.trim().length === 0);
@@ -485,6 +499,14 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
     }, 0);
     return Math.round(total / sortedCategories.length);
   }, [sortedCategories, localPercentages]);
+
+  // Todas las categorías al 100% para mostrar "Dar obra por finalizada"
+  const allCategoriesAt100 = useMemo(() => {
+    if (categories.length === 0) return false;
+    return categories.every(
+      (cat) => (localPercentages[cat.id] ?? cat.percentage ?? 0) >= 100
+    );
+  }, [categories, localPercentages]);
 
   // Get minimum allowed value for a category (last saved value or 0)
   const getMinAllowedValue = useCallback((categoryId: string): number => {
@@ -772,6 +794,72 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       onHasUnsavedChangesChange(hasUnsavedChanges);
     }
   }, [hasUnsavedChanges, onHasUnsavedChangesChange]);
+
+  useEffect(() => {
+    onCanFinalizeChange?.(allCategoriesAt100);
+  }, [allCategoriesAt100, onCanFinalizeChange]);
+
+  useEffect(() => {
+    if (onFinalizeRef) {
+      onFinalizeRef(() => setFinalizeModalOpen(true));
+    }
+  }, [onFinalizeRef]);
+
+  // Lista de keys de partidas para inicializar checkboxes y comprobar "todos marcados"
+  const finalizeItemKeys = useMemo(() => {
+    const keys: string[] = [];
+    groupedCategories.forEach((g) => {
+      g.categories.forEach((cat) => {
+        const partidas = parseActivitiesText(cat.activities_text);
+        partidas.forEach((_, i) => keys.push(`${cat.id}-partida-${i}`));
+      });
+    });
+    return keys;
+  }, [groupedCategories]);
+
+  const prevFinalizeModalOpen = useRef(false);
+  useEffect(() => {
+    const justOpened = finalizeModalOpen && !prevFinalizeModalOpen.current;
+    prevFinalizeModalOpen.current = finalizeModalOpen;
+    if (justOpened && groupedCategories.length > 0) {
+      setFinalizeCheckboxes(
+        Object.fromEntries(groupedCategories.map((g) => [g.categoryName, false]))
+      );
+      setFinalizeItemCheckboxes(
+        Object.fromEntries(finalizeItemKeys.map((k) => [k, false]))
+      );
+    }
+  }, [finalizeModalOpen, groupedCategories, finalizeItemKeys]);
+
+  const allFinalizeCheckboxesChecked =
+    groupedCategories.length > 0 &&
+    groupedCategories.every((g) => finalizeCheckboxes[g.categoryName] === true) &&
+    (finalizeItemKeys.length === 0 ||
+      finalizeItemKeys.every((key) => finalizeItemCheckboxes[key] === true));
+
+  const handleConfirmFinalize = useCallback(async () => {
+    if (!allFinalizeCheckboxesChecked || isFinalizing) return;
+    setIsFinalizing(true);
+    try {
+      const result = await updatePropertyPhaseConsistent(property.id, {
+        setUpStatus: 'Furnishing',
+        renoPhase: 'furnishing',
+      });
+      if (!result.success) {
+        toast.error(result.error ?? 'Error al actualizar la fase');
+        return;
+      }
+      await syncPhaseToAirtable(property.id, 'furnishing');
+      setFinalizeModalOpen(false);
+      toast.success('Obra dada por finalizada. La propiedad ha pasado a Amoblamiento.');
+      refetch();
+      onPhaseChanged?.();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al finalizar la obra');
+    } finally {
+      setIsFinalizing(false);
+    }
+  }, [property.id, allFinalizeCheckboxesChecked, isFinalizing, refetch, onPhaseChanged]);
 
   const handleDelete = useCallback(async (categoryId: string) => {
     const confirmed = window.confirm('¿Estás seguro de que quieres eliminar esta categoría?');
@@ -1562,24 +1650,132 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
           >
             Guardar Progreso
           </Button>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              // Primero guardar todos los cambios pendientes (incluyendo subir fotos)
-              if (hasUnsavedChanges) {
-                toast.info('Guardando cambios antes de enviar update...');
-                await handleSave();
-                toast.success('Cambios guardados correctamente');
-              }
-              // Luego abrir el selector de imágenes
-              setSendUpdateImageSelectorOpen(true);
-            }}
-            disabled={loading}
-          >
-            Enviar Update a Cliente
-          </Button>
+          {allCategoriesAt100 ? (
+            <Button
+              onClick={() => setFinalizeModalOpen(true)}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700 text-white border-0"
+            >
+              {t.propertyPage.darObraPorFinalizada}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (hasUnsavedChanges) {
+                  toast.info('Guardando cambios antes de enviar update...');
+                  await handleSave();
+                  toast.success('Cambios guardados correctamente');
+                }
+                setSendUpdateImageSelectorOpen(true);
+              }}
+              disabled={loading}
+            >
+              Enviar Update a Cliente
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Modal Dar obra por finalizada */}
+      <Dialog open={finalizeModalOpen} onOpenChange={setFinalizeModalOpen}>
+        <DialogContent className="sm:max-w-[680px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t.propertyPage.finalizeModalTitle}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {t.propertyPage.finalizeModalDescription}
+          </p>
+          <div className="space-y-3 py-4">
+            {groupedCategories.map((group) => {
+              const partidasByCategory = group.categories.map((cat) => ({
+                categoryId: cat.id,
+                partidas: parseActivitiesText(cat.activities_text),
+                budgetIndex: cat.budget_index ?? 1,
+              }));
+              const hasPartidas = partidasByCategory.some((p) => p.partidas.length > 0);
+              return (
+                <div
+                  key={group.categoryName}
+                  className="rounded-lg border overflow-hidden"
+                >
+                  {/* Checkbox de la categoría */}
+                  <div className="flex items-center space-x-2 p-3 bg-muted/20">
+                    <Checkbox
+                      id={`finalize-${group.categoryName}`}
+                      checked={finalizeCheckboxes[group.categoryName] === true}
+                      onCheckedChange={(checked) =>
+                        setFinalizeCheckboxes((prev) => ({
+                          ...prev,
+                          [group.categoryName]: checked === true,
+                        }))
+                      }
+                    />
+                    <label
+                      htmlFor={`finalize-${group.categoryName}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                    >
+                      {group.categoryName}
+                    </label>
+                  </div>
+                  {/* Partidas dentro de la categoría */}
+                  {hasPartidas && (
+                    <div className="px-3 pb-3 pt-1 space-y-2 border-t">
+                      {partidasByCategory.flatMap(({ categoryId, partidas, budgetIndex }) =>
+                        partidas.map((partida, index) => {
+                          const itemKey = `${categoryId}-partida-${index}`;
+                          const label =
+                            partidasByCategory.length > 1
+                              ? `[P${budgetIndex}] ${partida.number} — ${partida.title}`
+                              : `${partida.number} — ${partida.title}`;
+                          return (
+                            <div
+                              key={itemKey}
+                              className="flex items-start space-x-2 rounded-md pl-4"
+                            >
+                              <Checkbox
+                                id={`finalize-item-${itemKey}`}
+                                checked={finalizeItemCheckboxes[itemKey] === true}
+                                onCheckedChange={(checked) =>
+                                  setFinalizeItemCheckboxes((prev) => ({
+                                    ...prev,
+                                    [itemKey]: checked === true,
+                                  }))
+                                }
+                              />
+                              <label
+                                htmlFor={`finalize-item-${itemKey}`}
+                                className="text-sm leading-snug peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                              >
+                                {label.length > 80 ? `${label.slice(0, 80)}…` : label}
+                              </label>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setFinalizeModalOpen(false)}
+              disabled={isFinalizing}
+            >
+              {t.propertyPage.cancel}
+            </Button>
+            <Button
+              onClick={handleConfirmFinalize}
+              disabled={!allFinalizeCheckboxesChecked || isFinalizing}
+            >
+              {isFinalizing ? t.propertyPage.finalizing : t.propertyPage.avanzarAAmoblamiento}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <SendUpdateImageSelector
         open={sendUpdateImageSelectorOpen}
