@@ -10,7 +10,7 @@ import { Property } from "@/lib/property-storage";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { calculateOverallProgress } from "@/lib/property-validation";
 import { useI18n } from "@/lib/i18n";
-import { visibleRenoKanbanColumns, RenoKanbanPhase, type RenoKanbanColumn } from "@/lib/reno-kanban-config";
+import { visibleRenoKanbanColumns, RenoKanbanPhase, type RenoKanbanColumn as RenoKanbanColumnConfig } from "@/lib/reno-kanban-config";
 import { sortPropertiesByExpired, isPropertyExpired, isDelayedWork } from "@/lib/property-sorting";
 import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,7 +39,7 @@ interface RenoKanbanBoardProps {
   /** When set (e.g. kanban-projects), use this instead of context propertiesByPhase */
   propertiesByPhaseOverride?: Record<RenoKanbanPhase, Property[]>;
   /** When set (e.g. kanban-projects), use these columns instead of visibleRenoKanbanColumns */
-  visibleColumnsOverride?: RenoKanbanColumn[];
+  visibleColumnsOverride?: RenoKanbanColumnConfig[];
   /** Query param "from" when navigating to property detail (default "kanban") */
   fromParam?: string;
 }
