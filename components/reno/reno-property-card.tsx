@@ -297,14 +297,17 @@ export function RenoPropertyCard({
         </div>
       </div>
 
-      {/* Tags: reno type + type (Unit/Building) desde Supabase */}
+      {/* Tags: reno type + type (Unit/Building/Project/WIP) desde Supabase */}
       {showRenoDetails && (() => {
-        // Badge tipo propiedad (Unit = azul oscuro, Building = azul claro)
+        // Badge tipo propiedad: Unit/Building = azules; Project/WIP = tonalidades azul
         const propertyTypeRaw = (property as any).propertyType ?? (property as any).type ?? '';
         const propertyTypeNormalized = typeof propertyTypeRaw === 'string' ? propertyTypeRaw.trim() : '';
-        const isUnit = propertyTypeNormalized.toLowerCase() === 'unit';
-        const isBuilding = propertyTypeNormalized.toLowerCase() === 'building';
-        const showTypeTag = isUnit || isBuilding;
+        const typeLower = propertyTypeNormalized.toLowerCase();
+        const isUnit = typeLower === 'unit';
+        const isBuilding = typeLower === 'building';
+        const isProject = typeLower === 'project';
+        const isWIP = typeLower === 'wip';
+        const showTypeTag = isUnit || isBuilding || isProject || isWIP;
 
         const getTypeTagStyles = () => {
           if (isUnit) {
@@ -312,6 +315,12 @@ export function RenoPropertyCard({
           }
           if (isBuilding) {
             return 'bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/50';
+          }
+          if (isProject) {
+            return 'bg-blue-600 dark:bg-blue-700 text-white dark:text-white';
+          }
+          if (isWIP) {
+            return 'bg-sky-200 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200 border border-sky-300 dark:border-sky-700/50';
           }
           return '';
         };

@@ -1694,6 +1694,40 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                 budgetIndex: cat.budget_index ?? 1,
               }));
               const hasPartidas = partidasByCategory.some((p) => p.partidas.length > 0);
+              const itemKeysForGroup = hasPartidas
+                ? partidasByCategory.flatMap(({ categoryId, partidas }) =>
+                    partidas.map((_, i) => `${categoryId}-partida-${i}`)
+                  )
+                : [];
+
+              const handleCategoryCheck = (checked: boolean) => {
+                setFinalizeCheckboxes((prev) => ({
+                  ...prev,
+                  [group.categoryName]: checked,
+                }));
+                if (itemKeysForGroup.length > 0) {
+                  setFinalizeItemCheckboxes((prev) => {
+                    const next = { ...prev };
+                    itemKeysForGroup.forEach((k) => (next[k] = checked));
+                    return next;
+                  });
+                }
+              };
+
+              const handlePartidaCheck = (itemKey: string, checked: boolean) => {
+                setFinalizeItemCheckboxes((prev) => {
+                  const next = { ...prev, [itemKey]: checked };
+                  const allChecked =
+                    itemKeysForGroup.length > 0 &&
+                    itemKeysForGroup.every((k) => next[k] === true);
+                  setFinalizeCheckboxes((prevCat) => ({
+                    ...prevCat,
+                    [group.categoryName]: allChecked,
+                  }));
+                  return next;
+                });
+              };
+
               return (
                 <div
                   key={group.categoryName}
@@ -1705,10 +1739,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                       id={`finalize-${group.categoryName}`}
                       checked={finalizeCheckboxes[group.categoryName] === true}
                       onCheckedChange={(checked) =>
-                        setFinalizeCheckboxes((prev) => ({
-                          ...prev,
-                          [group.categoryName]: checked === true,
-                        }))
+                        handleCategoryCheck(checked === true)
                       }
                     />
                     <label
@@ -1737,10 +1768,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                                 id={`finalize-item-${itemKey}`}
                                 checked={finalizeItemCheckboxes[itemKey] === true}
                                 onCheckedChange={(checked) =>
-                                  setFinalizeItemCheckboxes((prev) => ({
-                                    ...prev,
-                                    [itemKey]: checked === true,
-                                  }))
+                                  handlePartidaCheck(itemKey, checked === true)
                                 }
                               />
                               <label
