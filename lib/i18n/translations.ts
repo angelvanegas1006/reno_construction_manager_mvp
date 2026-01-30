@@ -152,6 +152,7 @@ export interface Translations {
     technicalConstructor: string;
     areaCluster: string;
     searchAreaCluster: string;
+    propertyType: string;
     noValuesAvailable: string;
     clearAll: string;
     noPropertiesInState: string;
@@ -510,6 +511,12 @@ export interface Translations {
     modifyDate: string;
     saving: string;
     save: string;
+    darObraPorFinalizada: string;
+    avanzarAAmoblamiento: string;
+    finalizeModalTitle: string;
+    finalizeModalDescription: string;
+    cancel: string;
+    finalizing: string;
   };
   
   // Property Status Tab
@@ -772,6 +779,7 @@ export const translations: Record<Language, Translations> = {
       technicalConstructor: "Jefe de Obra",
       areaCluster: "Grupo de Área",
       searchAreaCluster: "Buscar área...",
+      propertyType: "Tipo",
       noValuesAvailable: "No hay valores disponibles",
       clearAll: "Limpiar todos",
       noPropertiesInState: "No hay propiedades en este estado",
@@ -1621,6 +1629,12 @@ export const translations: Record<Language, Translations> = {
       modifyDate: "Modificar fecha",
       saving: "Guardando...",
       save: "Guardar",
+      darObraPorFinalizada: "Dar obra por finalizada",
+      avanzarAAmoblamiento: "Avanzar a Amoblamiento",
+      finalizeModalTitle: "Dar obra por finalizada",
+      finalizeModalDescription: "Marca todas las categorías para confirmar que la obra está finalizada y avanzar la propiedad a Amoblamiento.",
+      cancel: "Cancelar",
+      finalizing: "Guardando...",
     },
     propertyStatusTab: {
       loadingHistory: "Cargando historial...",
@@ -1794,6 +1808,7 @@ export const translations: Record<Language, Translations> = {
       technicalConstructor: "Site Manager",
       areaCluster: "Area Cluster",
       searchAreaCluster: "Search area...",
+      propertyType: "Type",
       noValuesAvailable: "No values available",
       clearAll: "Clear All",
       noPropertiesInState: "No properties in this state",
@@ -2596,6 +2611,12 @@ export const translations: Record<Language, Translations> = {
       modifyDate: "Modify date",
       saving: "Saving...",
       save: "Save",
+      darObraPorFinalizada: "Mark work as completed",
+      avanzarAAmoblamiento: "Advance to Furnishing",
+      finalizeModalTitle: "Mark work as completed",
+      finalizeModalDescription: "Check all categories to confirm the work is completed and advance the property to Furnishing.",
+      cancel: "Cancel",
+      finalizing: "Saving...",
     },
     propertyStatusTab: {
       loadingHistory: "Loading history...",

@@ -11,6 +11,7 @@ export interface RenoFilters {
   technicalConstructors: string[];
   areaClusters: string[];
   delayedWorks: boolean;
+  propertyTypes: string[]; // Unit, Building (type en Supabase)
   // Foreman emails (for construction_manager role)
   foremanEmails: string[];
 }
@@ -39,6 +40,7 @@ export function useRenoFilters() {
             technicalConstructors: parsed.technicalConstructors || [],
             areaClusters: parsed.areaClusters || [],
             delayedWorks: parsed.delayedWorks || false,
+            propertyTypes: parsed.propertyTypes || [],
             foremanEmails: parsed.foremanEmails || [],
           };
         } catch (e) {
@@ -53,6 +55,7 @@ export function useRenoFilters() {
       technicalConstructors: [],
       areaClusters: [],
       delayedWorks: false,
+      propertyTypes: [],
       foremanEmails: [],
     };
   });
@@ -141,6 +144,7 @@ export function useRenoFilters() {
       technicalConstructors: [],
       areaClusters: [],
       delayedWorks: false,
+      propertyTypes: [],
       foremanEmails: [],
     });
   }, []);
@@ -152,6 +156,7 @@ export function useRenoFilters() {
       filters.technicalConstructors.length +
       filters.areaClusters.length +
       (filters.delayedWorks ? 1 : 0) +
+      (filters.propertyTypes?.length ?? 0) +
       filters.foremanEmails.length
     );
   }, [filters]);

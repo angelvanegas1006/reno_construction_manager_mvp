@@ -290,26 +290,17 @@ export async function uploadPhotosToDrive(
   }
 }
 
-export type RenoInProgressPhotosResult = {
-  success: boolean;
-  errorMessage?: string;
-  photosSavedToStatus?: boolean;
-  propertyIdUsed?: string;
-  insertError?: string;
-  insertCode?: string;
-};
-
 /**
  * Sube fotos de avance de obra al webhook de n8n
  * Usa una API route del servidor para evitar problemas de CORS
  * @param propertyId ID de la propiedad en Supabase
  * @param photoUrls Array de objetos con url y filename de las fotos
- * @returns resultado con success y si se guardaron en Estado de la propiedad (photosSavedToStatus)
+ * @returns true si la llamada fue exitosa, false en caso contrario
  */
 export async function uploadRenoInProgressPhotos(
   propertyId: string,
   photoUrls: Array<{ url: string; filename: string }>
-): Promise<RenoInProgressPhotosResult> {
+): Promise<boolean> {
   // Llamar a la API route del servidor para evitar CORS
   try {
     console.log('[Reno In Progress Photos Webhook] 📤 Calling API route with:', {
@@ -344,7 +335,7 @@ export async function uploadRenoInProgressPhotos(
       console.log('[Reno In Progress Photos Webhook] Response text preview:', responseText.substring(0, 500));
     } catch (textError: any) {
       console.error('[Reno In Progress Photos Webhook] Failed to read response text:', textError);
-      return { success: false };
+      return false;
     }
 
     if (!response.ok) {
@@ -398,13 +389,21 @@ export async function uploadRenoInProgressPhotos(
       errorInfo.errorMessage = errorMessage;
       errorInfo.errorData = errorData;
       
-      // Log detallado del error (mensaje como string para que se vea en consola)
-      console.error('[Reno In Progress Photos Webhook] ❌ API route error:', response.status, response.statusText, errorMessage);
-      if (responseText?.length) {
-        console.error('[Reno In Progress Photos Webhook] Response preview:', responseText.substring(0, 400));
-      }
+      // Log detallado del error con toda la información
+      console.error('[Reno In Progress Photos Webhook] ❌ API route error:', JSON.stringify(errorInfo, null, 2));
       
-      return { success: false, errorMessage: String(errorMessage || 'Error desconocido') };
+      // También log individual para mejor visibilidad en consola
+      console.error('[Reno In Progress Photos Webhook] Error summary:', {
+        status: response.status,
+        statusText: response.statusText,
+        message: errorMessage,
+        hasResponseText: !!responseText,
+        responseTextLength: responseText?.length || 0,
+        responseTextPreview: responseText?.substring(0, 300) || 'No response body',
+        errorDataKeys: errorData ? Object.keys(errorData) : [],
+      });
+      
+      return false;
     }
 
     // Si la respuesta es OK, parsear el JSON
@@ -429,20 +428,16 @@ export async function uploadRenoInProgressPhotos(
     }
 
     console.log('[Reno In Progress Photos Webhook] ✅ Success:', result);
-    if (result?.photosSavedToStatus === false) {
-      console.warn('[Reno In Progress Photos Webhook] ⚠️ Fotos no guardadas en Estado de la propiedad:', result?.insertError || result?.insertCode);
-    }
-    return {
-      success: true,
-      photosSavedToStatus: result?.photosSavedToStatus,
-      propertyIdUsed: result?.propertyIdUsed,
-      insertError: result?.insertError,
-      insertCode: result?.insertCode,
-    };
+    return true;
   } catch (error: any) {
-    const msg = error?.message || 'Unknown error';
-    console.error('[Reno In Progress Photos Webhook] ❌ Error calling API route:', msg);
-    return { success: false, errorMessage: msg };
+    console.error('[Reno In Progress Photos Webhook] ❌ Error calling API route:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      name: error?.name,
+      code: error?.code,
+      cause: error?.cause,
+    });
+    return false;
   }
 }
 

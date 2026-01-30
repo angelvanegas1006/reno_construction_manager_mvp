@@ -14,6 +14,7 @@ export interface KanbanFilters {
   technicalConstructors: string[];
   areaClusters: string[];
   delayedWorks: boolean; // Obras tardías (solo propiedades marcadas en rojo)
+  propertyTypes: string[]; // Unit, Building (type en Supabase)
 }
 
 interface RenoKanbanFiltersProps {
@@ -85,14 +86,27 @@ export function RenoKanbanFilters({
       technicalConstructors: [],
       areaClusters: [],
       delayedWorks: false,
+      propertyTypes: [],
     });
+  };
+
+  const handleTogglePropertyType = (type: string) => {
+    const newFilters = { ...filters };
+    const current = newFilters.propertyTypes || [];
+    if (current.includes(type)) {
+      newFilters.propertyTypes = current.filter((t) => t !== type);
+    } else {
+      newFilters.propertyTypes = [...current, type];
+    }
+    onFiltersChange(newFilters);
   };
 
   const hasActiveFilters = 
     filters.renovatorNames.length > 0 ||
     filters.technicalConstructors.length > 0 ||
     filters.areaClusters.length > 0 ||
-    filters.delayedWorks;
+    filters.delayedWorks ||
+    (filters.propertyTypes?.length ?? 0) > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -170,6 +184,29 @@ export function RenoKanbanFilters({
                 placeholder={t.kanban.searchAreaCluster || "Buscar área..."}
               />
             )}
+          </div>
+
+          {/* Tipo (Unit / Building) - checkboxes uno al lado del otro */}
+          <div className="space-y-3">
+            <Label className="text-sm md:text-base font-semibold">{t.kanban.propertyType ?? "Tipo"}</Label>
+            <div className="flex flex-wrap gap-4 items-center">
+              {["Unit", "Building"].map((type) => (
+                <div key={type} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`property-type-${type}`}
+                    checked={(filters.propertyTypes ?? []).includes(type)}
+                    onCheckedChange={() => handleTogglePropertyType(type)}
+                    className="flex-shrink-0"
+                  />
+                  <label
+                    htmlFor={`property-type-${type}`}
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    {type}
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Obras Tardías */}

@@ -71,10 +71,12 @@ export default function RenoPropertyDetailPage() {
   const [reportProblemOpen, setReportProblemOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [hasUnsavedCategoriesChanges, setHasUnsavedCategoriesChanges] = useState(false);
+  const [canFinalizeReno, setCanFinalizeReno] = useState(false);
   const [showFooter, setShowFooter] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const saveCategoriesRef = useRef<(() => Promise<void>) | null>(null);
   const sendUpdateRef = useRef<(() => void) | null>(null);
+  const finalizeRenoRef = useRef<(() => void) | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   // Leer el tab desde la URL si existe, sino usar "tareas" por defecto
   const tabFromUrl = unwrappedSearchParams?.get('tab');
@@ -903,6 +905,9 @@ export default function RenoPropertyDetailPage() {
                   onSaveRef={(saveFn) => { saveCategoriesRef.current = saveFn; }}
                   onSendRef={(sendFn) => { sendUpdateRef.current = sendFn; }}
                   onHasUnsavedChangesChange={setHasUnsavedCategoriesChanges}
+                  onCanFinalizeChange={setCanFinalizeReno}
+                  onFinalizeRef={(openModal) => { finalizeRenoRef.current = openModal; }}
+                  onPhaseChanged={() => { refetch(); }}
                 />
               )}
             </>
@@ -942,9 +947,7 @@ export default function RenoPropertyDetailPage() {
       case "resumen":
         return <PropertySummaryTab property={property} supabaseProperty={supabaseProperty} />;
       case "estado-propiedad":
-        return propertyId ? (
-          <PropertyStatusTab propertyId={supabaseProperty?.id ?? propertyId} />
-        ) : null;
+        return propertyId ? <PropertyStatusTab propertyId={propertyId} /> : null;
       case "presupuesto-reforma":
         // Validar que budget_pdf_url sea un string válido
         const budgetPdfUrl = supabaseProperty?.budget_pdf_url && typeof supabaseProperty.budget_pdf_url === 'string' && supabaseProperty.budget_pdf_url.trim().length > 0
@@ -1184,8 +1187,8 @@ export default function RenoPropertyDetailPage() {
         </div>
       </div>
 
-      {/* Footer sticky para mobile - Guardar y Enviar al cliente */}
-      {hasUnsavedCategoriesChanges && (
+      {/* Footer sticky para mobile - Guardar, Enviar o Dar obra por finalizada (solo reno-in-progress) */}
+      {getPropertyRenoPhase() === 'reno-in-progress' && (hasUnsavedCategoriesChanges || canFinalizeReno) && (
         <div 
           className={cn(
             "fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[var(--prophero-gray-900)] px-4 py-4 md:hidden border-t border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] shadow-[0_-2px_8px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out",
@@ -1193,29 +1196,47 @@ export default function RenoPropertyDetailPage() {
           )}
         >
           <div className="flex flex-col gap-3 w-full max-w-md mx-auto">
-            {/* Botón principal: Enviar Update a Cliente */}
-            <Button
-              onClick={() => {
-                if (sendUpdateRef.current) {
-                  sendUpdateRef.current();
-                }
-              }}
-              className="w-full flex items-center justify-center rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-12 text-base font-medium"
-            >
-              Enviar Update a Cliente
-            </Button>
-            {/* Botón secundario: Guardar Progreso */}
-            <Button
-              onClick={async () => {
-                if (saveCategoriesRef.current) {
-                  await saveCategoriesRef.current();
-                }
-              }}
-              variant="outline"
-              className="w-full flex items-center justify-center rounded-lg h-12 text-base font-medium"
-            >
-              Guardar Progreso
-            </Button>
+            {canFinalizeReno ? (
+              <>
+                <Button
+                  onClick={() => finalizeRenoRef.current?.()}
+                  className="w-full flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white h-12 text-base font-medium"
+                >
+                  {t.propertyPage.darObraPorFinalizada}
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (saveCategoriesRef.current) {
+                      await saveCategoriesRef.current();
+                    }
+                  }}
+                  variant="outline"
+                  className="w-full flex items-center justify-center rounded-lg h-12 text-base font-medium"
+                >
+                  Guardar Progreso
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={() => sendUpdateRef.current?.()}
+                  className="w-full flex items-center justify-center rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-12 text-base font-medium"
+                >
+                  Enviar Update a Cliente
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (saveCategoriesRef.current) {
+                      await saveCategoriesRef.current();
+                    }
+                  }}
+                  variant="outline"
+                  className="w-full flex items-center justify-center rounded-lg h-12 text-base font-medium"
+                >
+                  Guardar Progreso
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}

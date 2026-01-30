@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, User, Building2, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell, Flag, Wrench, Folder } from "lucide-react";
+import { CheckCircle2, Clock, User, Building2, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell, Flag, Wrench, Folder, Key } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,7 @@ export function PropertyStatusSidebar({
   const responsibleOwner = supabaseProperty?.responsible_owner;
   const renovatorName = supabaseProperty?.['Renovator name'] || property.renovador;
   const renoType = property.renoType || supabaseProperty?.reno_type;
+  const keysLocation = supabaseProperty?.keys_location;
   const createdAt = supabaseProperty?.created_at || property.createdAt;
   const driveFolderUrl = supabaseProperty?.drive_folder_url;
   
@@ -220,6 +221,17 @@ export function PropertyStatusSidebar({
               Tipo de reforma
             </h4>
             <p className="text-sm text-foreground">{renoType}</p>
+          </div>
+        )}
+
+        {/* Ubicación de las llaves */}
+        {keysLocation && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <Key className="h-4 w-4 text-muted-foreground" />
+              Ubicación de las llaves
+            </h4>
+            <p className="text-sm text-foreground">{keysLocation}</p>
           </div>
         )}
 
