@@ -21,6 +21,7 @@ export interface Translations {
     home: string;
     properties: string;
     renoManagement: string;
+    kanbanProjects: string;
     notifications: string;
     help: string;
     logout: string;
@@ -662,6 +663,7 @@ export const translations: Record<Language, Translations> = {
       home: "Inicio",
       properties: "Gestión de propiedades",
       renoManagement: "Gestión de Reno",
+      kanbanProjects: "Proyectos / WIP",
       notifications: "Notificaciones",
       help: "Ayuda",
       logout: "Cerrar sesión",
@@ -1691,6 +1693,7 @@ export const translations: Record<Language, Translations> = {
       home: "Home",
       properties: "Renovation Management",
       renoManagement: "Reno Management",
+      kanbanProjects: "Projects / WIP",
       notifications: "Notifications",
       help: "Help",
       logout: "Logout",

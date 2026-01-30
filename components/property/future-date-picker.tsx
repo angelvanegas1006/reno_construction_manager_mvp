@@ -70,13 +70,13 @@ export function FutureDatePicker({
     }
   };
 
-  // Validate that date is in the future
-  const isFutureDate = (isoDate: string): boolean => {
+  // Validate that date is today or in the future
+  const isTodayOrFutureDate = (isoDate: string): boolean => {
     const date = new Date(isoDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     date.setHours(0, 0, 0, 0);
-    return date > today;
+    return date >= today;
   };
 
   // Initialize display value from ISO date
@@ -84,8 +84,8 @@ export function FutureDatePicker({
     if (value) {
       setDisplayValue(formatDateForDisplay(value));
       // Validate on mount
-      if (!isFutureDate(value)) {
-        setError(errorMessage || "La fecha debe ser futura");
+      if (!isTodayOrFutureDate(value)) {
+        setError(errorMessage || "La fecha debe ser hoy o futura");
       } else {
         setError(null);
       }
@@ -102,11 +102,11 @@ export function FutureDatePicker({
     // Try to parse as user types
     const isoDate = parseDateFromDisplay(input);
     if (isoDate) {
-      if (isFutureDate(isoDate)) {
+      if (isTodayOrFutureDate(isoDate)) {
         setError(null);
         onChange(isoDate);
       } else {
-        setError(errorMessage || "La fecha debe ser futura");
+        setError(errorMessage || "La fecha debe ser hoy o futura");
         onChange(undefined);
       }
     } else if (input === "") {
@@ -121,12 +121,12 @@ export function FutureDatePicker({
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const isoDate = e.target.value; // Already in YYYY-MM-DD format
     if (isoDate) {
-      if (isFutureDate(isoDate)) {
+      if (isTodayOrFutureDate(isoDate)) {
         setError(null);
         onChange(isoDate);
         setDisplayValue(formatDateForDisplay(isoDate));
       } else {
-        setError(errorMessage || "La fecha debe ser futura");
+        setError(errorMessage || "La fecha debe ser hoy o futura");
         onChange(undefined);
       }
     } else {
@@ -137,10 +137,9 @@ export function FutureDatePicker({
 
   const handleCalendarClick = () => {
     if (dateInputRef.current) {
-      // Set min date to tomorrow
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      dateInputRef.current.min = tomorrow.toISOString().split("T")[0];
+      // Set min date to today (allow today and future)
+      const today = new Date();
+      dateInputRef.current.min = today.toISOString().split("T")[0];
       dateInputRef.current.showPicker();
     }
   };
@@ -150,8 +149,8 @@ export function FutureDatePicker({
     // Validate on blur
     if (displayValue && !error) {
       const isoDate = parseDateFromDisplay(displayValue);
-      if (isoDate && !isFutureDate(isoDate)) {
-        setError(errorMessage || "La fecha debe ser futura");
+      if (isoDate && !isTodayOrFutureDate(isoDate)) {
+        setError(errorMessage || "La fecha debe ser hoy o futura");
       }
     }
   };
@@ -182,9 +181,8 @@ export function FutureDatePicker({
         className="absolute inset-0 opacity-0 pointer-events-none"
         disabled={disabled}
         min={(() => {
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          return tomorrow.toISOString().split("T")[0];
+          const today = new Date();
+          return today.toISOString().split("T")[0];
         })()}
       />
       

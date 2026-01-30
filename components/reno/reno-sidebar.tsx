@@ -25,19 +25,29 @@ import { HelpModal } from "@/components/reno/help-modal";
 import { extractNameFromEmail } from "@/lib/supabase/user-name-utils";
 import { useHelpConversations } from "@/hooks/useHelpConversations";
 
-// Navigation items for Reno Construction Manager
-const getNavigationItems = (t: any) => [
-  {
-    label: t.nav.home,
-    href: "/reno/construction-manager",
-    icon: Home,
-  },
-  {
-    label: t.nav.renoManagement,
-    href: "/reno/construction-manager/kanban",
-    icon: Grid,
-  },
-];
+// Navigation items for Reno Construction Manager (role for conditional "Proyectos / WIP")
+const getNavigationItems = (t: any, role?: string) => {
+  const items: Array<{ label: string; href: string; icon: typeof Home }> = [
+    {
+      label: t.nav.home,
+      href: "/reno/construction-manager",
+      icon: Home,
+    },
+    {
+      label: t.nav.renoManagement,
+      href: "/reno/construction-manager/kanban",
+      icon: Grid,
+    },
+  ];
+  if (role === "admin" || role === "construction_manager") {
+    items.push({
+      label: t.nav.kanbanProjects,
+      href: "/reno/construction-manager/kanban-projects",
+      icon: Grid,
+    });
+  }
+  return items;
+};
 
 const getSettingsItems = (t: any, unreadCount: number = 0, role?: string) => {
   const items = [
@@ -108,7 +118,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
     return '/reno/construction-manager/kanban';
   };
   
-  const navigationItems = getNavigationItems(t).map(item => {
+  const navigationItems = getNavigationItems(t, role || undefined).map(item => {
     if (item.href === '/reno/construction-manager/kanban') {
       return { ...item, href: getKanbanHref() };
     }

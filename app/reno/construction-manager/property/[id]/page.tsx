@@ -13,7 +13,7 @@ import { PropertyActionTab } from "@/components/reno/property-action-tab";
 import { PropertyCommentsSection } from "@/components/reno/property-comments-section";
 import { PropertyRemindersSection } from "@/components/reno/property-reminders-section";
 import { PropertyStatusSidebar } from "@/components/reno/property-status-sidebar";
-import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
+import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { Property } from "@/lib/property-storage";
 import { FutureDatePicker } from "@/components/property/future-date-picker";
 import { useI18n } from "@/lib/i18n";
@@ -478,10 +478,12 @@ export default function RenoPropertyDetailPage() {
             // Determine where to redirect based on source page or referrer
             let redirectPath = '/reno/construction-manager';
             
-            if (sourcePage === 'kanban' || sourcePage === 'home') {
-              redirectPath = sourcePage === 'kanban' 
+            if (sourcePage === 'kanban' || sourcePage === 'kanban-projects' || sourcePage === 'home') {
+              redirectPath = sourcePage === 'kanban'
                 ? `/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`
-                : '/reno/construction-manager';
+                : sourcePage === 'kanban-projects'
+                  ? `/reno/construction-manager/kanban-projects${viewMode === 'list' ? '?viewMode=list' : ''}`
+                  : '/reno/construction-manager';
             } else {
               // Try to detect from referrer if sourcePage is not provided
               if (typeof window !== 'undefined') {
@@ -568,8 +570,8 @@ export default function RenoPropertyDetailPage() {
         label: t.propertySidebar.completeInitialChecklist,
         onClick: () => {
           // Siempre pasar from y viewMode si viene del kanban
-          const checklistUrl = sourcePage === 'kanban'
-            ? `/reno/construction-manager/property/${propertyId}/checklist?from=kanban&viewMode=${viewMode}`
+          const checklistUrl = (sourcePage === 'kanban' || sourcePage === 'kanban-projects')
+            ? `/reno/construction-manager/property/${propertyId}/checklist?from=${sourcePage}&viewMode=${viewMode}`
             : `/reno/construction-manager/property/${propertyId}/checklist`;
           console.log("🔗 Property Detail - Navigating to checklist:", checklistUrl, "Source:", sourcePage, "ViewMode:", viewMode);
           router.push(checklistUrl);
@@ -581,8 +583,8 @@ export default function RenoPropertyDetailPage() {
         label: t.propertySidebar.completeFinalChecklist,
         onClick: () => {
           // Siempre pasar from y viewMode si viene del kanban
-          const checklistUrl = sourcePage === 'kanban'
-            ? `/reno/construction-manager/property/${propertyId}/checklist?from=kanban&viewMode=${viewMode}`
+          const checklistUrl = (sourcePage === 'kanban' || sourcePage === 'kanban-projects')
+            ? `/reno/construction-manager/property/${propertyId}/checklist?from=${sourcePage}&viewMode=${viewMode}`
             : `/reno/construction-manager/property/${propertyId}/checklist`;
           console.log("🔗 Property Detail - Navigating to checklist:", checklistUrl, "Source:", sourcePage, "ViewMode:", viewMode);
           router.push(checklistUrl);
@@ -662,8 +664,8 @@ export default function RenoPropertyDetailPage() {
                   <Button
                     onClick={() => {
                       // Siempre pasar from y viewMode si viene del kanban
-                      const checklistUrl = sourcePage === 'kanban'
-                        ? `/reno/construction-manager/property/${propertyId}/checklist?from=kanban&viewMode=${viewMode}`
+                      const checklistUrl = (sourcePage === 'kanban' || sourcePage === 'kanban-projects')
+                        ? `/reno/construction-manager/property/${propertyId}/checklist?from=${sourcePage}&viewMode=${viewMode}`
                         : `/reno/construction-manager/property/${propertyId}/checklist`;
                       console.log("🔗 Property Detail - Navigating to checklist:", checklistUrl, "Source:", sourcePage, "ViewMode:", viewMode);
                       router.push(checklistUrl);
@@ -768,8 +770,8 @@ export default function RenoPropertyDetailPage() {
                   <Button
                     onClick={() => {
                       // Siempre pasar from y viewMode si viene del kanban
-                      const checklistUrl = sourcePage === 'kanban'
-                        ? `/reno/construction-manager/property/${propertyId}/checklist?from=kanban&viewMode=${viewMode}`
+                      const checklistUrl = (sourcePage === 'kanban' || sourcePage === 'kanban-projects')
+                        ? `/reno/construction-manager/property/${propertyId}/checklist?from=${sourcePage}&viewMode=${viewMode}`
                         : `/reno/construction-manager/property/${propertyId}/checklist`;
                       console.log("🔗 Property Detail - Navigating to checklist:", checklistUrl, "Source:", sourcePage, "ViewMode:", viewMode);
                       router.push(checklistUrl);
@@ -1018,7 +1020,7 @@ export default function RenoPropertyDetailPage() {
     return (
       <div className="flex h-screen overflow-hidden">
         <div className="flex flex-1 items-center justify-center">
-          <RenoHomeLoader />
+          <VistralLogoLoader />
         </div>
       </div>
     );
@@ -1055,13 +1057,18 @@ export default function RenoPropertyDetailPage() {
                 variant="ghost"
                 onClick={() => {
             console.log("🔙 Property Detail - Back button clicked. Source:", sourcePage, "ViewMode:", viewMode);
-            // Si viene del kanban, redirigir al kanban con el viewMode correspondiente
+            // Si viene del kanban o kanban-projects, redirigir con el viewMode correspondiente
             if (sourcePage === 'kanban') {
               const kanbanUrl = viewMode === 'list' 
                 ? '/reno/construction-manager/kanban?viewMode=list'
                 : '/reno/construction-manager/kanban';
               console.log("🔙 Property Detail - Redirecting to kanban:", kanbanUrl);
               router.push(kanbanUrl);
+            } else if (sourcePage === 'kanban-projects') {
+              const url = viewMode === 'list'
+                ? '/reno/construction-manager/kanban-projects?viewMode=list'
+                : '/reno/construction-manager/kanban-projects';
+              router.push(url);
             } else if (viewMode === 'list') {
               // Si hay viewMode list pero no viene del kanban, ir a kanban con ese modo
               router.push('/reno/construction-manager/kanban?viewMode=list');

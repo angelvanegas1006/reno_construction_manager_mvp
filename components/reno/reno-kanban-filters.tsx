@@ -23,7 +23,11 @@ interface RenoKanbanFiltersProps {
   properties: Property[];
   filters: KanbanFilters;
   onFiltersChange: (filters: KanbanFilters) => void;
+  /** Tipos a mostrar en el filtro; por defecto Unit, Building, Project, WIP. Primer kanban usa solo Unit/Building. */
+  propertyTypeOptions?: string[];
 }
+
+const DEFAULT_PROPERTY_TYPE_OPTIONS = ["Unit", "Building", "Project", "WIP"];
 
 export function RenoKanbanFilters({
   open,
@@ -31,6 +35,7 @@ export function RenoKanbanFilters({
   properties,
   filters,
   onFiltersChange,
+  propertyTypeOptions = DEFAULT_PROPERTY_TYPE_OPTIONS,
 }: RenoKanbanFiltersProps) {
   const { t } = useI18n();
 
@@ -186,11 +191,11 @@ export function RenoKanbanFilters({
             )}
           </div>
 
-          {/* Tipo (Unit / Building) - checkboxes uno al lado del otro */}
+          {/* Tipo (según propertyTypeOptions: primer kanban solo Unit/Building) */}
           <div className="space-y-3">
             <Label className="text-sm md:text-base font-semibold">{t.kanban.propertyType ?? "Tipo"}</Label>
             <div className="flex flex-wrap gap-4 items-center">
-              {["Unit", "Building"].map((type) => (
+              {propertyTypeOptions.map((type) => (
                 <div key={type} className="flex items-center space-x-2">
                   <Checkbox
                     id={`property-type-${type}`}

@@ -9,7 +9,7 @@ import { RenoHomeTodoWidgets } from "@/components/reno/reno-home-todo-widgets";
 import { VisitsCalendar } from "@/components/reno/visits-calendar";
 import { RenoHomeRecentProperties } from "@/components/reno/reno-home-recent-properties";
 import { RenoHomePortfolio } from "@/components/reno/reno-home-portfolio";
-import { RenoHomeLoader } from "@/components/reno/reno-home-loader";
+import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { RenoHomeUpdateRequests } from "@/components/reno/reno-home-update-requests";
 import { ForemanFilterCombobox } from "@/components/reno/foreman-filter-combobox";
 import { Property } from "@/lib/property-storage";
@@ -243,7 +243,7 @@ export default function RenoConstructionManagerHomePage() {
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
           {supabaseLoading ? (
-            <RenoHomeLoader className="min-h-[400px]" />
+            <VistralLogoLoader className="min-h-[400px]" />
           ) : (
             <div className="max-w-[1600px] mx-auto space-y-4 md:space-y-6 px-4 lg:px-8">
               {/* Foreman Filter - Solo para construction_manager */}
