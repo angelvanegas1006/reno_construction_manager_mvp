@@ -13,7 +13,7 @@ export function useSupabaseProperty(propertyId: string | null) {
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
-  // Fetch property by ID (UUID) or by Unique ID From Engagements
+  // Fetch property by ID
   const fetchProperty = useCallback(async () => {
     if (!propertyId) {
       setProperty(null);
@@ -24,30 +24,24 @@ export function useSupabaseProperty(propertyId: string | null) {
     try {
       setLoading(true);
       setError(null);
-
-      let { data, error: fetchError } = await supabase
+      
+      const { data, error: fetchError } = await supabase
         .from('properties')
         .select('*')
         .eq('id', propertyId)
         .single();
 
-      if (fetchError?.code === 'PGRST116') {
-        const { data: byUniqueId, error: uniqueIdError } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('"Unique ID From Engagements"', propertyId)
-          .single();
-        if (!uniqueIdError && byUniqueId) {
-          setProperty(byUniqueId);
-        } else {
+      if (fetchError) {
+        // PGRST116 means "not found" - this is expected for non-existent properties
+        if (fetchError.code === 'PGRST116') {
           setProperty(null);
-          setError(null);
+          setError(null); // Don't treat "not found" as an error
+          return;
         }
-      } else if (fetchError) {
         throw fetchError;
-      } else {
-        setProperty(data);
       }
+      
+      setProperty(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error fetching property');
       console.error('Error fetching property:', err);
@@ -57,26 +51,25 @@ export function useSupabaseProperty(propertyId: string | null) {
     }
   }, [propertyId, supabase]);
 
-  // Update property (use resolved property.id so it works when propertyId was Unique ID)
+  // Update property
   const updateProperty = useCallback(async (updates: PropertyUpdate): Promise<boolean> => {
-    const idToUse = property?.id ?? propertyId;
-    if (!idToUse) return false;
+    if (!propertyId) return false;
 
     try {
       setError(null);
-
+      
       const { data, error: updateError } = await supabase
         .from('properties')
         .update({
           ...updates,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', idToUse)
+        .eq('id', propertyId)
         .select()
         .single();
 
       if (updateError) throw updateError;
-
+      
       setProperty(data);
       return true;
     } catch (err) {
@@ -84,7 +77,7 @@ export function useSupabaseProperty(propertyId: string | null) {
       console.error('Error updating property:', err);
       return false;
     }
-  }, [property?.id, propertyId, supabase]);
+  }, [propertyId, supabase]);
 
   // Initial load
   useEffect(() => {

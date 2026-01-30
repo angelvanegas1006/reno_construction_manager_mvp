@@ -34,9 +34,6 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
-  const isMountedRef = useRef(true);
-  const pendingTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const pendingIntervalsRef = useRef<ReturnType<typeof setInterval>[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,9 +41,10 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
-    isMountedRef.current = true;
-
+    console.log('[PropertyMap] useEffect triggered', { apiKey: apiKey ? 'present' : 'missing', address, hasMapRef: !!mapRef.current });
+    
     if (!apiKey) {
+      console.warn('[PropertyMap] API key no configurada - mostrando placeholder');
       setError("API key no configurada");
       setIsLoading(false);
       return;
@@ -54,33 +52,46 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
 
     // Función para inicializar el mapa una vez que Google Maps esté cargado
     const initMap = () => {
-      if (!isMountedRef.current || !mapRef.current) {
+      console.log('[PropertyMap] initMap called', { hasGoogle: !!window.google, hasMaps: !!(window.google?.maps) });
+      
+      if (!mapRef.current) {
+        console.error('[PropertyMap] mapRef.current es null en initMap');
+        setError("Error: referencia al mapa no disponible");
+        setIsLoading(false);
         return;
       }
 
       if (!window.google || !window.google.maps) {
-        if (isMountedRef.current) {
-          setError("Error al cargar Google Maps");
-          setIsLoading(false);
-        }
+        console.error('[PropertyMap] Google Maps no está disponible');
+        setError("Error al cargar Google Maps");
+        setIsLoading(false);
         return;
       }
 
-      const geocoder = new window.google.maps.Geocoder();
-      geocoder.geocode(
-        { address, region: "ES" },
-        (results, status) => {
-          if (!isMountedRef.current || !mapRef.current) return;
+      console.log('[PropertyMap] Iniciando geocodificación para:', address);
 
-          if (status === "OK" && results?.[0]) {
+      // Geocodificar la dirección para obtener coordenadas
+      const geocoder = new window.google.maps.Geocoder();
+      
+      geocoder.geocode(
+        { 
+          address: address,
+          region: 'ES', // Priorizar resultados en España
+        },
+        (results, status) => {
+          console.log('[PropertyMap] Geocoding response', { status, resultsCount: results?.length || 0 });
+          
+          if (status === "OK" && results && results[0]) {
             const location = results[0].geometry.location;
             const bounds = results[0].geometry.viewport;
 
-            if (!window.google?.maps) return;
-            const container = mapRef.current;
-            if (!container) return;
+            console.log('[PropertyMap] Location found:', { lat: location.lat(), lng: location.lng() });
 
-            const map = new window.google.maps.Map(container, {
+            // Crear el mapa
+            if (!window.google?.maps) {
+              throw new Error("Google Maps no está disponible");
+            }
+            const map = new window.google.maps.Map(mapRef.current!, {
               center: location,
               zoom: 15,
               disableDefaultUI: false,
@@ -127,8 +138,10 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
 
             mapInstanceRef.current = map;
             markerRef.current = marker;
-            if (isMountedRef.current) setIsLoading(false);
-          } else if (isMountedRef.current) {
+            setIsLoading(false);
+            console.log('[PropertyMap] Mapa inicializado correctamente');
+          } else {
+            console.error("[PropertyMap] Geocoding failed:", status, results);
             setError(`No se pudo encontrar la ubicación: ${status}`);
             setIsLoading(false);
           }
@@ -138,118 +151,125 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
 
     // Función para cargar Google Maps y luego inicializar
     const loadAndInitMap = () => {
-      if (!isMountedRef.current) return;
-
       // Verificar si el ref está disponible
       if (!mapRef.current) {
+        console.log('[PropertyMap] mapRef.current no está disponible, reintentando...', {
+          hasRef: !!mapRef,
+          refCurrent: mapRef.current,
+          documentReady: document.readyState
+        });
+        // Reintentar después de un pequeño delay, pero con un límite máximo
         const maxAttempts = 50; // 5 segundos máximo
         let attempts = 0;
-        const id = setInterval(() => {
+        const checkRef = setInterval(() => {
           attempts++;
-          if (!isMountedRef.current) {
-            clearInterval(id);
-            return;
-          }
           if (mapRef.current) {
-            clearInterval(id);
+            clearInterval(checkRef);
+            console.log('[PropertyMap] mapRef.current ahora está disponible después de', attempts, 'intentos');
+            // Continuar con la inicialización
             continueInit();
           } else if (attempts >= maxAttempts) {
-            clearInterval(id);
-            if (isMountedRef.current) {
-              setError("Error: no se pudo inicializar el contenedor del mapa");
-              setIsLoading(false);
-            }
+            clearInterval(checkRef);
+            console.error('[PropertyMap] Timeout esperando mapRef.current');
+            setError("Error: no se pudo inicializar el contenedor del mapa");
+            setIsLoading(false);
           }
         }, 100);
-        pendingIntervalsRef.current.push(id);
         return;
       }
-
+      
       continueInit();
     };
 
     const continueInit = () => {
-      if (!isMountedRef.current || !mapRef.current) return;
+      if (!mapRef.current) {
+        console.error('[PropertyMap] mapRef.current es null en continueInit');
+        return;
+      }
 
       // Cargar el script de Google Maps si no está cargado
       if (!window.google || !window.google.maps) {
+        console.log('[PropertyMap] Google Maps no está cargado, cargando script...');
+        
+        // Verificar si el script ya está en proceso de carga
         const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
         if (existingScript) {
+          console.log('[PropertyMap] Script ya existe, esperando a que cargue...');
+          // Esperar a que se cargue
           let attempts = 0;
-          const maxAttempts = 50;
-          const id = setInterval(() => {
+          const maxAttempts = 50; // 5 segundos máximo
+          const checkGoogle = setInterval(() => {
             attempts++;
-            if (!isMountedRef.current || !mapRef.current) {
-              clearInterval(id);
-              return;
-            }
-            if (window.google?.maps) {
-              clearInterval(id);
+            if (window.google && window.google.maps) {
+              console.log('[PropertyMap] Google Maps cargado después de esperar');
+              clearInterval(checkGoogle);
               initMap();
             } else if (attempts >= maxAttempts) {
-              clearInterval(id);
-              if (isMountedRef.current) {
-                setError("Timeout al cargar Google Maps");
-                setIsLoading(false);
-              }
+              console.error('[PropertyMap] Timeout esperando Google Maps');
+              clearInterval(checkGoogle);
+              setError("Timeout al cargar Google Maps");
+              setIsLoading(false);
             }
           }, 100);
-          pendingIntervalsRef.current.push(id);
-          return;
+
+          // Cleanup se maneja en el return del useEffect
         }
 
-        const loadTimeout = setTimeout(() => {
-          if (isMountedRef.current) {
-            setError("Timeout al cargar Google Maps. Verifica tu conexión y que la API key sea válida.");
-            setIsLoading(false);
-          }
-        }, 10000);
-        pendingTimeoutsRef.current.push(loadTimeout);
-
+        console.log('[PropertyMap] Creando nuevo script de Google Maps');
         const script = document.createElement("script");
         script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geocoding`;
         script.async = true;
         script.defer = true;
-
+        
+        // Timeout para detectar si el script no carga
+        const loadTimeout = setTimeout(() => {
+          console.error('[PropertyMap] Timeout cargando script de Google Maps');
+          setError("Timeout al cargar Google Maps. Verifica tu conexión y que la API key sea válida.");
+          setIsLoading(false);
+        }, 10000); // 10 segundos
+        
         script.onload = () => {
+          console.log('[PropertyMap] Script de Google Maps cargado');
           clearTimeout(loadTimeout);
-          const id = setTimeout(() => {
-            if (!isMountedRef.current || !mapRef.current) return;
-            if (window.google?.maps) {
+          // Pequeño delay para asegurar que todo esté listo
+          setTimeout(() => {
+            if (window.google && window.google.maps) {
               initMap();
-            } else if (isMountedRef.current) {
+            } else {
+              console.error('[PropertyMap] Google Maps no disponible después de cargar script');
               setError("Google Maps no se inicializó correctamente");
               setIsLoading(false);
             }
           }, 200);
-          pendingTimeoutsRef.current.push(id);
         };
-        script.onerror = () => {
+        script.onerror = (error) => {
+          console.error('[PropertyMap] Error al cargar script:', error);
           clearTimeout(loadTimeout);
-          if (isMountedRef.current) {
-            setError("Error al cargar Google Maps API. Verifica tu API key y que las APIs (Maps JavaScript API y Geocoding API) estén habilitadas en Google Cloud Console.");
-            setIsLoading(false);
-          }
+          setError("Error al cargar Google Maps API. Verifica tu API key y que las APIs (Maps JavaScript API y Geocoding API) estén habilitadas en Google Cloud Console.");
+          setIsLoading(false);
         };
         document.head.appendChild(script);
       } else {
-        if (isMountedRef.current && mapRef.current) initMap();
+        console.log('[PropertyMap] Google Maps ya está cargado, inicializando directamente');
+        // Google Maps ya está cargado
+        initMap();
       }
     };
 
+    // Iniciar la carga después de un pequeño delay para asegurar que el DOM esté listo
+    // Usar un timeout más largo para dar tiempo a que el ref esté disponible
     const initTimeout = setTimeout(() => {
-      if (isMountedRef.current) loadAndInitMap();
+      loadAndInitMap();
     }, 200);
-    pendingTimeoutsRef.current.push(initTimeout);
 
+    // Cleanup
     return () => {
-      isMountedRef.current = false;
-      pendingTimeoutsRef.current.forEach(clearTimeout);
-      pendingTimeoutsRef.current = [];
-      pendingIntervalsRef.current.forEach(clearInterval);
-      pendingIntervalsRef.current = [];
+      clearTimeout(initTimeout);
       if (markerRef.current) {
         markerRef.current.setMap(null);
+      }
+      if (mapInstanceRef.current) {
+        // El mapa se limpia automáticamente
       }
     };
   }, [address, areaCluster, apiKey]);
