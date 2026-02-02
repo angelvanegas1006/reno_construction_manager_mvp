@@ -61,7 +61,7 @@ export const visibleRenoKanbanColumns: RenoKanbanColumn[] = renoKanbanColumns.fi
   (column) => column.key !== "reno-fixes" && column.key !== "done" && column.key !== "orphaned" && column.key !== "reno-budget" && column.key !== "upcoming" && column.key !== "furnishing-cleaning" // Hide legacy phases
 );
 
-// Columns for "Kanban Proyectos / WIP": desde presupuesto (reno-budget) hasta cleaning, para mostrar todas las viviendas
+// Columns for "Kanban Proyectos / WIP": desde presupuesto (reno-budget) hasta cleaning (legacy, para otros usos)
 export const PHASES_FROM_OBRA_START: RenoKanbanPhase[] = [
   "reno-budget",
   "reno-budget-start",
@@ -75,6 +75,22 @@ export const visibleRenoKanbanColumnsFromObraStart: RenoKanbanColumn[] =
   renoKanbanColumns.filter(
     (col) =>
       PHASES_FROM_OBRA_START.includes(col.key) &&
+      col.key !== "reno-fixes" &&
+      col.key !== "done" &&
+      col.key !== "orphaned"
+  );
+
+// Kanban Proyectos/WIP: solo fases Obra en curso → Limpieza (sin Obra a empezar ni Presupuesto de renovación)
+export const PHASES_KANBAN_PROJECTS: RenoKanbanPhase[] = [
+  "reno-in-progress",
+  "furnishing",
+  "final-check",
+  "cleaning",
+];
+export const visibleRenoKanbanColumnsProjects: RenoKanbanColumn[] =
+  renoKanbanColumns.filter(
+    (col) =>
+      PHASES_KANBAN_PROJECTS.includes(col.key) &&
       col.key !== "reno-fixes" &&
       col.key !== "done" &&
       col.key !== "orphaned"

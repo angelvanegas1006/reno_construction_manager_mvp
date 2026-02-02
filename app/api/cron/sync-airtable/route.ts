@@ -7,21 +7,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { syncAllPhasesFromAirtable } from '@/lib/airtable/sync-all-phases';
 
 /**
- * Verifica que la request viene de Vercel Cron
+ * Verifica que la request viene de Vercel Cron.
+ * Vercel envía: Authorization: Bearer CRON_SECRET (si CRON_SECRET está configurado)
+ * y User-Agent: vercel-cron/1.0 en todas las invocaciones de cron.
  */
 function verifyCronRequest(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
+  const userAgent = request.headers.get('user-agent') ?? '';
 
-  // Si hay un secret configurado, verificarlo
+  // Si hay CRON_SECRET configurado, Vercel lo envía como Bearer token
   if (cronSecret) {
-    return authHeader === `Bearer ${cronSecret}`;
+    if (authHeader === `Bearer ${cronSecret}`) return true;
+    // Fallback: aceptar también si viene el User-Agent de Vercel Cron (por si el secret no se inyecta en algún entorno)
+    if (userAgent.startsWith('vercel-cron/')) return true;
+    return false;
   }
 
-  // Si no hay secret, solo verificar que viene de Vercel
-  // En producción, Vercel añade el header 'x-vercel-signature'
+  // Sin CRON_SECRET: aceptar si viene de Vercel (User-Agent) o en desarrollo
+  if (userAgent.startsWith('vercel-cron/')) return true;
   const vercelSignature = request.headers.get('x-vercel-signature');
-  return !!vercelSignature || process.env.NODE_ENV === 'development';
+  if (vercelSignature) return true;
+  return process.env.NODE_ENV === 'development';
 }
 
 export async function GET(request: NextRequest) {
