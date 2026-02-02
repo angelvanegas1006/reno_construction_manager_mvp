@@ -907,7 +907,7 @@ export function useSupabaseChecklist({
         (file.data.startsWith('data:') || file.data.length > 0)
       );
       
-      let uploadedUrls: string[] = [];
+      let uploadedUrls: (string | null)[] = [];
       if (filesToUpload.length > 0) {
         console.log(`[useSupabaseChecklist] 📤 Uploading ${filesToUpload.length} files to storage...`);
         try {
@@ -917,13 +917,14 @@ export function useSupabaseChecklist({
             inspection.id,
             zone.id
           );
-          console.log(`[useSupabaseChecklist] ✅ Uploaded ${uploadedUrls.length} files successfully`);
+          const successCount = uploadedUrls.filter((u): u is string => u != null).length;
+          console.log(`[useSupabaseChecklist] ✅ Uploaded ${successCount}/${uploadedUrls.length} files successfully`);
         } catch (error: any) {
           // Si el bucket no existe, continuar con base64 en lugar de fallar
           if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
             console.warn(`[useSupabaseChecklist] ⚠️ Bucket no encontrado. Las fotos se guardarán como base64 hasta que crees el bucket.`);
             // Usar los datos base64 como URLs temporales
-            uploadedUrls = filesToUpload.map(f => f.data || '').filter(Boolean);
+            uploadedUrls = filesToUpload.map(f => f.data || null);
           } else {
             throw error;
           }
@@ -938,9 +939,10 @@ export function useSupabaseChecklist({
         if (file.data && file.data.startsWith('http')) {
           fileUrlMap.set(file.id, file.data);
         }
-        // Si el archivo fue subido ahora, usar la nueva URL
-        else if (filesToUpload.includes(file) && uploadedUrls[uploadedIndex]) {
-          fileUrlMap.set(file.id, uploadedUrls[uploadedIndex]);
+        // Si el archivo fue subido ahora, usar la nueva URL (puede ser null si falló ese upload)
+        else if (filesToUpload.includes(file)) {
+          const url = uploadedUrls[uploadedIndex];
+          if (url) fileUrlMap.set(file.id, url);
           uploadedIndex++;
         }
       });

@@ -82,20 +82,20 @@ function base64ToFile(base64: string, filename: string, mimeType: string): File 
 }
 
 /**
- * Sube múltiples archivos a Supabase Storage
+ * Sube múltiples archivos a Supabase Storage (tolerante a fallos: un fallo no aborta el resto).
  * @param files Array de FileUpload a subir
  * @param propertyId ID de la propiedad
  * @param inspectionId ID de la inspección
  * @param zoneId ID de la zona (opcional)
- * @returns Array de URLs públicas
+ * @returns Array de misma longitud que files: URL string en posición correcta o null si falló/no válido
  */
 export async function uploadFilesToStorage(
   files: FileUpload[],
   propertyId: string,
   inspectionId: string,
   zoneId?: string
-): Promise<string[]> {
-  const uploadPromises = files.map(async (file) => {
+): Promise<(string | null)[]> {
+  const uploadPromises = files.map(async (file): Promise<string | null> => {
     // Si ya tiene URL (ya subido), retornar directamente
     if (file.data && file.data.startsWith('http')) {
       return file.data;
@@ -103,46 +103,45 @@ export async function uploadFilesToStorage(
 
     // Si tiene data como base64, convertirlo a File y subirlo
     if (file.data && file.data.startsWith('data:')) {
-      // Extraer mimeType del data URL
       const mimeMatch = file.data.match(/data:([^;]+);/);
       const mimeType = mimeMatch ? mimeMatch[1] : file.type || 'image/jpeg';
-      
       try {
         const fileObj = base64ToFile(file.data, file.name, mimeType);
         return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
       } catch (error: any) {
-        // Si el bucket no existe, mantener el base64 en lugar de fallar
         if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
-          console.warn(`[storage-upload] ⚠️ Bucket '${STORAGE_BUCKET}' no encontrado. Manteniendo archivo como base64. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
-          // Retornar el base64 como "URL" temporal para que el flujo continúe
-          return file.data;
+          console.warn(`[storage-upload] Bucket '${STORAGE_BUCKET}' no encontrado.`);
+          return null;
         }
-        throw error;
+        console.warn('[storage-upload] Error subiendo archivo:', file.name, error?.message || error);
+        return null;
       }
     }
 
-    // Si es base64 sin prefijo data:, intentar con el tipo del archivo
+    // Si es base64 sin prefijo data:
     if (file.data && !file.data.startsWith('http') && !file.data.startsWith('data:')) {
       try {
         const fileObj = base64ToFile(file.data, file.name, file.type || 'image/jpeg');
         return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
       } catch (error: any) {
-        // Si el bucket no existe, mantener el base64 en lugar de fallar
         if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
-          console.warn(`[storage-upload] ⚠️ Bucket '${STORAGE_BUCKET}' no encontrado. Manteniendo archivo como base64. Por favor crea el bucket en Supabase Dashboard → Storage → Create bucket → Nombre: "${STORAGE_BUCKET}"`);
-          // Retornar el base64 como "URL" temporal para que el flujo continúe
-          return file.data;
+          console.warn(`[storage-upload] Bucket '${STORAGE_BUCKET}' no encontrado.`);
+          return null;
         }
-        throw error;
+        console.warn('[storage-upload] Error subiendo archivo:', file.name, error?.message || error);
+        return null;
       }
     }
 
-    // Si no tiene data, retornar null (archivo no válido)
     return null;
   });
 
-  const results = await Promise.all(uploadPromises);
-  return results.filter((url): url is string => url !== null);
+  const settled = await Promise.allSettled(uploadPromises);
+  return settled.map((result) => {
+    if (result.status === 'fulfilled') return result.value;
+    console.warn('[storage-upload] Upload rejected:', result.reason);
+    return null;
+  });
 }
 
 /**

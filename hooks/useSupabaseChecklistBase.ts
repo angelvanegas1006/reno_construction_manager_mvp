@@ -1153,48 +1153,47 @@ export function useSupabaseChecklistBase({
       // Crear una copia profunda de la sección para actualizar con URLs
       const sectionToSave: ChecklistSection = JSON.parse(JSON.stringify(section));
 
-      // Subir archivos a Supabase Storage antes de guardar
+      // Subir archivos a Supabase Storage antes de guardar (éxito parcial: no bloquea guardar elementos)
       if (filesToUpload.length > 0) {
         console.log(`[useSupabaseChecklistBase:${inspectionType}] 📤 Uploading ${filesToUpload.length} files to Supabase Storage...`);
+        let fileIdToUrlMap = new Map<string, string>();
+        let uploadedUrls: (string | null)[] = [];
         try {
-          const uploadedUrls = await uploadFilesToStorage(
+          uploadedUrls = await uploadFilesToStorage(
             filesToUpload,
             propertyId,
             inspection.id,
             zone.id
           );
-          
-          console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Uploaded ${uploadedUrls.length} files successfully`);
-          
-          // Crear mapeo de file.id -> URL para actualizar correctamente cada foto
-          const fileIdToUrlMap = new Map<string, string>();
+          const successCount = uploadedUrls.filter((u): u is string => u != null && u.startsWith('http')).length;
+          const failedCount = filesToUpload.length - successCount;
+          console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Uploaded ${successCount}/${filesToUpload.length} files` + (failedCount > 0 ? ` (${failedCount} failed)` : ''));
+
+          // Crear mapeo file.id -> URL (uploadedUrls tiene la misma longitud que filesToUpload)
           filesToUpload.forEach((file, index) => {
-            if (index < uploadedUrls.length && uploadedUrls[index]) {
-              fileIdToUrlMap.set(file.id, uploadedUrls[index]);
+            const url = uploadedUrls[index];
+            if (url && url.startsWith('http')) {
+              fileIdToUrlMap.set(file.id, url);
             }
           });
-          
+
+          if (failedCount > 0) {
+            toast.info("Checklist guardado. Algunas fotos no se pudieron subir por la conexión; puedes volver a esta sección y guardar de nuevo para reintentar.", { duration: 6000 });
+          }
+
           console.log(`[useSupabaseChecklistBase:${inspectionType}] 📋 Created file ID to URL map:`, {
             totalFiles: filesToUpload.length,
-            uploadedUrls: uploadedUrls.length,
             mapSize: fileIdToUrlMap.size,
             fileIds: Array.from(fileIdToUrlMap.keys()),
           });
-          
+
           // Subir fotos a Drive después de subirlas a Supabase Storage
-          // Filtrar solo las fotos nuevas (que se acaban de subir) y extraer nombres de archivo
           const photosToUploadToDrive: Array<{ url: string; filename: string }> = [];
-          
-          // Mapear filesToUpload con uploadedUrls (mismo orden)
           filesToUpload.forEach((file, index) => {
-            // Solo procesar fotos (no videos) que se acaban de subir (no tenían URL antes)
             const wasNewFile = file.data && !file.data.startsWith('http');
             const isPhoto = file.type && file.type.startsWith('image/');
-            
-            if (wasNewFile && isPhoto && index < uploadedUrls.length) {
-              const url = uploadedUrls[index];
-              // Solo procesar si la URL es válida (no es base64)
-              if (url && url.startsWith('http')) {
+            const url = uploadedUrls[index];
+            if (wasNewFile && isPhoto && url && url.startsWith('http')) {
                 // Extraer nombre de archivo de la URL
                 // Formato: https://...supabase.co/storage/v1/object/public/inspection-images/{path}/{filename}
                 const urlParts = url.split('/');
@@ -1204,10 +1203,9 @@ export function useSupabaseChecklistBase({
                   url,
                   filename,
                 });
-              }
             }
           });
-          
+
           // Para initial check: acumular URLs en lugar de enviarlas inmediatamente
           // Para otros tipos: enviar inmediatamente como antes
           if (photosToUploadToDrive.length > 0) {
@@ -1500,13 +1498,12 @@ export function useSupabaseChecklistBase({
           });
         } catch (uploadError) {
           console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error uploading files:`, uploadError);
-          toast.error("Error al subir archivos. Intenta guardar nuevamente.");
-          savingRef.current = false;
-          return;
+          toast.info("Se ha guardado el checklist. Algunas fotos no se pudieron subir; puedes volver a esta sección y guardar de nuevo para reintentar.", { duration: 6000 });
+          // No hacer return: seguir con conversión y upsert para persistir preguntas/notas y elementos (fotos con image_urls vacío)
         }
       }
 
-      // Convertir sección a elementos de Supabase (usar sectionToSave que tiene las URLs actualizadas)
+      // Convertir sección a elementos de Supabase (siempre ejecutar; sectionToSave tiene URLs si la subida fue ok, si no quedan base64 y el converter solo persiste HTTP)
       let elementsToSave: any[] = [];
       
       // Si es una sección dinámica (habitaciones, banos), procesar cada dynamic item con su zona correspondiente
