@@ -46,7 +46,13 @@ export function useHelpConversations(): UseHelpConversationsReturn {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
-        console.error('[useHelpConversations] ❌ Error obteniendo usuario:', formatErrorForLog(userError));
+        const userErrMsg = (userError as any)?.message ?? '';
+        const isNetworkErr = userErrMsg === 'Failed to fetch' || ((userError as any)?.name === 'TypeError' && userErrMsg?.includes('fetch'));
+        if (isNetworkErr) {
+          console.warn('[useHelpConversations] ⚠️ Error de red obteniendo usuario:', formatErrorForLog(userError));
+        } else {
+          console.error('[useHelpConversations] ❌ Error obteniendo usuario:', formatErrorForLog(userError));
+        }
         setConversations([]);
         setLoading(false);
         return;
@@ -69,7 +75,13 @@ export function useHelpConversations(): UseHelpConversationsReturn {
         .order('created_at', { ascending: false });
 
       if (fetchError) {
-        console.error('[useHelpConversations] ❌ Error en query:', formatErrorForLog(fetchError));
+        const fetchErrMsg = (fetchError as any)?.message ?? '';
+        const isNetworkErr = fetchErrMsg === 'Failed to fetch' || ((fetchError as any)?.name === 'TypeError' && fetchErrMsg?.includes('fetch'));
+        if (isNetworkErr) {
+          console.warn('[useHelpConversations] ⚠️ Error de red en query:', formatErrorForLog(fetchError));
+        } else {
+          console.error('[useHelpConversations] ❌ Error en query:', formatErrorForLog(fetchError));
+        }
         // Si la tabla no existe, simplemente retornar array vacío sin error
         if (fetchError.code === '42P01' || fetchError.message?.includes('does not exist') || fetchError.message?.includes('relation') || fetchError.message?.includes('table')) {
           console.log('[useHelpConversations] ⚠️ Tabla help_conversations no existe aún, retornando array vacío');
@@ -83,15 +95,19 @@ export function useHelpConversations(): UseHelpConversationsReturn {
       console.log('[useHelpConversations] ✅ Conversaciones obtenidas:', { count: data?.length || 0 });
       setConversations((data as HelpConversation[]) || []);
     } catch (err: any) {
-      console.error('[useHelpConversations] ❌ Error en catch:', formatErrorForLog(err));
+      const msg = err?.message ?? '';
+      const isNetworkError = msg === 'Failed to fetch' || (err?.name === 'TypeError' && msg.includes('fetch'));
+      if (isNetworkError) {
+        console.warn('[useHelpConversations] ⚠️ Error de red:', formatErrorForLog(err));
+      } else {
+        console.error('[useHelpConversations] ❌ Error en catch:', formatErrorForLog(err));
+      }
       // No mostrar error si la tabla no existe, solo loguear
       if (err.code === '42P01' || err.message?.includes('does not exist') || err.message?.includes('relation') || err.message?.includes('table')) {
         console.log('[useHelpConversations] ⚠️ Tabla no existe, usando array vacío');
         setConversations([]);
         setError(null); // No mostrar error al usuario
       } else {
-        const msg = err?.message ?? '';
-        const isNetworkError = msg === 'Failed to fetch' || (err?.name === 'TypeError' && msg.includes('fetch'));
         setError(isNetworkError ? 'No se pudo conectar. Comprueba tu conexión y la configuración de Supabase.' : (msg || 'Error al cargar las conversaciones'));
         setConversations([]);
       }

@@ -10,6 +10,7 @@ import { RenoKanbanFilters } from "@/components/reno/reno-kanban-filters";
 import { useI18n } from "@/lib/i18n";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { useRenoFilters } from "@/hooks/useRenoFilters";
+import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { cn } from "@/lib/utils";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import type { Property } from "@/lib/property-storage";
@@ -60,8 +61,9 @@ export default function RenoConstructionManagerKanbanPage() {
   
   // Use shared properties context instead of fetching independently
   const { allProperties, propertiesByPhase: rawPropertiesByPhase } = useRenoProperties();
-  
-  // Primer kanban: excluir Project y WIP (solo Unit, Building, etc.)
+  const { user, role } = useAppAuth();
+
+  // Primer kanban: Unit y Building; si es foreman, además Project/WIP asignados a él (assigned_site_manager_email)
   const propertiesByPhaseExcludingProjectWip = useMemo((): Record<RenoKanbanPhase, Property[]> => {
     const empty: Record<RenoKanbanPhase, Property[]> = {
       "upcoming-settlements": [],
@@ -83,11 +85,20 @@ export default function RenoConstructionManagerKanbanPage() {
     if (!rawPropertiesByPhase) return empty;
     const isProjectOrWip = (p: Property) =>
       ["project", "wip"].includes(normalizePropertyType((p as Property & { propertyType?: string }).propertyType));
+    const isAssignedToCurrentForeman = (p: Property) => {
+      if (role !== "foreman" || !user?.email) return false;
+      const assigned = (p as any).supabaseProperty?.assigned_site_manager_email;
+      return assigned != null && String(assigned).trim().toLowerCase() === user.email.trim().toLowerCase();
+    };
     for (const phase of ALL_PHASES) {
-      empty[phase] = (rawPropertiesByPhase[phase] || []).filter((p) => !isProjectOrWip(p));
+      const list = rawPropertiesByPhase[phase] || [];
+      // Admin/construction_manager: solo Unit y Building. Foreman: Unit, Building y Project/WIP asignados a él
+      empty[phase] = list.filter(
+        (p) => !isProjectOrWip(p) || isAssignedToCurrentForeman(p)
+      );
     }
     return empty;
-  }, [rawPropertiesByPhase]);
+  }, [rawPropertiesByPhase, role, user?.email]);
   
   // Use unified filters hook
   const { filters, updateFilters, filterBadgeCount } = useRenoFilters();

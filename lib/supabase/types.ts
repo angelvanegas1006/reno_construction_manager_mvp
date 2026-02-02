@@ -201,6 +201,7 @@ export type Database = {
           "Reno Duration": number | null
           "Days to Property Ready": number | null
           days_to_visit: number | null
+          assigned_site_manager_email: string | null
         }
         Insert: {
           address?: string | null
@@ -247,6 +248,7 @@ export type Database = {
           "Reno Duration"?: number | null
           "Days to Property Ready"?: number | null
           days_to_visit?: number | null
+          assigned_site_manager_email?: string | null
         }
         Update: {
           address?: string | null
@@ -293,6 +295,7 @@ export type Database = {
           "Reno Duration"?: number | null
           "Days to Property Ready"?: number | null
           days_to_visit?: number | null
+          assigned_site_manager_email?: string | null
         }
         Relationships: []
       }

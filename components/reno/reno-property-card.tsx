@@ -12,6 +12,7 @@ import { useMixpanel } from "@/hooks/useMixpanel";
 import { needsUpdate, calculateNextUpdateDate, needsUpdateThisWeek } from "@/lib/reno/update-calculator";
 import { useDynamicCategories } from "@/hooks/useDynamicCategories";
 import { useMemo } from "react";
+import { AssignedSiteManagerSelect, isPhaseWithSiteManagerAssignment } from "./assigned-site-manager-select";
 
 type RenoStage = "upcoming-settlements" | "initial-check" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "upcoming" | "reno-in-progress" | "furnishing" | "final-check" | "cleaning" | "furnishing-cleaning" | "reno-fixes" | "done" | "orphaned";
 
@@ -22,6 +23,10 @@ interface RenoPropertyCardProps {
   disabled?: boolean;
   isHighlighted?: boolean;
   showRenoDetails?: boolean; // Show reno-specific info (renovador, fechas, etc.)
+  /** When "kanban-projects", show assign site manager in reno-in-progress, furnishing, final-check, cleaning */
+  fromParam?: string;
+  /** Callback when assigning a jefe de obra (second kanban only); (propertyId, email | null) */
+  onAssignSiteManager?: (propertyId: string, email: string | null) => void;
 }
 
 export function RenoPropertyCard({
@@ -31,6 +36,8 @@ export function RenoPropertyCard({
   disabled = false,
   isHighlighted = false,
   showRenoDetails = true,
+  fromParam,
+  onAssignSiteManager,
 }: RenoPropertyCardProps) {
   const { t, language } = useI18n();
   const { track } = useMixpanel();
@@ -372,6 +379,17 @@ export function RenoPropertyCard({
           </div>
         );
       })()}
+
+      {/* Asignar a jefe de obra (solo segundo kanban, fases obra en proceso → limpieza) */}
+      {fromParam === "kanban-projects" &&
+        isPhaseWithSiteManagerAssignment(stage) &&
+        onAssignSiteManager && (
+          <AssignedSiteManagerSelect
+            property={property}
+            onAssign={onAssignSiteManager}
+            disabled={disabled}
+          />
+        )}
 
       {/* Stage-specific content */}
       {stage === "upcoming-settlements" ? (

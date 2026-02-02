@@ -226,14 +226,18 @@ export function useSupabaseKanbanProperties() {
         cleaningCount: data?.filter(p => p.reno_phase === 'cleaning').length || 0,
       });
 
-      // Apply client-side filtering for foreman
+      // Apply client-side filtering for foreman: Technical construction O asignados a él (assigned_site_manager_email)
       let filteredData = data || [];
       if (role === 'foreman' && user?.email) {
         log.debug('Starting foreman filter...', { userEmail: user.email, totalProperties: data?.length || 0 });
-        
+        const userEmailLower = user.email.trim().toLowerCase();
         filteredData = filteredData.filter((property) => {
           const technicalConstruction = property['Technical construction'];
-          return matchesTechnicalConstruction(technicalConstruction, user.email);
+          const assignedEmail = (property as any).assigned_site_manager_email;
+          const isAssignedToMe =
+            assignedEmail != null &&
+            String(assignedEmail).trim().toLowerCase() === userEmailLower;
+          return matchesTechnicalConstruction(technicalConstruction, user.email) || isAssignedToMe;
         });
         
         log.debug('Filtered for foreman:', {

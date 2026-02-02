@@ -98,7 +98,13 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
                   }
                 })
                 .catch(err => {
-                  console.error('[useDynamicCategories] Error updating budget_index:', err);
+                  const msg = (err as any)?.message ?? '';
+                  const isNetwork = msg === 'Failed to fetch' || ((err as any)?.name === 'TypeError' && String(msg).includes('fetch'));
+                  if (isNetwork) {
+                    console.warn('[useDynamicCategories] Error de red actualizando budget_index:', formatErrorForLog(err));
+                  } else {
+                    console.error('[useDynamicCategories] Error updating budget_index:', err);
+                  }
                   budgetIndexUpdateRef.current = false;
                 });
             }
@@ -123,7 +129,11 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
         ? 'No se pudo conectar. Comprueba tu conexión y que las variables de Supabase estén configuradas.'
         : rawMessage;
       setError(errorMessage);
-      console.error('Error fetching dynamic categories:', formatErrorForLog(err));
+      if (isNetworkError) {
+        console.warn('Error fetching dynamic categories (red/conexión):', formatErrorForLog(err));
+      } else {
+        console.error('Error fetching dynamic categories:', formatErrorForLog(err));
+      }
       setCategories([]);
       budgetIndexUpdateRef.current = false; // Reset en caso de error
     } finally {

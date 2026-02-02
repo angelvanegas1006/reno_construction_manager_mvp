@@ -25,6 +25,8 @@ interface RenoKanbanFiltersProps {
   onFiltersChange: (filters: KanbanFilters) => void;
   /** Tipos a mostrar en el filtro; por defecto Unit, Building, Project, WIP. Primer kanban usa solo Unit/Building. */
   propertyTypeOptions?: string[];
+  /** Si true, no se muestra la sección Tipo (ej. Kanban Proyectos/WIP solo Project/WIP). */
+  propertyTypeLocked?: boolean;
 }
 
 const DEFAULT_PROPERTY_TYPE_OPTIONS = ["Unit", "Building", "Project", "WIP"];
@@ -36,6 +38,7 @@ export function RenoKanbanFilters({
   filters,
   onFiltersChange,
   propertyTypeOptions = DEFAULT_PROPERTY_TYPE_OPTIONS,
+  propertyTypeLocked = false,
 }: RenoKanbanFiltersProps) {
   const { t } = useI18n();
 
@@ -191,28 +194,30 @@ export function RenoKanbanFilters({
             )}
           </div>
 
-          {/* Tipo (según propertyTypeOptions: primer kanban solo Unit/Building) */}
-          <div className="space-y-3">
-            <Label className="text-sm md:text-base font-semibold">{t.kanban.propertyType ?? "Tipo"}</Label>
-            <div className="flex flex-wrap gap-4 items-center">
-              {propertyTypeOptions.map((type) => (
-                <div key={type} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`property-type-${type}`}
-                    checked={(filters.propertyTypes ?? []).includes(type)}
-                    onCheckedChange={() => handleTogglePropertyType(type)}
-                    className="flex-shrink-0"
-                  />
-                  <label
-                    htmlFor={`property-type-${type}`}
-                    className="text-sm font-medium leading-none cursor-pointer"
-                  >
-                    {type}
-                  </label>
-                </div>
-              ))}
+          {/* Tipo (oculto si propertyTypeLocked, ej. Kanban Proyectos/WIP solo Project/WIP) */}
+          {!propertyTypeLocked && (
+            <div className="space-y-3">
+              <Label className="text-sm md:text-base font-semibold">{t.kanban.propertyType ?? "Tipo"}</Label>
+              <div className="flex flex-wrap gap-4 items-center">
+                {propertyTypeOptions.map((type) => (
+                  <div key={type} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`property-type-${type}`}
+                      checked={(filters.propertyTypes ?? []).includes(type)}
+                      onCheckedChange={() => handleTogglePropertyType(type)}
+                      className="flex-shrink-0"
+                    />
+                    <label
+                      htmlFor={`property-type-${type}`}
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      {type}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Obras Tardías */}
           <div className="space-y-3">

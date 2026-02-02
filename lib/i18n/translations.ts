@@ -179,6 +179,8 @@ export interface Translations {
       furnishingCleaning: string; // Legacy
       renoFixes: string;
       done: string;
+      assignToSiteManager: string;
+      unassigned: string;
   };
   
   // Messages
@@ -800,13 +802,15 @@ export const translations: Record<Language, Translations> = {
       renoBudgetStart: "Obra a Empezar",
       renoBudget: "Presupuesto de Renovación", // Legacy
       upcoming: "Próximas propiedades",
-      renoInProgress: "Obras en proceso",
-      furnishing: "Amoblamiento",
+      renoInProgress: "Obras en Proceso",
+      furnishing: "Amueblamiento",
       finalCheck: "Revisión Final",
       cleaning: "Limpieza",
-      furnishingCleaning: "Limpieza y amoblamiento", // Legacy
+      furnishingCleaning: "Limpieza y amueblamiento", // Legacy
       renoFixes: "Reparaciones reno",
       done: "Finalizadas",
+      assignToSiteManager: "Asignar a jefe de obra",
+      unassigned: "Sin asignar",
     },
     messages: {
       loading: "Cargando...",
@@ -1632,9 +1636,9 @@ export const translations: Record<Language, Translations> = {
       saving: "Guardando...",
       save: "Guardar",
       darObraPorFinalizada: "Dar obra por finalizada",
-      avanzarAAmoblamiento: "Avanzar a Amoblamiento",
+      avanzarAAmoblamiento: "Avanzar a Amueblamiento",
       finalizeModalTitle: "Dar obra por finalizada",
-      finalizeModalDescription: "Marca todas las categorías para confirmar que la obra está finalizada y avanzar la propiedad a Amoblamiento.",
+      finalizeModalDescription: "Marca todas las categorías para confirmar que la obra está finalizada y avanzar la propiedad a Amueblamiento.",
       cancel: "Cancelar",
       finalizing: "Guardando...",
     },
@@ -1658,7 +1662,7 @@ export const translations: Record<Language, Translations> = {
       next: "Próxima",
       today: "Hoy",
       workInProgress: "Obra en proceso hace",
-      cleaningFurnishing: "Limpieza y amoblamiento hace",
+      cleaningFurnishing: "Limpieza y amueblamiento hace",
       repairs: "Reparaciones hace",
       completed: "Finalizada hace",
       ago: "Hace",
@@ -1837,6 +1841,8 @@ export const translations: Record<Language, Translations> = {
       furnishingCleaning: "Furnishing/Cleaning", // Legacy
       renoFixes: "Reno Fixes",
       done: "Done",
+      assignToSiteManager: "Assign to site manager",
+      unassigned: "Unassigned",
     },
     messages: {
       loading: "Loading...",

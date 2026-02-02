@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { toast } from "sonner";
 
 type ViewMode = "kanban" | "list";
 
@@ -118,7 +119,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   }, []);
 
   // Load properties from shared context (no duplicate fetch)
-  const { propertiesByPhase: supabasePropertiesByPhase, loading: supabaseLoading, error: supabaseError } = useRenoProperties();
+  const { propertiesByPhase: supabasePropertiesByPhase, loading: supabaseLoading, error: supabaseError, refetchProperties } = useRenoProperties();
 
   const handleCardClick = (property: Property) => {
     // For construction manager, navigate to view-only page
@@ -128,6 +129,24 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       router.push(`/reno/construction-manager/property/${property.id}?tab=tareas&viewMode=${viewMode}&from=${fromParam}`);
     });
   };
+
+  const handleAssignSiteManager = useCallback(async (propertyId: string, email: string | null) => {
+    try {
+      const { error } = await supabase
+        .from("properties")
+        .update({
+          assigned_site_manager_email: email,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", propertyId);
+      if (error) throw error;
+      await refetchProperties();
+      toast.success(language === "es" ? "Jefe de obra asignado" : "Site manager assigned");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al asignar";
+      toast.error(msg);
+    }
+  }, [supabase, refetchProperties, language]);
 
   // Use properties from Supabase or override (e.g. kanban-projects)
   const transformProperties = useMemo(() => {
@@ -474,10 +493,17 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
         }
       }
 
-      // Si hay filtros de tipo (Unit / Building), verificar si coincide
+      // Si hay filtros de tipo (Unit / Building), verificar si coincide.
+      // En el primer kanban, Project/WIP asignados al foreman (assigned_site_manager_email) también pasan el filtro de tipo.
       const selectedTypes = activeFilters.propertyTypes ?? [];
       if (selectedTypes.length > 0 && propertyTypeNormalized) {
         matchesType = selectedTypes.some(t => propertyTypeNormalized === t.trim().toLowerCase());
+        if (!matchesType && fromParam === "kanban" && user?.email) {
+          const isProjectOrWip = ["project", "wip"].includes(propertyTypeNormalized);
+          const assigned = (property as any).supabaseProperty?.assigned_site_manager_email;
+          const isAssignedToMe = assigned != null && String(assigned).trim().toLowerCase() === user.email.trim().toLowerCase();
+          if (isProjectOrWip && isAssignedToMe) matchesType = true;
+        }
       }
 
       // OR lógico entre tipos de filtros: debe cumplir al menos uno de los tipos de filtros activos
@@ -1592,6 +1618,8 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               onCardClick={handleCardClick}
               highlightedPropertyId={highlightedPropertyId}
               onColumnRef={(el) => setColumnRef(column.key, el)}
+              fromParam={fromParam}
+              onAssignSiteManager={fromParam === "kanban-projects" ? handleAssignSiteManager : undefined}
             />
           );
         })}
@@ -1615,6 +1643,8 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               onCardClick={handleCardClick}
               highlightedPropertyId={highlightedPropertyId}
               onColumnRef={(el) => setColumnRef(column.key, el)}
+              fromParam={fromParam}
+              onAssignSiteManager={fromParam === "kanban-projects" ? handleAssignSiteManager : undefined}
             />
           );
         })}
