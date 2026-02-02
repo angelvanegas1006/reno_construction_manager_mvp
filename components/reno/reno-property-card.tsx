@@ -540,7 +540,7 @@ export function RenoPropertyCard({
           {/* Days and duration fields - only show if filled */}
           {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined && (
             <div className="text-xs text-muted-foreground">
-              <span className="font-medium">Días Para empezar la reno desde firma:</span> {property.daysToStartRenoSinceRSD} días
+              <span className="font-medium">Días desde la firma:</span> {property.daysToStartRenoSinceRSD} días
             </div>
           )}
           {property.renoDuration !== null && property.renoDuration !== undefined && (

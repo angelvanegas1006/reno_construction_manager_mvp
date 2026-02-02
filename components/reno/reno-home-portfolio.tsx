@@ -82,9 +82,9 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
 
   const getStageLabel = (stage: RenoKanbanPhase) => {
     const stageMap: Record<RenoKanbanPhase, string> = {
-      "upcoming-settlements": language === "es" ? "Upcoming Reno" : "Upcoming Reno",
+      "upcoming-settlements": language === "es" ? "Próximas Reformas" : "Upcoming Reno",
       "initial-check": language === "es" ? "Check inicial" : "Initial Check",
-      "reno-budget-renovator": language === "es" ? "Pendiente Presupuesto (Renovador)" : "Pending Budget (Renovator)",
+      "reno-budget-renovator": language === "es" ? "Pendiente Presupuesto (Reformista)" : "Pending Budget (Reformist)",
       "reno-budget-client": language === "es" ? "Pendiente Presupuesto (Cliente)" : "Pending Budget (Client)",
       "reno-budget-start": language === "es" ? "Obra a Empezar" : "Reno to Start",
       "reno-budget": language === "es" ? "Reno Budget" : "Reno Budget", // Legacy

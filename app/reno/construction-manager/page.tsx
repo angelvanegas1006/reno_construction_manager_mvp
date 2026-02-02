@@ -262,7 +262,7 @@ export default function RenoConstructionManagerHomePage() {
                     selectedForemanEmails={selectedForemanEmails}
                     onSelectionChange={(emails) => updateFilters({ foremanEmails: emails })}
                     placeholder={t.dashboard?.foremanFilter?.filterByForeman || "Filtrar por jefe de obra..."}
-                    label={t.dashboard?.foremanFilter?.filterByConstructionManager || "Filtrar por Gerente de Construcción"}
+                    label={t.dashboard?.foremanFilter?.filterByConstructionManager || "Filtrar por Jefe de obra"}
                   />
                 </div>
               )}

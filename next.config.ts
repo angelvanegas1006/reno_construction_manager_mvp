@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -22,30 +23,34 @@ const nextConfig: NextConfig = {
   // Agregamos turbopack vacío para silenciar el warning en Next.js 16
   turbopack: {},
   webpack: (config, { isServer }) => {
-    // Ignorar el módulo 'canvas' en el cliente (solo se necesita en el servidor)
-    if (!isServer) {
+    // Evitar que pdfjs-dist (usado por @react-pdf-viewer) cargue el paquete nativo 'canvas' en el cliente.
+    // NormalModuleReplacementPlugin reemplaza cualquier require('canvas') por nuestro stub.
+    // Asegurar que los alias se resuelvan correctamente (y en cliente: stub para canvas)
+    if (config.resolve) {
+      const alias: Record<string, string> = {
+        ...(config.resolve.alias || {}),
+        '@': path.resolve(__dirname),
+      };
+      if (!isServer) {
+        const canvasStub = path.resolve(__dirname, 'lib/canvas-stub.js');
+        alias['canvas'] = canvasStub;
+        // Forzar que el canvas anidado en pdfjs-dist también use el stub
+        alias[path.resolve(__dirname, 'node_modules/pdfjs-dist/node_modules/canvas')] = canvasStub;
+      }
+      config.resolve.alias = alias;
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        canvas: false,
+        ...(!isServer && { canvas: false }),
       };
-    }
-    
-    // Asegurar que los alias se resuelvan correctamente
-    if (config.resolve) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        '@': require('path').resolve(__dirname),
-      };
-      
+
       // Agregar extensiones para resolver módulos correctamente
-      // Asegurar que .tsx y .ts estén al principio de la lista
       const extensions = ['.tsx', '.ts', '.jsx', '.js', '.json'];
       config.resolve.extensions = [
         ...extensions.filter(ext => !config.resolve.extensions?.includes(ext)),
         ...(config.resolve.extensions || []),
       ];
     }
-    
+
     return config;
   },
 };

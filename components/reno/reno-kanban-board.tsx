@@ -65,7 +65,7 @@ const COLUMN_CONFIG: ColumnConfig[] = [
   { key: "estimatedVisit", label: "Est. Visit", defaultVisible: true },
   { key: "proximaActualizacion", label: "Próxima Actualización", defaultVisible: true },
   { key: "daysToVisit", label: "Días para visitar", defaultVisible: false },
-  { key: "daysToStartRenoSinceRSD", label: "Días para empezar la reno desde la firma", defaultVisible: false },
+  { key: "daysToStartRenoSinceRSD", label: "Días desde la firma", defaultVisible: false },
   { key: "renoDuration", label: "Duración de la obra", defaultVisible: false },
   { key: "daysToPropertyReady", label: "Días para propiedad lista", defaultVisible: false },
   { key: "progress", label: "Progreso", defaultVisible: true },
@@ -1311,7 +1311,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             onClick={() => handleSort("daysToStartRenoSinceRSD")}
                           >
                             <div className="flex items-center gap-2">
-                              Días para empezar la reno desde la firma
+                              Días desde la firma
                               {renderSortIcon("daysToStartRenoSinceRSD")}
                             </div>
                           </th>

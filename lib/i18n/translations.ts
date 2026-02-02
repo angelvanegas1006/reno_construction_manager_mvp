@@ -778,7 +778,7 @@ export const translations: Record<Language, Translations> = {
       filtersDescription: "Selecciona uno o más valores para filtrar las propiedades. Los filtros se combinan con OR (cualquiera de los seleccionados).",
       renovatorName: "Nombre del Renovador",
       searchRenovator: "Buscar renovador...",
-      technicalConstructor: "Jefe de Obra",
+      technicalConstructor: "Jefe de obra",
       areaCluster: "Grupo de Área",
       searchAreaCluster: "Buscar área...",
       propertyType: "Tipo",
@@ -793,9 +793,9 @@ export const translations: Record<Language, Translations> = {
       arras: "Arras",
       pendingToSettlement: "Pending to Settlement",
       // Reno Construction Manager phases
-      upcomingSettlements: "Próximas Renovaciones",
+      upcomingSettlements: "Próximas Reformas",
       initialCheck: "Revisión Inicial",
-      renoBudgetRenovator: "Pendiente Presupuesto (Renovador)",
+      renoBudgetRenovator: "Pendiente Presupuesto (Reformista)",
       renoBudgetClient: "Pendiente Presupuesto (Cliente)",
       renoBudgetStart: "Obra a Empezar",
       renoBudget: "Presupuesto de Renovación", // Legacy
@@ -1434,7 +1434,7 @@ export const translations: Record<Language, Translations> = {
       // Foreman Filter
       foremanFilter: {
         filterByForeman: "Filtrar por jefe de obra...",
-        filterByConstructionManager: "Filtrar por Gerente de Construcción",
+        filterByConstructionManager: "Filtrar por Jefe de obra",
         noForemenFound: "No se encontraron jefes de obra",
       },
       // Add Visit
@@ -1542,7 +1542,7 @@ export const translations: Record<Language, Translations> = {
       completeInitialChecklist: "Completar checklist inicial",
       completeFinalChecklist: "Completar checklist final",
       completeNewSettlementsInfo: "Completar información de upcoming reno",
-      technicalConstructor: "Jefe de Obra",
+      technicalConstructor: "Jefe de obra",
       siteManager: "Responsable",
       reminders: "Recordatorios",
       comments: "Comentarios",
@@ -1823,9 +1823,9 @@ export const translations: Record<Language, Translations> = {
       arras: "Arras",
       pendingToSettlement: "Pending to Settlement",
       // Reno Construction Manager phases
-      upcomingSettlements: "Upcoming Reno",
+      upcomingSettlements: "Upcoming Reforms",
       initialCheck: "Initial Check",
-      renoBudgetRenovator: "Pending Budget (Renovator)",
+      renoBudgetRenovator: "Pending Budget (Reformist)",
       renoBudgetClient: "Pending Budget (Client)",
       renoBudgetStart: "Reno to Start",
       renoBudget: "Reno Budget", // Legacy
@@ -2463,7 +2463,7 @@ export const translations: Record<Language, Translations> = {
       // Foreman Filter
       foremanFilter: {
         filterByForeman: "Filter by site manager...",
-        filterByConstructionManager: "Filter by Construction Manager",
+        filterByConstructionManager: "Filter by Site Manager",
         noForemenFound: "No site managers found",
       },
       // Add Visit

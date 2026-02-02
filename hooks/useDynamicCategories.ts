@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/lib/supabase/types';
+import { formatErrorForLog } from '@/lib/utils';
 import { toast } from 'sonner';
 
 type DynamicCategory = Database['public']['Tables']['property_dynamic_categories']['Row'];
@@ -107,8 +108,22 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
 
       setCategories(data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error fetching categories');
-      console.error('Error fetching dynamic categories:', err);
+      const rawMessage =
+        err instanceof Error
+          ? err.message
+          : typeof (err as any)?.message === 'string'
+            ? (err as any).message
+            : (err as any)?.code
+              ? `${(err as any).code}: ${(err as any).message || 'Unknown'}`
+              : 'Error fetching categories';
+      const isNetworkError =
+        rawMessage === 'Failed to fetch' ||
+        ((err as any)?.name === 'TypeError' && rawMessage?.includes('fetch'));
+      const errorMessage = isNetworkError
+        ? 'No se pudo conectar. Comprueba tu conexión y que las variables de Supabase estén configuradas.'
+        : rawMessage;
+      setError(errorMessage);
+      console.error('Error fetching dynamic categories:', formatErrorForLog(err));
       setCategories([]);
       budgetIndexUpdateRef.current = false; // Reset en caso de error
     } finally {

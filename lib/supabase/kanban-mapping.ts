@@ -22,7 +22,7 @@ export function mapSetUpStatusToKanbanPhase(setUpStatus: string | null): RenoKan
     
     // Nuevas fases divididas de Reno Budget
     // IMPORTANTE: Ordenar de más específico a menos específico
-    // 1. Pendiente Presupuesto (Renovador) - más específico primero
+    // 1. Pendiente Presupuesto (Reformista) - más específico primero
     'pending to validate budget (from renovator)': 'reno-budget-renovator',
     'pending to budget (from renovator)': 'reno-budget-renovator', // Variación sin "validate"
     'pending to budget from renovator': 'reno-budget-renovator', // Sin paréntesis
