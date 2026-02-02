@@ -17,6 +17,9 @@ interface RenoKanbanColumnProps {
   onCardClick?: (property: Property) => void;
   highlightedPropertyId?: string | null;
   onColumnRef?: (element: HTMLDivElement | null) => void;
+  /** When "kanban-projects", show assign site manager on cards in reno-in-progress, furnishing, final-check, cleaning */
+  fromParam?: string;
+  onAssignSiteManager?: (propertyId: string, email: string | null) => void;
 }
 
 export function RenoKanbanColumn({ 
@@ -26,7 +29,9 @@ export function RenoKanbanColumn({
   properties, 
   onCardClick, 
   highlightedPropertyId, 
-  onColumnRef 
+  onColumnRef,
+  fromParam,
+  onAssignSiteManager,
 }: RenoKanbanColumnProps) {
   const { t } = useI18n();
   const [isHovered, setIsHovered] = useState(false);
@@ -116,6 +121,8 @@ export function RenoKanbanColumn({
                 onClick={() => onCardClick?.(property)}
                 isHighlighted={highlightedPropertyId === property.id}
                 showRenoDetails={true}
+                fromParam={fromParam}
+                onAssignSiteManager={onAssignSiteManager}
               />
             ))
           )}

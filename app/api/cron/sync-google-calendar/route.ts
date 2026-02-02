@@ -1,24 +1,28 @@
 /**
- * POST /api/cron/sync-google-calendar
- * Cron job to automatically sync Google Calendar events
- * Should be called periodically (e.g., every hour)
+ * GET/POST /api/cron/sync-google-calendar
+ * Cron job to automatically sync Google Calendar events.
+ * Vercel cron invokes with GET; POST allowed for manual testing.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getGoogleCalendarSyncService } from '@/lib/google-calendar/sync-service';
 
-export async function POST(request: NextRequest) {
-  try {
-    // Verify cron secret (if configured)
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-    
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+function verifyCronRequest(request: NextRequest): boolean {
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+  const userAgent = request.headers.get('user-agent') ?? '';
+  if (cronSecret) {
+    if (authHeader === `Bearer ${cronSecret}`) return true;
+    if (userAgent.startsWith('vercel-cron/')) return true;
+    return false;
+  }
+  if (userAgent.startsWith('vercel-cron/')) return true;
+  return process.env.NODE_ENV === 'development';
+}
 
+async function runSync() {
+  try {
     const supabaseAdmin = createAdminClient();
     const syncService = getGoogleCalendarSyncService();
 
@@ -96,11 +100,25 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error: any) {
-    console.error('[POST /api/cron/sync-google-calendar] Error:', error);
+    console.error('[sync-google-calendar] Error:', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
+}
+
+export async function GET(request: NextRequest) {
+  if (!verifyCronRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  return runSync();
+}
+
+export async function POST(request: NextRequest) {
+  if (!verifyCronRequest(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  return runSync();
 }
 

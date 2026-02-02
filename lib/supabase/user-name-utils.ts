@@ -123,6 +123,38 @@ export function matchesTechnicalConstruction(
 }
 
 /**
+ * Lista de jefes de obra para el selector del segundo kanban (Proyectos/WIP).
+ * Una entrada por email, con nombre canónico; misma fuente que el primer kanban.
+ */
+export interface SiteManagerOption {
+  name: string;
+  email: string;
+}
+
+export function getSiteManagersList(): SiteManagerOption[] {
+  const byEmail = new Map<string, string>();
+  for (const [name, email] of Object.entries(FOREMAN_NAME_TO_EMAIL)) {
+    const lower = email.toLowerCase();
+    if (!byEmail.has(lower)) {
+      byEmail.set(lower, name);
+    }
+  }
+  return Array.from(byEmail.entries())
+    .map(([email, name]) => ({ name, email }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Nombre a mostrar para un email de jefe de obra (para el selector).
+ */
+export function getSiteManagerNameFromEmail(email: string | null): string | null {
+  if (!email) return null;
+  const list = getSiteManagersList();
+  const found = list.find((o) => o.email.toLowerCase() === email.toLowerCase());
+  return found ? found.name : extractNameFromEmail(email);
+}
+
+/**
  * Convierte un email de foreman a nombres posibles de Technical construction
  * Usa el mapeo inverso de FOREMAN_NAME_TO_EMAIL
  */

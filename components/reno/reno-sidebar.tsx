@@ -39,6 +39,7 @@ const getNavigationItems = (t: any, role?: string) => {
       icon: Grid,
     },
   ];
+  // Solo admin y construction_manager ven el Kanban Proyectos/WIP; jefes de obra (foreman) no
   if (role === "admin" || role === "construction_manager") {
     items.push({
       label: t.nav.kanbanProjects,

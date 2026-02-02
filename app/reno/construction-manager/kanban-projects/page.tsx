@@ -15,7 +15,7 @@ import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
-import { visibleRenoKanbanColumnsFromObraStart, PHASES_FROM_OBRA_START } from "@/lib/reno-kanban-config";
+import { visibleRenoKanbanColumnsProjects, PHASES_KANBAN_PROJECTS } from "@/lib/reno-kanban-config";
 import type { Property } from "@/lib/property-storage";
 
 type ViewMode = "kanban" | "list";
@@ -41,7 +41,7 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
   const { allProperties, propertiesByPhase: rawPropertiesByPhase } = useRenoProperties();
   const { filters, updateFilters, filterBadgeCount } = useRenoFilters();
 
-  // Protect route: only admin and construction_manager
+  // Proteger ruta: solo admin y construction_manager. Jefes de obra (foreman) no tienen acceso.
   useEffect(() => {
     if (isLoading) return;
     if (!user || !role) {
@@ -50,11 +50,17 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
     }
     if (role !== "admin" && role !== "construction_manager") {
       router.push("/reno/construction-manager");
-      toast.error("No tienes permisos para acceder al Kanban Proyectos / WIP");
+      if (role !== "foreman") {
+        toast.error("No tienes permisos para acceder al Kanban Proyectos / WIP");
+      }
     }
   }, [user, role, isLoading, router]);
 
-  // Segundo kanban: mostrar TODAS las viviendas que están en las 5 fases (Obra a empezar → Limpieza), sin filtrar por tipo
+  // Helper: tipo de propiedad (Project, WIP, Unit, Building)
+  const getPropertyType = (p: Property): string =>
+    ((p as any).propertyType ?? (p as any).type ?? (p as any).supabaseProperty?.type ?? "").toString().trim();
+
+  // Segundo kanban: solo fases Obra en curso → Limpieza y solo tipos Project/WIP (sin Unit/Building).
   const propertiesByPhaseOverride = useMemo((): Record<RenoKanbanPhase, Property[]> => {
     const empty: Record<RenoKanbanPhase, Property[]> = {
       "upcoming-settlements": [],
@@ -74,19 +80,27 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
       "orphaned": [],
     };
     if (!rawPropertiesByPhase) return empty;
-    for (const phase of PHASES_FROM_OBRA_START) {
-      empty[phase] = rawPropertiesByPhase[phase] || [];
+    const allowedTypes = ["project", "wip"];
+    for (const phase of PHASES_KANBAN_PROJECTS) {
+      const list = (rawPropertiesByPhase[phase] || []).filter((p) => {
+        const t = getPropertyType(p).toLowerCase();
+        return allowedTypes.includes(t);
+      });
+      empty[phase] = list;
     }
     return empty;
   }, [rawPropertiesByPhase]);
 
-  // Lista plana de todas las propiedades del segundo kanban (para el diálogo de filtros)
+  // Lista plana del segundo kanban (solo Project/WIP) para el diálogo de filtros
   const propertiesInObraPhases = useMemo(() => {
     const ids = new Set<string>();
     const list: Property[] = [];
+    const allowedTypes = ["project", "wip"];
     if (!rawPropertiesByPhase) return list;
-    for (const phase of PHASES_FROM_OBRA_START) {
+    for (const phase of PHASES_KANBAN_PROJECTS) {
       for (const p of rawPropertiesByPhase[phase] || []) {
+        const t = ((p as any).propertyType ?? (p as any).type ?? (p as any).supabaseProperty?.type ?? "").toString().trim().toLowerCase();
+        if (!allowedTypes.includes(t)) continue;
         if (!ids.has(p.id)) {
           ids.add(p.id);
           list.push(p);
@@ -96,13 +110,17 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
     return list;
   }, [rawPropertiesByPhase]);
 
-  const kanbanFilters = {
-    renovatorNames: filters.renovatorNames,
-    technicalConstructors: filters.technicalConstructors,
-    areaClusters: filters.areaClusters,
-    delayedWorks: filters.delayedWorks,
-    propertyTypes: filters.propertyTypes ?? [],
-  };
+  // En este kanban solo mostramos Project/WIP; fijamos el filtro de tipo para que el board no muestre Unit/Building
+  const kanbanFilters = useMemo(
+    () => ({
+      renovatorNames: filters.renovatorNames,
+      technicalConstructors: filters.technicalConstructors,
+      areaClusters: filters.areaClusters,
+      delayedWorks: filters.delayedWorks,
+      propertyTypes: ["Project", "WIP"] as string[],
+    }),
+    [filters.renovatorNames, filters.technicalConstructors, filters.areaClusters, filters.delayedWorks]
+  );
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -135,7 +153,7 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             propertiesByPhaseOverride={propertiesByPhaseOverride}
-            visibleColumnsOverride={visibleRenoKanbanColumnsFromObraStart}
+            visibleColumnsOverride={visibleRenoKanbanColumnsProjects}
             fromParam="kanban-projects"
           />
         </div>
@@ -151,9 +169,11 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
               technicalConstructors: newFilters.technicalConstructors,
               areaClusters: newFilters.areaClusters,
               delayedWorks: newFilters.delayedWorks,
-              propertyTypes: newFilters.propertyTypes ?? [],
+              propertyTypes: ["Project", "WIP"],
             });
           }}
+          propertyTypeLocked={true}
+          propertyTypeOptions={["Project", "WIP"]}
         />
       </div>
     </div>

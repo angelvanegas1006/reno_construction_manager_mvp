@@ -40,17 +40,24 @@ if (typeof window !== 'undefined' && !errorInterceptorsInstalled) {
       errorStack.includes('_getUser')
     );
   };
+
+  // Errores de red (Failed to fetch): mostrarlos como warn para no disparar el overlay de Next.js
+  const isNetworkFetchError = (arg: any): boolean => {
+    if (!arg) return false;
+    const msg = typeof arg === 'string' ? arg : arg?.message || arg?.toString() || '';
+    const name = arg?.name || '';
+    return msg === 'Failed to fetch' || (name === 'TypeError' && String(msg).includes('fetch'));
+  };
   
   // Interceptar console.error con mejor detección
   console.error = (...args: any[]) => {
-    // Verificar si alguno de los argumentos es un error de sesión faltante
     const hasAuthSessionError = args.some(arg => isAuthSessionMissingError(arg));
-    
-    if (hasAuthSessionError) {
-      // No mostrar el error en consola, es esperado cuando no hay sesión de Supabase
+    if (hasAuthSessionError) return;
+    const hasNetworkError = args.some(arg => isNetworkFetchError(arg));
+    if (hasNetworkError) {
+      originalWarn(...args);
       return;
     }
-    // Para otros errores, mostrarlos normalmente
     originalError(...args);
   };
   
