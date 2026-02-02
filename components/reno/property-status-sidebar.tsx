@@ -72,7 +72,7 @@ export function PropertyStatusSidebar({
     }
     if ((renoPhase === "reno-budget-renovator" || renoPhase === "reno-budget-client" || renoPhase === "reno-budget-start") && 
         daysToStartRenoSinceRSD !== null && daysToStartRenoSinceRSD !== undefined) {
-      return { label: "Días para empezar la reno desde firma", value: daysToStartRenoSinceRSD };
+      return { label: "Días desde la firma", value: daysToStartRenoSinceRSD };
     }
     if (renoPhase === "reno-in-progress" && renoDuration !== null && renoDuration !== undefined) {
       return { label: "Duración de la obra", value: renoDuration };
