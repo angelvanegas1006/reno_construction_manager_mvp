@@ -103,6 +103,11 @@
     "tailwind-merge": "^3.4.0",
     "zod": "^4.1.13"
   },
+  "overrides": {
+    "pdfjs-dist": {
+      "canvas": "file:./packages/canvas-stub"
+    }
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.0.0",
