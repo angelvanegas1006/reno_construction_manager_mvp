@@ -458,10 +458,11 @@ export type Database = {
           has_elevator: boolean
           id: string
           inspection_status: string | null
+          inspection_type: string | null
           metadata: Json | null
           pdf_url: string | null
           property_id: string
-          public_link_id: string
+          public_link_id: string | null
         }
         Insert: {
           completed_at?: string | null
@@ -470,10 +471,11 @@ export type Database = {
           has_elevator?: boolean
           id?: string
           inspection_status?: string | null
+          inspection_type?: string | null
           metadata?: Json | null
           pdf_url?: string | null
           property_id: string
-          public_link_id?: string
+          public_link_id?: string | null
         }
         Update: {
           completed_at?: string | null
@@ -482,10 +484,11 @@ export type Database = {
           has_elevator?: boolean
           id?: string
           inspection_status?: string | null
+          inspection_type?: string | null
           metadata?: Json | null
           pdf_url?: string | null
           property_id?: string
-          public_link_id?: string
+          public_link_id?: string | null
         }
         Relationships: [
           {

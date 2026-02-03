@@ -63,7 +63,7 @@ export default function RenoConstructionManagerKanbanPage() {
   const { allProperties, propertiesByPhase: rawPropertiesByPhase } = useRenoProperties();
   const { user, role } = useAppAuth();
 
-  // Primer kanban: Unit y Building; si es foreman, además Project/WIP asignados a él (assigned_site_manager_email)
+  // Primer kanban: Unit, Building y Lot; si es foreman, además Project/WIP asignados a él (assigned_site_manager_email)
   const propertiesByPhaseExcludingProjectWip = useMemo((): Record<RenoKanbanPhase, Property[]> => {
     const empty: Record<RenoKanbanPhase, Property[]> = {
       "upcoming-settlements": [],
@@ -92,7 +92,7 @@ export default function RenoConstructionManagerKanbanPage() {
     };
     for (const phase of ALL_PHASES) {
       const list = rawPropertiesByPhase[phase] || [];
-      // Admin/construction_manager: solo Unit y Building. Foreman: Unit, Building y Project/WIP asignados a él
+      // Admin/construction_manager: solo Unit, Building y Lot. Foreman: Unit, Building, Lot y Project/WIP asignados a él
       empty[phase] = list.filter(
         (p) => !isProjectOrWip(p) || isAssignedToCurrentForeman(p)
       );
@@ -103,13 +103,13 @@ export default function RenoConstructionManagerKanbanPage() {
   // Use unified filters hook
   const { filters, updateFilters, filterBadgeCount } = useRenoFilters();
   
-  // Convert RenoFilters to KanbanFilters; en el primer kanban solo Unit/Building (excluir Project/WIP del filtro)
+  // Convert RenoFilters to KanbanFilters; en el primer kanban Unit/Building/Lot (excluir Project/WIP del filtro)
   const kanbanFilters = {
     renovatorNames: filters.renovatorNames,
     technicalConstructors: filters.technicalConstructors,
     areaClusters: filters.areaClusters,
     delayedWorks: filters.delayedWorks,
-    propertyTypes: (filters.propertyTypes ?? []).filter((t) => ["Unit", "Building"].includes(t)),
+    propertyTypes: (filters.propertyTypes ?? []).filter((t) => ["Unit", "Building", "Lot"].includes(t)),
   };
 
   return (
@@ -158,7 +158,7 @@ export default function RenoConstructionManagerKanbanPage() {
           onOpenChange={setIsFiltersOpen}
           properties={allProperties}
           filters={kanbanFilters}
-          propertyTypeOptions={["Unit", "Building"]}
+          propertyTypeOptions={["Unit", "Building", "Lot"]}
           onFiltersChange={(newFilters) => {
             updateFilters({
               renovatorNames: newFilters.renovatorNames,

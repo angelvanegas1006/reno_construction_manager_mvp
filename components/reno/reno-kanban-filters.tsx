@@ -122,7 +122,7 @@ export function RenoKanbanFilters({
         <DialogHeader>
           <DialogTitle className="text-lg md:text-xl">{t.kanban.filters || "Filtros"}</DialogTitle>
           <DialogDescription className="text-sm">
-            {t.kanban.filtersDescription || "Selecciona uno o más valores para filtrar las propiedades. Los filtros se combinan con OR (cualquiera de los seleccionados)."}
+            {t.kanban.filtersDescription || "Selecciona uno o más valores. Las categorías (tipo, jefe de obra, área, etc.) se combinan con AND: la propiedad debe cumplir todos los filtros activos."}
           </DialogDescription>
         </DialogHeader>
 
