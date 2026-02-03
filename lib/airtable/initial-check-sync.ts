@@ -267,7 +267,7 @@ export async function syncChecklistToAirtable(
 }
 
 /**
- * Genera URL pública del PDF del checklist
+ * Genera URL pública del PDF del checklist (con tipo: initial o final)
  */
 export function generateChecklistPublicUrl(propertyId: string, checklistType: 'reno_initial' | 'reno_final'): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://dev.vistral.io';
@@ -278,6 +278,16 @@ export function generateChecklistPublicUrl(propertyId: string, checklistType: 'r
   
   // URL pública del checklist HTML (compartible sin autenticación)
   return `${publicBaseUrl}/checklist-public/${propertyId}/${type}`;
+}
+
+/**
+ * Genera la URL pública única del selector (sin tipo).
+ * Una sola URL por propiedad en Airtable; el usuario elige Initial o Final en esa página.
+ */
+export function generateChecklistPublicSelectorUrl(propertyId: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://dev.vistral.io';
+  const publicBaseUrl = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
+  return `${publicBaseUrl}/checklist-public/${propertyId}`;
 }
 
 /**
@@ -517,8 +527,8 @@ export async function finalizeInitialCheckInAirtable(
     }
     // Para reno_final, no agregamos Visit Date a updates
 
-    // 3. Reno checklist form: fldBOpKEktOI2GnZK -> link público del PDF del checklist
-    const checklistPublicUrl = pdfUrl || generateChecklistPublicUrl(propertyId, checklistType);
+    // 3. Reno checklist form: fldBOpKEktOI2GnZK -> URL única del selector (Initial / Final)
+    const checklistPublicUrl = generateChecklistPublicSelectorUrl(propertyId);
     updates['fldBOpKEktOI2GnZK'] = checklistPublicUrl;
 
     console.log(`[Initial Check Sync] 📋 About to update Airtable with:`, {
