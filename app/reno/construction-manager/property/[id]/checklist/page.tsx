@@ -466,9 +466,8 @@ export default function RenoChecklistPage() {
       });
 
       if (finalizeSuccess) {
-        // Generate public URL
-        const type = checklistType === "reno_final" ? "final" : "initial";
-        const url = `${window.location.origin}/checklist-public/${propertyId}/${type}`;
+        // URL única del selector (Initial / Final) - la misma que se guarda en Airtable
+        const url = `${window.location.origin}/checklist-public/${propertyId}`;
         setPublicUrl(url);
         setShowCompleteDialog(true);
         toast.success("Checklist completado exitosamente");
