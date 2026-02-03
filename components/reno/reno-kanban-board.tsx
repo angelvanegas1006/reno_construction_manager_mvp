@@ -493,11 +493,18 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
         }
       }
 
-      // Si hay filtros de tipo (Unit / Building), verificar si coincide.
+      // Si hay filtros de tipo (Unit / Building / Lot), verificar si coincide.
+      // Aceptar coincidencia exacta o que el type contenga la palabra (ej. "Unit & Building" → Unit y Building).
       // En el primer kanban, Project/WIP asignados al foreman (assigned_site_manager_email) también pasan el filtro de tipo.
       const selectedTypes = activeFilters.propertyTypes ?? [];
-      if (selectedTypes.length > 0 && propertyTypeNormalized) {
-        matchesType = selectedTypes.some(t => propertyTypeNormalized === t.trim().toLowerCase());
+      if (selectedTypes.length > 0) {
+        if (propertyTypeNormalized) {
+          const typeMatchesSelected = (needle: string) => {
+            const n = needle.trim().toLowerCase();
+            return propertyTypeNormalized === n || propertyTypeNormalized.includes(n);
+          };
+          matchesType = selectedTypes.some(t => typeMatchesSelected(t));
+        }
         if (!matchesType && fromParam === "kanban" && user?.email) {
           const isProjectOrWip = ["project", "wip"].includes(propertyTypeNormalized);
           const assigned = (property as any).supabaseProperty?.assigned_site_manager_email;
@@ -506,21 +513,21 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
         }
       }
 
-      // OR lógico entre tipos de filtros: debe cumplir al menos uno de los tipos de filtros activos
-      // Si un tipo de filtro no está activo, no se considera en el OR
-      const activeFilterTypes: boolean[] = [];
-      if (activeFilters.renovatorNames.length > 0) activeFilterTypes.push(matchesRenovator);
-      if (activeFilters.technicalConstructors.length > 0) activeFilterTypes.push(matchesTechnical);
-      if (activeFilters.areaClusters.length > 0) activeFilterTypes.push(matchesArea);
-      if (selectedTypes.length > 0) activeFilterTypes.push(matchesType);
+      // AND lógico entre categorías de filtros: la propiedad debe cumplir TODOS los filtros activos.
+      // Ej.: Lot + Jefe de obra Elier Claudio → solo Lots que tengan a Elier Claudio como jefe de obra.
+      const activeFilterResults: boolean[] = [];
+      if (activeFilters.renovatorNames.length > 0) activeFilterResults.push(matchesRenovator);
+      if (activeFilters.technicalConstructors.length > 0) activeFilterResults.push(matchesTechnical);
+      if (activeFilters.areaClusters.length > 0) activeFilterResults.push(matchesArea);
+      if (selectedTypes.length > 0) activeFilterResults.push(matchesType);
 
       // Si solo está activo el filtro de obras tardías (sin otros filtros), mostrar todas las tardías
-      if (activeFilters.delayedWorks && activeFilterTypes.length === 0) {
+      if (activeFilters.delayedWorks && activeFilterResults.length === 0) {
         return true; // Ya verificamos que es tardía arriba
       }
 
-      // Si hay tipos de filtros activos además de obras tardías, al menos uno debe cumplirse
-      return activeFilterTypes.length === 0 || activeFilterTypes.some(match => match);
+      // Si hay filtros activos, la propiedad debe cumplir todos (AND)
+      return activeFilterResults.length === 0 || activeFilterResults.every(match => match);
     };
 
     const matchesAll = (property: Property) => {
