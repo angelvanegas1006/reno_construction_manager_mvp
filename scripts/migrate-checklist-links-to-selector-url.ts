@@ -32,7 +32,7 @@ function generateChecklistPublicSelectorUrl(propertyId: string): string {
   const publicBaseUrl = baseUrl.startsWith('http')
     ? baseUrl
     : `https://${baseUrl}`;
-  return `${publicBaseUrl}/checklist-public/${propertyId}`;
+  return `${publicBaseUrl.replace(/\/$/, '')}/checklist-public/${propertyId}`;
 }
 
 async function main() {
