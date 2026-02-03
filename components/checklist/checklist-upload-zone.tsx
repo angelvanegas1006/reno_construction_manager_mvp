@@ -22,7 +22,8 @@ interface ChecklistUploadZoneProps {
   readOnly?: boolean; // Si es true, el componente es solo lectura
 }
 
-const DEFAULT_MAX_SIZE = 5; // MB
+// Sin límite práctico por imagen (64 MB) para evitar fallos en móvil; fotos de cámara suelen superar 5 MB
+const DEFAULT_MAX_SIZE = 64; // MB
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 

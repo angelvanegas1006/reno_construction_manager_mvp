@@ -241,15 +241,11 @@ function areAllRequiredElementsReported(section: ChecklistSection): boolean {
 }
 
 /**
- * Verifica si todas las secciones del checklist tienen TODOS sus elementos requeridos con datos reportados
- * @param checklist El checklist a validar
- * @returns true si todas las secciones tienen todos los elementos requeridos con datos, false en caso contrario
+ * Secciones requeridas para el check inicial (incluye entorno-zonas-comunes).
+ * Para el check final no se exige "entorno-zonas-comunes" (la UI la omite).
  */
-export function areAllActivitiesReported(checklist: ChecklistData | null): boolean {
-  if (!checklist) return false;
-
-  // Secciones requeridas para un checklist completo
-  const requiredSections = [
+function getRequiredSectionsForType(checklistType?: string): string[] {
+  const allSections = [
     "entorno-zonas-comunes",
     "estado-general",
     "entrada-pasillos",
@@ -259,6 +255,21 @@ export function areAllActivitiesReported(checklist: ChecklistData | null): boole
     "cocina",
     "exteriores",
   ];
+  if (checklistType === "reno_final") {
+    return allSections.filter((id) => id !== "entorno-zonas-comunes");
+  }
+  return allSections;
+}
+
+/**
+ * Verifica si todas las secciones del checklist tienen TODOS sus elementos requeridos con datos reportados
+ * @param checklist El checklist a validar
+ * @returns true si todas las secciones tienen todos los elementos requeridos con datos, false en caso contrario
+ */
+export function areAllActivitiesReported(checklist: ChecklistData | null): boolean {
+  if (!checklist) return false;
+
+  const requiredSections = getRequiredSectionsForType(checklist.checklistType);
 
   // Verificar cada sección requerida
   for (const sectionId of requiredSections) {
@@ -286,16 +297,7 @@ export function areAllActivitiesReported(checklist: ChecklistData | null): boole
 export function getUnreportedSections(checklist: ChecklistData | null): string[] {
   if (!checklist) return [];
 
-  const requiredSections = [
-    "entorno-zonas-comunes",
-    "estado-general",
-    "entrada-pasillos",
-    "habitaciones",
-    "salon",
-    "banos",
-    "cocina",
-    "exteriores",
-  ];
+  const requiredSections = getRequiredSectionsForType(checklist.checklistType);
 
   const unreported: string[] = [];
 
@@ -311,21 +313,26 @@ export function getUnreportedSections(checklist: ChecklistData | null): string[]
 }
 
 
+const SECTION_CONFIGS = [
+  { id: "entorno-zonas-comunes", refId: "checklist-entorno-zonas-comunes", name: "Entorno y Zonas Comunes" },
+  { id: "estado-general", refId: "checklist-estado-general", name: "Estado General" },
+  { id: "entrada-pasillos", refId: "checklist-entrada-pasillos", name: "Entrada y Pasillos" },
+  { id: "habitaciones", refId: "checklist-habitaciones", name: "Habitaciones" },
+  { id: "salon", refId: "checklist-salon", name: "Salón" },
+  { id: "banos", refId: "checklist-banos", name: "Baños" },
+  { id: "cocina", refId: "checklist-cocina", name: "Cocina" },
+  { id: "exteriores", refId: "checklist-exteriores", name: "Exteriores" },
+];
+
 export function getFirstIncompleteSection(checklist: ChecklistData | null): { sectionId: string; sectionRefId: string; message: string } | null {
   if (!checklist) return null;
 
-  const requiredSections = [
-    { id: "entorno-zonas-comunes", refId: "checklist-entorno-zonas-comunes", name: "Entorno y Zonas Comunes" },
-    { id: "estado-general", refId: "checklist-estado-general", name: "Estado General" },
-    { id: "entrada-pasillos", refId: "checklist-entrada-pasillos", name: "Entrada y Pasillos" },
-    { id: "habitaciones", refId: "checklist-habitaciones", name: "Habitaciones" },
-    { id: "salon", refId: "checklist-salon", name: "Salón" },
-    { id: "banos", refId: "checklist-banos", name: "Baños" },
-    { id: "cocina", refId: "checklist-cocina", name: "Cocina" },
-    { id: "exteriores", refId: "checklist-exteriores", name: "Exteriores" },
-  ];
+  const requiredSectionConfigs =
+    checklist.checklistType === "reno_final"
+      ? SECTION_CONFIGS.filter((c) => c.id !== "entorno-zonas-comunes")
+      : SECTION_CONFIGS;
 
-  for (const sectionConfig of requiredSections) {
+  for (const sectionConfig of requiredSectionConfigs) {
     const section = checklist.sections[sectionConfig.id];
     
     if (!section) {
