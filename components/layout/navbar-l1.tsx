@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, LayoutGrid, List } from "lucide-react";
+import { Search, LayoutGrid, List, RefreshCw } from "lucide-react";
 import { FilterIcon } from "@/components/icons/filter-icon";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,12 @@ interface NavbarL1Props {
   /** Zona C: Buscador */
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  /** Zona C: Botón Sync con Airtable (a la izquierda del buscador) */
+  syncAirtableButton?: {
+    label: string;
+    onClick: () => void | Promise<void>;
+    loading?: boolean;
+  };
   /** Zona C: Filtros */
   onFilterClick?: () => void;
   /** Zona C: Número de filtros activos para mostrar badge */
@@ -50,6 +56,7 @@ export function NavbarL1({
   classNameTitle,
   searchQuery,
   setSearchQuery,
+  syncAirtableButton,
   onFilterClick,
   filterBadgeCount = 0,
   viewMode,
@@ -72,6 +79,21 @@ export function NavbarL1({
         
         {/* Search and Filter Row */}
         <div className="flex items-center gap-2 min-w-0">
+          {/* Sync con Airtable (a la izquierda del buscador) */}
+          {syncAirtableButton && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={syncAirtableButton.onClick}
+              disabled={syncAirtableButton.loading}
+              className="rounded-full flex-shrink-0 gap-1.5 h-10 px-3"
+              aria-label={syncAirtableButton.label}
+            >
+              <RefreshCw className={cn("h-4 w-4", syncAirtableButton.loading && "animate-spin")} />
+              <span className="text-xs">{syncAirtableButton.label}</span>
+            </Button>
+          )}
+
           {/* Buscador */}
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -145,6 +167,21 @@ export function NavbarL1({
 
         {/* Zona C: Buscador, Filtros y Acciones */}
         <div className="flex items-center gap-3 flex-1 max-w-2xl ml-auto min-w-0">
+          {/* Sync con Airtable (a la izquierda del buscador) */}
+          {syncAirtableButton && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={syncAirtableButton.onClick}
+              disabled={syncAirtableButton.loading}
+              className="rounded-full flex-shrink-0 gap-2 h-10 px-3"
+              aria-label={syncAirtableButton.label}
+            >
+              <RefreshCw className={cn("h-4 w-4", syncAirtableButton.loading && "animate-spin")} />
+              <span>{syncAirtableButton.label}</span>
+            </Button>
+          )}
+
           {/* Buscador */}
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
