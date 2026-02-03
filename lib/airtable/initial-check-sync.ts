@@ -287,7 +287,7 @@ export function generateChecklistPublicUrl(propertyId: string, checklistType: 'r
 export function generateChecklistPublicSelectorUrl(propertyId: string): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://dev.vistral.io';
   const publicBaseUrl = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
-  return `${publicBaseUrl}/checklist-public/${propertyId}`;
+  return `${publicBaseUrl.replace(/\/$/, '')}/checklist-public/${propertyId}`;
 }
 
 /**

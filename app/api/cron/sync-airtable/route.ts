@@ -1,40 +1,59 @@
 /**
  * API Route para sincronizar propiedades desde Airtable
- * Se ejecuta como cron job en Vercel
+ * Se ejecuta como cron job en Vercel o manualmente por usuarios con rol admin/construction_manager
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { syncAllPhasesFromAirtable } from '@/lib/airtable/sync-all-phases';
 
 /**
  * Verifica que la request viene de Vercel Cron.
- * Vercel envía: Authorization: Bearer CRON_SECRET (si CRON_SECRET está configurado)
- * y User-Agent: vercel-cron/1.0 en todas las invocaciones de cron.
  */
 function verifyCronRequest(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
   const userAgent = request.headers.get('user-agent') ?? '';
 
-  // Si hay CRON_SECRET configurado, Vercel lo envía como Bearer token
   if (cronSecret) {
     if (authHeader === `Bearer ${cronSecret}`) return true;
-    // Fallback: aceptar también si viene el User-Agent de Vercel Cron (por si el secret no se inyecta en algún entorno)
     if (userAgent.startsWith('vercel-cron/')) return true;
     return false;
   }
 
-  // Sin CRON_SECRET: aceptar si viene de Vercel (User-Agent) o en desarrollo
   if (userAgent.startsWith('vercel-cron/')) return true;
   const vercelSignature = request.headers.get('x-vercel-signature');
   if (vercelSignature) return true;
   return process.env.NODE_ENV === 'development';
 }
 
+const ALLOWED_MANUAL_SYNC_ROLES = ['admin', 'construction_manager'];
+
+/**
+ * Verifica que el usuario tiene permiso para ejecutar el sync manualmente (admin o construction_manager).
+ */
+async function verifyUserCanSync(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: roleData } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .single();
+
+  return roleData?.role != null && ALLOWED_MANUAL_SYNC_ROLES.includes(roleData.role);
+}
+
+async function isAuthorized(request: NextRequest): Promise<boolean> {
+  if (verifyCronRequest(request)) return true;
+  return verifyUserCanSync();
+}
+
 export async function GET(request: NextRequest) {
   try {
-    // Verificar que viene de un cron job válido
-    if (!verifyCronRequest(request)) {
+    if (!(await isAuthorized(request))) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -66,7 +85,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// También permitir POST para testing manual
+// POST para ejecución manual desde el botón "Sync con Airtable" (usuarios admin/construction_manager)
 export async function POST(request: NextRequest) {
   return GET(request);
 }
