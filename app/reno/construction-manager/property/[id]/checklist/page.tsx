@@ -60,6 +60,7 @@ export default function RenoChecklistPage() {
   const router = useRouter();
   const searchParamsPromise = useSearchParams();
   const sectionRefs = useRef<Record<string, HTMLDivElement>>({});
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { t } = useI18n();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -283,19 +284,23 @@ export default function RenoChecklistPage() {
     [updateSection, isChecklistCompleted]
   );
 
-  // Handle section click - Guardar antes de cambiar de sección
+  // Handle section click - Guardar la sección que SALIMOS antes de cambiar (crítico para no perder fotos en móvil)
   const handleSectionClick = useCallback(async (sectionId: string) => {
-    // Guardar cambios antes de cambiar de sección
-    if (hasUnsavedChanges) {
+    const currentSectionIdWithoutPrefix = activeSection.replace(/^checklist-/, '');
+    const nextSectionIdWithoutPrefix = sectionId.replace(/^checklist-/, '');
+    const isChangingSection = currentSectionIdWithoutPrefix !== nextSectionIdWithoutPrefix;
+
+    if (isChangingSection && checklist?.sections[currentSectionIdWithoutPrefix]) {
       try {
-        await saveCurrentSection();
+        // Guardar siempre la sección que estamos dejando (con su id) para que las fotos se suban
+        await saveCurrentSection(currentSectionIdWithoutPrefix);
         setHasUnsavedChanges(false);
       } catch (error) {
         console.error("Error al guardar antes de cambiar de sección:", error);
         toast.error("Error al guardar cambios. Los cambios no se guardaron.");
       }
     }
-    
+
     setActiveSection(sectionId);
     // Cerrar sidebar móvil al cambiar de sección
     setIsMobileSidebarOpen(false);
@@ -336,7 +341,7 @@ export default function RenoChecklistPage() {
         }
       }, 150); // 150ms de delay para asegurar que React haya renderizado completamente
     });
-  }, [hasUnsavedChanges, saveCurrentSection]);
+  }, [activeSection, checklist, saveCurrentSection]);
 
   // Handle continue - Guarda los cambios y luego cambia de sección
   const handleContinue = useCallback(async (nextSectionId: string) => {
@@ -1224,6 +1229,7 @@ export default function RenoChecklistPage() {
         formTitle={formTitle}
         statusText={hasUnsavedChanges ? undefined : "Cambios guardados"}
         onMenuClick={() => setIsMobileSidebarOpen(true)}
+        scrollContainerRef={scrollContainerRef}
         actions={
           isChecklistCompleted
             ? [] // No actions when completed (read-only)
@@ -1243,8 +1249,11 @@ export default function RenoChecklistPage() {
                     setIsCompleting(true);
                     
                     try {
-                      // Guardar sección actual antes de validar
-                      await saveCurrentSection();
+                      // Guardar la sección que está viendo (por id) antes de validar
+                      const sectionIdToSave = activeSection.replace(/^checklist-/, '');
+                      if (checklist?.sections[sectionIdToSave]) {
+                        await saveCurrentSection(sectionIdToSave);
+                      }
 
                       // Validar checklist antes de continuar
                       const incompleteSection = getFirstIncompleteSection(checklist);
@@ -1360,7 +1369,7 @@ export default function RenoChecklistPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Content con padding-top para no quedar oculto bajo el header */}
         {/* El header tiene aproximadamente 80-90px de altura (py-3 + contenido), así que necesitamos más espacio */}
-        <div className="flex-1 overflow-y-auto bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
           <div className="pt-32 px-4 md:px-6 pb-24 md:pb-6">
             <div className="max-w-4xl mx-auto">
               {/* Banner de solo lectura cuando está completado */}

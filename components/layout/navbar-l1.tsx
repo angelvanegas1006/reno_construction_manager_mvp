@@ -77,24 +77,9 @@ export function NavbarL1({
           </h1>
         )}
         
-        {/* Search and Filter Row */}
+        {/* Search and Filter Row - móvil: buscador primero (grande), luego Sync AT compacto */}
         <div className="flex items-center gap-2 min-w-0">
-          {/* Sync con Airtable (a la izquierda del buscador) */}
-          {syncAirtableButton && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={syncAirtableButton.onClick}
-              disabled={syncAirtableButton.loading}
-              className="rounded-full flex-shrink-0 gap-1.5 h-10 px-3"
-              aria-label={syncAirtableButton.label}
-            >
-              <RefreshCw className={cn("h-4 w-4", syncAirtableButton.loading && "animate-spin")} />
-              <span className="text-xs">{syncAirtableButton.label}</span>
-            </Button>
-          )}
-
-          {/* Buscador */}
+          {/* Buscador (prioridad en móvil: flex-1 para que ocupe el espacio) */}
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -105,6 +90,21 @@ export function NavbarL1({
               className="pl-10 bg-background border-input rounded-full w-full min-w-0"
             />
           </div>
+
+          {/* Sync con Airtable - móvil: solo "Sync AT" + icono (ruleta al cargar) */}
+          {syncAirtableButton && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={syncAirtableButton.onClick}
+              disabled={syncAirtableButton.loading}
+              className="rounded-full flex-shrink-0 gap-1 h-9 px-2.5 min-w-0"
+              aria-label={syncAirtableButton.label}
+            >
+              <RefreshCw className={cn("h-4 w-4 flex-shrink-0", syncAirtableButton.loading && "animate-spin")} />
+              <span className="text-xs whitespace-nowrap md:hidden">Sync AT</span>
+            </Button>
+          )}
 
           {/* Filtros */}
           {onFilterClick && (
