@@ -448,6 +448,7 @@ export default function RenoChecklistPage() {
 
     // Si todo está completo, continuar con el proceso normal
     setIsCompleting(true);
+    let redirectScheduled = false;
     try {
       // Guardar sección actual antes de completar
       await saveCurrentSection();
@@ -473,32 +474,23 @@ export default function RenoChecklistPage() {
       });
 
       if (finalizeSuccess) {
-        // URL única del selector (Initial / Final) - la misma que se guarda en Airtable
-        const url = `${window.location.origin}/checklist-public/${propertyId}`;
-        setPublicUrl(url);
-        setShowCompleteDialog(true);
-        toast.success("Checklist completado exitosamente");
         setHasUnsavedChanges(false);
+        toast.success("Checklist completado exitosamente");
         
         // Refrescar la propiedad y las propiedades del contexto para actualizar la fase
         await refetchProperty();
         await refetchProperties();
         
-        // Refrescar los datos del servidor
         router.refresh();
         
-        // Redirigir automáticamente después de un breve delay para que se vea el cambio
-        setTimeout(() => {
-          // Si venimos del kanban o kanban-projects, volver allí
-          if (sourcePage === 'kanban') {
-            router.push(`/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`);
-          } else if (sourcePage === 'kanban-projects') {
-            router.push(`/reno/construction-manager/kanban-projects${viewMode === 'list' ? '?viewMode=list' : ''}`);
-          } else {
-            // Si no, volver a la página de detalle de propiedad
-            router.push(`/reno/construction-manager/property/${propertyId}`);
-          }
-        }, 2000);
+        // Redirigir manteniendo el loader hasta que naveguemos (no mostrar checklist de nuevo)
+        redirectScheduled = true;
+        const targetPath = sourcePage === 'kanban'
+          ? `/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`
+          : sourcePage === 'kanban-projects'
+            ? `/reno/construction-manager/kanban-projects${viewMode === 'list' ? '?viewMode=list' : ''}`
+            : `/reno/construction-manager/property/${propertyId}`;
+        router.push(targetPath);
       } else {
         toast.error("Error al finalizar checklist en Airtable");
       }
@@ -506,11 +498,13 @@ export default function RenoChecklistPage() {
       console.error("Error completing inspection:", error);
       toast.error("Error al completar la inspección");
     } finally {
-      setIsCompleting(false);
-      // Limpiar error al finalizar (exitoso o no)
+      // Solo quitar el loader si no vamos a redirigir (así no se ve el checklist antes del kanban)
+      if (!redirectScheduled) {
+        setIsCompleting(false);
+      }
       setSectionWithError(null);
     }
-  }, [inspection, checklist, saveCurrentSection, completeInspection, refetchInspection, finalizeChecklist, property, propertyId, checklistType, supabaseProperty, refetchProperty, refetchProperties, router, sourcePage]);
+  }, [inspection, checklist, saveCurrentSection, completeInspection, refetchInspection, finalizeChecklist, property, propertyId, checklistType, supabaseProperty, refetchProperty, refetchProperties, router, sourcePage, viewMode]);
 
   // Format address (main line)
   const formatAddress = () => {
@@ -1247,17 +1241,14 @@ export default function RenoChecklistPage() {
                   onClick: async () => {
                     if (!property || isCompleting) return;
                     
-                    // Establecer estado de carga inmediatamente
                     setIsCompleting(true);
-                    
+                    let redirectScheduled = false;
                     try {
-                      // Guardar la sección que está viendo (por id) antes de validar
                       const sectionIdToSave = activeSection.replace(/^checklist-/, '');
                       if (checklist?.sections[sectionIdToSave]) {
                         await saveCurrentSection(sectionIdToSave);
                       }
 
-                      // Validar checklist antes de continuar
                       const incompleteSection = getFirstIncompleteSection(checklist);
                       if (incompleteSection) {
                         // Limpiar error anterior
@@ -1305,7 +1296,6 @@ export default function RenoChecklistPage() {
                         return;
                       }
                       
-                      // Si todo está completo, continuar con el proceso normal
                       const finalizeSuccess = await finalizeChecklist({
                         estimatedVisitDate: property.estimatedVisitDate,
                         autoVisitDate: new Date().toISOString().split('T')[0],
@@ -1313,26 +1303,17 @@ export default function RenoChecklistPage() {
                       });
                       
                       if (finalizeSuccess) {
-                        // Refrescar la propiedad y las propiedades del contexto para actualizar la fase
                         await refetchProperty();
                         await refetchProperties();
-                        
-                        // Refrescar los datos del servidor
                         router.refresh();
-                        
-                        // Limpiar error al finalizar exitosamente
                         setSectionWithError(null);
-                        
-                        // Redirigir automáticamente después de un breve delay
-                        setTimeout(() => {
-                          if (sourcePage === 'kanban') {
-                            router.push(`/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`);
-                          } else if (sourcePage === 'kanban-projects') {
-                            router.push(`/reno/construction-manager/kanban-projects${viewMode === 'list' ? '?viewMode=list' : ''}`);
-                          } else {
-                            router.push(`/reno/construction-manager/property/${propertyId}`);
-                          }
-                        }, 2000);
+                        redirectScheduled = true;
+                        const targetPath = sourcePage === 'kanban'
+                          ? `/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`
+                          : sourcePage === 'kanban-projects'
+                            ? `/reno/construction-manager/kanban-projects${viewMode === 'list' ? '?viewMode=list' : ''}`
+                            : `/reno/construction-manager/property/${propertyId}`;
+                        router.push(targetPath);
                       } else {
                         toast.error("Error al finalizar el checklist");
                       }
@@ -1340,7 +1321,7 @@ export default function RenoChecklistPage() {
                       console.error("Error al completar checklist:", error);
                       toast.error("Error al completar el checklist");
                     } finally {
-                      setIsCompleting(false);
+                      if (!redirectScheduled) setIsCompleting(false);
                     }
                   },
                   variant: "default" as const,
