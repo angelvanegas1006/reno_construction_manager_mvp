@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       try {
         const drivePayload = {
           propertyAddress: address,
-          propertyName: property.name || address,
+          propertyName: address,
           uniqueIdFromEngagements: uniqueId,
         };
         const driveRes = await fetch(DRIVE_FOLDER_WEBHOOK_URL, {
@@ -301,12 +301,20 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
+    if (!property.drive_folder_id) {
+      return NextResponse.json(
+        { error: 'La propiedad no tiene carpeta de Drive asociada. No se pudo crear.' },
+        { status: 400 }
+      );
+    }
+    const addressForPayload = property.address ?? '';
+
     // Preparar payload para n8n con todas las fotos (usar URLs de Storage si están disponibles, sino usar base64)
     const payload: PhotosWebhookPayload = {
       driveFolder_id: property.drive_folder_id,
       drive_folder_url: property.drive_folder_url || undefined,
-      propertyAddress: property.address,
+      propertyAddress: addressForPayload,
       images: uploadResults.map((result) => ({
         url: result.url || photoUrls[result.index].url, // Usar URL de Storage si está disponible, sino base64 original
         filename: result.filename,
