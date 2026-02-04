@@ -95,6 +95,9 @@ export function useSupabaseChecklistBase({
   } | null>(null);
   // Ref para acumular URLs de fotos del initial check para enviarlas todas juntas al final
   const accumulatedInitialCheckPhotosRef = useRef<Array<{ url: string; filename: string }>>([]);
+  // Contador de reintentos de refetch cuando zones siguen en 0 (evitar mostrar checklist vacío antes de que existan zonas)
+  const zonesRefetchRetryCountRef = useRef<number>(0);
+  const maxZonesRefetchRetries = 5;
   
   // Keep checklistRef in sync with checklist state
   useEffect(() => {
@@ -509,28 +512,33 @@ export function useSupabaseChecklistBase({
           // Verificar si ya intentamos crear las zonas para evitar bucles infinitos
           const currentKey = `${propertyId}-${checklistType}-${inspection.id}`;
           if (initializationRef.current === currentKey && lastZonesCountRef.current === 0) {
-            // Ya intentamos crear las zonas pero aún no se han cargado
-            // Esperar un poco más y hacer refetch
-            console.log(`[useSupabaseChecklistBase:${inspectionType}] ⏳ Zones were created but not loaded yet, refetching...`);
+            // Ya intentamos crear las zonas pero aún no se han cargado en el estado (zones viene del closure)
+            // Reintentar refetch; no mostrar checklist vacío hasta que zones existan (evita "Zone not found" al guardar)
+            zonesRefetchRetryCountRef.current += 1;
+            const retryCount = zonesRefetchRetryCountRef.current;
+            console.log(`[useSupabaseChecklistBase:${inspectionType}] ⏳ Zones were created but not loaded yet, refetching (attempt ${retryCount}/${maxZonesRefetchRetries})...`);
             lastInspectionLoadingRef.current = true;
             await functionsRef.current.refetchInspection();
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 600));
             lastInspectionLoadingRef.current = false;
-            // Si aún no hay zonas después del refetch, crear un checklist vacío para evitar bucle infinito
-            if (zones.length === 0) {
-              console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Zones still not loaded after refetch, creating empty checklist to prevent infinite loop`);
+            // No establecer checklist vacío aquí: el refetch actualizará zones en el otro hook y este efecto se re-ejecutará con zones.length > 0
+            // Solo si superamos reintentos, mostrar checklist vacío para no bloquear al usuario
+            if (zonesRefetchRetryCountRef.current >= maxZonesRefetchRetries) {
+              console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Zones still not loaded after ${maxZonesRefetchRetries} refetches, showing empty checklist`);
               const emptyChecklist = createChecklist(propertyId, checklistType, {});
               setChecklist(emptyChecklist);
               setIsLoading(false);
+              zonesRefetchRetryCountRef.current = 0;
               initializationInProgressRef.current = false;
+              toast.error("No se pudieron cargar las zonas del checklist. Recarga la página o inténtalo de nuevo.");
               return;
             }
-            // Si ahora hay zonas, continuar con la carga normal del checklist
-            // El efecto se ejecutará de nuevo cuando zones.length cambie
+            initializationInProgressRef.current = false;
             return;
           }
           
           console.log(`[useSupabaseChecklistBase:${inspectionType}] 📝 Creating initial zones...`);
+          zonesRefetchRetryCountRef.current = 0; // Reset antes de crear zonas
           await functionsRef.current.createInitialZones(inspection.id);
           // Marcar que intentamos crear las zonas
           const stableKey = `${propertyId}-${checklistType}-${inspection.id}`;
@@ -611,18 +619,37 @@ export function useSupabaseChecklistBase({
           }
           
           const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
-          setChecklist(loadedChecklist);
-          if (inspection?.id) {
-            const stableKey = `${propertyId}-${checklistType}-${inspection.id}`;
-            initializationRef.current = stableKey;
-            lastZonesCountRef.current = zones.length;
-          }
-          debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Checklist loaded and set`, {
-            inspectionId: inspection?.id,
-            zonesCount: zones.length,
-            elementsCount: elements.length,
-            photoElementsCount: photoElementsDetails.length,
+          // No sobrescribir si el usuario ya rellenó datos (evita perder fotos/estado al refetch)
+          const current = checklistRef.current;
+          const hasUserData = current && Object.values(current.sections || {}).some(section => {
+            if (section.uploadZones?.some(z => (z.photos?.length ?? 0) > 0 || (z.videos?.length ?? 0) > 0)) return true;
+            if (section.questions?.some(q => q.status || (q.notes && q.notes.trim()))) return true;
+            if (section.dynamicItems?.some(item => item.questions?.some((q: any) => q.status || (q.notes && q.notes?.trim())))) return true;
+            return false;
           });
+          if (hasUserData && elements.length === 0) {
+            console.log(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping overwrite - checklist has user data and Supabase has 0 elements`);
+            zonesRefetchRetryCountRef.current = 0;
+            if (inspection?.id) {
+              const stableKey = `${propertyId}-${checklistType}-${inspection.id}`;
+              initializationRef.current = stableKey;
+              lastZonesCountRef.current = zones.length;
+            }
+          } else {
+            setChecklist(loadedChecklist);
+            zonesRefetchRetryCountRef.current = 0; // Reset para futuros intentos
+            if (inspection?.id) {
+              const stableKey = `${propertyId}-${checklistType}-${inspection.id}`;
+              initializationRef.current = stableKey;
+              lastZonesCountRef.current = zones.length;
+            }
+            debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Checklist loaded and set`, {
+              inspectionId: inspection?.id,
+              zonesCount: zones.length,
+              elementsCount: elements.length,
+              photoElementsCount: photoElementsDetails.length,
+            });
+          }
         } else {
           console.log(`[useSupabaseChecklistBase:${inspectionType}] 📝 Creating empty checklist...`);
           const newChecklist = createChecklist(propertyId, checklistType, {});
@@ -727,37 +754,48 @@ export function useSupabaseChecklistBase({
       lastProcessedZonesLengthRef.current = zones.length;
       lastProcessedElementsLengthRef.current = elements.length;
       
-      // Si es la primera inspección y tenemos datos, SIEMPRE recargar el checklist
+      // Si es la primera inspección y tenemos datos, recargar el checklist solo si no hay datos del usuario (evita sobrescribir lo rellenado)
       if (zones.length > 0) {
-        console.log(`[useSupabaseChecklistBase:${inspectionType}] 🔄 First inspection detected, reloading checklist immediately...`, {
-          zonesCount: zones.length,
-          elementsCount: elements.length,
+        const current = checklistRef.current;
+        const hasUserData = current && Object.values(current.sections || {}).some(section => {
+          if (section.uploadZones?.some(z => (z.photos?.length ?? 0) > 0 || (z.videos?.length ?? 0) > 0)) return true;
+          if (section.questions?.some(q => q.status || (q.notes && q.notes.trim()))) return true;
+          if (section.dynamicItems?.some(item => item.questions?.some((q: any) => q.status || (q.notes && q.notes?.trim())))) return true;
+          return false;
         });
-        initializationInProgressRef.current = true;
-        
-        const supabaseData = convertSupabaseToChecklist(
-          zones,
-          elements,
-          bedroomsCount,
-          bathroomsCount
-        );
-        
-        const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
-        setChecklist(loadedChecklist);
-        if (inspectionId) {
-          const stableKey = `${propertyId}-${checklistType}-${inspectionId}`;
-          initializationRef.current = stableKey;
+        if (hasUserData && elements.length === 0) {
+          console.log(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping reload - checklist has user data and Supabase has 0 elements`);
+        } else {
+          console.log(`[useSupabaseChecklistBase:${inspectionType}] 🔄 First inspection detected, reloading checklist immediately...`, {
+            zonesCount: zones.length,
+            elementsCount: elements.length,
+          });
+          initializationInProgressRef.current = true;
+          
+          const supabaseData = convertSupabaseToChecklist(
+            zones,
+            elements,
+            bedroomsCount,
+            bathroomsCount
+          );
+          
+          const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
+          setChecklist(loadedChecklist);
+          if (inspectionId) {
+            const stableKey = `${propertyId}-${checklistType}-${inspectionId}`;
+            initializationRef.current = stableKey;
+          }
+          
+          console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Checklist reloaded for first inspection`, {
+            inspectionId,
+            zonesCount: zones.length,
+            elementsCount: elements.length,
+          });
+          
+          setTimeout(() => {
+            initializationInProgressRef.current = false;
+          }, 100);
         }
-        
-        console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Checklist reloaded for first inspection`, {
-          inspectionId,
-          zonesCount: zones.length,
-          elementsCount: elements.length,
-        });
-        
-        setTimeout(() => {
-          initializationInProgressRef.current = false;
-        }, 100);
       }
       return;
     }
@@ -833,7 +871,18 @@ export function useSupabaseChecklistBase({
       }
       
       const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
-      setChecklist(loadedChecklist);
+      const currentForReload = checklistRef.current;
+      const hasUserDataReload = currentForReload && Object.values(currentForReload.sections || {}).some(section => {
+        if (section.uploadZones?.some(z => (z.photos?.length ?? 0) > 0 || (z.videos?.length ?? 0) > 0)) return true;
+        if (section.questions?.some(q => q.status || (q.notes && q.notes.trim()))) return true;
+        if (section.dynamicItems?.some(item => item.questions?.some((q: any) => q.status || (q.notes && q.notes?.trim())))) return true;
+        return false;
+      });
+      if (!(hasUserDataReload && elements.length === 0)) {
+        setChecklist(loadedChecklist);
+      } else {
+        console.log(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping zones/elements reload - checklist has user data and Supabase has 0 elements`);
+      }
       if (inspectionId) {
         const stableKey = `${propertyId}-${checklistType}-${inspectionId}`;
         initializationRef.current = stableKey;
@@ -854,27 +903,26 @@ export function useSupabaseChecklistBase({
 
   // Guardar sección actual en Supabase
   const saveCurrentSection = useCallback(async (sectionIdOverride?: string) => {
+    // Log siempre visible para diagnosticar por qué no se guardan elementos (móvil/continuar)
+    console.log(`[useSupabaseChecklistBase:${inspectionType}] 📌 saveCurrentSection CALLED`, { sectionIdOverride, currentSectionRef: currentSectionRef.current });
+
     if (savingRef.current) {
-      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Save already in progress, skipping...`);
+      console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Save already in progress, skipping`);
       return;
     }
 
     if (!checklist || !inspection?.id || !supabaseProperty) {
-      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Cannot save - missing data:`, {
-        hasChecklist: !!checklist,
-        hasInspection: !!inspection?.id,
-        hasProperty: !!supabaseProperty,
-      });
+      console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Cannot save - missing data`, { hasChecklist: !!checklist, hasInspection: !!inspection?.id, hasProperty: !!supabaseProperty });
       return;
     }
 
     // Usar sectionIdOverride si se proporciona, sino usar currentSectionRef
     const sectionId = sectionIdOverride || currentSectionRef.current;
     if (!sectionId) {
-      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ No current section to save`);
+      console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ No current section to save (sectionIdOverride y currentSectionRef vacíos)`);
       return;
     }
-    
+
     // Si se proporciona sectionIdOverride, establecer currentSectionRef para futuras operaciones
     if (sectionIdOverride) {
       currentSectionRef.current = sectionIdOverride;
@@ -883,14 +931,16 @@ export function useSupabaseChecklistBase({
     savingRef.current = true;
 
     try {
-      const section = checklist.sections[sectionId];
+      // Usar ref para leer la sección más reciente (evita estado desactualizado al pulsar Continuar justo después de editar)
+      const checklistToUse = checklistRef.current ?? checklist;
+      const section = checklistToUse.sections?.[sectionId];
       if (!section) {
-        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Section not found:`, sectionId);
+        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Section not found:`, sectionId, "available:", Object.keys(checklist.sections || {}));
         savingRef.current = false;
         return;
       }
 
-      debugLog(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving section:`, sectionId);
+      console.log(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving section:`, sectionId);
 
       // Encontrar zona correspondiente a la sección primero (necesaria para subir archivos)
       const expectedZoneType = sectionId === "habitaciones" ? "dormitorio" :
@@ -901,11 +951,11 @@ export function useSupabaseChecklistBase({
                               sectionId === "salon" ? "salon" :
                               sectionId === "cocina" ? "cocina" :
                               sectionId === "exteriores" ? "exterior" : null;
-      
+
       const zone = zones.find(z => z.zone_type === expectedZoneType);
-      
+
       if (!zone) {
-        debugWarn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Zone not found for section:`, sectionId);
+        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Zone not found for section:`, sectionId, "expectedZoneType:", expectedZoneType, "zones:", zones.map(z => z.zone_type));
         savingRef.current = false;
         return;
       }
@@ -1555,7 +1605,13 @@ export function useSupabaseChecklistBase({
       
       // Guardar elementos en Supabase usando batch upsert (mucho más rápido)
       const supabase = createClient();
-      
+
+      // Log siempre visible para diagnosticar por qué no se guardan elementos
+      console.log(`[useSupabaseChecklistBase:${inspectionType}] 📤 About to upsert elements:`, elementsToSave.length, "elementNames:", elementsToSave.map(e => e.element_name));
+      if (elementsToSave.length === 0) {
+        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ elementsToSave is empty - no elements will be persisted for section:`, sectionId);
+      }
+
       if (elementsToSave.length > 0) {
         // Batch upsert: guardar todos los elementos en una sola operación
         const { data: upsertedElements, error: batchUpsertError } = await supabase
@@ -1603,10 +1659,10 @@ export function useSupabaseChecklistBase({
         }
       }
 
-      debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Section saved successfully`);
+      console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Section saved successfully`);
       toast.success("Sección guardada correctamente");
     } catch (error) {
-      debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error saving section:`, error);
+      console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error saving section:`, error);
       toast.error("Error al guardar sección");
     } finally {
       savingRef.current = false;
@@ -1829,6 +1885,8 @@ export function useSupabaseChecklistBase({
         }
       }
 
+      // Actualizar ref de forma síncrona para que saveCurrentSection (p. ej. al pulsar Continuar) lea siempre el último estado
+      checklistRef.current = finalChecklist;
       return finalChecklist;
     });
 
@@ -1917,6 +1975,18 @@ export function useSupabaseChecklistBase({
     }
 
     try {
+      // CRÍTICO: No guardar hasta que existan zonas (evita "Zone not found" y checklist vacío en HTML)
+      if (zones.length === 0 && inspection?.id && functionsRef.current) {
+        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ No zones available at finalize - creating zones and refetching`);
+        toast.info("Preparando zonas del checklist... Por favor, haz clic en Enviar de nuevo en unos segundos.");
+        await functionsRef.current.createInitialZones(inspection.id);
+        await functionsRef.current.refetchInspection();
+        await new Promise(resolve => setTimeout(resolve, 800));
+        // Tras refetch el estado se actualizará en el siguiente render; no podemos usar zones actualizado aquí
+        toast.warning("Zonas creadas. Haz clic en Enviar de nuevo para guardar y finalizar.");
+        return false;
+      }
+
       // Guardar sección actual antes de finalizar
       await saveCurrentSection();
       
@@ -2315,7 +2385,7 @@ export function useSupabaseChecklistBase({
       toast.error("Error al finalizar checklist");
       return false;
     }
-  }, [propertyId, checklistType, checklist, inspection, saveCurrentSection, inspectionType]);
+  }, [propertyId, checklistType, checklist, inspection, zones, saveCurrentSection, saveAllSections, inspectionType]);
 
   return {
     checklist,
