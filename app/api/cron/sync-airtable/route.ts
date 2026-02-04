@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     const result = await syncAllPhasesFromAirtable();
 
     const budgetSync = result.budgetSync;
-    const summaryParts: string[] = [
+    const summaryParts: (string | null)[] = [
       `Fases: ${result.totalCreated} creadas, ${result.totalUpdated} actualizadas`,
       result.totalErrors > 0 ? `Errores: ${result.totalErrors}` : null,
     ];
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
         budgetSync.errors > 0 ? `Presupuestos con error: ${budgetSync.errors}` : null
       );
     }
-    const summary = summaryParts.filter(Boolean).join('. ');
+    const summary = summaryParts.filter((s): s is string => s != null).join('. ');
 
     return NextResponse.json({
       success: result.success,
