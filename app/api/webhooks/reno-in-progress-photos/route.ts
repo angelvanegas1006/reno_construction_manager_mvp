@@ -7,6 +7,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 segundos de timeout
 
 const RENO_IN_PROGRESS_PHOTOS_WEBHOOK = 'https://n8n.prod.prophero.com/webhook/reno_in_progress_photos';
+const DRIVE_FOLDER_WEBHOOK_URL = 'https://n8n.prod.prophero.com/webhook/creacion_carpeta_drive';
 const STORAGE_BUCKET = 'inspection-images';
 
 interface PhotoImage {
@@ -137,13 +138,67 @@ export async function POST(request: NextRequest) {
       hasDriveFolderUrl: !!property.drive_folder_url,
     });
 
-    // Validar que tiene drive_folder_id
+    // Si no tiene drive_folder_id, crear la carpeta Drive primero (obras en proceso puede no haberla creado en initial check)
     if (!property.drive_folder_id) {
-      console.warn('[Reno In Progress Photos API] ⚠️ Property does not have drive_folder_id');
-      return NextResponse.json(
-        { error: 'Property does not have a Drive folder. Please create one first.' },
-        { status: 400 }
-      );
+      const address = property.address;
+      const uniqueId = property['Unique ID From Engagements'];
+      if (!address || !uniqueId) {
+        console.warn('[Reno In Progress Photos API] ⚠️ Property missing address or Unique ID, cannot create Drive folder');
+        return NextResponse.json(
+          { error: 'Property missing address or Unique ID. Cannot create Drive folder.' },
+          { status: 400 }
+        );
+      }
+      console.log('[Reno In Progress Photos API] 📁 Creating Drive folder for property (missing drive_folder_id)...');
+      try {
+        const drivePayload = {
+          propertyAddress: address,
+          propertyName: property.name || address,
+          uniqueIdFromEngagements: uniqueId,
+        };
+        const driveRes = await fetch(DRIVE_FOLDER_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(drivePayload),
+        });
+        if (!driveRes.ok) {
+          const errText = await driveRes.text();
+          console.error('[Reno In Progress Photos API] ❌ Drive folder webhook failed:', driveRes.status, errText);
+          return NextResponse.json(
+            { error: 'Failed to create Drive folder.', details: errText },
+            { status: 502 }
+          );
+        }
+        const driveData = (await driveRes.json().catch(() => ({}))) as { drive_folder_id?: string; drive_folder_url?: string };
+        if (driveData.drive_folder_id || driveData.drive_folder_url) {
+          const updateData: Record<string, string> = {};
+          if (driveData.drive_folder_id) updateData.drive_folder_id = driveData.drive_folder_id;
+          if (driveData.drive_folder_url) updateData.drive_folder_url = driveData.drive_folder_url;
+          const { error: updateErr } = await supabase
+            .from('properties')
+            .update(updateData)
+            .eq('id', property.id);
+          if (updateErr) {
+            console.error('[Reno In Progress Photos API] ❌ Error updating property with drive folder:', updateErr);
+          } else {
+            console.log('[Reno In Progress Photos API] ✅ Property updated with drive_folder_id');
+            property.drive_folder_id = driveData.drive_folder_id ?? property.drive_folder_id;
+            property.drive_folder_url = driveData.drive_folder_url ?? property.drive_folder_url;
+          }
+        } else {
+          console.warn('[Reno In Progress Photos API] ⚠️ Drive folder webhook did not return drive_folder_id');
+          return NextResponse.json(
+            { error: 'Drive folder creation did not return folder ID.' },
+            { status: 502 }
+          );
+        }
+      } catch (driveErr: any) {
+        console.error('[Reno In Progress Photos API] ❌ Error creating Drive folder:', driveErr?.message || driveErr);
+        return NextResponse.json(
+          { error: 'Error creating Drive folder.', details: driveErr?.message },
+          { status: 502 }
+        );
+      }
     }
 
     // Validar que tiene address

@@ -1,11 +1,13 @@
 /**
  * Sync maestro que sincroniza todas las fases del kanban desde Airtable
  * Usa el método unificado que asegura consistencia entre Airtable y Supabase
- * 
- * IMPORTANTE: Este es el método que se ejecuta varias veces al día en producción
+ * También sincroniza budget_pdf_url desde Airtable Transactions para propiedades sin presupuesto.
+ *
+ * IMPORTANTE: Este es el método que se ejecuta varias veces al día en producción (cron + botón "Sync con Airtable")
  */
 
 import { syncAllPhasesUnified, type UnifiedSyncResult } from './sync-unified';
+import { syncBudgetsForPropertiesWithoutBudget, type SyncBudgetsResult } from './sync-budget-from-transactions';
 
 export interface SyncResult {
   phase: string;
@@ -22,6 +24,8 @@ export interface AllPhasesSyncResult {
   totalCreated: number;
   totalUpdated: number;
   totalErrors: number;
+  /** Sincronización de presupuestos desde Airtable Transactions (propiedades sin budget_pdf_url) */
+  budgetSync?: SyncBudgetsResult;
 }
 
 /**
@@ -32,8 +36,25 @@ export interface AllPhasesSyncResult {
  * - Mantiene sincronización exacta entre ambos sistemas
  */
 export async function syncAllPhasesFromAirtable(): Promise<AllPhasesSyncResult> {
-  // Usar el método unificado
+  // 1. Sincronizar fases y datos de propiedades desde Airtable
   const unifiedResult = await syncAllPhasesUnified();
+
+  // 2. Sincronizar budget_pdf_url desde Airtable Transactions para propiedades que no lo tienen
+  let budgetSync: SyncBudgetsResult | undefined;
+  try {
+    budgetSync = await syncBudgetsForPropertiesWithoutBudget({ limit: 100 });
+    if (budgetSync.synced > 0 || budgetSync.errors > 0) {
+      console.log('[Airtable Sync] Budget sync:', {
+        synced: budgetSync.synced,
+        errors: budgetSync.errors,
+        skipped: budgetSync.skipped,
+      });
+    }
+  } catch (budgetErr: unknown) {
+    const message = budgetErr instanceof Error ? budgetErr.message : String(budgetErr);
+    console.error('[Airtable Sync] Budget sync failed:', message);
+    budgetSync = { synced: 0, errors: 1, skipped: 0, details: [`Budget sync error: ${message}`] };
+  }
 
   // Convertir resultado unificado al formato esperado por la API
   const results: SyncResult[] = Object.entries(unifiedResult.phaseCounts)
@@ -64,6 +85,7 @@ export async function syncAllPhasesFromAirtable(): Promise<AllPhasesSyncResult> 
     totalCreated: unifiedResult.totalCreated,
     totalUpdated: unifiedResult.totalUpdated,
     totalErrors: unifiedResult.totalErrors,
+    budgetSync,
   };
 }
 
