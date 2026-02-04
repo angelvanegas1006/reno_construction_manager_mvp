@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
       totalUpdated: result.totalUpdated,
       totalErrors: result.totalErrors,
       phases: result.phases,
+      budgetSync: result.budgetSync,
     });
   } catch (error: any) {
     console.error('[Airtable Sync Cron] Error:', error);
