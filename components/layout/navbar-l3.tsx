@@ -3,7 +3,7 @@
 import { ArrowLeft, Menu, Save, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface NavbarL3Props {
   /** Zona A: Botón de Retroceso */
@@ -25,6 +25,8 @@ interface NavbarL3Props {
   onMenuClick?: () => void;
   /** Acción adicional en la esquina superior derecha (ej: icono de reportar problema) */
   rightAction?: React.ReactNode;
+  /** Ref al contenedor con scroll (ej. div overflow-y-auto). Si no se pasa, se usa window. */
+  scrollContainerRef?: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -47,6 +49,7 @@ export function NavbarL3({
   statusText,
   onMenuClick,
   rightAction,
+  scrollContainerRef,
 }: NavbarL3Props) {
   // Separar acciones: guardar (outline) y enviar (default/primary)
   const saveAction = actions.find(a => a.variant === "outline");
@@ -54,6 +57,9 @@ export function NavbarL3({
 
   // Detectar si estamos en mobile
   const [isMobile, setIsMobile] = useState(false);
+  // En mobile: mostrar footer solo al hacer scroll hacia arriba o al estar al final de la página
+  const [showMobileFooter, setShowMobileFooter] = useState(false);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -63,6 +69,41 @@ export function NavbarL3({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    const BOTTOM_THRESHOLD = 120;
+    const el = scrollContainerRef?.current;
+
+    const onScroll = () => {
+      if (el) {
+        const scrollTop = el.scrollTop;
+        const scrollHeight = el.scrollHeight;
+        const clientHeight = el.clientHeight;
+        const atBottom = scrollTop + clientHeight >= scrollHeight - BOTTOM_THRESHOLD;
+        const scrolledUp = scrollTop < lastScrollY.current;
+        lastScrollY.current = scrollTop;
+        setShowMobileFooter(atBottom || scrolledUp);
+      } else {
+        const scrollY = window.scrollY ?? document.documentElement.scrollTop;
+        const scrollHeight = document.documentElement.scrollHeight;
+        const innerHeight = window.innerHeight;
+        const atBottom = innerHeight + scrollY >= scrollHeight - BOTTOM_THRESHOLD;
+        const scrolledUp = scrollY < lastScrollY.current;
+        lastScrollY.current = scrollY;
+        setShowMobileFooter(atBottom || scrolledUp);
+      }
+    };
+
+    if (el) {
+      onScroll();
+      el.addEventListener('scroll', onScroll, { passive: true });
+      return () => el.removeEventListener('scroll', onScroll);
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isMobile, scrollContainerRef]);
 
   return (
     <>
@@ -146,19 +187,24 @@ export function NavbarL3({
         </div>
       </nav>
 
-      {/* Footer sticky para mobile - siempre visible en mobile */}
+      {/* Footer sticky para mobile - solo visible al hacer scroll hacia arriba o al final de la página */}
       {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[var(--prophero-gray-900)] px-4 py-4 md:hidden border-t border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] shadow-[0_-2px_8px_rgba(0,0,0,0.1)]">
-          <div className="flex flex-col gap-3 w-full max-w-md mx-auto">
+        <div
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-30 md:hidden border-t border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] shadow-[0_-2px_8px_rgba(0,0,0,0.1)] bg-white dark:bg-[var(--prophero-gray-900)] transition-transform duration-200 ease-out",
+            showMobileFooter ? "translate-y-0" : "translate-y-full"
+          )}
+        >
+          <div className="flex flex-col gap-2 w-full max-w-md mx-auto px-3 py-2.5">
             {/* Botón principal: Enviar a revisión */}
             {submitAction && (
               <Button
                 onClick={submitAction.onClick}
                 disabled={submitAction.disabled}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-12 text-base font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-9 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {submitAction.disabled && (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 )}
                 {submitAction.icon && !submitAction.disabled && submitAction.icon}
                 {submitAction.label}
@@ -169,7 +215,7 @@ export function NavbarL3({
               <button
                 onClick={saveAction.onClick}
                 disabled={saveAction.disabled}
-                className="w-full text-center text-[var(--prophero-blue-600)] hover:text-[var(--prophero-blue-700)] disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium py-2"
+                className="w-full text-center text-[var(--prophero-blue-600)] hover:text-[var(--prophero-blue-700)] disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium py-1.5"
               >
                 {saveAction.icon}
                 {saveAction.label}
