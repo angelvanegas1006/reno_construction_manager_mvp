@@ -64,9 +64,26 @@ export async function GET(request: NextRequest) {
 
     const result = await syncAllPhasesFromAirtable();
 
+    const budgetSync = result.budgetSync;
+    const summaryParts: (string | null)[] = [
+      `Fases: ${result.totalCreated} creadas, ${result.totalUpdated} actualizadas`,
+      result.totalErrors > 0 ? `Errores: ${result.totalErrors}` : null,
+    ];
+    if (budgetSync) {
+      summaryParts.push(
+        `Presupuestos: ${budgetSync.synced} sincronizados desde Airtable`,
+        budgetSync.categoriesTriggered > 0
+          ? `Categorías: ${budgetSync.categoriesTriggered} extracción(es) disparada(s) (n8n)`
+          : null,
+        budgetSync.errors > 0 ? `Presupuestos con error: ${budgetSync.errors}` : null
+      );
+    }
+    const summary = summaryParts.filter((s): s is string => s != null).join('. ');
+
     return NextResponse.json({
       success: result.success,
       timestamp: result.timestamp,
+      summary,
       totalCreated: result.totalCreated,
       totalUpdated: result.totalUpdated,
       totalErrors: result.totalErrors,
