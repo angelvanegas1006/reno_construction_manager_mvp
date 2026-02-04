@@ -343,14 +343,16 @@ export default function RenoChecklistPage() {
     });
   }, [activeSection, checklist, saveCurrentSection]);
 
-  // Handle continue - Guarda los cambios y luego cambia de sección
+  // Handle continue - Guarda la sección actual (con su id) y luego cambia de sección
   const handleContinue = useCallback(async (nextSectionId: string) => {
     if (!checklist) return;
     try {
-      // Guardar cambios antes de continuar
-      await saveCurrentSection();
+      const currentSectionId = activeSection.replace(/^checklist-/, '');
+      if (checklist.sections[currentSectionId]) {
+        await saveCurrentSection(currentSectionId);
+      }
       setHasUnsavedChanges(false);
-      
+
       // Cambiar a la siguiente sección
       handleSectionClick(nextSectionId);
       
@@ -360,7 +362,7 @@ export default function RenoChecklistPage() {
       console.error("Error al guardar antes de continuar:", error);
       toast.error("Error al guardar cambios. Intenta nuevamente.");
     }
-  }, [checklist, saveCurrentSection, handleSectionClick, t]);
+  }, [checklist, activeSection, saveCurrentSection, handleSectionClick, t]);
 
   // Handle save
   const handleSave = useCallback(async () => {
