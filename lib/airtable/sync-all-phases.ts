@@ -7,7 +7,7 @@
  */
 
 import { syncAllPhasesUnified, type UnifiedSyncResult } from './sync-unified';
-import { syncBudgetsForPropertiesWithoutBudget, type SyncBudgetsResult } from './sync-budget-from-transactions';
+import { syncBudgetsForAllProperties, type SyncBudgetsResult } from './sync-budget-from-transactions';
 
 export interface SyncResult {
   phase: string;
@@ -39,21 +39,23 @@ export async function syncAllPhasesFromAirtable(): Promise<AllPhasesSyncResult> 
   // 1. Sincronizar fases y datos de propiedades desde Airtable
   const unifiedResult = await syncAllPhasesUnified();
 
-  // 2. Sincronizar budget_pdf_url desde Airtable Transactions para propiedades que no lo tienen
+  // 2. Sincronizar budget_pdf_url desde Airtable Transactions para TODAS las propiedades del kanban
+  // (traer todos los presupuestos desde Airtable en cada sync/cron)
   let budgetSync: SyncBudgetsResult | undefined;
   try {
-    budgetSync = await syncBudgetsForPropertiesWithoutBudget({ limit: 100 });
-    if (budgetSync.synced > 0 || budgetSync.errors > 0) {
+    budgetSync = await syncBudgetsForAllProperties({ limit: 200 });
+    if (budgetSync.synced > 0 || budgetSync.errors > 0 || budgetSync.categoriesTriggered > 0) {
       console.log('[Airtable Sync] Budget sync:', {
         synced: budgetSync.synced,
         errors: budgetSync.errors,
         skipped: budgetSync.skipped,
+        categoriesTriggered: budgetSync.categoriesTriggered,
       });
     }
   } catch (budgetErr: unknown) {
     const message = budgetErr instanceof Error ? budgetErr.message : String(budgetErr);
     console.error('[Airtable Sync] Budget sync failed:', message);
-    budgetSync = { synced: 0, errors: 1, skipped: 0, details: [`Budget sync error: ${message}`] };
+    budgetSync = { synced: 0, errors: 1, skipped: 0, categoriesTriggered: 0, details: [`Budget sync error: ${message}`] };
   }
 
   // Convertir resultado unificado al formato esperado por la API
