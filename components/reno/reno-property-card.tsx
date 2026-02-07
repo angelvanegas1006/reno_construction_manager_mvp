@@ -14,7 +14,8 @@ import { useDynamicCategories } from "@/hooks/useDynamicCategories";
 import { useMemo } from "react";
 import { AssignedSiteManagerSelect, isPhaseWithSiteManagerAssignment } from "./assigned-site-manager-select";
 
-type RenoStage = "upcoming-settlements" | "initial-check" | "reno-budget-renovator" | "reno-budget-client" | "reno-budget-start" | "reno-budget" | "upcoming" | "reno-in-progress" | "furnishing" | "final-check" | "cleaning" | "furnishing-cleaning" | "reno-fixes" | "done" | "orphaned";
+import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
+type RenoStage = RenoKanbanPhase;
 
 interface RenoPropertyCardProps {
   property: Property;

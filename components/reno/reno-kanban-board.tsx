@@ -10,7 +10,7 @@ import { Property } from "@/lib/property-storage";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { calculateOverallProgress } from "@/lib/property-validation";
 import { useI18n } from "@/lib/i18n";
-import { visibleRenoKanbanColumns, RenoKanbanPhase, type RenoKanbanColumn as RenoKanbanColumnConfig } from "@/lib/reno-kanban-config";
+import { visibleRenoKanbanColumns, RenoKanbanPhase, PROJECT_KANBAN_PHASE_LABELS, type RenoKanbanColumn as RenoKanbanColumnConfig } from "@/lib/reno-kanban-config";
 import { sortPropertiesByExpired, isPropertyExpired, isDelayedWork } from "@/lib/property-sorting";
 import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { toast } from "sonner";
+import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 
 type ViewMode = "kanban" | "list";
 
@@ -43,6 +44,12 @@ interface RenoKanbanBoardProps {
   visibleColumnsOverride?: RenoKanbanColumnConfig[];
   /** Query param "from" when navigating to property detail (default "kanban") */
   fromParam?: string;
+  /** "property" = cards are properties (default); "project" = cards are projects */
+  viewLevel?: "property" | "project";
+  /** When viewLevel === "project", use this for cards (projects by phase) */
+  projectsByPhaseOverride?: Record<RenoKanbanPhase, ProjectRow[]>;
+  /** When viewLevel === "project", map project id → linked properties for cards */
+  propertiesByProjectId?: Record<string, Property[]>;
 }
 
 // Dummy data and helper functions removed - now using Supabase
@@ -73,7 +80,7 @@ const COLUMN_CONFIG: ColumnConfig[] = [
   { key: "status", label: "Estado", defaultVisible: true },
 ];
 
-export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onViewModeChange, propertiesByPhaseOverride, visibleColumnsOverride, fromParam = "kanban" }: RenoKanbanBoardProps) {
+export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onViewModeChange, propertiesByPhaseOverride, visibleColumnsOverride, fromParam = "kanban", viewLevel = "property", projectsByPhaseOverride, propertiesByProjectId }: RenoKanbanBoardProps) {
   const { t, language } = useI18n();
   const { user } = useSupabaseAuth();
   const supabase = createClient();
@@ -122,13 +129,16 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   const { propertiesByPhase: supabasePropertiesByPhase, loading: supabaseLoading, error: supabaseError, refetchProperties } = useRenoProperties();
 
   const handleCardClick = (property: Property) => {
-    // For construction manager, navigate to view-only page
-    // Always go to "tareas" tab when clicking from kanban
-    // Pass viewMode as query param to remember the current view
     startTransition(() => {
       router.push(`/reno/construction-manager/property/${property.id}?tab=tareas&viewMode=${viewMode}&from=${fromParam}`);
     });
   };
+
+  const handleProjectClick = useCallback((project: ProjectRow) => {
+    startTransition(() => {
+      router.push(`/reno/construction-manager/project/${project.id}?viewMode=${viewMode}&from=${fromParam}`);
+    });
+  }, [router, viewMode, fromParam]);
 
   const handleAssignSiteManager = useCallback(async (propertyId: string, email: string | null) => {
     try {
@@ -175,6 +185,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-fixes": [],
       "done": [],
       "orphaned": [],
+      "analisis-supply": [],
+      "analisis-reno": [],
+      "administracion-reno": [],
+      "pendiente-presupuestos-renovador": [],
+      "obra-a-empezar": [],
+      "obra-en-progreso": [],
+      "amueblamiento": [],
+      "check-final": [],
     };
     }
 
@@ -335,6 +353,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-fixes": sortPropertiesByExpired(transformProperties["reno-fixes"] || []),
       "done": sortPropertiesByExpired(transformProperties["done"] || []),
       "orphaned": [],
+      "analisis-supply": sortPropertiesByExpired(transformProperties["analisis-supply"] || []),
+      "analisis-reno": sortPropertiesByExpired(transformProperties["analisis-reno"] || []),
+      "administracion-reno": sortPropertiesByExpired(transformProperties["administracion-reno"] || []),
+      "pendiente-presupuestos-renovador": sortPropertiesByExpired(transformProperties["pendiente-presupuestos-renovador"] || []),
+      "obra-a-empezar": sortPropertiesByExpired(transformProperties["obra-a-empezar"] || []),
+      "obra-en-progreso": sortPropertiesByExpired(transformProperties["obra-en-progreso"] || []),
+      "amueblamiento": sortPropertiesByExpired(transformProperties["amueblamiento"] || []),
+      "check-final": sortPropertiesByExpired(transformProperties["check-final"] || []),
     };
     
     // Debug log removed for production
@@ -552,6 +578,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-fixes": allProperties["reno-fixes"].filter(matchesAll),
       "done": allProperties["done"].filter(matchesAll),
       "orphaned": allProperties["orphaned"].filter(matchesAll),
+      "analisis-supply": allProperties["analisis-supply"].filter(matchesAll),
+      "analisis-reno": allProperties["analisis-reno"].filter(matchesAll),
+      "administracion-reno": allProperties["administracion-reno"].filter(matchesAll),
+      "pendiente-presupuestos-renovador": allProperties["pendiente-presupuestos-renovador"].filter(matchesAll),
+      "obra-a-empezar": allProperties["obra-a-empezar"].filter(matchesAll),
+      "obra-en-progreso": allProperties["obra-en-progreso"].filter(matchesAll),
+      "amueblamiento": allProperties["amueblamiento"].filter(matchesAll),
+      "check-final": allProperties["check-final"].filter(matchesAll),
     };
     
     // Debug: Check filtered results (only in development and when filters are active)
@@ -696,10 +730,156 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-fixes": sortPropertiesByExpired(filtered["reno-fixes"]),
       "done": sortPropertiesByExpired(filtered["done"]),
       "orphaned": sortPropertiesByExpired(filtered["orphaned"]),
+      "analisis-supply": sortPropertiesByExpired(filtered["analisis-supply"]),
+      "analisis-reno": sortPropertiesByExpired(filtered["analisis-reno"]),
+      "administracion-reno": sortPropertiesByExpired(filtered["administracion-reno"]),
+      "pendiente-presupuestos-renovador": sortPropertiesByExpired(filtered["pendiente-presupuestos-renovador"]),
+      "obra-a-empezar": sortPropertiesByExpired(filtered["obra-a-empezar"]),
+      "obra-en-progreso": sortPropertiesByExpired(filtered["obra-en-progreso"]),
+      "amueblamiento": sortPropertiesByExpired(filtered["amueblamiento"]),
+      "check-final": sortPropertiesByExpired(filtered["check-final"]),
     };
 
     return sorted;
   }, [searchQuery, filters, allProperties]);
+
+  // When viewLevel === "project", filter projects by search + filters y dedupe por id
+  const filteredProjectsByPhase = useMemo((): Record<RenoKanbanPhase, ProjectRow[]> | null => {
+    if (viewLevel !== "project" || !projectsByPhaseOverride) return null;
+
+    const query = searchQuery.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const activeFilters = filters || {
+      renovatorNames: [],
+      technicalConstructors: [],
+      areaClusters: [],
+      delayedWorks: false,
+      propertyTypes: [],
+    };
+    const hasActiveFilters =
+      activeFilters.renovatorNames.length > 0 ||
+      activeFilters.areaClusters.length > 0 ||
+      (activeFilters.propertyTypes?.length ?? 0) > 0;
+
+    const normalizeString = (str: string) =>
+      str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const areaClusterDisplay = (raw: string | null | undefined): string => {
+      const s = (raw ?? "").toString().trim();
+      if (!s || ["[]", "[\"\"]", "['']"].includes(s.replace(/\s/g, ""))) return "";
+      try {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed)) {
+          const parts = parsed.filter((x) => x != null && String(x).trim() !== "");
+          return parts.map((x) => String(x).trim()).join(", ");
+        }
+      } catch {
+        /* plain string */
+      }
+      return s;
+    };
+
+    const matchesSearch = (p: ProjectRow) => {
+      if (!query) return true;
+      const nameNorm = normalizeString(p.name || "");
+      if (nameNorm.includes(query)) return true;
+      const uniqueId = (p.project_unique_id || p.id || "").toString();
+      if (normalizeString(uniqueId).includes(query)) return true;
+      const areaDisplay = areaClusterDisplay(p.area_cluster);
+      if (areaDisplay && normalizeString(areaDisplay).includes(query)) return true;
+      const invType = (p.investment_type ?? "").toString();
+      if (invType && normalizeString(invType).includes(query)) return true;
+      const typeStr = (p.type ?? "").toString();
+      if (typeStr && normalizeString(typeStr).includes(query)) return true;
+      return false;
+    };
+
+    const matchesFilters = (p: ProjectRow) => {
+      if (!hasActiveFilters) return true;
+
+      let matchesArea = true;
+      let matchesRenovator = true;
+      let matchesType = true;
+
+      if (activeFilters.areaClusters.length > 0) {
+        const areaDisplay = areaClusterDisplay(p.area_cluster);
+        const areaNorm = areaDisplay ? normalizeString(areaDisplay) : "";
+        matchesArea = areaNorm
+          ? activeFilters.areaClusters.some(
+              (c) =>
+                areaNorm === normalizeString(c) ||
+                areaNorm.includes(normalizeString(c)) ||
+                normalizeString(c).includes(areaNorm)
+            )
+          : false;
+      }
+
+      if (activeFilters.renovatorNames.length > 0) {
+        const renovator = (p.renovator ?? "").toString().trim();
+        const renovatorNorm = normalizeString(renovator);
+        matchesRenovator = renovatorNorm
+          ? activeFilters.renovatorNames.some(
+              (n) =>
+                renovatorNorm === normalizeString(n) ||
+                renovatorNorm.includes(normalizeString(n)) ||
+                normalizeString(n).includes(renovatorNorm)
+            )
+          : false;
+      }
+
+      const selectedTypes = activeFilters.propertyTypes ?? [];
+      if (selectedTypes.length > 0) {
+        const typeRaw = (p.type ?? "").toString().trim().toLowerCase();
+        matchesType = typeRaw
+          ? selectedTypes.some(
+              (t) => typeRaw === normalizeString(t) || typeRaw.includes(normalizeString(t))
+            )
+          : false;
+      }
+
+      return matchesArea && matchesRenovator && matchesType;
+    };
+
+    const empty: Record<RenoKanbanPhase, ProjectRow[]> = {
+      "upcoming-settlements": [],
+      "initial-check": [],
+      "reno-budget-renovator": [],
+      "reno-budget-client": [],
+      "reno-budget-start": [],
+      "reno-budget": [],
+      "upcoming": [],
+      "reno-in-progress": [],
+      "furnishing": [],
+      "final-check": [],
+      "cleaning": [],
+      "furnishing-cleaning": [],
+      "reno-fixes": [],
+      "done": [],
+      "orphaned": [],
+      "analisis-supply": [],
+      "analisis-reno": [],
+      "administracion-reno": [],
+      "pendiente-presupuestos-renovador": [],
+      "obra-a-empezar": [],
+      "obra-en-progreso": [],
+      "amueblamiento": [],
+      "check-final": [],
+    };
+
+    for (const col of visibleColumns) {
+      const raw = (projectsByPhaseOverride[col.key] || []).filter(
+        (p) => matchesSearch(p) && matchesFilters(p)
+      );
+      const seen = new Set<string>();
+      const list = raw.filter((p) => {
+        const id = p.id ?? "";
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+      empty[col.key] = list;
+    }
+    return empty;
+  }, [viewLevel, projectsByPhaseOverride, searchQuery, filters, visibleColumns]);
 
   // Find first matching property when search query changes
   const highlightedPropertyId = useMemo(() => {
@@ -828,6 +1008,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'reno-fixes': [],
       'done': [],
       'orphaned': [],
+      'analisis-supply': [],
+      'analisis-reno': [],
+      'administracion-reno': [],
+      'pendiente-presupuestos-renovador': [],
+      'obra-a-empezar': [],
+      'obra-en-progreso': [],
+      'amueblamiento': [],
+      'check-final': [],
     };
 
     visibleColumns.forEach((column) => {
@@ -1122,7 +1310,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               const alertCount = properties.filter(p => {
                 return isDelayedWork(p, column.key) || isPropertyExpired(p);
               }).length;
-              const phaseLabel = t.kanban[column.translationKey];
+              const phaseLabel = (column as RenoKanbanColumnConfig & { label?: string }).label ?? PROJECT_KANBAN_PHASE_LABELS[column.key] ?? t.kanban[column.translationKey];
               const isSelected = selectedPhaseFilter === column.key;
               
               return (
@@ -1153,7 +1341,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           {filteredPhases.map((column) => {
             // Use filteredProperties directly to maintain kanban sorting logic
             let properties = filteredProperties[column.key] || [];
-            const phaseLabel = t.kanban[column.translationKey];
+            const phaseLabel = (column as RenoKanbanColumnConfig & { label?: string }).label ?? PROJECT_KANBAN_PHASE_LABELS[column.key] ?? t.kanban[column.translationKey];
             const isCollapsed = collapsedPhases.has(column.key);
 
             if (properties.length === 0) return null;
@@ -1610,16 +1798,16 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       {/* Mobile: Clean vertical layout */}
       <div className="flex flex-col md:hidden gap-1 pb-20 px-1">
         {visibleColumns.map((column) => {
-          const properties = filteredProperties[column.key] || [];
-          const title = t.kanban[column.translationKey];
-          
-          // Debug log removed for production
-          
+          const isProjectView = viewLevel === "project" && filteredProjectsByPhase;
+          const properties = isProjectView ? [] : (filteredProperties[column.key] || []);
+          const projects = isProjectView ? (filteredProjectsByPhase?.[column.key] || []) : undefined;
+          const count = isProjectView ? (projects?.length ?? 0) : properties.length;
+          const titleMobile = (column as RenoKanbanColumnConfig & { label?: string }).label ?? PROJECT_KANBAN_PHASE_LABELS[column.key] ?? t.kanban[column.translationKey];
           return (
             <RenoKanbanColumn
               key={column.key}
-              title={title}
-              count={properties.length}
+              title={titleMobile}
+              count={count}
               stage={column.stage}
               properties={properties}
               onCardClick={handleCardClick}
@@ -1627,6 +1815,9 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               onColumnRef={(el) => setColumnRef(column.key, el)}
               fromParam={fromParam}
               onAssignSiteManager={fromParam === "kanban-projects" ? handleAssignSiteManager : undefined}
+              projects={projects}
+              onProjectClick={handleProjectClick}
+              propertiesByProjectId={propertiesByProjectId}
             />
           );
         })}
@@ -1635,16 +1826,16 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       {/* Desktop: Horizontal layout */}
       <div className="hidden md:flex h-full gap-4 px-1" style={{ minWidth: "fit-content" }}>
         {visibleColumns.map((column) => {
-          const properties = filteredProperties[column.key] || [];
-          const title = t.kanban[column.translationKey];
-          
-          // Debug log removed for production
-          
+          const isProjectView = viewLevel === "project" && filteredProjectsByPhase;
+          const properties = isProjectView ? [] : (filteredProperties[column.key] || []);
+          const projects = isProjectView ? (filteredProjectsByPhase?.[column.key] || []) : undefined;
+          const count = isProjectView ? (projects?.length ?? 0) : properties.length;
+          const titleDesktop = (column as RenoKanbanColumnConfig & { label?: string }).label ?? PROJECT_KANBAN_PHASE_LABELS[column.key] ?? t.kanban[column.translationKey];
           return (
             <RenoKanbanColumn
               key={column.key}
-              title={title}
-              count={properties.length}
+              title={titleDesktop}
+              count={count}
               stage={column.stage}
               properties={properties}
               onCardClick={handleCardClick}
@@ -1652,6 +1843,9 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               onColumnRef={(el) => setColumnRef(column.key, el)}
               fromParam={fromParam}
               onAssignSiteManager={fromParam === "kanban-projects" ? handleAssignSiteManager : undefined}
+              projects={projects}
+              onProjectClick={handleProjectClick}
+              propertiesByProjectId={propertiesByProjectId}
             />
           );
         })}

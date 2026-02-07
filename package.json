@@ -67,7 +67,11 @@
     "find:missing-fields": "tsx scripts/find-missing-fields.ts",
     "clear:properties": "tsx scripts/clear-properties-table.ts",
     "verify:table-empty": "tsx scripts/verify-table-empty.ts",
-    "test:pdf-generation": "tsx scripts/test-pdf-generation.ts"
+    "test:pdf-generation": "tsx scripts/test-pdf-generation.ts",
+    "run:link-projects-to-properties": "tsx scripts/run-link-projects-to-properties.ts",
+    "sync:projects": "tsx scripts/sync-projects.ts",
+    "diagnose:projects-properties": "tsx scripts/diagnose-projects-properties-sync.ts",
+    "verify:projects-properties-link": "tsx scripts/verify-projects-and-properties-link.ts"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.10.0",

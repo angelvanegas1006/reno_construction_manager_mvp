@@ -11,6 +11,7 @@
 import { fetchPropertiesFromAirtable } from './sync-from-airtable';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { RenoKanbanPhase } from '@/lib/reno-kanban-config';
+import { syncProjectsFromAirtable, getAirtableProjectIdToSupabaseIdMap, linkPropertiesToProjectsFromAirtable } from './sync-projects';
 
 // Importar función de mapeo desde sync-from-airtable
 // Necesitamos acceder a la función interna, así que la copiamos aquí temporalmente
@@ -162,11 +163,14 @@ async function fetchAllPropertiesFromAllViews(): Promise<PropertyPhaseMapping[]>
   return allMappings;
 }
 
+const PROPERTY_TYPES_WITH_PROJECT = ['Project', 'WIP', 'New Build'];
+
 /**
  * Mapea propiedades de Airtable a formato Supabase
  * Usa la misma lógica que sync-from-airtable.ts para mantener consistencia
+ * projectMap: airtable_project_id -> supabase project id (solo para type Project/WIP/New Build)
  */
-function mapAirtablePropertyToSupabase(airtableProperty: any): any {
+function mapAirtablePropertyToSupabase(airtableProperty: any, projectMap?: Map<string, string>): any {
   const fields = airtableProperty.fields;
   
   const uniqueIdValue = 
@@ -204,12 +208,28 @@ function mapAirtablePropertyToSupabase(airtableProperty: any): any {
 
   const addressValue = getFieldValue('Address');
   const address = addressValue || '';
+  const type = getFieldValue('Type') || null;
+
+  let project_id: string | null = null;
+  const projectField = process.env.AIRTABLE_PROPERTY_PROJECT_FIELD || 'Project';
+  if (type && PROPERTY_TYPES_WITH_PROJECT.includes(String(type).trim()) && projectMap) {
+    const airtableProjectLink =
+      getFieldValue(projectField) ??
+      getFieldValue('Project Name') ??
+      getFieldValue('Projects') ??
+      getFieldValue('Parent Project');
+    const airtableProjectId = Array.isArray(airtableProjectLink) ? airtableProjectLink[0] : airtableProjectLink;
+    if (airtableProjectId && typeof airtableProjectId === 'string') {
+      project_id = projectMap.get(airtableProjectId) ?? null;
+    }
+  }
 
   // Mapear todos los campos (similar a sync-from-airtable.ts)
   return {
     id: uniqueId,
     address: address,
-    type: getFieldValue('Type') || null,
+    type,
+    project_id,
     renovation_type: getFieldValue('Required reno', ['Required reno', 'Required Reno']) || null,
     notes: getFieldValue('Set up team notes', ['Set up team notes', 'SetUp Team Notes', 'Setup Status Notes']) || null,
     'Set Up Status': getFieldValue('Set up status', ['Set up status', 'Set Up Status']) || null,
@@ -391,6 +411,21 @@ function mapAirtablePropertyToSupabase(airtableProperty: any): any {
       return null;
     })(),
     airtable_property_id: airtableProperty.id,
+    airtable_properties_record_id: (() => {
+      const propsLink = getFieldValue('Properties', [
+        'Properties',
+        'Property',
+        'Linked Property',
+        'Property record',
+        'Property Record',
+        'Properties linked',
+      ]);
+      if (Array.isArray(propsLink) && propsLink.length > 0 && typeof propsLink[0] === 'string') {
+        return propsLink[0];
+      }
+      if (typeof propsLink === 'string') return propsLink;
+      return null;
+    })(),
     updated_at: new Date().toISOString(),
   };
 }
@@ -427,11 +462,26 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       'reno-fixes': 0,
       'done': 0,
       'orphaned': 0,
+      'analisis-supply': 0,
+      'analisis-reno': 0,
+      'administracion-reno': 0,
+      'pendiente-presupuestos-renovador': 0,
+      'obra-a-empezar': 0,
+      'obra-en-progreso': 0,
+      'amueblamiento': 0,
+      'check-final': 0,
     },
     details: [],
   };
 
   try {
+    // Paso 0: Sincronizar proyectos desde Airtable (si está configurado) y mapa airtable_project_id -> id
+    const projectSyncResult = await syncProjectsFromAirtable();
+    if (!projectSyncResult.skipped && (projectSyncResult.created > 0 || projectSyncResult.updated > 0)) {
+      console.log('[Unified Sync] Projects:', projectSyncResult);
+    }
+    const projectMap = await getAirtableProjectIdToSupabaseIdMap();
+
     // Paso 1: Obtener todas las propiedades de todas las vistas
     const propertyMappings = await fetchAllPropertiesFromAllViews();
     result.totalProcessed = propertyMappings.length;
@@ -448,10 +498,13 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       propertiesByPhase.set(mapping.phase, phaseList);
     });
 
-    // Paso 3: Obtener todas las propiedades existentes en Supabase
+    // Paso 3: Obtener todas las propiedades existentes en Supabase (PostgREST limita a 1000 por defecto)
+    const MAX_PROPERTIES_FETCH = 15000;
     const { data: existingProperties, error: fetchError } = await supabase
       .from('properties')
-      .select('id, reno_phase, airtable_property_id');
+      .select('id, reno_phase, airtable_property_id')
+      .order('created_at', { ascending: false })
+      .range(0, MAX_PROPERTIES_FETCH - 1);
 
     if (fetchError) {
       throw new Error(`Error fetching existing properties: ${fetchError.message}`);
@@ -472,14 +525,27 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
     
     for (const mapping of propertyMappings) {
       try {
-        const supabaseData = mapAirtablePropertyToSupabase(mapping.propertyData);
+        const supabaseData = mapAirtablePropertyToSupabase(mapping.propertyData, projectMap);
         const exists = existingPropertyIds.has(mapping.propertyId);
-        
-        // Determinar fase final (manejar upcoming-settlements con fecha)
+
+        // Próximas visitas y Revisión Inicial SOLO por Stage + Set Up Status (no por la vista de origen)
+        // Próximas visitas = Stage Presettlement + Set Up Status Pending to visit
+        // Revisión Inicial = Stage Settled + Set Up Status Pending to visit (solo "Settled", no "Presettlement & Settled")
+        // Si viene de esas vistas pero no cumple → reno-budget (no las ponemos en las dos primeras columnas)
+        const fields = mapping.propertyData?.fields ?? {};
+        const stageRaw = (fields['Stage'] ?? fields['stage'] ?? '').toString().trim().toLowerCase();
+        const setUpStatusRaw = (fields['Set Up Status'] ?? fields['Set up status'] ?? supabaseData['Set Up Status'] ?? '').toString().trim().toLowerCase();
+        const isPendingToVisit = setUpStatusRaw.includes('pending') && setUpStatusRaw.includes('visit');
         let finalPhase: RenoKanbanPhase = mapping.phase;
-        if (mapping.phase === 'upcoming-settlements' && supabaseData['Estimated Visit Date']) {
-          // Si tiene fecha, debería estar en initial-check
-          finalPhase = 'initial-check';
+        if (mapping.phase === 'upcoming-settlements' || mapping.phase === 'initial-check') {
+          if (isPendingToVisit && stageRaw.includes('presettlement')) {
+            finalPhase = 'upcoming-settlements';
+          } else if (isPendingToVisit && stageRaw.includes('settled') && !stageRaw.includes('presettlement')) {
+            finalPhase = 'initial-check';
+          } else {
+            // No cumple Stage + Set Up Status para las dos primeras columnas → siguiente fase
+            finalPhase = 'reno-budget';
+          }
         }
 
         // Forzar Set Up Status según la fase de la vista
@@ -491,55 +557,36 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
 
         supabaseData.reno_phase = finalPhase;
 
-        if (exists) {
-          // Verificar si necesita actualización
-          const currentProperty = existingPropertyMap.get(mapping.propertyId);
-          const needsPhaseUpdate = currentProperty?.reno_phase !== finalPhase;
-          
-          if (needsPhaseUpdate) {
-            const { error: updateError } = await supabase
-              .from('properties')
-              .update({
-                ...supabaseData,
-                reno_phase: finalPhase,
-              })
-              .eq('id', mapping.propertyId);
+        // No sobrescribir airtable_properties_record_id con null si ya existe en DB
+        const payloadForUpdate = () => {
+          const p = { ...supabaseData };
+          if (p.airtable_properties_record_id == null) delete p.airtable_properties_record_id;
+          return p;
+        };
 
-            if (updateError) {
-              result.totalErrors++;
-              result.details.push(`Error updating ${mapping.propertyId}: ${updateError.message}`);
-            } else {
-              result.totalUpdated++;
-              result.details.push(`Updated: ${mapping.propertyId} → ${finalPhase}`);
-            }
-          } else {
-            // Actualizar otros campos aunque la fase no cambie
-            const { error: updateError } = await supabase
-              .from('properties')
-              .update(supabaseData)
-              .eq('id', mapping.propertyId);
+        const now = new Date().toISOString();
+        const payload = {
+          ...payloadForUpdate(),
+          reno_phase: finalPhase,
+          updated_at: now,
+        };
+        // created_at no se envía: en insert usa DEFAULT, en update no se toca
 
-            if (updateError) {
-              result.totalErrors++;
-              result.details.push(`Error updating ${mapping.propertyId}: ${updateError.message}`);
-            } else {
-              result.totalUpdated++;
-              result.details.push(`Updated: ${mapping.propertyId} (no phase change)`);
-            }
-          }
+        // Upsert: insert o update por id; evita duplicate key si la propiedad ya existe y no estaba en el fetch (límite 15k)
+        const { error: upsertError } = await supabase
+          .from('properties')
+          .upsert(payload, {
+            onConflict: 'id',
+            ignoreDuplicates: false,
+          });
+
+        if (upsertError) {
+          result.totalErrors++;
+          result.details.push(`Error upsert ${mapping.propertyId}: ${upsertError.message}`);
         } else {
-          // Crear nueva propiedad
-          const { error: insertError } = await supabase
-            .from('properties')
-            .insert({
-              ...supabaseData,
-              reno_phase: finalPhase,
-              created_at: new Date().toISOString(),
-            });
-
-          if (insertError) {
-            result.totalErrors++;
-            result.details.push(`Error creating ${mapping.propertyId}: ${insertError.message}`);
+          if (exists) {
+            result.totalUpdated++;
+            result.details.push(`Updated: ${mapping.propertyId} → ${finalPhase}`);
           } else {
             result.totalCreated++;
             result.details.push(`Created: ${mapping.propertyId} → ${finalPhase}`);
@@ -591,6 +638,18 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       console.log('[Unified Sync] ✅ No properties to move to orphaned');
     }
 
+    // Paso 6: Vincular propiedades a proyectos desde Airtable Projects."Properties linked"
+    try {
+      const linkResult = await linkPropertiesToProjectsFromAirtable();
+      if (linkResult.linked > 0 || linkResult.errors > 0) {
+        console.log('[Unified Sync] Project links:', linkResult);
+        result.details.push(`Project links: ${linkResult.linked} properties linked, ${linkResult.errors} errors`);
+      }
+    } catch (linkErr: unknown) {
+      console.error('[Unified Sync] Error linking properties to projects:', linkErr);
+      result.details.push('Error linking properties to projects');
+    }
+
     // Contar propiedades finales por fase
     const { data: finalCounts, error: countError } = await supabase
       .from('properties')
@@ -614,6 +673,14 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         'reno-fixes': 0,
         'done': 0,
         'orphaned': 0,
+        'analisis-supply': 0,
+        'analisis-reno': 0,
+        'administracion-reno': 0,
+        'pendiente-presupuestos-renovador': 0,
+        'obra-a-empezar': 0,
+        'obra-en-progreso': 0,
+        'amueblamiento': 0,
+        'check-final': 0,
       };
       
       finalCounts.forEach(p => {

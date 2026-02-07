@@ -127,6 +127,14 @@ export default function RenoConstructionManagerKanbanPage() {
       "reno-fixes": [],
       "done": [],
       "orphaned": [],
+      "analisis-supply": [],
+      "analisis-reno": [],
+      "administracion-reno": [],
+      "pendiente-presupuestos-renovador": [],
+      "obra-a-empezar": [],
+      "obra-en-progreso": [],
+      "amueblamiento": [],
+      "check-final": [],
     };
     if (!rawPropertiesByPhase) return empty;
     const isProjectOrWip = (p: Property) =>

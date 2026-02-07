@@ -198,7 +198,12 @@ export function useSupabaseKanbanProperties() {
 
       log.debug('Executing query...', { role, userEmail: user?.email });
 
-      const { data, error: fetchError } = await query.order('created_at', { ascending: false });
+      // Supabase/PostgREST devuelve por defecto max 1000 filas. Si hay 2000+ propiedades,
+      // hay que pedir explícitamente más con .range(). Límite razonable para no saturar el cliente.
+      const MAX_PROPERTIES_FETCH = 2500;
+      const { data, error: fetchError } = await query
+        .order('created_at', { ascending: false })
+        .range(0, MAX_PROPERTIES_FETCH - 1);
 
       if (fetchError) {
         const errorMessage = fetchError.message || JSON.stringify(fetchError) || 'Unknown error';
@@ -320,6 +325,14 @@ export function useSupabaseKanbanProperties() {
         'reno-fixes': [],
         'done': [],
         'orphaned': [],
+        'analisis-supply': [],
+        'analisis-reno': [],
+        'administracion-reno': [],
+        'pendiente-presupuestos-renovador': [],
+        'obra-a-empezar': [],
+        'obra-en-progreso': [],
+        'amueblamiento': [],
+        'check-final': [],
       } as Record<RenoKanbanPhase, Property[]>;
     }
 
@@ -343,6 +356,14 @@ export function useSupabaseKanbanProperties() {
       'reno-fixes': [],
       'done': [],
       'orphaned': [],
+      'analisis-supply': [],
+      'analisis-reno': [],
+      'administracion-reno': [],
+      'pendiente-presupuestos-renovador': [],
+      'obra-a-empezar': [],
+      'obra-en-progreso': [],
+      'amueblamiento': [],
+      'check-final': [],
     };
 
     let convertedCount = 0;

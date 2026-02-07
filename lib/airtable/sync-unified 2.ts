@@ -371,6 +371,14 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       'reno-fixes': 0,
       'done': 0,
       'orphaned': 0,
+      'analisis-supply': 0,
+      'analisis-reno': 0,
+      'administracion-reno': 0,
+      'pendiente-presupuestos-renovador': 0,
+      'obra-a-empezar': 0,
+      'obra-en-progreso': 0,
+      'amueblamiento': 0,
+      'check-final': 0,
     },
     details: [],
   };
@@ -558,6 +566,14 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         'reno-fixes': 0,
         'done': 0,
         'orphaned': 0,
+        'analisis-supply': 0,
+        'analisis-reno': 0,
+        'administracion-reno': 0,
+        'pendiente-presupuestos-renovador': 0,
+        'obra-a-empezar': 0,
+        'obra-en-progreso': 0,
+        'amueblamiento': 0,
+        'check-final': 0,
       };
       
       finalCounts.forEach(p => {
