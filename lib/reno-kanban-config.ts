@@ -16,7 +16,16 @@ export type RenoKanbanPhase =
   | "furnishing-cleaning" // Legacy - kept for compatibility
   | "reno-fixes"
   | "done"
-  | "orphaned"; // Fase para propiedades que no están en ninguna vista de Airtable (no visible)
+  | "orphaned" // Fase para propiedades que no están en ninguna vista de Airtable (no visible)
+  // Fases Kanban Proyectos (mapeo desde Set Up Status / Project status en Airtable)
+  | "analisis-supply"
+  | "analisis-reno"
+  | "administracion-reno"
+  | "pendiente-presupuestos-renovador"
+  | "obra-a-empezar"
+  | "obra-en-progreso"
+  | "amueblamiento"
+  | "check-final";
 
 export interface RenoKanbanColumn {
   key: RenoKanbanPhase;
@@ -37,6 +46,8 @@ export interface RenoKanbanColumn {
     renoFixes: string;
     done: string;
   };
+  /** Etiqueta fija para columna (p. ej. Kanban Proyectos); si existe se usa en lugar de translationKey */
+  label?: string;
 }
 
 export const renoKanbanColumns: RenoKanbanColumn[] = [
@@ -80,21 +91,57 @@ export const visibleRenoKanbanColumnsFromObraStart: RenoKanbanColumn[] =
       col.key !== "orphaned"
   );
 
-// Kanban Proyectos/WIP: solo fases Obra en curso → Limpieza (sin Obra a empezar ni Presupuesto de renovación)
+// Kanban Proyectos/WIP: 8 fases según Set Up Status (view viwz8q4V40BQwSO2N)
 export const PHASES_KANBAN_PROJECTS: RenoKanbanPhase[] = [
-  "reno-in-progress",
-  "furnishing",
-  "final-check",
-  "cleaning",
+  "analisis-supply",
+  "analisis-reno",
+  "administracion-reno",
+  "pendiente-presupuestos-renovador",
+  "obra-a-empezar",
+  "obra-en-progreso",
+  "amueblamiento",
+  "check-final",
 ];
-export const visibleRenoKanbanColumnsProjects: RenoKanbanColumn[] =
-  renoKanbanColumns.filter(
-    (col) =>
-      PHASES_KANBAN_PROJECTS.includes(col.key) &&
-      col.key !== "reno-fixes" &&
-      col.key !== "done" &&
-      col.key !== "orphaned"
-  );
+
+/** Etiquetas de columnas del Kanban Proyectos (izq. del ; en la especificación) */
+export const PROJECT_KANBAN_PHASE_LABELS: Record<string, string> = {
+  "analisis-supply": "Analísis de Supply",
+  "analisis-reno": "Analísis Reno",
+  "administracion-reno": "Administración de Reno",
+  "pendiente-presupuestos-renovador": "Pendiente Presupuestos Renovador",
+  "obra-a-empezar": "Obra a Empezar",
+  "obra-en-progreso": "Obra en Progreso",
+  "amueblamiento": "Amueblamiento",
+  "check-final": "Check Final",
+};
+
+export const visibleRenoKanbanColumnsProjects: RenoKanbanColumn[] = PHASES_KANBAN_PROJECTS.map(
+  (key) => ({
+    key,
+    stage: key,
+    translationKey: "renoInProgress" as const,
+    label: PROJECT_KANBAN_PHASE_LABELS[key] ?? key,
+  })
+);
+
+/** View ID de Airtable para sincronizar proyectos (única fuente) */
+export const AIRTABLE_PROJECTS_VIEW_ID = "viwz8q4V40BQwSO2N";
+
+/** Mapeo Set Up Status / Project status (Airtable) → reno_phase (Supabase) */
+export const SET_UP_STATUS_TO_PROJECT_PHASE: Record<string, RenoKanbanPhase> = {
+  "Get Project Draft": "analisis-supply",
+  "Pending to reserve (arras)": "analisis-supply",
+  "Pending to validate": "analisis-reno",
+  "Technical project in progress": "administracion-reno",
+  "Ecu first validation": "administracion-reno",
+  "Technical project fine-tuning": "administracion-reno",
+  "Ecu final validation": "administracion-reno",
+  "Pending to budget from renovator": "pendiente-presupuestos-renovador",
+  "Pending to start reno": "obra-a-empezar",
+  "Reno in progress": "obra-en-progreso",
+  "Furnishing": "amueblamiento",
+  "Final check": "check-final",
+};
 
 
 

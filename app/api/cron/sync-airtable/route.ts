@@ -1,6 +1,9 @@
 /**
  * API Route para sincronizar propiedades desde Airtable
  * Se ejecuta como cron job en Vercel o manualmente por usuarios con rol admin/construction_manager
+ *
+ * Incluye: sync unificado (fases + propiedades), enlace properties.project_id desde Airtable
+ * "Properties linked", y sync de presupuestos (budget_pdf_url).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
