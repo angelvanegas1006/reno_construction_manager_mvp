@@ -202,10 +202,13 @@ export type Database = {
           "Days to Property Ready": number | null
           days_to_visit: number | null
           assigned_site_manager_email: string | null
+          project_id: string | null
+          airtable_properties_record_id: string | null
         }
         Insert: {
           address?: string | null
           airtable_property_id?: string | null
+          airtable_properties_record_id?: string | null
           area_cluster?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
@@ -249,10 +252,12 @@ export type Database = {
           "Days to Property Ready"?: number | null
           days_to_visit?: number | null
           assigned_site_manager_email?: string | null
+          project_id?: string | null
         }
         Update: {
           address?: string | null
           airtable_property_id?: string | null
+          airtable_properties_record_id?: string | null
           area_cluster?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
@@ -296,6 +301,117 @@ export type Database = {
           "Days to Property Ready"?: number | null
           days_to_visit?: number | null
           assigned_site_manager_email?: string | null
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          id: string
+          name: string | null
+          airtable_project_id: string | null
+          reno_phase: string | null
+          created_at: string | null
+          updated_at: string | null
+          investment_type: string | null
+          properties_to_convert: string | null
+          project_start_date: string | null
+          renovation_spend: number | null
+          project_unique_id: string | null
+          estimated_settlement_date: string | null
+          project_status: string | null
+          drive_folder: string | null
+          area_cluster: string | null
+          project_set_up_team_notes: string | null
+          project_keys_location: string | null
+          renovator: string | null
+          est_reno_start_date: string | null
+          reno_start_date: string | null
+          reno_end_date: string | null
+          est_reno_end_date: string | null
+          type: string | null
+          reno_duration: number | null
+          project_address: string | null
+          settlement_date: string | null
+          already_tenanted: string | null
+          operation_name: string | null
+          opportunity_stage: string | null
+          scouter: string | null
+          lead: string | null
+        }
+        Insert: {
+          id?: string
+          name?: string | null
+          airtable_project_id?: string | null
+          reno_phase?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          investment_type?: string | null
+          properties_to_convert?: string | null
+          project_start_date?: string | null
+          renovation_spend?: number | null
+          project_unique_id?: string | null
+          estimated_settlement_date?: string | null
+          project_status?: string | null
+          drive_folder?: string | null
+          area_cluster?: string | null
+          project_set_up_team_notes?: string | null
+          project_keys_location?: string | null
+          renovator?: string | null
+          est_reno_start_date?: string | null
+          reno_start_date?: string | null
+          reno_end_date?: string | null
+          est_reno_end_date?: string | null
+          type?: string | null
+          reno_duration?: number | null
+          project_address?: string | null
+          settlement_date?: string | null
+          already_tenanted?: string | null
+          operation_name?: string | null
+          opportunity_stage?: string | null
+          scouter?: string | null
+          lead?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          airtable_project_id?: string | null
+          reno_phase?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          investment_type?: string | null
+          properties_to_convert?: string | null
+          project_start_date?: string | null
+          renovation_spend?: number | null
+          project_unique_id?: string | null
+          estimated_settlement_date?: string | null
+          project_status?: string | null
+          drive_folder?: string | null
+          area_cluster?: string | null
+          project_set_up_team_notes?: string | null
+          project_keys_location?: string | null
+          renovator?: string | null
+          est_reno_start_date?: string | null
+          reno_start_date?: string | null
+          reno_end_date?: string | null
+          est_reno_end_date?: string | null
+          type?: string | null
+          reno_duration?: number | null
+          project_address?: string | null
+          settlement_date?: string | null
+          already_tenanted?: string | null
+          operation_name?: string | null
+          opportunity_stage?: string | null
+          scouter?: string | null
+          lead?: string | null
         }
         Relationships: []
       }

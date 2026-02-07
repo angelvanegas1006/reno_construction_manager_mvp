@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Property } from "@/lib/property-storage";
-import { RenoKanbanPhase, visibleRenoKanbanColumns } from "@/lib/reno-kanban-config";
+import { RenoKanbanPhase, visibleRenoKanbanColumns, PROJECT_KANBAN_PHASE_LABELS } from "@/lib/reno-kanban-config";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
@@ -48,6 +48,14 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "reno-fixes": 0,
       "done": 0,
       "orphaned": 0,
+      "analisis-supply": 0,
+      "analisis-reno": 0,
+      "administracion-reno": 0,
+      "pendiente-presupuestos-renovador": 0,
+      "obra-a-empezar": 0,
+      "obra-en-progreso": 0,
+      "amueblamiento": 0,
+      "check-final": 0,
     };
 
     // Use propertiesByPhase directly from Supabase hook
@@ -97,6 +105,14 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "reno-fixes": language === "es" ? "Reparaciones reno" : "Reno Fixes",
       "done": language === "es" ? "Finalizadas" : "Done",
       "orphaned": language === "es" ? "Orphaned" : "Orphaned",
+      "analisis-supply": PROJECT_KANBAN_PHASE_LABELS["analisis-supply"] ?? "Analísis de Supply",
+      "analisis-reno": PROJECT_KANBAN_PHASE_LABELS["analisis-reno"] ?? "Analísis Reno",
+      "administracion-reno": PROJECT_KANBAN_PHASE_LABELS["administracion-reno"] ?? "Administración de Reno",
+      "pendiente-presupuestos-renovador": PROJECT_KANBAN_PHASE_LABELS["pendiente-presupuestos-renovador"] ?? "Pendiente Presupuestos Renovador",
+      "obra-a-empezar": PROJECT_KANBAN_PHASE_LABELS["obra-a-empezar"] ?? "Obra a Empezar",
+      "obra-en-progreso": PROJECT_KANBAN_PHASE_LABELS["obra-en-progreso"] ?? "Obra en Progreso",
+      "amueblamiento": PROJECT_KANBAN_PHASE_LABELS["amueblamiento"] ?? "Amueblamiento",
+      "check-final": PROJECT_KANBAN_PHASE_LABELS["check-final"] ?? "Check Final",
     };
     return stageMap[stage];
   };

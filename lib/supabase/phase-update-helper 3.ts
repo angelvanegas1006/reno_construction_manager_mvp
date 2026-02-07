@@ -77,6 +77,14 @@ export function getSetUpStatusForPhase(phase: RenoKanbanPhase): string {
     'reno-fixes': 'Reno Fixes',
     'done': 'Done',
     'orphaned': 'Orphaned',
+    'analisis-supply': 'Get Project Draft',
+    'analisis-reno': 'Pending to validate',
+    'administracion-reno': 'Technical project in progress',
+    'pendiente-presupuestos-renovador': 'Pending to budget from renovator',
+    'obra-a-empezar': 'Pending to start reno',
+    'obra-en-progreso': 'Reno in progress',
+    'amueblamiento': 'Furnishing',
+    'check-final': 'Final check',
   };
 
   return phaseToStatusMap[phase] || phase;

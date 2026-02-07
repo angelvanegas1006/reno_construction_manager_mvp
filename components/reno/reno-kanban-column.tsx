@@ -2,12 +2,14 @@
 
 import { cn } from "@/lib/utils";
 import { RenoPropertyCard } from "./reno-property-card";
+import { RenoProjectCard } from "./reno-project-card";
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { isDelayedWork, isPropertyExpired } from "@/lib/property-sorting";
 import { Property } from "@/lib/property-storage";
 import { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { useI18n } from "@/lib/i18n";
+import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 
 interface RenoKanbanColumnProps {
   title: string;
@@ -20,6 +22,11 @@ interface RenoKanbanColumnProps {
   /** When "kanban-projects", show assign site manager on cards in reno-in-progress, furnishing, final-check, cleaning */
   fromParam?: string;
   onAssignSiteManager?: (propertyId: string, email: string | null) => void;
+  /** When view is "by project", show project cards instead of property cards */
+  projects?: ProjectRow[];
+  onProjectClick?: (project: ProjectRow) => void;
+  /** Map project id → linked properties (for project cards) */
+  propertiesByProjectId?: Record<string, Property[]>;
 }
 
 export function RenoKanbanColumn({ 
@@ -32,12 +39,15 @@ export function RenoKanbanColumn({
   onColumnRef,
   fromParam,
   onAssignSiteManager,
+  projects,
+  onProjectClick,
+  propertiesByProjectId,
 }: RenoKanbanColumnProps) {
   const { t } = useI18n();
   const [isHovered, setIsHovered] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [needsScroll, setNeedsScroll] = useState(false);
-  // Start collapsed on mobile for better usability, but expand if highlighted property is here
+  const isProjectMode = projects && projects.length >= 0;
   const hasHighlightedProperty = highlightedPropertyId && properties.some(p => p.id === highlightedPropertyId);
   const [isCollapsed, setIsCollapsed] = useState(!hasHighlightedProperty);
 
@@ -51,7 +61,7 @@ export function RenoKanbanColumn({
     checkScroll();
     window.addEventListener("resize", checkScroll);
     return () => window.removeEventListener("resize", checkScroll);
-  }, [properties]);
+  }, [properties, projects]);
 
   // Expand column if highlighted property is here
   useEffect(() => {
@@ -60,8 +70,8 @@ export function RenoKanbanColumn({
     }
   }, [hasHighlightedProperty, isCollapsed]);
 
-  // Count properties in alert (delayed or expired)
-  const alertCount = properties.filter(p => {
+  // Count properties in alert (delayed or expired) - only in property mode
+  const alertCount = isProjectMode ? 0 : properties.filter(p => {
     return isDelayedWork(p, stage) || isPropertyExpired(p);
   }).length;
 
@@ -108,9 +118,18 @@ export function RenoKanbanColumn({
             isHovered && needsScroll ? "scrollbar-overlay" : "scrollbar-hidden"
           )}
         >
-          {properties.length === 0 ? (
+          {isProjectMode && projects && projects.length > 0 ? (
+            projects.map((project, index) => (
+              <RenoProjectCard
+                key={project.id ?? `project-${stage}-${index}`}
+                project={project}
+                onClick={() => onProjectClick?.(project)}
+                linkedProperties={project.id ? (propertiesByProjectId?.[project.id] ?? []) : []}
+              />
+            ))
+          ) : properties.length === 0 ? (
             <div className="text-sm text-muted-foreground py-8 text-center bg-card dark:bg-[#000000] border border-border rounded-lg md:border-0 md:bg-transparent">
-              {t.kanban.noPropertiesInState}
+              {isProjectMode ? "No hay proyectos en esta fase" : t.kanban.noPropertiesInState}
             </div>
           ) : (
             properties.map((property) => (

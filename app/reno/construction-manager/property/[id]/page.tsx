@@ -17,7 +17,7 @@ import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { Property } from "@/lib/property-storage";
 import { FutureDatePicker } from "@/components/property/future-date-picker";
 import { useI18n } from "@/lib/i18n";
-import { RenoKanbanPhase } from "@/lib/reno-kanban-config";
+import { RenoKanbanPhase, PROJECT_KANBAN_PHASE_LABELS } from "@/lib/reno-kanban-config";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
 import type { Database } from '@/lib/supabase/types';
@@ -1316,6 +1316,14 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "reno-fixes": t.kanban.renoFixes,
     "done": t.kanban.done,
     "orphaned": "Orphaned", // Properties without a valid phase
+    "analisis-supply": PROJECT_KANBAN_PHASE_LABELS["analisis-supply"] ?? "Analísis de Supply",
+    "analisis-reno": PROJECT_KANBAN_PHASE_LABELS["analisis-reno"] ?? "Analísis Reno",
+    "administracion-reno": PROJECT_KANBAN_PHASE_LABELS["administracion-reno"] ?? "Administración de Reno",
+    "pendiente-presupuestos-renovador": PROJECT_KANBAN_PHASE_LABELS["pendiente-presupuestos-renovador"] ?? "Pendiente Presupuestos Renovador",
+    "obra-a-empezar": PROJECT_KANBAN_PHASE_LABELS["obra-a-empezar"] ?? "Obra a Empezar",
+    "obra-en-progreso": PROJECT_KANBAN_PHASE_LABELS["obra-en-progreso"] ?? "Obra en Progreso",
+    "amueblamiento": PROJECT_KANBAN_PHASE_LABELS["amueblamiento"] ?? "Amueblamiento",
+    "check-final": PROJECT_KANBAN_PHASE_LABELS["check-final"] ?? "Check Final",
   };
   
   return phaseLabels[phase] || phase;
