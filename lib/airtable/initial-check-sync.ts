@@ -301,6 +301,8 @@ export async function finalizeInitialCheckInAirtable(
     autoVisitDate?: string;
     nextRenoSteps?: string;
     progress?: number; // Progreso del checklist (0-100)
+    /** Solo reno_final: true = lista para comercialización → "OK", false = no lista → "NO OK" */
+    readyForCommercialization?: boolean;
   }
 ): Promise<boolean> {
   const supabase = createClient();
@@ -508,7 +510,9 @@ export async function finalizeInitialCheckInAirtable(
     // Para reno_final:
     //   1. Set up status: NO se actualiza (se mantiene el actual)
     //   2. Visit Date: NO se actualiza (se mantiene el actual)
-    //   3. Reno checklist form: link público del PDF del checklist
+    //   3. Final check date: fecha del día que se envía
+    //   4. Final check status (fldZFfqOzyERvaptj): "OK" o "NO OK" según lista para comercialización
+    //   5. Reno checklist form: link público del PDF del checklist
     const updates: Record<string, any> = {};
 
     // 1. Set Up Status: fldE95fZPdw45XV2J
@@ -519,13 +523,19 @@ export async function finalizeInitialCheckInAirtable(
     }
     // Para reno_final, no agregamos Set Up Status a updates
 
-    // 2. Visit Date: flddFKqUl6WiDe97c -> fecha del día que se envía
-    //    Solo para reno_initial, no para reno_final
+    // 2. Visit Date: flddFKqUl6WiDe97c -> fecha del día que se envía (solo initial)
+    //    Final check date: fldZzAfXzfURkdGZI -> fecha del día que se envía (solo final)
+    const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     if (checklistType === 'reno_initial') {
-      const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       updates['flddFKqUl6WiDe97c'] = todayDate;
     }
-    // Para reno_final, no agregamos Visit Date a updates
+    if (checklistType === 'reno_final') {
+      updates['fldZzAfXzfURkdGZI'] = todayDate; // Final check date
+      // Final check status: single select "OK" | "NO OK" según lista para comercialización
+      if (data.readyForCommercialization !== undefined) {
+        updates['fldZFfqOzyERvaptj'] = data.readyForCommercialization ? 'OK' : 'NO OK';
+      }
+    }
 
     // 3. Reno checklist form: fldBOpKEktOI2GnZK -> URL única del selector (Initial / Final)
     const checklistPublicUrl = generateChecklistPublicSelectorUrl(propertyId);

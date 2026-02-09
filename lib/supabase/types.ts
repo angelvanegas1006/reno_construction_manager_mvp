@@ -169,6 +169,7 @@ export type Database = {
           drive_folder_id: string | null
           drive_folder_url: string | null
           estimated_end_date: string | null
+          "Estimated Visit Date": string | null
           garage: string | null
           has_elevator: boolean | null
           "Hubspot ID": number | null
@@ -204,11 +205,13 @@ export type Database = {
           assigned_site_manager_email: string | null
           project_id: string | null
           airtable_properties_record_id: string | null
+          ready_for_commercialization: boolean | null
         }
         Insert: {
           address?: string | null
           airtable_property_id?: string | null
           airtable_properties_record_id?: string | null
+          ready_for_commercialization?: boolean | null
           area_cluster?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
@@ -219,6 +222,7 @@ export type Database = {
           drive_folder_id?: string | null
           drive_folder_url?: string | null
           estimated_end_date?: string | null
+          "Estimated Visit Date"?: string | null
           garage?: string | null
           has_elevator?: boolean | null
           "Hubspot ID"?: number | null
@@ -268,6 +272,7 @@ export type Database = {
           drive_folder_id?: string | null
           drive_folder_url?: string | null
           estimated_end_date?: string | null
+          "Estimated Visit Date"?: string | null
           garage?: string | null
           has_elevator?: boolean | null
           "Hubspot ID"?: number | null
@@ -302,6 +307,7 @@ export type Database = {
           days_to_visit?: number | null
           assigned_site_manager_email?: string | null
           project_id?: string | null
+          ready_for_commercialization?: boolean | null
         }
         Relationships: [
           {
@@ -569,6 +575,7 @@ export type Database = {
       property_inspections: {
         Row: {
           completed_at: string | null
+          completed_by: string | null
           created_at: string
           created_by: string | null
           has_elevator: boolean
@@ -582,6 +589,7 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           has_elevator?: boolean
@@ -595,6 +603,7 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           has_elevator?: boolean

@@ -401,11 +401,18 @@ export function useSupabaseInspection(
   const completeInspection = useCallback(async (): Promise<boolean> => {
     if (!inspection) return false;
 
-    return await updateInspection({
+    // Obtener usuario actual como quien completa (no sobrescribir created_by = quien inició)
+    const { data: { user } } = await supabase.auth.getUser();
+    const updates: { inspection_status: string; completed_at: string; completed_by?: string } = {
       inspection_status: 'completed',
       completed_at: new Date().toISOString(),
-    });
-  }, [inspection, updateInspection]);
+    };
+    if (user?.id) {
+      updates.completed_by = user.id;
+    }
+
+    return await updateInspection(updates);
+  }, [inspection, updateInspection, supabase.auth]);
 
   const createZone = useCallback(async (zoneData: ZoneInsert): Promise<InspectionZone | null> => {
     if (!inspection) return null;

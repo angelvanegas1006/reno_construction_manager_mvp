@@ -418,6 +418,51 @@ interface CategorizedElement {
   notes?: string;
   category: string;
   type: 'question' | 'item' | 'uploadZone';
+  /** Cuando status es necesita_reparacion/necesita_reemplazo: labels de los elementos marcados en mal estado */
+  badElementsLabels?: string[];
+  /** URLs de fotos asociadas a este elemento (p. ej. fotos de la pregunta cuando necesita reparación) */
+  photoUrls?: string[];
+}
+
+/**
+ * Resuelve IDs de badElements a labels usando translations
+ */
+function getBadElementLabels(
+  translations: any,
+  sectionId: string,
+  questionId: string,
+  badElementIds: string[] | undefined
+): string[] {
+  if (!badElementIds || badElementIds.length === 0) return [];
+  let normalizedId = sectionId.replace(/^dynamic-/, '');
+  const sectionKey = normalizedId.replace(/-(\d+)$/, '').replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  const sectionKeyMap: Record<string, string> = {
+    'entornoZonasComunes': 'entornoZonasComunes',
+    'estadoGeneral': 'estadoGeneral',
+    'entradaPasillos': 'entradaPasillos',
+    'habitaciones': 'habitaciones',
+    'habitacion': 'habitaciones',
+    'salon': 'salon',
+    'banos': 'banos',
+    'cocina': 'cocina',
+    'exteriores': 'exteriores',
+  };
+  const key = sectionKeyMap[sectionKey] || sectionKey;
+  const section = translations?.checklist?.sections?.[key];
+  if (!section) return badElementIds.map(id => id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' '));
+
+  const qLower = questionId.toLowerCase();
+  let itemsMap: Record<string, string> | undefined;
+  if (qLower.includes('acabados')) itemsMap = section.acabados?.elements;
+  else if (qLower.includes('comunicaciones')) itemsMap = section.comunicaciones?.elements;
+  else if (qLower.includes('electricidad')) itemsMap = section.electricidad?.elements;
+  else if (qLower.includes('carpinteria')) itemsMap = section.carpinteria?.items;
+  else if (qLower.includes('climatizacion')) itemsMap = section.climatizacion?.items;
+  else if (qLower.includes('almacenamiento')) itemsMap = section.almacenamiento?.items;
+  else if (qLower.includes('electrodomesticos')) itemsMap = section.electrodomesticos?.items;
+
+  if (!itemsMap) return badElementIds.map(id => id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' '));
+  return badElementIds.map(id => itemsMap![id] || itemsMap![id.replace(/-/g, '')] || (id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' ')));
 }
 
 /**
@@ -453,6 +498,9 @@ function groupElementsByCategory(
         category = 'Electricidad';
       }
 
+      const badElementsLabels = getBadElementLabels(translations, sectionId, question.id, question.badElements);
+      const photoUrls = question.photos?.map(p => p.data).filter(Boolean) || [];
+
       addToCategory(category, {
         id: question.id,
         label: questionLabel,
@@ -460,6 +508,8 @@ function groupElementsByCategory(
         notes: question.notes,
         category,
         type: 'question',
+        badElementsLabels: badElementsLabels.length > 0 ? badElementsLabels : undefined,
+        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
       });
     }
   }
@@ -473,9 +523,11 @@ function groupElementsByCategory(
       const status = item.estado || (item.units && item.units[0]?.estado);
 
       if (item.units && item.units.length > 0) {
-        // Si tiene unidades, crear un elemento por unidad
         for (let i = 0; i < item.units.length; i++) {
           const unit = item.units[i];
+          const badIds = unit.badElements ?? item.badElements;
+          const badElementsLabels = getBadElementLabels(translations, sectionId, 'carpinteria', badIds);
+          const photoUrls = (unit.photos ?? item.photos)?.map((p: { data: string }) => p.data).filter(Boolean) || [];
           addToCategory('Carpintería', {
             id: `${item.id}-${i + 1}`,
             label: `${itemLabel} ${i + 1}`,
@@ -483,9 +535,13 @@ function groupElementsByCategory(
             notes: unit.notes || item.notes,
             category: 'Carpintería',
             type: 'item',
+            badElementsLabels: badElementsLabels.length > 0 ? badElementsLabels : undefined,
+            photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
           });
         }
       } else {
+        const badElementsLabels = getBadElementLabels(translations, sectionId, 'carpinteria', item.badElements);
+        const photoUrls = item.photos?.map((p: { data: string }) => p.data).filter(Boolean) || [];
         addToCategory('Carpintería', {
           id: item.id,
           label: itemLabel,
@@ -493,6 +549,8 @@ function groupElementsByCategory(
           notes: item.notes,
           category: 'Carpintería',
           type: 'item',
+          badElementsLabels: badElementsLabels.length > 0 ? badElementsLabels : undefined,
+          photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
         });
       }
     }
@@ -509,6 +567,8 @@ function groupElementsByCategory(
       if (item.units && item.units.length > 0) {
         for (let i = 0; i < item.units.length; i++) {
           const unit = item.units[i];
+          const badElementsLabels = getBadElementLabels(translations, sectionId, 'climatizacion', unit.badElements);
+          const photoUrls = (unit.photos ?? item.photos)?.map((p: { data: string }) => p.data).filter(Boolean) || [];
           addToCategory('Climatización', {
             id: `${item.id}-${i + 1}`,
             label: `${itemLabel} ${i + 1}`,
@@ -516,9 +576,13 @@ function groupElementsByCategory(
             notes: unit.notes || item.notes,
             category: 'Climatización',
             type: 'item',
+            badElementsLabels: badElementsLabels.length > 0 ? badElementsLabels : undefined,
+            photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
           });
         }
       } else {
+        const badElementsLabels = getBadElementLabels(translations, sectionId, 'climatizacion', (item as any).badElements);
+        const photoUrls = item.photos?.map((p: { data: string }) => p.data).filter(Boolean) || [];
         addToCategory('Climatización', {
           id: item.id,
           label: itemLabel,
@@ -526,6 +590,8 @@ function groupElementsByCategory(
           notes: item.notes,
           category: 'Climatización',
           type: 'item',
+          badElementsLabels: badElementsLabels.length > 0 ? badElementsLabels : undefined,
+          photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
         });
       }
     }
@@ -538,10 +604,14 @@ function groupElementsByCategory(
 
       const itemLabel = getTranslatedLabel(translations, sectionId, 'almacenamiento', item.id);
       const status = item.estado || (item.units && item.units[0]?.estado);
+      const itemWithUnits = item as { units?: { estado?: ChecklistStatus; notes?: string; badElements?: string[]; photos?: FileUpload[] }[]; badElements?: string[]; photos?: FileUpload[] };
 
-      if (item.units && item.units.length > 0) {
-        for (let i = 0; i < item.units.length; i++) {
-          const unit = item.units[i];
+      if (itemWithUnits.units && itemWithUnits.units.length > 0) {
+        for (let i = 0; i < itemWithUnits.units.length; i++) {
+          const unit = itemWithUnits.units[i];
+          const badIds = unit.badElements ?? itemWithUnits.badElements;
+          const badElementsLabels = getBadElementLabels(translations, sectionId, 'almacenamiento', badIds);
+          const photoUrls = (unit.photos ?? itemWithUnits.photos)?.map((p: { data: string }) => p.data).filter(Boolean) || [];
           addToCategory('Almacenamiento', {
             id: `${item.id}-${i + 1}`,
             label: `${itemLabel} ${i + 1}`,
@@ -549,9 +619,13 @@ function groupElementsByCategory(
             notes: unit.notes || item.notes,
             category: 'Almacenamiento',
             type: 'item',
+            badElementsLabels: badElementsLabels.length > 0 ? badElementsLabels : undefined,
+            photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
           });
         }
       } else {
+        const badElementsLabels = getBadElementLabels(translations, sectionId, 'almacenamiento', itemWithUnits.badElements);
+        const photoUrls = itemWithUnits.photos?.map((p: { data: string }) => p.data).filter(Boolean) || [];
         addToCategory('Almacenamiento', {
           id: item.id,
           label: itemLabel,
@@ -559,6 +633,8 @@ function groupElementsByCategory(
           notes: item.notes,
           category: 'Almacenamiento',
           type: 'item',
+          badElementsLabels: badElementsLabels.length > 0 ? badElementsLabels : undefined,
+          photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
         });
       }
     }
@@ -571,10 +647,14 @@ function groupElementsByCategory(
 
       const itemLabel = getTranslatedLabel(translations, sectionId, 'electrodomesticos', item.id);
       const status = item.estado || (item.units && item.units[0]?.estado);
+      const itemWithUnits = item as { units?: { estado?: ChecklistStatus; notes?: string; badElements?: string[]; photos?: FileUpload[] }[]; badElements?: string[]; photos?: FileUpload[] };
 
-      if (item.units && item.units.length > 0) {
-        for (let i = 0; i < item.units.length; i++) {
-          const unit = item.units[i];
+      if (itemWithUnits.units && itemWithUnits.units.length > 0) {
+        for (let i = 0; i < itemWithUnits.units.length; i++) {
+          const unit = itemWithUnits.units[i];
+          const badIds = unit.badElements ?? itemWithUnits.badElements;
+          const badElementsLabels = getBadElementLabels(translations, sectionId, 'electrodomesticos', badIds);
+          const photoUrls = (unit.photos ?? itemWithUnits.photos)?.map((p: { data: string }) => p.data).filter(Boolean) || [];
           addToCategory('Electrodomésticos', {
             id: `${item.id}-${i + 1}`,
             label: `${itemLabel} ${i + 1}`,
@@ -582,9 +662,13 @@ function groupElementsByCategory(
             notes: unit.notes || item.notes,
             category: 'Electrodomésticos',
             type: 'item',
+            badElementsLabels: badElementsLabels.length > 0 ? badElementsLabels : undefined,
+            photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
           });
         }
       } else {
+        const badElementsLabels = getBadElementLabels(translations, sectionId, 'electrodomesticos', itemWithUnits.badElements);
+        const photoUrls = itemWithUnits.photos?.map((p: { data: string }) => p.data).filter(Boolean) || [];
         addToCategory('Electrodomésticos', {
           id: item.id,
           label: itemLabel,
@@ -592,6 +676,8 @@ function groupElementsByCategory(
           notes: item.notes,
           category: 'Electrodomésticos',
           type: 'item',
+          badElementsLabels: badElementsLabels.length > 0 ? badElementsLabels : undefined,
+          photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
         });
       }
     }
@@ -665,14 +751,19 @@ function groupElementsByCategory(
 
   // Mobiliario de la sección (no dinámico)
   if (section.mobiliario?.existeMobiliario && section.mobiliario.question) {
+    const q = section.mobiliario.question;
     const mobiliarioLabel = translations.checklist?.sections?.[sectionId]?.mobiliario?.existeMobiliario || 'Mobiliario';
+    const badElementsLabels = getBadElementLabels(translations, sectionId, 'mobiliario', q.badElements);
+    const photoUrls = q.photos?.map((p: { data: string }) => p.data).filter(Boolean) || [];
     addToCategory('Mobiliario', {
       id: 'mobiliario',
       label: mobiliarioLabel,
-      status: section.mobiliario.question.status,
-      notes: section.mobiliario.question.notes,
+      status: q.status,
+      notes: q.notes,
       category: 'Mobiliario',
       type: 'question',
+      badElementsLabels: badElementsLabels.length > 0 ? badElementsLabels : undefined,
+      photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
     });
   }
 
@@ -1146,6 +1237,29 @@ body {
   line-height: 1.5;
 }
 
+.condition-bad-elements {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #B45309;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.condition-photos {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.condition-thumbnail {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+}
+
 .condition-item-wrapper {
   display: flex;
   flex-direction: column;
@@ -1587,6 +1701,18 @@ function generateSectionHTML(
       
       if (element.notes) {
         html += `<div class="condition-notes">${escapeHtml(element.notes)}</div>`;
+      }
+
+      if (element.badElementsLabels && element.badElementsLabels.length > 0) {
+        html += `<div class="condition-bad-elements">Elementos en mal estado: ${escapeHtml(element.badElementsLabels.join(', '))}</div>`;
+      }
+
+      if (element.photoUrls && element.photoUrls.length > 0) {
+        html += `<div class="condition-photos">`;
+        for (const url of element.photoUrls) {
+          html += `<img src="${escapeHtml(url)}" alt="" class="condition-thumbnail" loading="lazy" />`;
+        }
+        html += `</div>`;
       }
 
       html += `</div>
