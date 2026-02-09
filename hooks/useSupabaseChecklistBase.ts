@@ -59,6 +59,7 @@ interface UseSupabaseChecklistBaseReturn {
     estimatedVisitDate?: string;
     autoVisitDate?: string;
     nextRenoSteps?: string;
+    readyForCommercialization?: boolean;
   }) => Promise<boolean>;
 }
 
@@ -1968,6 +1969,8 @@ export function useSupabaseChecklistBase({
     estimatedVisitDate?: string;
     autoVisitDate?: string;
     nextRenoSteps?: string;
+    /** Solo reno_final: true = lista para comercialización (Airtable "OK"), false = no lista ("NO OK") */
+    readyForCommercialization?: boolean;
   }) => {
     if (!checklist || !inspection?.id) {
       toast.error("No hay checklist para finalizar");
@@ -2031,6 +2034,7 @@ export function useSupabaseChecklistBase({
         autoVisitDate,
         nextRenoSteps,
         progress,
+        readyForCommercialization: data?.readyForCommercialization,
       });
 
       if (success) {

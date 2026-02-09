@@ -675,6 +675,20 @@ export default function RenoPropertyDetailPage() {
                   >
                     {t.propertyAction.openFinalChecklist}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="mt-2 min-w-[200px]"
+                    asChild
+                  >
+                    <a
+                      href="https://airtable.com/appT59F8wolMDKZeG/pagBa0X9ifuUspF1k"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Hacer check en Airtable
+                    </a>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -782,6 +796,20 @@ export default function RenoPropertyDetailPage() {
                     {currentPhase === "initial-check"
                       ? t.propertyAction.openInitialChecklist
                       : t.propertyAction.openFinalChecklist}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="mt-2 min-w-[200px]"
+                    asChild
+                  >
+                    <a
+                      href="https://airtable.com/appT59F8wolMDKZeG/pagBa0X9ifuUspF1k"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Hacer check en Airtable
+                    </a>
                   </Button>
                 </div>
               </div>

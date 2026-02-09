@@ -10,6 +10,14 @@ import { ArrowLeft, Menu, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileSidebarMenu } from "@/components/property/mobile-sidebar-menu";
 import { CompleteInspectionDialog } from "@/components/reno/complete-inspection-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Property } from "@/lib/property-storage";
@@ -215,7 +223,9 @@ export default function RenoChecklistPage() {
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [publicUrl, setPublicUrl] = useState<string>("");
-  
+  // Modal final check: ¿La vivienda está lista para la comercialización?
+  const [showReadyForCommercializationModal, setShowReadyForCommercializationModal] = useState(false);
+
   // State for validation errors - track which section has errors
   const [sectionWithError, setSectionWithError] = useState<string | null>(null);
 
@@ -1069,6 +1079,197 @@ export default function RenoChecklistPage() {
     }
   };
 
+  // Get section title and subtitle for HeaderL3 (siempre declarar antes de cualquier return para cumplir Rules of Hooks)
+  const getSectionInfo = () => {
+    switch (activeSection) {
+      case "checklist-entorno-zonas-comunes":
+        return {
+          title: t.checklist.sections.entornoZonasComunes.title,
+          subtitle: t.checklist.sections.entornoZonasComunes.description || "",
+        };
+      case "checklist-estado-general":
+        return {
+          title: t.checklist.sections.estadoGeneral.title,
+          subtitle: t.checklist.sections.estadoGeneral.description || "",
+        };
+      case "checklist-entrada-pasillos":
+        return {
+          title: t.checklist.sections.entradaPasillos.title,
+          subtitle: t.checklist.sections.entradaPasillos.description || "",
+        };
+      case "checklist-habitaciones":
+        return {
+          title: t.checklist.sections.habitaciones.title,
+          subtitle: t.checklist.sections.habitaciones.description || "",
+        };
+      case "checklist-salon":
+        return {
+          title: t.checklist.sections.salon.title,
+          subtitle: t.checklist.sections.salon.description || "",
+        };
+      case "checklist-banos":
+        return {
+          title: t.checklist.sections.banos.title,
+          subtitle: t.checklist.sections.banos.description || "",
+        };
+      case "checklist-cocina":
+        return {
+          title: t.checklist.sections.cocina.title,
+          subtitle: t.checklist.sections.cocina.description || "",
+        };
+      case "checklist-exteriores":
+        return {
+          title: t.checklist.sections.exteriores.title,
+          subtitle: t.checklist.sections.exteriores.description || "",
+        };
+      default:
+        if (activeSection.startsWith("checklist-habitaciones-")) {
+          const match = activeSection.match(/checklist-habitaciones-(\d+)/);
+          const num = match ? match[1] : "1";
+          return {
+            title: `${t.checklist.sections.habitaciones.bedroom} ${num}`,
+            subtitle: "",
+          };
+        }
+        if (activeSection.startsWith("checklist-banos-")) {
+          const match = activeSection.match(/checklist-banos-(\d+)/);
+          const num = match ? match[1] : "1";
+          return {
+            title: `${t.checklist.sections.banos.bathroom} ${num}`,
+            subtitle: "",
+          };
+        }
+        return {
+          title: t.checklist.title,
+          subtitle: "",
+        };
+    }
+  };
+
+  const sectionInfo = getSectionInfo();
+
+  const getFormTitle = () => {
+    if (!property) return t.checklist.title;
+    const currentPhase = getPropertyRenoPhase(property);
+    if (currentPhase === "final-check" || currentPhase === "furnishing" || currentPhase === "cleaning") return t.kanban.finalCheck;
+    if (currentPhase === "initial-check") return t.kanban.initialCheck;
+    return t.checklist.title;
+  };
+  const formTitle = property ? getFormTitle() : t.checklist.title;
+
+  // Enviar check: para final check puede recibir la respuesta "lista para comercialización" (siempre declarar antes de cualquier return)
+  const handleSubmitCheck = useCallback(
+    async (readyForCommercialization?: boolean) => {
+      if (!property || isCompleting) return;
+      setIsCompleting(true);
+      let redirectScheduled = false;
+      try {
+        if (readyForCommercialization !== undefined && propertyId) {
+          const supabase = createClient();
+          const { error } = await supabase
+            .from("properties")
+            .update({ ready_for_commercialization: readyForCommercialization })
+            .eq("id", propertyId);
+          if (error) {
+            console.error("[ChecklistPage] Error saving ready_for_commercialization:", error);
+            toast.error("Error al guardar la respuesta. El check se enviará igualmente.");
+          }
+        }
+
+        const sectionIdToSave = activeSection.replace(/^checklist-/, "");
+        if (checklist?.sections[sectionIdToSave]) {
+          await saveCurrentSection(sectionIdToSave);
+        }
+
+        const incompleteSection = getFirstIncompleteSection(checklist);
+        if (incompleteSection) {
+          setSectionWithError(null);
+          setSectionWithError(incompleteSection.sectionRefId);
+          setActiveSection(incompleteSection.sectionRefId);
+          requestAnimationFrame(() => {
+            setTimeout(() => {
+              const sectionRef = sectionRefs.current[incompleteSection.sectionRefId];
+              if (sectionRef) {
+                const scrollContainer = sectionRef.closest(".overflow-y-auto") as HTMLElement;
+                if (scrollContainer) {
+                  const containerRect = scrollContainer.getBoundingClientRect();
+                  const elementRect = sectionRef.getBoundingClientRect();
+                  const scrollOffset = 128 + 20;
+                  const scrollPosition =
+                    scrollContainer.scrollTop +
+                    elementRect.top -
+                    containerRect.top -
+                    scrollOffset;
+                  scrollContainer.scrollTo({
+                    top: Math.max(0, scrollPosition),
+                    behavior: "smooth",
+                  });
+                } else {
+                  sectionRef.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                    inline: "nearest",
+                  });
+                }
+              }
+            }, 200);
+          });
+          toast.error(incompleteSection.message, {
+            description:
+              "Por favor completa todos los campos requeridos antes de finalizar el checklist.",
+            duration: 5000,
+          });
+          setIsCompleting(false);
+          return;
+        }
+
+        const finalizeSuccess = await finalizeChecklist({
+          estimatedVisitDate: property.estimatedVisitDate,
+          autoVisitDate: new Date().toISOString().split("T")[0],
+          nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
+          readyForCommercialization: readyForCommercialization,
+        });
+
+        if (finalizeSuccess) {
+          await refetchProperty();
+          await refetchProperties();
+          router.refresh();
+          setSectionWithError(null);
+          redirectScheduled = true;
+          const targetPath =
+            sourcePage === "kanban"
+              ? `/reno/construction-manager/kanban${viewMode === "list" ? "?viewMode=list" : ""}`
+              : sourcePage === "kanban-projects"
+                ? `/reno/construction-manager/kanban-projects${viewMode === "list" ? "?viewMode=list" : ""}`
+                : `/reno/construction-manager/property/${propertyId}`;
+          router.push(targetPath);
+        } else {
+          toast.error("Error al finalizar el checklist");
+        }
+      } catch (error) {
+        console.error("Error al completar checklist:", error);
+        toast.error("Error al completar el checklist");
+      } finally {
+        if (!redirectScheduled) setIsCompleting(false);
+      }
+    },
+    [
+      property,
+      isCompleting,
+      propertyId,
+      activeSection,
+      checklist,
+      saveCurrentSection,
+      finalizeChecklist,
+      supabaseProperty?.next_reno_steps,
+      refetchProperty,
+      refetchProperties,
+      router,
+      sourcePage,
+      viewMode,
+    ]
+  );
+
   if (isFullyLoading) {
     return (
       <div className="flex h-screen overflow-hidden">
@@ -1118,84 +1319,6 @@ export default function RenoChecklistPage() {
     );
   }
 
-  // Get section title and subtitle for HeaderL3
-  const getSectionInfo = () => {
-    switch (activeSection) {
-      case "checklist-entorno-zonas-comunes":
-        return {
-          title: t.checklist.sections.entornoZonasComunes.title,
-          subtitle: t.checklist.sections.entornoZonasComunes.description || "",
-        };
-      case "checklist-estado-general":
-        return {
-          title: t.checklist.sections.estadoGeneral.title,
-          subtitle: t.checklist.sections.estadoGeneral.description || "",
-        };
-      case "checklist-entrada-pasillos":
-        return {
-          title: t.checklist.sections.entradaPasillos.title,
-          subtitle: t.checklist.sections.entradaPasillos.description || "",
-        };
-      case "checklist-habitaciones":
-        return {
-          title: t.checklist.sections.habitaciones.title,
-          subtitle: t.checklist.sections.habitaciones.description || "",
-        };
-      case "checklist-salon":
-        return {
-          title: t.checklist.sections.salon.title,
-          subtitle: t.checklist.sections.salon.description || "",
-        };
-      case "checklist-banos":
-        return {
-          title: t.checklist.sections.banos.title,
-          subtitle: t.checklist.sections.banos.description || "",
-        };
-      case "checklist-cocina":
-        return {
-          title: t.checklist.sections.cocina.title,
-          subtitle: t.checklist.sections.cocina.description || "",
-        };
-      case "checklist-exteriores":
-        return {
-          title: t.checklist.sections.exteriores.title,
-          subtitle: t.checklist.sections.exteriores.description || "",
-        };
-      default:
-        // Handle dynamic sections (habitaciones-X, banos-X)
-        if (activeSection.startsWith("checklist-habitaciones-")) {
-          const match = activeSection.match(/checklist-habitaciones-(\d+)/);
-          const num = match ? match[1] : "1";
-          return {
-            title: `${t.checklist.sections.habitaciones.bedroom} ${num}`,
-            subtitle: "",
-          };
-        }
-        if (activeSection.startsWith("checklist-banos-")) {
-          const match = activeSection.match(/checklist-banos-(\d+)/);
-          const num = match ? match[1] : "1";
-          return {
-            title: `${t.checklist.sections.banos.bathroom} ${num}`,
-            subtitle: "",
-          };
-        }
-        return {
-          title: t.checklist.title,
-          subtitle: "",
-        };
-    }
-  };
-
-  const sectionInfo = getSectionInfo();
-  // Determinar el título del formulario basado en la fase, pero permitir todas las fases
-  const getFormTitle = () => {
-    const currentPhase = getPropertyRenoPhase(property);
-    if (currentPhase === "final-check" || currentPhase === "furnishing" || currentPhase === "cleaning") return t.kanban.finalCheck;
-    if (currentPhase === "initial-check") return t.kanban.initialCheck;
-    return t.checklist.title; // Fallback para otras fases
-  };
-  const formTitle = property ? getFormTitle() : t.checklist.title;
-
   // Use same layout for both initial-check and final-check
   return (
     <div className="flex h-screen overflow-hidden relative">
@@ -1240,89 +1363,12 @@ export default function RenoChecklistPage() {
                   label: t.checklist.submitChecklist,
                   onClick: async () => {
                     if (!property || isCompleting) return;
-                    
-                    setIsCompleting(true);
-                    let redirectScheduled = false;
-                    try {
-                      const sectionIdToSave = activeSection.replace(/^checklist-/, '');
-                      if (checklist?.sections[sectionIdToSave]) {
-                        await saveCurrentSection(sectionIdToSave);
-                      }
-
-                      const incompleteSection = getFirstIncompleteSection(checklist);
-                      if (incompleteSection) {
-                        // Limpiar error anterior
-                        setSectionWithError(null);
-                        
-                        // Marcar la sección con error
-                        setSectionWithError(incompleteSection.sectionRefId);
-                        
-                        // Cambiar a la sección con error
-                        setActiveSection(incompleteSection.sectionRefId);
-                        
-                        // Scroll a la sección con error
-                        requestAnimationFrame(() => {
-                          setTimeout(() => {
-                            const sectionRef = sectionRefs.current[incompleteSection.sectionRefId];
-                            if (sectionRef) {
-                              const scrollContainer = sectionRef.closest('.overflow-y-auto') as HTMLElement;
-                              if (scrollContainer) {
-                                const containerRect = scrollContainer.getBoundingClientRect();
-                                const elementRect = sectionRef.getBoundingClientRect();
-                                const scrollOffset = 128 + 20;
-                                const scrollPosition = scrollContainer.scrollTop + elementRect.top - containerRect.top - scrollOffset;
-                                scrollContainer.scrollTo({
-                                  top: Math.max(0, scrollPosition),
-                                  behavior: "smooth"
-                                });
-                              } else {
-                                sectionRef.scrollIntoView({ 
-                                  behavior: "smooth", 
-                                  block: "start",
-                                  inline: "nearest"
-                                });
-                              }
-                            }
-                          }, 200);
-                        });
-                        
-                        // Mostrar toast con el error
-                        toast.error(incompleteSection.message, {
-                          description: "Por favor completa todos los campos requeridos antes de finalizar el checklist.",
-                          duration: 5000,
-                        });
-                        
-                        setIsCompleting(false);
-                        return;
-                      }
-                      
-                      const finalizeSuccess = await finalizeChecklist({
-                        estimatedVisitDate: property.estimatedVisitDate,
-                        autoVisitDate: new Date().toISOString().split('T')[0],
-                        nextRenoSteps: supabaseProperty?.next_reno_steps || undefined,
-                      });
-                      
-                      if (finalizeSuccess) {
-                        await refetchProperty();
-                        await refetchProperties();
-                        router.refresh();
-                        setSectionWithError(null);
-                        redirectScheduled = true;
-                        const targetPath = sourcePage === 'kanban'
-                          ? `/reno/construction-manager/kanban${viewMode === 'list' ? '?viewMode=list' : ''}`
-                          : sourcePage === 'kanban-projects'
-                            ? `/reno/construction-manager/kanban-projects${viewMode === 'list' ? '?viewMode=list' : ''}`
-                            : `/reno/construction-manager/property/${propertyId}`;
-                        router.push(targetPath);
-                      } else {
-                        toast.error("Error al finalizar el checklist");
-                      }
-                    } catch (error) {
-                      console.error("Error al completar checklist:", error);
-                      toast.error("Error al completar el checklist");
-                    } finally {
-                      if (!redirectScheduled) setIsCompleting(false);
+                    // Final check: mostrar modal "¿La vivienda está lista para la comercialización?"
+                    if (checklistType === "reno_final") {
+                      setShowReadyForCommercializationModal(true);
+                      return;
                     }
+                    await handleSubmitCheck();
                   },
                   variant: "default" as const,
                   disabled: isCompleting,
@@ -1330,6 +1376,39 @@ export default function RenoChecklistPage() {
               ]
         }
       />
+
+      {/* Modal final check: ¿La vivienda está lista para la comercialización? */}
+      <Dialog open={showReadyForCommercializationModal} onOpenChange={setShowReadyForCommercializationModal}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Final check</DialogTitle>
+            <DialogDescription>
+              ¿La vivienda está lista para la comercialización?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowReadyForCommercializationModal(false);
+                handleSubmitCheck(false);
+              }}
+              disabled={isCompleting}
+            >
+              No
+            </Button>
+            <Button
+              onClick={() => {
+                setShowReadyForCommercializationModal(false);
+                handleSubmitCheck(true);
+              }}
+              disabled={isCompleting}
+            >
+              Sí
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* L3: Sidebar de contenido (navegación de pasos del formulario) */}
       <RenoChecklistSidebar
