@@ -93,7 +93,8 @@ export function VisitsCalendar({
     showSettlements: true,      // Fechas de escrituración
     showRenoStarts: true,       // Inicios de obra
     showWorkUpdates: true,      // Actualizaciones de obra
-    showInitialChecks: true,   // Checks Iniciales
+    showInitialChecks: true,   // Visitas estimadas / checks iniciales
+    showFinalChecks: true,      // Checks finales
   });
 
   // Navegación de fechas
@@ -213,20 +214,28 @@ export function VisitsCalendar({
       }
     });
     
-    // Upcoming visits (initial-check properties with estimatedVisitDate in the future)
-    initialCheck.forEach((property) => {
-      if (property.estimatedVisitDate) {
-        const visitDate = new Date(property.estimatedVisitDate);
+    // Upcoming visits (initial-check y upcoming-settlements con estimatedVisitDate en el rango)
+    const initialCheckAndUpcoming = [
+      ...(propertiesByPhase['initial-check'] || []),
+      ...(propertiesByPhase['upcoming-settlements'] || []),
+    ];
+    initialCheckAndUpcoming.forEach((property) => {
+      const estimatedDate = property.estimatedVisitDate ?? (property as any).supabaseProperty?.['Estimated Visit Date'];
+      if (estimatedDate) {
+        const visitDate = new Date(estimatedDate);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         visitDate.setHours(0, 0, 0, 0);
-        
-        // Include if it's in the future and within the date range
+        const dateStr = typeof estimatedDate === 'string' ? estimatedDate : visitDate.toISOString().split('T')[0];
+        // Incluir si está en el rango (futuro o hoy: visitDate >= today; y dentro de start..end)
         if (visitDate >= today && visitDate >= start && visitDate <= end) {
+          const isoDate = typeof dateStr === 'string' && dateStr.includes('T')
+            ? dateStr
+            : `${visitDate.toISOString().split('T')[0]}T12:00:00.000Z`;
           events.push({
             id: `upcoming-${property.id}`,
             property_id: property.id,
-            visit_date: property.estimatedVisitDate,
+            visit_date: isoDate,
             visit_type: 'initial-check',
             notes: null,
             created_by: null,
@@ -720,8 +729,9 @@ export function VisitsCalendar({
           return filters.showWorkUpdates;
         case 'initial-check':
           return filters.showInitialChecks;
+        case 'final-check':
+          return filters.showFinalChecks;
         default:
-          // Para otros tipos (final-check, reminder), siempre mostrarlos
           return true;
       }
     });
@@ -1044,7 +1054,14 @@ export function VisitsCalendar({
                 checked={filters.showInitialChecks}
                 onCheckedChange={(checked) => setFilters(prev => ({ ...prev, showInitialChecks: checked === true }))}
               />
-              <span className="text-xs text-foreground">Checks Iniciales</span>
+              <span className="text-xs text-foreground">Checks Iniciales / Visitas estimadas</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={filters.showFinalChecks}
+                onCheckedChange={(checked) => setFilters(prev => ({ ...prev, showFinalChecks: checked === true }))}
+              />
+              <span className="text-xs text-foreground">Checks Finales</span>
             </label>
           </div>
         </div>
