@@ -59,45 +59,33 @@ export function RenoChecklistSidebar({
     );
   };
 
+  // Initial check: Entorno y zonas comunes al final (debajo de Exteriores). Final check: Entorno primero.
+  const sectionOrderInitial = [
+    { sectionId: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title },
+    { sectionId: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title },
+    { sectionId: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title },
+    { sectionId: "checklist-salon", name: t.checklist.sections.salon.title },
+    { sectionId: "checklist-banos", name: t.checklist.sections.banos.title },
+    { sectionId: "checklist-cocina", name: t.checklist.sections.cocina.title },
+    { sectionId: "checklist-exteriores", name: t.checklist.sections.exteriores.title },
+    { sectionId: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title },
+  ];
+  const sectionOrderFinal = [
+    { sectionId: "checklist-entorno-zonas-comunes", name: t.checklist.sections.entornoZonasComunes.title },
+    { sectionId: "checklist-estado-general", name: t.checklist.sections.estadoGeneral.title },
+    { sectionId: "checklist-entrada-pasillos", name: t.checklist.sections.entradaPasillos.title },
+    { sectionId: "checklist-habitaciones", name: t.checklist.sections.habitaciones.title },
+    { sectionId: "checklist-salon", name: t.checklist.sections.salon.title },
+    { sectionId: "checklist-banos", name: t.checklist.sections.banos.title },
+    { sectionId: "checklist-cocina", name: t.checklist.sections.cocina.title },
+    { sectionId: "checklist-exteriores", name: t.checklist.sections.exteriores.title },
+  ];
+
   const grupos = [
     {
       id: "estado-caracteristicas",
       name: t.sidebar.statusCharacteristics,
-      sections: [
-        // Excluir "entorno-zonas-comunes" para final-check
-        ...(isFinalCheck ? [] : [{
-          sectionId: "checklist-entorno-zonas-comunes",
-          name: t.checklist.sections.entornoZonasComunes.title,
-        }]),
-        {
-          sectionId: "checklist-estado-general",
-          name: t.checklist.sections.estadoGeneral.title,
-        },
-        {
-          sectionId: "checklist-entrada-pasillos",
-          name: t.checklist.sections.entradaPasillos.title,
-        },
-        {
-          sectionId: "checklist-habitaciones",
-          name: t.checklist.sections.habitaciones.title,
-        },
-        {
-          sectionId: "checklist-salon",
-          name: t.checklist.sections.salon.title,
-        },
-        {
-          sectionId: "checklist-banos",
-          name: t.checklist.sections.banos.title,
-        },
-        {
-          sectionId: "checklist-cocina",
-          name: t.checklist.sections.cocina.title,
-        },
-        {
-          sectionId: "checklist-exteriores",
-          name: t.checklist.sections.exteriores.title,
-        },
-      ],
+      sections: isFinalCheck ? sectionOrderFinal : sectionOrderInitial,
     },
   ];
 

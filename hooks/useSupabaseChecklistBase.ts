@@ -848,10 +848,11 @@ export function useSupabaseChecklistBase({
       lastProcessedElementsLengthRef.current = elements.length;
       
       // Memoizar conversión para evitar recálculos innecesarios
-      // Crear cache key basada en los datos de entrada
+      // Crear cache key basada en los datos de entrada (incl. has_elevator para ascensor en entorno-zonas-comunes)
       const zonesKey = zones.map(z => `${z.id}-${z.zone_type}`).join(',');
       const elementsKey = elements.map(e => `${e.id}-${e.element_name}-${e.zone_id}`).join(',');
-      const conversionCacheKey = `${zonesKey}|${elementsKey}|${bedroomsCount}|${bathroomsCount}`;
+      const inspectionHasElevator = (inspection as { has_elevator?: boolean } | null)?.has_elevator;
+      const conversionCacheKey = `${zonesKey}|${elementsKey}|${bedroomsCount}|${bathroomsCount}|${inspectionHasElevator}`;
       
       // Usar ref para cachear la última conversión
       let supabaseData: Partial<ChecklistData>;
@@ -860,12 +861,13 @@ export function useSupabaseChecklistBase({
         supabaseData = lastConversionRef.current.data;
         debugLog(`[useSupabaseChecklistBase:${inspectionType}] ♻️ Using cached conversion data in reload`);
       } else {
-        // Recalcular solo si los datos cambiaron
+        // Recalcular solo si los datos cambiaron (pasamos inspection para ascensor en entorno-zonas-comunes)
         supabaseData = convertSupabaseToChecklist(
           zones,
           elements,
           bedroomsCount,
-          bathroomsCount
+          bathroomsCount,
+          inspection ? { has_elevator: inspection.has_elevator } : null
         );
         lastConversionRef.current = { key: conversionCacheKey, data: supabaseData };
         debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Recalculated conversion data in reload`);
@@ -1641,6 +1643,21 @@ export function useSupabaseChecklistBase({
           toast.error(`Error al guardar ${elementsToSave.length} elementos: ${(batchUpsertError as any)?.message || 'Error desconocido'}`);
         } else {
           debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Batch saved ${elementsToSave.length} elements successfully`);
+          
+          // Si es entorno-zonas-comunes, actualizar has_elevator en la inspección según pregunta ascensor
+          if (sectionId === 'entorno-zonas-comunes') {
+            const ascensorStatus = sectionToSave.questions?.find(q => q.id === 'ascensor')?.status;
+            const hasElevator = ascensorStatus !== undefined && ascensorStatus !== 'no_aplica';
+            const { error: updateInspectionError } = await supabase
+              .from('property_inspections')
+              .update({ has_elevator: hasElevator })
+              .eq('id', inspection.id);
+            if (updateInspectionError) {
+              console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Failed to update has_elevator:`, updateInspectionError);
+            } else {
+              debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Updated has_elevator = ${hasElevator} for inspection ${inspection.id}`);
+            }
+          }
           
           // Optimización: Solo refetch si hay elementos con fotos que necesitan URLs actualizadas
           // Esto evita el refetch completo innecesario que puede tomar 1-3 segundos

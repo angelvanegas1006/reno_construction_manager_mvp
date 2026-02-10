@@ -564,7 +564,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         </CardContent>
       </Card>
 
-      {/* Modal */}
+      {/* Modal: para Revisión Inicial solo se pasan viviendas en fase initial-check del kanban */}
       <TodoWidgetModal
         open={isModalOpen}
         onOpenChange={(open) => {
@@ -577,6 +577,12 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
         property={selectedProperty}
         widgetType={selectedWidgetType}
         allProperties={allProperties}
+        propertiesForCurrentWidget={
+          selectedWidgetType
+            ? (todoWidgets.find((w) => w.id === selectedWidgetType)?.properties ?? [])
+            : []
+        }
+        onPropertyChange={setSelectedProperty}
       />
     </div>
   );

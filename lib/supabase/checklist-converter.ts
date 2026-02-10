@@ -547,14 +547,19 @@ function urlToFileUpload(url: string, isVideo: boolean = false): FileUpload {
   };
 }
 
+/** Inspección con has_elevator para inicializar pregunta ascensor en entorno-zonas-comunes */
+export type InspectionForChecklist = { has_elevator?: boolean } | null;
+
 /**
  * Convierte elementos de Supabase de vuelta al formato del checklist
+ * @param inspection Opcional: si se pasa y la sección entorno-zonas-comunes no tiene pregunta "ascensor", se añade desde has_elevator (true → buen_estado, false → no_aplica)
  */
 export function convertSupabaseToChecklist(
   zones: InspectionZone[],
   elements: InspectionElement[],
   propertyBedrooms: number | null,
-  propertyBathrooms: number | null
+  propertyBathrooms: number | null,
+  inspection?: InspectionForChecklist
 ): Partial<ChecklistData> {
   const sections: Record<string, ChecklistSection> = {};
 
@@ -1237,6 +1242,18 @@ export function convertSupabaseToChecklist(
           }
         }
       });
+      
+      // Inicializar pregunta ascensor en entorno-zonas-comunes desde inspection.has_elevator si no existe elemento
+      if (sectionId === 'entorno-zonas-comunes' && inspection != null && inspection.has_elevator !== undefined) {
+        const hasAscensorQuestion = section.questions?.some(q => q.id === 'ascensor');
+        if (!hasAscensorQuestion) {
+          if (!section.questions) section.questions = [];
+          section.questions.push({
+            id: 'ascensor',
+            status: inspection.has_elevator ? 'buen_estado' : 'no_aplica',
+          });
+        }
+      }
       
       // After processing all elements, ensure all items are initialized for cocina section
       if (sectionId === 'cocina') {

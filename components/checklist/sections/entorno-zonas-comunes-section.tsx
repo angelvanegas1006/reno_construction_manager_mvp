@@ -29,13 +29,14 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
           { id: "entorno", photos: [], videos: [] },
         ];
 
-    // Default questions for initialization
+    // Default questions for initialization (ascensor: estado del ascensor; no_aplica = sin ascensor)
     const defaultQuestions = [
       { id: "acceso-principal" },
       { id: "acabados" },
       { id: "comunicaciones" },
       { id: "electricidad" },
       { id: "carpinteria" },
+      { id: "ascensor" },
     ];
 
     // Always use section.questions if available, otherwise use defaults
@@ -165,26 +166,6 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
               </Card>
             </div>
           </div>
-
-          {/* Entorno */}
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-foreground">
-              {t.checklist.sections.entornoZonasComunes.entorno} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
-            </h2>
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
-              <Card className="p-6 space-y-4">
-                <ChecklistUploadZoneComponent
-                  key={`entorno-${(section.uploadZones || uploadZones).find(z => z.id === "entorno")?.photos.length || 0}-${(section.uploadZones || uploadZones).find(z => z.id === "entorno")?.photos.map(p => p.id || p.data?.substring(0, 20)).join(',') || ''}`}
-                  title={t.checklist.sections.entornoZonasComunes.entorno}
-                  description={t.checklist.addPhotos}
-                  uploadZone={(section.uploadZones || uploadZones).find(z => z.id === "entorno") || { id: "entorno", photos: [], videos: [] }}
-                  onUpdate={(updates) => handleUploadZoneUpdate("entorno", updates)}
-                  isRequired={true}
-                  hideTitle={true}
-                />
-              </Card>
-            </div>
-          </div>
         </div>
 
         {/* Questions - Contenedor general para las preguntas */}
@@ -207,22 +188,6 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
 
             <Card className="p-6 space-y-4">
               <ChecklistQuestionComponent
-                question={section.questions?.find(q => q.id === "acabados") || questions.find(q => q.id === "acabados") || { id: "acabados" }}
-                questionId="acabados"
-                label={t.checklist.sections.entornoZonasComunes.acabados.title}
-                description={t.checklist.sections.entornoZonasComunes.acabados.description}
-                onUpdate={(updates) => handleQuestionUpdate("acabados", updates)}
-                elements={[
-                  { id: "paredes", label: t.checklist.sections.entornoZonasComunes.acabados.elements.paredes },
-                  { id: "techos", label: t.checklist.sections.entornoZonasComunes.acabados.elements.techos },
-                  { id: "suelo", label: t.checklist.sections.entornoZonasComunes.acabados.elements.suelo },
-                  { id: "rodapies", label: t.checklist.sections.entornoZonasComunes.acabados.elements.rodapies },
-                ]}
-              />
-            </Card>
-
-            <Card className="p-6 space-y-4">
-              <ChecklistQuestionComponent
                 question={section.questions?.find(q => q.id === "comunicaciones") || questions.find(q => q.id === "comunicaciones") || { id: "comunicaciones" }}
                 questionId="comunicaciones"
                 label={t.checklist.sections.entornoZonasComunes.comunicaciones.title}
@@ -238,30 +203,13 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
 
             <Card className="p-6 space-y-4">
               <ChecklistQuestionComponent
-                question={section.questions?.find(q => q.id === "electricidad") || questions.find(q => q.id === "electricidad") || { id: "electricidad" }}
-                questionId="electricidad"
-                label={t.checklist.sections.entornoZonasComunes.electricidad.title}
-                description={t.checklist.sections.entornoZonasComunes.electricidad.description}
-                onUpdate={(updates) => handleQuestionUpdate("electricidad", updates)}
-                elements={[
-                  { id: "luces", label: t.checklist.sections.entornoZonasComunes.electricidad.elements.luces },
-                  { id: "interruptores", label: t.checklist.sections.entornoZonasComunes.electricidad.elements.interruptores },
-                  { id: "tomas-corriente", label: t.checklist.sections.entornoZonasComunes.electricidad.elements.tomasCorriente },
-                  { id: "toma-television", label: t.checklist.sections.entornoZonasComunes.electricidad.elements.tomaTelevision },
-                ]}
-              />
-            </Card>
-
-            <Card className="p-6 space-y-4">
-              <ChecklistQuestionComponent
-                question={section.questions?.find(q => q.id === "carpinteria") || questions.find(q => q.id === "carpinteria") || { id: "carpinteria" }}
-                questionId="carpinteria"
-                label={t.checklist.sections.entornoZonasComunes.carpinteria.title}
-                description={t.checklist.sections.entornoZonasComunes.carpinteria.description}
-                onUpdate={(updates) => handleQuestionUpdate("carpinteria", updates)}
-                elements={[
-                  { id: "puertas-interiores", label: t.checklist.sections.entornoZonasComunes.carpinteria.elements.puertasInteriores },
-                ]}
+                question={section.questions?.find(q => q.id === "ascensor") || questions.find(q => q.id === "ascensor") || { id: "ascensor" }}
+                questionId="ascensor"
+                label={typeof t.checklist.sections.entornoZonasComunes.ascensor === "string" ? t.checklist.sections.entornoZonasComunes.ascensor : "Ascensor"}
+                description="Indica si la vivienda tiene ascensor y su estado. Si no tiene, selecciona No aplica."
+                onUpdate={(updates) => handleQuestionUpdate("ascensor", updates)}
+                elements={[]}
+                showPhotos={false}
               />
             </Card>
           </div>
