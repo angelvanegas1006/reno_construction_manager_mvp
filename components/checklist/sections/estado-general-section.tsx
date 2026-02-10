@@ -42,6 +42,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
     const defaultQuestions = [
       { id: "acabados" },
       { id: "electricidad" },
+      { id: "comunicaciones" },
     ];
 
     // Always use section.questions if available, otherwise use defaults
@@ -263,6 +264,21 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
               { id: "techos", label: t.checklist.sections.estadoGeneral.acabados.elements.techos },
               { id: "suelo", label: t.checklist.sections.estadoGeneral.acabados.elements.suelo },
               { id: "rodapies", label: t.checklist.sections.estadoGeneral.acabados.elements.rodapies },
+            ]}
+          />
+        </Card>
+
+        {/* Comunicaciones (Telefonillo y Timbre) */}
+        <Card className="p-4 sm:p-6 space-y-4">
+          <ChecklistQuestionComponent
+            question={section.questions?.find(q => q.id === "comunicaciones") || questions.find(q => q.id === "comunicaciones") || { id: "comunicaciones" }}
+            questionId="comunicaciones"
+            label={t.checklist.sections.estadoGeneral.comunicaciones.title}
+            description={t.checklist.sections.estadoGeneral.comunicaciones.description}
+            onUpdate={(updates) => handleQuestionUpdate("comunicaciones", updates)}
+            elements={[
+              { id: "telefonillo", label: t.checklist.sections.estadoGeneral.comunicaciones.elements.telefonillo },
+              { id: "timbre", label: t.checklist.sections.estadoGeneral.comunicaciones.elements.timbre },
             ]}
           />
         </Card>

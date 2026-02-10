@@ -28,26 +28,39 @@ function hasQuestionData(question: ChecklistQuestion): boolean {
   return hasElementData(question);
 }
 
+/** En entorno-zonas-comunes se exigen portal, fachada y preguntas acceso-principal, comunicaciones, ascensor */
+const ENTORNO_ZONAS_REQUIRED_UPLOAD_IDS = ["portal", "fachada"];
+const ENTORNO_ZONAS_REQUIRED_QUESTION_IDS = ["acceso-principal", "comunicaciones", "ascensor"];
+
 /**
  * Verifica si TODOS los elementos requeridos de una sección tienen datos reportados
+ * @param sectionId Si es "entorno-zonas-comunes", solo se validan portal, fachada y preguntas acceso-principal, comunicaciones
  */
-function areAllRequiredElementsReported(section: ChecklistSection): boolean {
-  // Verificar upload zones - todos deben tener al menos una foto o video
+function areAllRequiredElementsReported(section: ChecklistSection, sectionId?: string): boolean {
+  const isEntornoZonas = sectionId === "entorno-zonas-comunes";
+
+  // Verificar upload zones
   if (section.uploadZones && section.uploadZones.length > 0) {
-    for (const uploadZone of section.uploadZones) {
+    const zonesToCheck = isEntornoZonas
+      ? section.uploadZones.filter((z) => ENTORNO_ZONAS_REQUIRED_UPLOAD_IDS.includes(z.id))
+      : section.uploadZones;
+    for (const uploadZone of zonesToCheck) {
       const hasPhotos = uploadZone.photos && uploadZone.photos.length > 0;
       const hasVideos = uploadZone.videos && uploadZone.videos.length > 0;
       if (!hasPhotos && !hasVideos) {
-        return false; // Al menos un upload zone sin datos
+        return false;
       }
     }
   }
 
-  // Verificar questions - todas deben tener datos
+  // Verificar questions
   if (section.questions && section.questions.length > 0) {
-    for (const question of section.questions) {
+    const questionsToCheck = isEntornoZonas
+      ? section.questions.filter((q) => ENTORNO_ZONAS_REQUIRED_QUESTION_IDS.includes(q.id))
+      : section.questions;
+    for (const question of questionsToCheck) {
       if (!hasQuestionData(question)) {
-        return false; // Al menos una pregunta sin datos
+        return false;
       }
     }
   }
@@ -240,12 +253,9 @@ function areAllRequiredElementsReported(section: ChecklistSection): boolean {
   return true;
 }
 
-/**
- * Secciones requeridas para el check inicial (incluye entorno-zonas-comunes).
- * Para el check final no se exige "entorno-zonas-comunes" (la UI la omite).
- */
-function getRequiredSectionsForType(checklistType?: string): string[] {
-  const allSections = [
+/** Secciones requeridas para initial y final (entorno-zonas-comunes se valida solo con portal, fachada, acceso-principal, comunicaciones). */
+function getRequiredSectionsForType(_checklistType?: string): string[] {
+  return [
     "entorno-zonas-comunes",
     "estado-general",
     "entrada-pasillos",
@@ -255,10 +265,6 @@ function getRequiredSectionsForType(checklistType?: string): string[] {
     "cocina",
     "exteriores",
   ];
-  if (checklistType === "reno_final") {
-    return allSections.filter((id) => id !== "entorno-zonas-comunes");
-  }
-  return allSections;
 }
 
 /**
@@ -281,7 +287,7 @@ export function areAllActivitiesReported(checklist: ChecklistData | null): boole
     }
 
     // Verificar si TODOS los elementos requeridos tienen datos reportados
-    if (!areAllRequiredElementsReported(section)) {
+    if (!areAllRequiredElementsReported(section, sectionId)) {
       return false;
     }
   }
@@ -304,7 +310,7 @@ export function getUnreportedSections(checklist: ChecklistData | null): string[]
   for (const sectionId of requiredSections) {
     const section = checklist.sections[sectionId];
     
-    if (!section || !areAllRequiredElementsReported(section)) {
+    if (!section || !areAllRequiredElementsReported(section, sectionId)) {
       unreported.push(sectionId);
     }
   }
@@ -313,26 +319,33 @@ export function getUnreportedSections(checklist: ChecklistData | null): string[]
 }
 
 
-const SECTION_CONFIGS = [
-  { id: "entorno-zonas-comunes", refId: "checklist-entorno-zonas-comunes", name: "Entorno y Zonas Comunes" },
-  { id: "estado-general", refId: "checklist-estado-general", name: "Estado General" },
-  { id: "entrada-pasillos", refId: "checklist-entrada-pasillos", name: "Entrada y Pasillos" },
-  { id: "habitaciones", refId: "checklist-habitaciones", name: "Habitaciones" },
-  { id: "salon", refId: "checklist-salon", name: "Salón" },
-  { id: "banos", refId: "checklist-banos", name: "Baños" },
-  { id: "cocina", refId: "checklist-cocina", name: "Cocina" },
-  { id: "exteriores", refId: "checklist-exteriores", name: "Exteriores" },
-];
+const SECTION_CONFIGS_BY_ID: Record<string, { id: string; refId: string; name: string }> = {
+  "entorno-zonas-comunes": { id: "entorno-zonas-comunes", refId: "checklist-entorno-zonas-comunes", name: "Entorno y Zonas Comunes" },
+  "estado-general": { id: "estado-general", refId: "checklist-estado-general", name: "Estado General" },
+  "entrada-pasillos": { id: "entrada-pasillos", refId: "checklist-entrada-pasillos", name: "Entrada y Pasillos" },
+  "habitaciones": { id: "habitaciones", refId: "checklist-habitaciones", name: "Habitaciones" },
+  "salon": { id: "salon", refId: "checklist-salon", name: "Salón" },
+  "banos": { id: "banos", refId: "checklist-banos", name: "Baños" },
+  "cocina": { id: "cocina", refId: "checklist-cocina", name: "Cocina" },
+  "exteriores": { id: "exteriores", refId: "checklist-exteriores", name: "Exteriores" },
+};
+
+/** Orden para initial check: Entorno y zonas comunes al final (debajo de Exteriores) */
+const SECTION_ORDER_INITIAL = ["estado-general", "entrada-pasillos", "habitaciones", "salon", "banos", "cocina", "exteriores", "entorno-zonas-comunes"];
+/** Orden para final check: Entorno y zonas comunes primero */
+const SECTION_ORDER_FINAL = ["entorno-zonas-comunes", "estado-general", "entrada-pasillos", "habitaciones", "salon", "banos", "cocina", "exteriores"];
+
+function getSectionConfigsOrdered(checklistType: string | undefined): { id: string; refId: string; name: string }[] {
+  const order = checklistType === "reno_initial" ? SECTION_ORDER_INITIAL : SECTION_ORDER_FINAL;
+  return order.map((id) => SECTION_CONFIGS_BY_ID[id]).filter(Boolean);
+}
 
 export function getFirstIncompleteSection(checklist: ChecklistData | null): { sectionId: string; sectionRefId: string; message: string } | null {
   if (!checklist) return null;
 
-  const requiredSectionConfigs =
-    checklist.checklistType === "reno_final"
-      ? SECTION_CONFIGS.filter((c) => c.id !== "entorno-zonas-comunes")
-      : SECTION_CONFIGS;
+  const SECTION_CONFIGS = getSectionConfigsOrdered(checklist.checklistType);
 
-  for (const sectionConfig of requiredSectionConfigs) {
+  for (const sectionConfig of SECTION_CONFIGS) {
     const section = checklist.sections[sectionConfig.id];
     
     if (!section) {
@@ -343,9 +356,17 @@ export function getFirstIncompleteSection(checklist: ChecklistData | null): { se
       };
     }
 
+    const isEntornoZonas = sectionConfig.id === "entorno-zonas-comunes";
+    const uploadZonesToCheck = isEntornoZonas && section.uploadZones
+      ? section.uploadZones.filter((z) => ENTORNO_ZONAS_REQUIRED_UPLOAD_IDS.includes(z.id))
+      : section.uploadZones || [];
+    const questionsToCheck = isEntornoZonas && section.questions
+      ? section.questions.filter((q) => ENTORNO_ZONAS_REQUIRED_QUESTION_IDS.includes(q.id))
+      : section.questions || [];
+
     // Verificar upload zones requeridos
-    if (section.uploadZones && section.uploadZones.length > 0) {
-      for (const uploadZone of section.uploadZones) {
+    if (uploadZonesToCheck.length > 0) {
+      for (const uploadZone of uploadZonesToCheck) {
         const hasPhotos = uploadZone.photos && uploadZone.photos.length > 0;
         const hasVideos = uploadZone.videos && uploadZone.videos.length > 0;
         if (!hasPhotos && !hasVideos) {
@@ -359,8 +380,8 @@ export function getFirstIncompleteSection(checklist: ChecklistData | null): { se
     }
 
     // Verificar questions requeridas
-    if (section.questions && section.questions.length > 0) {
-      for (const question of section.questions) {
+    if (questionsToCheck.length > 0) {
+      for (const question of questionsToCheck) {
         if (!hasQuestionData(question)) {
           return {
             sectionId: sectionConfig.id,

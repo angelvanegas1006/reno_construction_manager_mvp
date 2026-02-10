@@ -984,6 +984,7 @@ export const translations: Record<Language, Translations> = {
               puertasInteriores: "Puertas interiores",
             },
           },
+          ascensor: "Ascensor",
         },
         estadoGeneral: {
           title: "Estado General de la Vivienda",
@@ -1022,6 +1023,15 @@ export const translations: Record<Language, Translations> = {
               interruptores: "Interruptores",
               tomasCorriente: "Tomas de corriente",
               tomaTelevision: "Toma de Televisión",
+            },
+          },
+          comunicaciones: {
+            title: "Comunicaciones",
+            description: "Evalúa el estado del telefonillo y del timbre.",
+            whatElementsBadCondition: "¿Qué elementos están en mal estado?",
+            elements: {
+              telefonillo: "Telefonillo",
+              timbre: "Timbre",
             },
           },
         },
@@ -2016,6 +2026,7 @@ export const translations: Record<Language, Translations> = {
               puertasInteriores: "Interior doors",
             },
           },
+          ascensor: "Elevator",
         },
         estadoGeneral: {
           title: "General State of the Property",
@@ -2054,6 +2065,15 @@ export const translations: Record<Language, Translations> = {
               interruptores: "Switches",
               tomasCorriente: "Power outlets",
               tomaTelevision: "TV outlet",
+            },
+          },
+          comunicaciones: {
+            title: "Communications",
+            description: "Evaluate the condition of the intercom and doorbell.",
+            whatElementsBadCondition: "Which elements are in bad condition?",
+            elements: {
+              telefonillo: "Intercom",
+              timbre: "Doorbell",
             },
           },
         },

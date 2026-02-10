@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { mapSetUpStatusToKanbanPhase } from "@/lib/supabase/kanban-mapping";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { RenovatorCombobox } from "@/components/reno/renovator-combobox";
+import { PropertyCombobox } from "@/components/reno/property-combobox";
 import { FileSignature } from "lucide-react";
 
 interface TodoWidgetModalProps {
@@ -22,9 +23,12 @@ interface TodoWidgetModalProps {
   property: Property | null;
   widgetType: 'estimated-visit' | 'initial-check' | 'renovator' | 'work-update' | 'final-check' | null;
   allProperties?: Property[]; // Lista de todas las propiedades para el combobox de renovadores
+  /** Solo viviendas en la fase del kanban correspondiente al widget (p. ej. initial-check para Revisión Inicial) */
+  propertiesForCurrentWidget?: Property[];
+  onPropertyChange?: (property: Property) => void;
 }
 
-export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allProperties = [] }: TodoWidgetModalProps) {
+export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allProperties = [], propertiesForCurrentWidget = [], onPropertyChange }: TodoWidgetModalProps) {
   const router = useRouter();
   const supabase = createClient();
   const [isSaving, setIsSaving] = useState(false);
@@ -436,6 +440,20 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
         </DialogHeader>
 
         <div className="space-y-4 overflow-visible">
+          {/* Selector de vivienda: solo las que están en la fase del kanban (p. ej. Revisión Inicial) */}
+          {widgetType === 'initial-check' && propertiesForCurrentWidget.length > 0 && onPropertyChange && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Vivienda (solo en Revisión Inicial)</Label>
+              <PropertyCombobox
+                properties={propertiesForCurrentWidget}
+                value={property}
+                onValueChange={(p) => p && onPropertyChange(p)}
+                placeholder="Buscar vivienda..."
+                disabled={isSaving}
+              />
+            </div>
+          )}
+
           {/* Información básica */}
           <div className="space-y-2">
             <div>
