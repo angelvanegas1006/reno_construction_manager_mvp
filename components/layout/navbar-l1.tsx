@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Search, LayoutGrid, List, RefreshCw } from "lucide-react";
 import { FilterIcon } from "@/components/icons/filter-icon";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,11 @@ export function NavbarL1({
   secondaryActions,
 }: NavbarL1Props) {
   const { t } = useI18n();
+  // Evitar hydration mismatch: filterBadgeCount puede venir de localStorage (solo en cliente)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const showFilterBadge = mounted && (filterBadgeCount ?? 0) > 0;
 
   return (
     <nav className="border-b bg-card px-4 md:px-3 lg:px-4 py-3 md:py-3 relative">
@@ -114,7 +120,7 @@ export function NavbarL1({
               aria-label={t.kanban.filterProperties}
             >
               <FilterIcon className="h-4 w-4 text-foreground" />
-              {filterBadgeCount > 0 && (
+              {showFilterBadge && (
                 <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-xs font-semibold text-white">
                   {filterBadgeCount}
                 </span>
@@ -202,7 +208,7 @@ export function NavbarL1({
               aria-label={t.kanban.filterProperties}
             >
               <FilterIcon className="h-4 w-4 text-foreground" />
-              {filterBadgeCount > 0 && (
+              {showFilterBadge && (
                 <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-xs font-semibold text-white">
                   {filterBadgeCount}
                 </span>

@@ -33,6 +33,7 @@ const ALL_PHASES: RenoKanbanPhase[] = [
   "reno-in-progress",
   "furnishing",
   "final-check",
+  "pendiente-suministros",
   "cleaning",
   "furnishing-cleaning",
   "reno-fixes",
@@ -62,7 +63,15 @@ export default function RenoConstructionManagerKanbanPage() {
   const { t } = useI18n();
   
   // Use shared properties context instead of fetching independently
-  const { allProperties, propertiesByPhase: rawPropertiesByPhase, refetchProperties } = useRenoProperties();
+  const { allProperties, propertiesByPhase: rawPropertiesByPhase, refetchProperties, loading: propertiesLoading } = useRenoProperties();
+
+  // Refetch al montar la página para evitar datos vacíos/antiguos (p. ej. si el primer fetch fue antes de que auth estuviera listo en local)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      refetchProperties();
+    }, 400);
+    return () => clearTimeout(t);
+  }, [refetchProperties]);
 
   const handleSyncAirtable = useCallback(async () => {
     setSyncAirtableLoading(true);
@@ -122,6 +131,7 @@ export default function RenoConstructionManagerKanbanPage() {
       "reno-in-progress": [],
       "furnishing": [],
       "final-check": [],
+      "pendiente-suministros": [],
       "cleaning": [],
       "furnishing-cleaning": [],
       "reno-fixes": [],

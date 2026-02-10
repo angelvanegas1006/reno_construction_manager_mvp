@@ -54,6 +54,7 @@ function convertSupabasePropertyToKanbanProperty(
         'reno-in-progress',
         'furnishing',
         'final-check',
+        'pendiente-suministros',
         'cleaning',
         'furnishing-cleaning', // Legacy
         'reno-fixes',
@@ -144,6 +145,11 @@ export function useSupabaseKanbanProperties() {
   const { role, user } = useAppAuth();
   const fetchInProgressRef = useRef(false);
   const lastFetchKeyRef = useRef<string | null>(null);
+  const propertiesCountRef = useRef(0);
+
+  useEffect(() => {
+    propertiesCountRef.current = supabaseProperties.length;
+  }, [supabaseProperties.length]);
 
   // Fetch properties function (extracted to be reusable)
   const fetchProperties = useCallback(async (force = false) => {
@@ -156,11 +162,16 @@ export function useSupabaseKanbanProperties() {
       return;
     }
     
-    // Skip if we already fetched with this exact key (unless forced)
-    // Note: We check loading state directly, not from closure, to avoid stale closures
+    // Skip if we already fetched with this exact key and we have data (unless forced).
+    // Si misma key pero 0 propiedades (p. ej. primer fetch sin sesión), forzar refetch.
     if (!force && lastFetchKeyRef.current === fetchKey) {
-      log.debug('Already fetched with this key, skipping...', { fetchKey });
-      return;
+      if (propertiesCountRef.current === 0) {
+        log.debug('Same key but 0 properties, forcing refetch...', { fetchKey });
+        lastFetchKeyRef.current = null;
+      } else {
+        log.debug('Already fetched with this key, skipping...', { fetchKey });
+        return;
+      }
     }
     
     // Mark as in progress
@@ -320,6 +331,7 @@ export function useSupabaseKanbanProperties() {
         'reno-in-progress': [],
         'furnishing': [],
         'final-check': [],
+        'pendiente-suministros': [],
         'cleaning': [],
         'furnishing-cleaning': [],
         'reno-fixes': [],
@@ -351,6 +363,7 @@ export function useSupabaseKanbanProperties() {
       'reno-in-progress': [],
       'furnishing': [],
       'final-check': [],
+      'pendiente-suministros': [],
       'cleaning': [],
       'furnishing-cleaning': [], // Legacy
       'reno-fixes': [],
@@ -416,8 +429,15 @@ export function useSupabaseKanbanProperties() {
       byPhase: phaseCounts,
     });
 
+    // Diagnóstico en desarrollo: ver en consola role, user y conteos por fase (para comparar local vs Vercel)
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+      const phaseOrder = ['initial-check', 'reno-budget', 'reno-in-progress', 'final-check', 'pendiente-suministros', 'cleaning', 'furnishing', 'upcoming-settlements'];
+      const counts = phaseOrder.map((p) => `${p}: ${phaseCounts[p] ?? 0}`).join(', ');
+      console.log('[Kanban Properties] role=%s email=%s total=%s converted=%s skipped=%s | %s', role, user?.email ?? '(none)', supabaseProperties.length, convertedCount, skippedCount, counts);
+    }
+
     return grouped;
-  }, [supabaseProperties]);
+  }, [supabaseProperties, role, user?.email]);
 
   const totalProperties = useMemo(() => {
     return Object.values(propertiesByPhase).reduce((sum, props) => sum + props.length, 0);

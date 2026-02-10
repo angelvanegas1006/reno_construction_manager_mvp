@@ -180,6 +180,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-in-progress": [],
       "furnishing": [],
       "final-check": [],
+      "pendiente-suministros": [],
       "cleaning": [],
       "furnishing-cleaning": [], // Legacy
       "reno-fixes": [],
@@ -348,6 +349,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-in-progress": sortRenoInProgressPhase("reno-in-progress"),
       "furnishing": sortFurnishingCleaningPhase("furnishing"),
       "final-check": sortFinalCheckPhase("final-check"),
+      "pendiente-suministros": sortFinalCheckPhase("pendiente-suministros"),
       "cleaning": sortFurnishingCleaningPhase("cleaning"),
       "furnishing-cleaning": sortFurnishingCleaningPhase("furnishing-cleaning"), // Legacy
       "reno-fixes": sortPropertiesByExpired(transformProperties["reno-fixes"] || []),
@@ -443,8 +445,8 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
         return property.daysToVisit > 5;
       }
       
-      // furnishing and cleaning: daysToPropertyReady > 25
-      if ((phase === "furnishing" || phase === "cleaning") && property.daysToPropertyReady) {
+      // furnishing, cleaning, final-check, pendiente-suministros: daysToPropertyReady > 25
+      if ((phase === "furnishing" || phase === "cleaning" || phase === "final-check" || phase === "pendiente-suministros") && property.daysToPropertyReady) {
         return property.daysToPropertyReady > 25;
       }
       
@@ -573,6 +575,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-in-progress": allProperties["reno-in-progress"].filter(matchesAll),
       "furnishing": allProperties["furnishing"].filter(matchesAll),
       "final-check": allProperties["final-check"].filter(matchesAll),
+      "pendiente-suministros": allProperties["pendiente-suministros"].filter(matchesAll),
       "cleaning": allProperties["cleaning"].filter(matchesAll),
       "furnishing-cleaning": allProperties["furnishing-cleaning"].filter(matchesAll), // Legacy
       "reno-fixes": allProperties["reno-fixes"].filter(matchesAll),
@@ -701,6 +704,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           const aDays = a.daysToPropertyReady ?? -Infinity;
           const bDays = b.daysToPropertyReady ?? -Infinity;
           return bDays - aDays; // Descending order (most days first)
+        });
+      })(),
+      "pendiente-suministros": (() => {
+        const expiredFirst = sortPropertiesByExpired(filtered["pendiente-suministros"]);
+        return expiredFirst.sort((a, b) => {
+          const aDays = a.daysToPropertyReady ?? -Infinity;
+          const bDays = b.daysToPropertyReady ?? -Infinity;
+          return bDays - aDays;
         });
       })(),
       "cleaning": (() => {
@@ -850,6 +861,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "reno-in-progress": [],
       "furnishing": [],
       "final-check": [],
+      "pendiente-suministros": [],
       "cleaning": [],
       "furnishing-cleaning": [],
       "reno-fixes": [],
@@ -1003,6 +1015,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'reno-in-progress': [],
       'furnishing': [],
       'final-check': [],
+      'pendiente-suministros': [],
       'cleaning': [],
       'furnishing-cleaning': [], // Legacy
       'reno-fixes': [],

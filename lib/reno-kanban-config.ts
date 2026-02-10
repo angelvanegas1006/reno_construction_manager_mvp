@@ -12,6 +12,7 @@ export type RenoKanbanPhase =
   | "reno-in-progress"
   | "furnishing"
   | "final-check"
+  | "pendiente-suministros" // Después de Revisión Final; Set Up Status = Utilities activation
   | "cleaning"
   | "furnishing-cleaning" // Legacy - kept for compatibility
   | "reno-fixes"
@@ -41,6 +42,7 @@ export interface RenoKanbanColumn {
     renoInProgress: string;
     furnishing: string;
     finalCheck: string;
+    pendienteSuministros: string;
     cleaning: string;
     furnishingCleaning: string; // Legacy
     renoFixes: string;
@@ -61,6 +63,7 @@ export const renoKanbanColumns: RenoKanbanColumn[] = [
   { key: "reno-in-progress", stage: "reno-in-progress", translationKey: "renoInProgress" },
   { key: "furnishing", stage: "furnishing", translationKey: "furnishing" },
   { key: "final-check", stage: "final-check", translationKey: "finalCheck" },
+  { key: "pendiente-suministros", stage: "pendiente-suministros", translationKey: "pendienteSuministros" },
   { key: "cleaning", stage: "cleaning", translationKey: "cleaning" },
   { key: "furnishing-cleaning", stage: "furnishing-cleaning", translationKey: "furnishingCleaning" }, // Legacy - hidden
   { key: "reno-fixes", stage: "reno-fixes", translationKey: "renoFixes" },

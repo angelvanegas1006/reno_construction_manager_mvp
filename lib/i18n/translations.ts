@@ -175,6 +175,7 @@ export interface Translations {
       renoInProgress: string;
       furnishing: string;
       finalCheck: string;
+      pendienteSuministros: string;
       cleaning: string;
       furnishingCleaning: string; // Legacy
       renoFixes: string;
@@ -805,6 +806,7 @@ export const translations: Record<Language, Translations> = {
       renoInProgress: "Obras en Proceso",
       furnishing: "Amueblamiento",
       finalCheck: "Revisión Final",
+      pendienteSuministros: "Pendiente de Suministros",
       cleaning: "Limpieza",
       furnishingCleaning: "Limpieza y amueblamiento", // Legacy
       renoFixes: "Reparaciones reno",
@@ -1847,6 +1849,7 @@ export const translations: Record<Language, Translations> = {
       renoInProgress: "Reno in Progress",
       furnishing: "Furnishing",
       finalCheck: "Final Check",
+      pendienteSuministros: "Pending Utilities",
       cleaning: "Cleaning",
       furnishingCleaning: "Furnishing/Cleaning", // Legacy
       renoFixes: "Reno Fixes",
