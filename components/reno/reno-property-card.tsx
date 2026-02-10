@@ -130,9 +130,9 @@ export function RenoPropertyCard({
     return property.daysToVisit > 5;
   })();
 
-  // Check if property exceeds Days to Property Ready limit (for furnishing, cleaning, final-check, and furnishing-cleaning phases)
+  // Check if property exceeds Days to Property Ready limit (for furnishing, cleaning, final-check, pendiente-suministros, and furnishing-cleaning phases)
   const exceedsDaysToPropertyReadyLimit = (() => {
-    if ((stage !== "furnishing" && stage !== "cleaning" && stage !== "final-check" && stage !== "furnishing-cleaning") || !property.daysToPropertyReady) {
+    if ((stage !== "furnishing" && stage !== "cleaning" && stage !== "final-check" && stage !== "pendiente-suministros" && stage !== "furnishing-cleaning") || !property.daysToPropertyReady) {
       return false;
     }
     
@@ -204,7 +204,7 @@ export function RenoPropertyCard({
         exceedsDurationLimit && stage === "reno-in-progress" && "border-l-4 border-l-red-500",
         exceedsDaysToStartLimit && "border-l-4 border-l-red-500", // Red left border for budget phases
         exceedsDaysToVisitLimit && "border-l-4 border-l-red-500", // Red left border for initial-check phase
-        exceedsDaysToPropertyReadyLimit && (stage === "furnishing" || stage === "cleaning" || stage === "final-check" || stage === "furnishing-cleaning") && "border-l-4 border-l-red-500" // Red left border for furnishing/cleaning/final-check phases
+        exceedsDaysToPropertyReadyLimit && (stage === "furnishing" || stage === "cleaning" || stage === "final-check" || stage === "pendiente-suministros" || stage === "furnishing-cleaning") && "border-l-4 border-l-red-500" // Red left border for furnishing/cleaning/final-check/pendiente-suministros phases
       )}
       onClick={disabled ? undefined : () => {
         track("Property Card Clicked", {
@@ -493,7 +493,7 @@ export function RenoPropertyCard({
             </div>
           )}
         </div>
-      ) : stage === "furnishing" || stage === "cleaning" ? (
+      ) : stage === "furnishing" || stage === "cleaning" || stage === "pendiente-suministros" ? (
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
@@ -505,7 +505,7 @@ export function RenoPropertyCard({
               <span className="text-xs text-muted-foreground truncate min-w-0">{property.renovador || t.propertyCard.siteManager}</span>
             </div>
           )}
-          {/* Días para propiedad lista - only show if filled */}
+          {/* Días para propiedad lista (Days to property ready) - only show if filled */}
           {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined && (
             <div className="text-xs text-muted-foreground">
               <span className="font-medium">{t.propertyCard.daysLabel}</span> {property.daysToPropertyReady} {t.propertyCard.days}

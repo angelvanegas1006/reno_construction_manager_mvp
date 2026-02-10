@@ -63,8 +63,8 @@ export function isDelayedWork(property: Property, phase?: string): boolean {
     return property.daysToVisit > 5;
   }
   
-  // furnishing, cleaning, and final-check: daysToPropertyReady > 25
-  if ((renoPhase === "furnishing" || renoPhase === "cleaning" || renoPhase === "final-check") && 
+  // furnishing, cleaning, final-check, pendiente-suministros: daysToPropertyReady > 25
+  if ((renoPhase === "furnishing" || renoPhase === "cleaning" || renoPhase === "final-check" || renoPhase === "pendiente-suministros") && 
       property.daysToPropertyReady !== null && 
       property.daysToPropertyReady !== undefined) {
     return property.daysToPropertyReady > 25;

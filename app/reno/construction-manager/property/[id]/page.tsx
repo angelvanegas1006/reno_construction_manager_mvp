@@ -578,7 +578,7 @@ export default function RenoPropertyDetailPage() {
         },
       });
     }
-    if (phase === "final-check") {
+    if (phase === "final-check" || phase === "pendiente-suministros") {
       items.push({
         label: t.propertySidebar.completeFinalChecklist,
         onClick: () => {
@@ -695,9 +695,9 @@ export default function RenoPropertyDetailPage() {
           );
         }
         
-        // For initial-check or final-check phases, show checklist CTA
-        if (currentPhase === "initial-check" || currentPhase === "final-check") {
-          const checklistType = currentPhase === "final-check" ? t.kanban.finalCheck : t.kanban.initialCheck;
+        // For initial-check, final-check, or pendiente-suministros phases, show checklist CTA (pendiente-suministros: solo check final)
+        if (currentPhase === "initial-check" || currentPhase === "final-check" || currentPhase === "pendiente-suministros") {
+          const checklistType = (currentPhase === "final-check" || currentPhase === "pendiente-suministros") ? t.kanban.finalCheck : t.kanban.initialCheck;
           // Check for date in both local state and supabase property
           const estimatedDate = localEstimatedVisitDate || (supabaseProperty as any)?.['Estimated Visit Date'] || property?.estimatedVisitDate;
           const hasEstimatedDate = !!estimatedDate;
@@ -1339,6 +1339,7 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "reno-in-progress": t.kanban.renoInProgress,
     "furnishing": t.kanban.furnishing,
     "final-check": t.kanban.finalCheck,
+    "pendiente-suministros": t.kanban.pendienteSuministros,
     "cleaning": t.kanban.cleaning,
     "furnishing-cleaning": t.kanban.furnishingCleaning, // Legacy
     "reno-fixes": t.kanban.renoFixes,

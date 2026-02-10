@@ -92,6 +92,7 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
       "reno-in-progress": [],
       "furnishing": [],
       "final-check": [],
+      "pendiente-suministros": [],
       "cleaning": [],
       "furnishing-cleaning": [],
       "reno-fixes": [],
