@@ -34,6 +34,12 @@ const PHASE_VIEWS: Array<{
     priority: 6, // Más avanzada
   },
   {
+    phase: 'pendiente-suministros',
+    viewId: 'viwCFzKrVQSCc23zc',
+    description: 'Pendiente de Suministros',
+    priority: 5.5, // Entre final-check (5) y cleaning (6)
+  },
+  {
     phase: 'final-check',
     viewId: 'viwnDG5TY6wjZhBL2',
     description: 'Final Check',
@@ -103,8 +109,9 @@ async function fetchAllPropertiesFromAllViews(): Promise<PropertyPhaseMapping[]>
   // Obtener propiedades de todas las vistas en paralelo
   const fetchPromises = PHASE_VIEWS.map(async (phaseConfig) => {
     try {
-      console.log(`[Unified Sync] Fetching from ${phaseConfig.description} (${phaseConfig.phase})...`);
+      console.log(`[Unified Sync] Fetching from ${phaseConfig.description} (${phaseConfig.phase}), viewId=${phaseConfig.viewId}, tableId=${AIRTABLE_TABLE_ID}...`);
       const records = await fetchPropertiesFromAirtable(AIRTABLE_TABLE_ID, phaseConfig.viewId);
+      let skippedNoUniqueId = 0;
       
       records.forEach((record) => {
         const uniqueIdValue = 
@@ -118,6 +125,7 @@ async function fetchAllPropertiesFromAllViews(): Promise<PropertyPhaseMapping[]>
           : uniqueIdValue;
         
         if (!uniqueId) {
+          skippedNoUniqueId++;
           return; // Skip si no hay ID único
         }
 
@@ -145,9 +153,15 @@ async function fetchAllPropertiesFromAllViews(): Promise<PropertyPhaseMapping[]>
         });
       });
 
+      if (phaseConfig.phase === 'pendiente-suministros' && (records.length > 0 || skippedNoUniqueId > 0)) {
+        console.log(`[Unified Sync] 📋 Pendiente de Suministros: ${records.length} registros de la vista, ${skippedNoUniqueId} sin Unique ID (omitidos), viewId=${phaseConfig.viewId}`);
+      }
       console.log(`[Unified Sync] ✅ ${phaseConfig.description}: ${records.length} properties`);
     } catch (error: any) {
-      console.error(`[Unified Sync] ❌ Error fetching ${phaseConfig.description}:`, error.message);
+      console.error(`[Unified Sync] ❌ Error fetching ${phaseConfig.description} (viewId=${phaseConfig.viewId}):`, error.message);
+      if (phaseConfig.phase === 'pendiente-suministros') {
+        console.error('[Unified Sync] 💡 Comprueba que la vista viwCFzKrVQSCc23zc existe en la MISMA tabla que el resto de fases (tableId=', AIRTABLE_TABLE_ID, '). Si la vista está en otra tabla, hay que usar su tableId.');
+      }
     }
   });
 
@@ -457,6 +471,7 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       'reno-in-progress': 0,
       'furnishing': 0,
       'final-check': 0,
+      'pendiente-suministros': 0,
       'cleaning': 0,
       'furnishing-cleaning': 0, // Legacy
       'reno-fixes': 0,
@@ -528,22 +543,22 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         const supabaseData = mapAirtablePropertyToSupabase(mapping.propertyData, projectMap);
         const exists = existingPropertyIds.has(mapping.propertyId);
 
-        // Próximas visitas y Revisión Inicial SOLO por Stage + Set Up Status (no por la vista de origen)
-        // Próximas visitas = Stage Presettlement + Set Up Status Pending to visit
-        // Revisión Inicial = Stage Settled + Set Up Status Pending to visit (solo "Settled", no "Presettlement & Settled")
-        // Si viene de esas vistas pero no cumple → reno-budget (no las ponemos en las dos primeras columnas)
+        // La fase viene de la vista con mayor prioridad donde aparece la propiedad.
+        // Pendiente de Suministros viene solo de la vista viwCFzKrVQSCc23zc (ya en PHASE_VIEWS).
         const fields = mapping.propertyData?.fields ?? {};
         const stageRaw = (fields['Stage'] ?? fields['stage'] ?? '').toString().trim().toLowerCase();
         const setUpStatusRaw = (fields['Set Up Status'] ?? fields['Set up status'] ?? supabaseData['Set Up Status'] ?? '').toString().trim().toLowerCase();
         const isPendingToVisit = setUpStatusRaw.includes('pending') && setUpStatusRaw.includes('visit');
+
         let finalPhase: RenoKanbanPhase = mapping.phase;
+
+        // Próximas visitas y Revisión Inicial: solo si cumplen Stage + Set Up Status
         if (mapping.phase === 'upcoming-settlements' || mapping.phase === 'initial-check') {
           if (isPendingToVisit && stageRaw.includes('presettlement')) {
             finalPhase = 'upcoming-settlements';
           } else if (isPendingToVisit && stageRaw.includes('settled') && !stageRaw.includes('presettlement')) {
             finalPhase = 'initial-check';
           } else {
-            // No cumple Stage + Set Up Status para las dos primeras columnas → siguiente fase
             finalPhase = 'reno-budget';
           }
         }
@@ -551,6 +566,8 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         // Forzar Set Up Status según la fase de la vista
         if (finalPhase === 'furnishing') {
           supabaseData['Set Up Status'] = 'Furnishing';
+        } else if (finalPhase === 'pendiente-suministros') {
+          supabaseData['Set Up Status'] = 'Utilities activation';
         } else if (finalPhase === 'cleaning') {
           supabaseData['Set Up Status'] = 'Cleaning';
         }
@@ -668,6 +685,7 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         'reno-in-progress': 0,
         'furnishing': 0,
         'final-check': 0,
+        'pendiente-suministros': 0,
         'cleaning': 0,
         'furnishing-cleaning': 0, // Legacy
         'reno-fixes': 0,

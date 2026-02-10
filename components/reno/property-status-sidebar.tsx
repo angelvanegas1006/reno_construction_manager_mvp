@@ -91,9 +91,9 @@ export function PropertyStatusSidebar({
       if (!propertyId) return;
       
       const supabase = createClient();
-      const checklistType = renoPhase === "final-check" ? "final" : "initial";
+      const checklistType = (renoPhase === "final-check" || renoPhase === "pendiente-suministros") ? "final" : "initial";
       
-      if (renoPhase === "initial-check" || renoPhase === "final-check") {
+      if (renoPhase === "initial-check" || renoPhase === "final-check" || renoPhase === "pendiente-suministros") {
         // Try to fetch with inspection_type first
         let { data, error } = await supabase
           .from("property_inspections")
@@ -165,6 +165,7 @@ export function PropertyStatusSidebar({
       "reno-budget-start": t.kanban.renoBudgetStart,
       "reno-in-progress": t.kanban.renoInProgress,
       "final-check": t.kanban.finalCheck,
+      "pendiente-suministros": t.kanban.pendienteSuministros,
       "furnishing": t.kanban.furnishing || "Amoblamiento",
       "cleaning": t.kanban.cleaning || "Limpieza",
       "done": t.kanban.done,
@@ -173,7 +174,7 @@ export function PropertyStatusSidebar({
   };
 
   const getChecklistLabel = () => {
-    return renoPhase === "final-check" ? t.kanban.finalCheck : t.kanban.initialCheck;
+    return (renoPhase === "final-check" || renoPhase === "pendiente-suministros") ? t.kanban.finalCheck : t.kanban.initialCheck;
   };
 
   return (

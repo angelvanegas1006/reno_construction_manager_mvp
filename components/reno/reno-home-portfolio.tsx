@@ -42,9 +42,10 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "upcoming": 0,
       "reno-in-progress": 0,
       "furnishing": 0,
+      "final-check": 0,
+      "pendiente-suministros": 0,
       "cleaning": 0,
       "furnishing-cleaning": 0, // Legacy
-      "final-check": 0,
       "reno-fixes": 0,
       "done": 0,
       "orphaned": 0,
@@ -100,6 +101,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "reno-in-progress": language === "es" ? "Obras en proceso" : "Reno In Progress",
       "furnishing": language === "es" ? "Amoblamiento" : "Furnishing",
       "final-check": language === "es" ? "Check final" : "Final Check",
+      "pendiente-suministros": language === "es" ? "Pendiente de Suministros" : "Pending Utilities",
       "cleaning": language === "es" ? "Limpieza" : "Cleaning",
       "furnishing-cleaning": language === "es" ? "Limpieza y Amoblamiento" : "Furnishing & Cleaning", // Legacy
       "reno-fixes": language === "es" ? "Reparaciones reno" : "Reno Fixes",

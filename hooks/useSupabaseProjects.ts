@@ -61,6 +61,7 @@ const EMPTY_BY_PHASE: Record<RenoKanbanPhase, ProjectRow[]> = {
   "reno-in-progress": [],
   "furnishing": [],
   "final-check": [],
+  "pendiente-suministros": [],
   "cleaning": [],
   "furnishing-cleaning": [],
   "reno-fixes": [],

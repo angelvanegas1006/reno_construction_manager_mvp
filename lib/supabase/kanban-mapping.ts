@@ -62,7 +62,10 @@ export function mapSetUpStatusToKanbanPhase(setUpStatus: string | null): RenoKan
     'final check': 'final-check',
     'check final': 'final-check',
     
-    // Cleaning → cleaning (después de final-check)
+    // Pendiente de Suministros → pendiente-suministros (después de final-check); Set Up Status = Utilities activation
+    'utilities activation': 'pendiente-suministros',
+    
+    // Cleaning → cleaning (después de pendiente-suministros)
     'cleaning': 'cleaning',
     'limpieza': 'cleaning',
     
@@ -114,6 +117,7 @@ export function getMappedKanbanPhases(): RenoKanbanPhase[] {
     'reno-in-progress',
     'furnishing',
     'final-check',
+    'pendiente-suministros',
     'cleaning',
     'furnishing-cleaning', // Legacy - mantener para compatibilidad
     // 'reno-fixes', // TODO: Agregar cuando se defina el mapeo
