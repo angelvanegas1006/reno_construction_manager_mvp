@@ -249,31 +249,25 @@ export default function RenoChecklistPage() {
   const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
   
-  // Initialize activeSection - start with first checklist section
-  // For final-check phases (final-check, furnishing, cleaning), skip "entorno-zonas-comunes" and start with "estado-general"
-  const [activeSection, setActiveSection] = useState<string>("checklist-entorno-zonas-comunes");
-  
-  // Update activeSection when phase is determined (for final-check phases, skip entorno-zonas-comunes)
+  // Initial check: primera sección Estado general. Final check: primera sección Entorno y zonas comunes.
+  const firstSectionId = isFinalCheck ? "checklist-entorno-zonas-comunes" : "checklist-estado-general";
+  const [activeSection, setActiveSection] = useState<string>(firstSectionId);
+  const initialSectionSetRef = useRef(false);
   useEffect(() => {
-    if (isFinalCheck && activeSection === "checklist-entorno-zonas-comunes") {
-      // For final-check phases, always start with estado-general
-      setActiveSection("checklist-estado-general");
-    }
-  }, [isFinalCheck, activeSection]);
+    if (phase === null || initialSectionSetRef.current) return;
+    initialSectionSetRef.current = true;
+    setActiveSection(firstSectionId);
+  }, [phase, firstSectionId]);
   
   // Calculate overall progress
   // For reno-in-progress phase, use average of dynamic categories
-  // For other phases, use checklist progress
-  // For final-check, exclude "entorno-zonas-comunes" from calculation
+  // For other phases, use checklist progress (incluye entorno-zonas-comunes en initial y final)
   const overallProgress = useMemo(() => {
     if (phase === "reno-in-progress" && dynamicCategories.length > 0) {
-      // Calculate average of all dynamic categories
       const total = dynamicCategories.reduce((sum, cat) => sum + (cat.percentage || 0), 0);
       return Math.round(total / dynamicCategories.length);
     }
-    // For final-check, exclude "entorno-zonas-comunes" from calculation
-    const excludeSurroundings = phase === "final-check";
-    return calculateOverallChecklistProgress(checklist || null, excludeSurroundings);
+    return calculateOverallChecklistProgress(checklist || null, false);
   }, [phase, dynamicCategories, checklist]);
   
   const sectionProgress = getAllChecklistSectionsProgress(checklist || null);
@@ -638,7 +632,19 @@ export default function RenoChecklistPage() {
               ref={(el) => {
                 if (el) sectionRefs.current["checklist-entorno-zonas-comunes"] = el;
               }}
-              onContinue={() => handleContinue("checklist-estado-general")}
+              onContinue={isFinalCheck
+                ? () => handleContinue("checklist-estado-general")
+                : async () => {
+                    try {
+                      await saveCurrentSection("entorno-zonas-comunes");
+                      setHasUnsavedChanges(false);
+                      toast.success(t.messages.saveSuccess || "Cambios guardados");
+                      router.push("/reno/construction-manager/kanban");
+                    } catch (error) {
+                      console.error("Error al guardar antes de continuar:", error);
+                      toast.error("Error al guardar cambios. Intenta nuevamente.");
+                    }
+                  }}
               hasError={sectionWithError === "checklist-entorno-zonas-comunes"}
             />
           </Suspense>
@@ -946,17 +952,19 @@ export default function RenoChecklistPage() {
               if (el) sectionRefs.current["checklist-exteriores"] = el;
             }}
             hasError={sectionWithError === "checklist-exteriores"}
-            onContinue={async () => {
-              try {
-                await saveCurrentSection();
-                setHasUnsavedChanges(false);
-                toast.success(t.messages.saveSuccess || "Cambios guardados");
-                router.push("/reno/construction-manager/kanban");
-              } catch (error) {
-                console.error("Error al guardar antes de continuar:", error);
-                toast.error("Error al guardar cambios. Intenta nuevamente.");
-              }
-            }}
+            onContinue={isFinalCheck
+              ? async () => {
+                  try {
+                    await saveCurrentSection();
+                    setHasUnsavedChanges(false);
+                    toast.success(t.messages.saveSuccess || "Cambios guardados");
+                    router.push("/reno/construction-manager/kanban");
+                  } catch (error) {
+                    console.error("Error al guardar antes de continuar:", error);
+                    toast.error("Error al guardar cambios. Intenta nuevamente.");
+                  }
+                }
+              : () => handleContinue("checklist-entorno-zonas-comunes")}
           />
           </Suspense>
         );

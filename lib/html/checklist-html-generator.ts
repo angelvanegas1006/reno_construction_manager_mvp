@@ -496,6 +496,8 @@ function groupElementsByCategory(
         category = 'Comunicaciones';
       } else if (questionId.includes('electricidad') || questionId.includes('electricity')) {
         category = 'Electricidad';
+      } else if (questionId.includes('ascensor')) {
+        category = 'Ascensor';
       }
 
       const badElementsLabels = getBadElementLabels(translations, sectionId, question.id, question.badElements);
@@ -936,17 +938,6 @@ export async function generateChecklistHTML(
     'exteriores': 'Exteriores de la Vivienda',
   };
 
-  const sectionOrder = [
-    'entorno-zonas-comunes',
-    'estado-general',
-    'entrada-pasillos',
-    'habitaciones',
-    'salon',
-    'banos',
-    'cocina',
-    'exteriores',
-  ];
-
   // Determinar el tipo de checklist (inicial o final)
   // Prioridad: parámetro explícito > checklist.checklistType > inferir desde checklistType
   let checklistTypeLabel: 'initial' | 'final';
@@ -961,6 +952,11 @@ export async function generateChecklistHTML(
     const typeStr = String(checklist.checklistType || '').toLowerCase();
     checklistTypeLabel = typeStr.includes('initial') || typeStr.includes('inicial') ? 'initial' : 'final';
   }
+
+  // Initial check: Entorno y zonas comunes debajo de Exteriores. Final check: Entorno primero.
+  const sectionOrder = checklistTypeLabel === 'initial'
+    ? ['estado-general', 'entrada-pasillos', 'habitaciones', 'salon', 'banos', 'cocina', 'exteriores', 'entorno-zonas-comunes']
+    : ['entorno-zonas-comunes', 'estado-general', 'entrada-pasillos', 'habitaciones', 'salon', 'banos', 'cocina', 'exteriores'];
 
   // Generar HTML base
   let html = `<!DOCTYPE html>
@@ -1682,7 +1678,7 @@ function generateSectionHTML(
   // Lista de condiciones (derecha)
   html += `<div class="conditions-list">`;
 
-  const categoryOrder = ['Acabados', 'Comunicaciones', 'Electricidad', 'Carpintería', 'Climatización', 'Almacenamiento', 'Electrodomésticos', 'Seguridad', 'Sistemas', 'Mobiliario', 'Otros'];
+  const categoryOrder = ['Acabados', 'Comunicaciones', 'Electricidad', 'Carpintería', 'Ascensor', 'Climatización', 'Almacenamiento', 'Electrodomésticos', 'Seguridad', 'Sistemas', 'Mobiliario', 'Otros'];
 
   for (const category of categoryOrder) {
     const elements = categorized[category];
