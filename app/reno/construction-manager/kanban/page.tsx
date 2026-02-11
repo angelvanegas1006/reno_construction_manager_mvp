@@ -118,7 +118,7 @@ export default function RenoConstructionManagerKanbanPage() {
   }, [refetchProperties]);
   const { user, role } = useAppAuth();
 
-  // Primer kanban: Unit, Building y Lot; si es foreman, además Project/WIP asignados a él (assigned_site_manager_email)
+  // Primer kanban: solo Unit, Building y Lot. Si es foreman, además Project/WIP asignados a él (assigned_site_manager_email).
   const propertiesByPhaseExcludingProjectWip = useMemo((): Record<RenoKanbanPhase, Property[]> => {
     const empty: Record<RenoKanbanPhase, Property[]> = {
       "upcoming-settlements": [],
@@ -167,7 +167,7 @@ export default function RenoConstructionManagerKanbanPage() {
   // Use unified filters hook
   const { filters, updateFilters, filterBadgeCount } = useRenoFilters();
   
-  // Convert RenoFilters to KanbanFilters; en el primer kanban Unit/Building/Lot (excluir Project/WIP del filtro)
+  // Convert RenoFilters to KanbanFilters; en el primer kanban solo tipos Unit/Building/Lot
   const kanbanFilters = {
     renovatorNames: filters.renovatorNames,
     technicalConstructors: filters.technicalConstructors,

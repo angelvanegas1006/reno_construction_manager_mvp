@@ -209,30 +209,68 @@ export function useSupabaseKanbanProperties() {
 
       log.debug('Executing query...', { role, userEmail: user?.email });
 
-      // Supabase/PostgREST devuelve por defecto max 1000 filas. Si hay 2000+ propiedades,
-      // hay que pedir explícitamente más con .range(). Límite razonable para no saturar el cliente.
+      // Supabase/PostgREST limita a 1000 filas por petición. Paginamos para traer hasta MAX_PROPERTIES_FETCH.
+      const PAGE_SIZE = 1000;
       const MAX_PROPERTIES_FETCH = 2500;
-      const { data, error: fetchError } = await query
-        .order('created_at', { ascending: false })
-        .range(0, MAX_PROPERTIES_FETCH - 1);
+      const allData: SupabaseProperty[] = [];
+      let from = 0;
+      let hasMore = true;
 
-      if (fetchError) {
-        const errorMessage = fetchError.message || JSON.stringify(fetchError) || 'Unknown error';
-        const errorDetails = {
-          message: errorMessage,
-          code: fetchError.code,
-          details: fetchError.details,
-          hint: fetchError.hint,
-          fullError: fetchError,
-        };
-        log.error('Error fetching properties:', errorDetails);
-        setError(errorMessage);
-        setLoading(false);
-        fetchInProgressRef.current = false;
-        return;
+      while (hasMore && allData.length < MAX_PROPERTIES_FETCH) {
+        const to = from + PAGE_SIZE - 1;
+        const { data: pageData, error: fetchError } = await query
+          .order('created_at', { ascending: false })
+          .range(from, to);
+
+        if (fetchError) {
+          const errorMessage = fetchError.message || JSON.stringify(fetchError) || 'Unknown error';
+          const errorDetails = {
+            message: errorMessage,
+            code: fetchError.code,
+            details: fetchError.details,
+            hint: fetchError.hint,
+            fullError: fetchError,
+          };
+          log.error('Error fetching properties:', errorDetails);
+          setError(errorMessage);
+          setLoading(false);
+          fetchInProgressRef.current = false;
+          return;
+        }
+
+        const page = pageData ?? [];
+        allData.push(...page);
+        hasMore = page.length === PAGE_SIZE;
+        from += PAGE_SIZE;
       }
 
-      log.debug('Query response:', { dataCount: data?.length || 0 });
+      const data = allData;
+      log.debug('Query response:', { dataCount: data.length, pages: Math.ceil(data.length / PAGE_SIZE) });
+
+      // Diagnóstico: propiedad por Unique ID (quitar cuando se resuelva)
+      const DEBUG_UNIQUE_ID = 'SP-J5P-ID7-005259';
+      const rawMatch = (data || []).find(
+        (p: any) =>
+          (p.property_unique_id && String(p.property_unique_id).trim() === DEBUG_UNIQUE_ID) ||
+          (p['Unique ID From Engagements'] && String(p['Unique ID From Engagements']).trim() === DEBUG_UNIQUE_ID) ||
+          (p.unique_id_from_engagements && String(p.unique_id_from_engagements).trim() === DEBUG_UNIQUE_ID)
+      );
+      if (rawMatch) {
+        console.log('[Kanban Debug] Propiedad encontrada en RAW fetch:', {
+          uniqueId: DEBUG_UNIQUE_ID,
+          id: rawMatch.id,
+          reno_phase: rawMatch.reno_phase,
+          type: rawMatch.type,
+          address: rawMatch.address,
+          totalEnRespuesta: data?.length ?? 0,
+        });
+      } else {
+        console.warn('[Kanban Debug] Propiedad NO está en la respuesta de Supabase:', {
+          uniqueId: DEBUG_UNIQUE_ID,
+          totalEnRespuesta: data?.length ?? 0,
+          posibleCausa: (data?.length ?? 0) >= 2500 ? 'Límite 2500 propiedades (orden created_at desc)' : (data?.length ?? 0) >= 1000 ? 'Solo se recibieron las primeras 1000 filas (paginación aplicada para traer más)' : 'No encontrada en el rango solicitado',
+        });
+      }
 
       // Debug: Log phase counts (only in development)
       log.debug('Raw data from Supabase:', {
@@ -428,6 +466,26 @@ export function useSupabaseKanbanProperties() {
       skipped: skippedCount,
       byPhase: phaseCounts,
     });
+
+    // Diagnóstico: comprobar si la propiedad SP-J5P-ID7-005259 llegó a alguna fase (quitar cuando se resuelva)
+    const DEBUG_UNIQUE_ID = 'SP-J5P-ID7-005259';
+    const inSupabaseList = supabaseProperties.find(
+      (p: any) =>
+        (p.property_unique_id && String(p.property_unique_id).trim() === DEBUG_UNIQUE_ID) ||
+        (p['Unique ID From Engagements'] && String(p['Unique ID From Engagements']).trim() === DEBUG_UNIQUE_ID) ||
+        (p.unique_id_from_engagements && String(p.unique_id_from_engagements).trim() === DEBUG_UNIQUE_ID)
+    );
+    if (inSupabaseList) {
+      const inRenoProgress = (grouped['reno-in-progress'] || []).some(
+        (p: any) => p.id === inSupabaseList.id || (p.uniqueIdFromEngagements && String(p.uniqueIdFromEngagements).trim() === DEBUG_UNIQUE_ID)
+      );
+      console.log('[Kanban Debug] Después de convertir:', {
+        uniqueId: DEBUG_UNIQUE_ID,
+        enListaFiltrada: true,
+        enRenoProgress: inRenoProgress,
+        tipoPropiedad: (grouped['reno-in-progress'] || []).find((p: any) => p.id === inSupabaseList.id)?.propertyType ?? inSupabaseList.type,
+      });
+    }
 
     // Diagnóstico en desarrollo: ver en consola role, user y conteos por fase (para comparar local vs Vercel)
     if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {

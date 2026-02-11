@@ -38,6 +38,8 @@ export const FOREMAN_NAME_TO_EMAIL: Record<string, string> = {
   'Tania Jimenez': 'tania.jimenez@prophero.com',
   'Jonnathan': 'jonnathan.pomares@prophero.com',
   'Jonnathan Pomares': 'jonnathan.pomares@prophero.com',
+  'Paola Bruno': 'paola.bruno@prophero.com',
+  'Paola Bruna': 'paola.bruno@prophero.com',
 };
 
 /**
