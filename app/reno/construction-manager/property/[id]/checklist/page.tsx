@@ -107,29 +107,6 @@ export default function RenoChecklistPage() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
-  // Si la última vez el guardado falló y el usuario salió, informar al volver (solo una vez)
-  const inspectionTypeForDraft = checklistType === "reno_final" ? "final" : "initial";
-  useEffect(() => {
-    if (!propertyId || typeof sessionStorage === "undefined") return;
-    try {
-      const raw = sessionStorage.getItem("checklist-last-save-failed");
-      if (!raw) return;
-      const data = JSON.parse(raw) as { propertyId: string; inspectionType: string; at: number };
-      const twoHours = 2 * 60 * 60 * 1000;
-      if (
-        data.propertyId === propertyId &&
-        data.inspectionType === inspectionTypeForDraft &&
-        Date.now() - data.at < twoHours
-      ) {
-        sessionStorage.removeItem("checklist-last-save-failed");
-        toast.info(
-          "La última vez el guardado falló. Si saliste de la página, esos cambios no se guardaron. Usa «Reintentar» cuando veas un error y no salgas hasta que guarde bien.",
-          { duration: 8000 }
-        );
-      }
-    } catch (_) { /* ignorar */ }
-  }, [propertyId, inspectionTypeForDraft]);
-
   // Load property from Supabase
   const { property: supabaseProperty, loading: supabaseLoading, error: propertyError, refetch: refetchProperty } = useSupabaseProperty(propertyId);
   
@@ -165,6 +142,29 @@ export default function RenoChecklistPage() {
     });
     return result;
   }, [property, supabaseProperty, getPropertyRenoPhase]);
+
+  // Si la última vez el guardado falló y el usuario salió, informar al volver (solo una vez)
+  useEffect(() => {
+    if (!propertyId || typeof sessionStorage === "undefined") return;
+    const inspectionTypeForDraft = checklistType === "reno_final" ? "final" : "initial";
+    try {
+      const raw = sessionStorage.getItem("checklist-last-save-failed");
+      if (!raw) return;
+      const data = JSON.parse(raw) as { propertyId: string; inspectionType: string; at: number };
+      const twoHours = 2 * 60 * 60 * 1000;
+      if (
+        data.propertyId === propertyId &&
+        data.inspectionType === inspectionTypeForDraft &&
+        Date.now() - data.at < twoHours
+      ) {
+        sessionStorage.removeItem("checklist-last-save-failed");
+        toast.info(
+          "La última vez el guardado falló. Si saliste de la página, esos cambios no se guardaron. Usa «Reintentar» cuando veas un error y no salgas hasta que guarde bien.",
+          { duration: 8000 }
+        );
+      }
+    } catch (_) { /* ignorar */ }
+  }, [propertyId, checklistType]);
 
   // Redirect back if trying to access final-check but not in final-check, furnishing, cleaning, or pendiente-suministros phase
   // Initial-check remains accessible from all phases
