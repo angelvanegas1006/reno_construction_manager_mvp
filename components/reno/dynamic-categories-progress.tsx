@@ -217,6 +217,10 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   const [finalizeItemCheckboxes, setFinalizeItemCheckboxes] = useState<Record<string, boolean>>({});
   const [finalizeComments, setFinalizeComments] = useState('');
   const [isFinalizing, setIsFinalizing] = useState(false);
+  // Suministros (obligatorios): agua y luz en la vivienda + comentarios unificados
+  const [precheckWater, setPrecheckWater] = useState<boolean | null>(null);
+  const [precheckElectricity, setPrecheckElectricity] = useState<boolean | null>(null);
+  const [precheckSuppliesComments, setPrecheckSuppliesComments] = useState('');
 
   // Verificar si hay categorías sin actividades
   const hasCategoriesWithoutActivities = categories.length > 0 && categories.every(cat => !cat.activities_text || cat.activities_text.trim().length === 0);
@@ -832,13 +836,28 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
             .select('reno_precheck_comments, reno_precheck_checks')
             .eq('id', property.id)
             .single();
-          const saved = data as { reno_precheck_comments?: string | null; reno_precheck_checks?: { categoryChecks?: Record<string, boolean>; itemChecks?: Record<string, boolean> } | null } | null;
+          const saved = data as {
+            reno_precheck_comments?: string | null;
+            reno_precheck_checks?: {
+              categoryChecks?: Record<string, boolean>;
+              itemChecks?: Record<string, boolean>;
+              waterInProperty?: boolean | null;
+              electricityInProperty?: boolean | null;
+              suppliesComments?: string | null;
+            } | null;
+          } | null;
           setFinalizeComments(saved?.reno_precheck_comments ?? '');
           setFinalizeCheckboxes(saved?.reno_precheck_checks?.categoryChecks ? { ...defaultsCat, ...saved.reno_precheck_checks.categoryChecks } : defaultsCat);
           setFinalizeItemCheckboxes(saved?.reno_precheck_checks?.itemChecks ? { ...defaultsItem, ...saved.reno_precheck_checks.itemChecks } : defaultsItem);
+          setPrecheckWater(saved?.reno_precheck_checks?.waterInProperty ?? null);
+          setPrecheckElectricity(saved?.reno_precheck_checks?.electricityInProperty ?? null);
+          setPrecheckSuppliesComments(saved?.reno_precheck_checks?.suppliesComments ?? '');
         } catch {
           setFinalizeCheckboxes(Object.fromEntries(groupedCategories.map((g) => [g.categoryName, false])));
           setFinalizeItemCheckboxes(Object.fromEntries(finalizeItemKeys.map((k) => [k, false])));
+          setPrecheckWater(null);
+          setPrecheckElectricity(null);
+          setPrecheckSuppliesComments('');
         }
       })();
     }
@@ -850,7 +869,13 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
         .from('properties')
         .update({
           reno_precheck_comments: finalizeComments.trim() || null,
-          reno_precheck_checks: { categoryChecks: finalizeCheckboxes, itemChecks: finalizeItemCheckboxes },
+          reno_precheck_checks: {
+            categoryChecks: finalizeCheckboxes,
+            itemChecks: finalizeItemCheckboxes,
+            waterInProperty: precheckWater,
+            electricityInProperty: precheckElectricity,
+            suppliesComments: precheckSuppliesComments.trim() || null,
+          },
         })
         .eq('id', property.id);
       if (error) throw error;
@@ -859,9 +884,11 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       console.error('Error saving precheck:', e);
       toast.error('Error al guardar el precheck');
     }
-  }, [property.id, finalizeComments, finalizeCheckboxes, finalizeItemCheckboxes]);
+  }, [property.id, finalizeComments, finalizeCheckboxes, finalizeItemCheckboxes, precheckWater, precheckElectricity, precheckSuppliesComments]);
 
+  const suppliesAnswered = precheckWater !== null && precheckElectricity !== null;
   const allFinalizeCheckboxesChecked =
+    suppliesAnswered &&
     groupedCategories.length > 0 &&
     groupedCategories.every((g) => finalizeCheckboxes[g.categoryName] === true) &&
     (finalizeItemKeys.length === 0 ||
@@ -1727,6 +1754,61 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
             {t.propertyPage.finalizeModalDescription}
           </p>
           <div className="space-y-3 py-4">
+            {/* Suministros (obligatorio): agua y luz + comentarios unificados */}
+            <div className="rounded-lg border overflow-hidden p-4 space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">¿Se ha hecho con Agua en la vivienda?</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={precheckWater === true ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPrecheckWater(true)}
+                  >
+                    Sí
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={precheckWater === false ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPrecheckWater(false)}
+                  >
+                    No
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">¿Se ha hecho con luz?</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={precheckElectricity === true ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPrecheckElectricity(true)}
+                  >
+                    Sí
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={precheckElectricity === false ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPrecheckElectricity(false)}
+                  >
+                    No
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2 pt-2 border-t">
+                <Label className="text-sm font-medium">Comentarios Suministros</Label>
+                <Textarea
+                  placeholder="Comentarios sobre suministros (opcional)"
+                  value={precheckSuppliesComments}
+                  onChange={(e) => setPrecheckSuppliesComments(e.target.value)}
+                  className="min-h-[60px] resize-y"
+                />
+              </div>
+            </div>
+
             {groupedCategories.map((group) => {
               const partidasByCategory = group.categories.map((cat) => ({
                 categoryId: cat.id,

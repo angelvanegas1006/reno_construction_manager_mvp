@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { CircularProgress } from "@/components/ui/circular-progress";
 import { Calendar, CheckCircle2, FileSignature } from "lucide-react";
 import { Property } from "@/lib/property-storage";
-import { isPropertyExpired } from "@/lib/property-sorting";
+import { isPropertyExpired, shouldShowExpiredBadge } from "@/lib/property-sorting";
 import { useI18n } from "@/lib/i18n";
 import { useMixpanel } from "@/hooks/useMixpanel";
 import { needsUpdate, calculateNextUpdateDate, needsUpdateThisWeek } from "@/lib/reno/update-calculator";
@@ -43,6 +43,7 @@ export function RenoPropertyCard({
   const { t, language } = useI18n();
   const { track } = useMixpanel();
   const isExpired = isPropertyExpired(property);
+  const showExpiredBadge = shouldShowExpiredBadge(property, stage);
   
   // Get dynamic categories progress for reno-in-progress phase
   const { categories: dynamicCategories } = useDynamicCategories(
@@ -200,7 +201,7 @@ export function RenoPropertyCard({
         isHighlighted 
           ? "ring-2 ring-[var(--prophero-blue-500)] shadow-lg border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30" 
           : "",
-        isExpired && "border-l-4 border-l-red-100 dark:border-l-red-900/30",
+        showExpiredBadge && "border-l-4 border-l-red-100 dark:border-l-red-900/30",
         exceedsDurationLimit && stage === "reno-in-progress" && "border-l-4 border-l-red-500",
         exceedsDaysToStartLimit && "border-l-4 border-l-red-500", // Red left border for budget phases
         exceedsDaysToVisitLimit && "border-l-4 border-l-red-500", // Red left border for initial-check phase
@@ -286,8 +287,8 @@ export function RenoPropertyCard({
               {language === "es" ? "Vencida" : "Overdue"}
             </Badge>
           )}
-          {/* Solo mostrar expired si NO está en reno-in-progress (para evitar duplicados) */}
-          {stage !== "reno-in-progress" && isExpired && (
+          {/* Solo mostrar expired si NO está en reno-in-progress y la fase usa el tag (no amoblamiento, limpieza, etc.) */}
+          {stage !== "reno-in-progress" && showExpiredBadge && (
             <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 flex-shrink-0 whitespace-nowrap">
               {t.propertyCard.expired}
             </span>

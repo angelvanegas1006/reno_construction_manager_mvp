@@ -537,6 +537,17 @@ export interface Translations {
     uploadedOn: string;
   };
   
+  // Property summary – date labels (Fechas section)
+  propertyDates: {
+    budgetPhReadyDate: string;
+    renovatorBudgetApprovalDate: string;
+    initialVisitDate: string;
+    estRenoStartDate: string;
+    renoStartDate: string;
+    renoEstimatedEndDate: string;
+    renoEndDate: string;
+  };
+
   // Property Card
     propertyCard: {
       expired: string;
@@ -810,7 +821,7 @@ export const translations: Record<Language, Translations> = {
       cleaning: "Limpieza",
       furnishingCleaning: "Limpieza y amueblamiento", // Legacy
       renoFixes: "Reparaciones reno",
-      done: "Finalizadas",
+      done: "Hecho",
       assignToSiteManager: "Asignar a jefe de obra",
       unassigned: "Sin asignar",
     },
@@ -1665,6 +1676,15 @@ export const translations: Record<Language, Translations> = {
       viewDetails: "Ver detalles",
       progressPhotosTitle: "Fotos de avance de obra",
       uploadedOn: "Subido el",
+    },
+    propertyDates: {
+      budgetPhReadyDate: "Fecha de Presupuesto Terminado",
+      renovatorBudgetApprovalDate: "Fecha de aprobación presupuesto por reformista",
+      initialVisitDate: "Fecha de visita inicial",
+      estRenoStartDate: "Fecha estimada de arranque de obra",
+      renoStartDate: "Fecha real arranque de obra",
+      renoEstimatedEndDate: "Fecha estimada fin de obra",
+      renoEndDate: "Fecha de fin de obra",
     },
     propertyCard: {
       expired: "Vencida",
@@ -2661,6 +2681,15 @@ export const translations: Record<Language, Translations> = {
       viewDetails: "View details",
       progressPhotosTitle: "Progress photos",
       uploadedOn: "Uploaded on",
+    },
+    propertyDates: {
+      budgetPhReadyDate: "Budget Ready Date",
+      renovatorBudgetApprovalDate: "Renovator Budget Approval Date",
+      initialVisitDate: "Initial Visit Date",
+      estRenoStartDate: "Estimated Work Start Date",
+      renoStartDate: "Actual Work Start Date",
+      renoEstimatedEndDate: "Estimated Work End Date",
+      renoEndDate: "Work End Date",
     },
     propertyCard: {
       expired: "Expired",

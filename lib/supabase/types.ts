@@ -206,6 +206,15 @@ export type Database = {
           project_id: string | null
           airtable_properties_record_id: string | null
           ready_for_commercialization: boolean | null
+          water_status: string | null
+          gas_status: string | null
+          electricity_status: string | null
+          utilities_notes: string | null
+          initial_visit_date: string | null
+          budget_ph_ready_date: string | null
+          renovator_budget_approval_date: string | null
+          reno_end_date: string | null
+          est_reno_start_date: string | null
         }
         Insert: {
           address?: string | null
@@ -214,6 +223,15 @@ export type Database = {
           ready_for_commercialization?: boolean | null
           reno_precheck_comments?: string | null
           reno_precheck_checks?: { categoryChecks?: Record<string, boolean>; itemChecks?: Record<string, boolean> } | null
+          water_status?: string | null
+          gas_status?: string | null
+          electricity_status?: string | null
+          utilities_notes?: string | null
+          initial_visit_date?: string | null
+          budget_ph_ready_date?: string | null
+          renovator_budget_approval_date?: string | null
+          reno_end_date?: string | null
+          est_reno_start_date?: string | null
           area_cluster?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
@@ -312,6 +330,15 @@ export type Database = {
           ready_for_commercialization?: boolean | null
           reno_precheck_comments?: string | null
           reno_precheck_checks?: { categoryChecks?: Record<string, boolean>; itemChecks?: Record<string, boolean> } | null
+          water_status?: string | null
+          gas_status?: string | null
+          electricity_status?: string | null
+          utilities_notes?: string | null
+          initial_visit_date?: string | null
+          budget_ph_ready_date?: string | null
+          renovator_budget_approval_date?: string | null
+          reno_end_date?: string | null
+          est_reno_start_date?: string | null
         }
         Relationships: [
           {
