@@ -395,6 +395,31 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       onUpdate({ dynamicItems: updatedDynamicItems });
     }, [section.dynamicItems, habitacionIndex, onUpdate]);
 
+    const handleCarpentryMediaChange = useCallback((itemId: string, unitIndex: number | null, media: { photos: FileUpload[]; videos: FileUpload[] }) => {
+      if (habitacionIndex === undefined) return;
+      const currentDynamicItems = section.dynamicItems || [];
+      const currentHabitacion = currentDynamicItems[habitacionIndex];
+      if (!currentHabitacion) return;
+      const currentItems = currentHabitacion.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const updatedItems = currentItems.map(item => {
+        if (item.id === itemId) {
+          const carpentryItem = item as ChecklistCarpentryItem;
+          if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+            const updatedUnits = carpentryItem.units.map((unit, idx) =>
+              idx === unitIndex ? { ...unit, photos: media.photos, videos: media.videos } : unit
+            );
+            return { ...carpentryItem, units: updatedUnits };
+          } else {
+            return { ...carpentryItem, photos: media.photos, videos: media.videos };
+          }
+        }
+        return item;
+      });
+      const updatedDynamicItems = [...currentDynamicItems];
+      updatedDynamicItems[habitacionIndex] = { ...currentHabitacion, carpentryItems: updatedItems };
+      onUpdate({ dynamicItems: updatedDynamicItems });
+    }, [section.dynamicItems, habitacionIndex, onUpdate]);
+
     const handleCarpentryBadElementsChange = useCallback((itemId: string, unitIndex: number | null, badElements: string[]) => {
       if (habitacionIndex === undefined) return;
       // Always get the latest habitacion from section.dynamicItems
@@ -1063,6 +1088,29 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         onUpdate({ dynamicItems: updatedDynamicItems });
       };
 
+      const handleSingleCarpentryMediaChange = (itemId: string, unitIndex: number | null, media: { photos: FileUpload[]; videos: FileUpload[] }) => {
+        const currentDynamicItems = section.dynamicItems || [];
+        const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
+        const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
+        const updatedItems = currentItems.map(item => {
+          if (item.id === itemId) {
+            const carpentryItem = item as ChecklistCarpentryItem;
+            if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+              const updatedUnits = carpentryItem.units.map((unit, idx) =>
+                idx === unitIndex ? { ...unit, photos: media.photos, videos: media.videos } : unit
+              );
+              return { ...carpentryItem, units: updatedUnits };
+            } else {
+              return { ...carpentryItem, photos: media.photos, videos: media.videos };
+            }
+          }
+          return item;
+        });
+        const updatedDynamicItems = [...currentDynamicItems];
+        updatedDynamicItems[0] = { ...currentHabitacion, carpentryItems: updatedItems };
+        onUpdate({ dynamicItems: updatedDynamicItems });
+      };
+
       // Render the form directly (same as when habitacionIndex === 0)
       // Get current habitacion from section.dynamicItems to ensure we have the latest data
       const currentDynamicItems = section.dynamicItems || [];
@@ -1370,14 +1418,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                         />
                                       </div>
 
-                                      {/* Photos */}
+                                      {/* Fotos y vídeos */}
                                       <div className="space-y-2">
                                         <ChecklistUploadZoneComponent
-                                          title="Fotos"
-                                          description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                          title="Fotos y vídeos"
+                                          description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                          uploadZone={{ id: `${item.id}-${index + 1}-media`, photos: unit.photos || [], videos: unit.videos || [] }}
                                           onUpdate={(updates) => {
-                                            handleSingleCarpentryPhotosChange(item.id, index, updates.photos);
+                                            handleSingleCarpentryMediaChange(item.id, index, { photos: updates.photos || [], videos: updates.videos || [] });
                                           }}
                                           isRequired={unitRequiresDetails}
                                           maxFiles={10}
@@ -1458,14 +1506,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                   />
                                 </div>
 
-                                {/* Photos */}
+                                {/* Fotos y vídeos */}
                                 <div className="space-y-2">
                                   <ChecklistUploadZoneComponent
-                                    title="Fotos"
-                                    description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                    uploadZone={{ id: `${item.id}-photos`, photos: (item as ChecklistCarpentryItem).photos || [], videos: [] }}
+                                    title="Fotos y vídeos"
+                                    description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                    uploadZone={{ id: `${item.id}-media`, photos: (item as ChecklistCarpentryItem).photos || [], videos: (item as ChecklistCarpentryItem).videos || [] }}
                                     onUpdate={(updates) => {
-                                      handleSingleCarpentryPhotosChange(item.id, null, updates.photos);
+                                      handleSingleCarpentryMediaChange(item.id, null, { photos: updates.photos || [], videos: updates.videos || [] });
                                     }}
                                     isRequired={(() => {
                                       const carpentryItem = item as ChecklistCarpentryItem;
@@ -2247,24 +2295,28 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                   />
                                 </div>
 
-                                {/* Photos */}
+                                {/* Fotos y vídeos */}
                                 <div className="space-y-2">
                                   <ChecklistUploadZoneComponent
-                                    title="Fotos"
-                                    description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                    uploadZone={{ id: `${item.id}-photos`, photos: (() => {
-                                      // Always get the latest item from section.dynamicItems to ensure we have the most recent photos
+                                    title="Fotos y vídeos"
+                                    description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                    uploadZone={{ id: `${item.id}-media`, photos: (() => {
                                       const latestDynamicItems = section.dynamicItems || [];
                                       const latestHabitacion = latestDynamicItems[habitacionIndex];
                                       const latestCarpentryItems = latestHabitacion?.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
                                       const latestItem = latestCarpentryItems.find(i => i.id === itemConfig.id) || item;
                                       return (latestItem as ChecklistCarpentryItem).photos || [];
-                                    })(), videos: [] }}
+                                    })(), videos: (() => {
+                                      const latestDynamicItems = section.dynamicItems || [];
+                                      const latestHabitacion = latestDynamicItems[habitacionIndex];
+                                      const latestCarpentryItems = latestHabitacion?.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+                                      const latestItem = latestCarpentryItems.find(i => i.id === itemConfig.id) || item;
+                                      return (latestItem as ChecklistCarpentryItem).videos || [];
+                                    })() }}
                                     onUpdate={(updates) => {
-                                      handleCarpentryPhotosChange(item.id, null, updates.photos);
+                                      handleCarpentryMediaChange(item.id, null, { photos: updates.photos || [], videos: updates.videos || [] });
                                     }}
                                     isRequired={(() => {
-                                      // Always get the latest item from section.dynamicItems to ensure we have the most recent estado
                                       const latestDynamicItems = section.dynamicItems || [];
                                       const latestHabitacion = latestDynamicItems[habitacionIndex];
                                       const latestCarpentryItems = latestHabitacion?.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));

@@ -55,6 +55,7 @@ export interface ChecklistClimatizationUnit {
   estado?: ChecklistStatus;
   notes?: string;
   photos?: FileUpload[];
+  videos?: FileUpload[]; // vídeos en zonas de necesita reparación/reemplazo
   badElements?: string[]; // IDs of elements that are in bad condition
 }
 
@@ -76,6 +77,7 @@ export interface ChecklistCarpentryItem {
   estado?: ChecklistStatus;
   notes?: string;
   photos?: FileUpload[];
+  videos?: FileUpload[]; // cuando cantidad = 1 y necesita reparación/reemplazo
   badElements?: string[]; // IDs of elements that are in bad condition (when cantidad = 1)
 }
 

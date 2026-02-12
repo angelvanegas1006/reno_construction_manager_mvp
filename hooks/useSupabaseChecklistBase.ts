@@ -54,7 +54,8 @@ interface UseSupabaseChecklistBaseReturn {
   checklist: ChecklistData | null;
   isLoading: boolean;
   updateSection: (sectionId: string, sectionData: Partial<ChecklistSection>) => Promise<void>;
-  saveCurrentSection: (sectionId?: string) => Promise<void>; // sectionId opcional para forzar guardar una sección específica
+  saveCurrentSection: (sectionId?: string) => Promise<void>;
+  saveAllSections: () => Promise<void>;
   finalizeChecklist: (data?: {
     estimatedVisitDate?: string;
     autoVisitDate?: string;
@@ -945,7 +946,7 @@ export function useSupabaseChecklistBase({
 
       console.log(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving section:`, sectionId);
 
-      // Encontrar zona correspondiente a la sección primero (necesaria para subir archivos)
+      // Encontrar zona(s) correspondiente(s) a la sección
       const expectedZoneType = sectionId === "habitaciones" ? "dormitorio" :
                               sectionId === "banos" ? "bano" :
                               sectionId === "entorno-zonas-comunes" ? "entorno" :
@@ -955,10 +956,38 @@ export function useSupabaseChecklistBase({
                               sectionId === "cocina" ? "cocina" :
                               sectionId === "exteriores" ? "exterior" : null;
 
-      const zone = zones.find(z => z.zone_type === expectedZoneType);
+      let zone: typeof zones[0] | null = null;
+      let zonesOfTypeForSave: typeof zones = [];
+
+      if (sectionId === "habitaciones" || sectionId === "banos") {
+        // Secciones dinámicas: ordenar por nombre y crear zonas faltantes si hay más habitaciones/baños que zonas
+        zonesOfTypeForSave = zones
+          .filter(z => z.zone_type === expectedZoneType)
+          .sort((a, b) => (a.zone_name || '').localeCompare(b.zone_name || ''));
+        const needed = section.dynamicItems?.length ?? 0;
+        while (zonesOfTypeForSave.length < needed) {
+          const displayName = expectedZoneType === "dormitorio" ? "Habitación" : expectedZoneType === "bano" ? "Baño" : "Zona";
+          const created = await createZone({
+            inspection_id: inspection.id,
+            zone_type: expectedZoneType ?? undefined,
+            zone_name: `${displayName} ${zonesOfTypeForSave.length + 1}`,
+          });
+          if (!created) break;
+          zonesOfTypeForSave.push(created);
+          console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Created missing zone:`, created.zone_name);
+        }
+        zone = zonesOfTypeForSave[0] ?? null;
+      } else {
+        zone = zones.find(z => z.zone_type === expectedZoneType) ?? null;
+      }
 
       if (!zone) {
         console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Zone not found for section:`, sectionId, "expectedZoneType:", expectedZoneType, "zones:", zones.map(z => z.zone_type));
+        savingRef.current = false;
+        return;
+      }
+      if ((sectionId === "habitaciones" || sectionId === "banos") && (section.dynamicItems?.length ?? 0) > 0 && zonesOfTypeForSave.length === 0) {
+        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ No zones for dynamic section:`, sectionId);
         savingRef.current = false;
         return;
       }
@@ -1016,11 +1045,17 @@ export function useSupabaseChecklistBase({
                     );
                     filesToUpload.push(...base64Photos);
                   }
+                  if (unit.videos) {
+                    const base64Videos = unit.videos.filter(video => 
+                      video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
+                    );
+                    filesToUpload.push(...base64Videos);
+                  }
                 });
               }
             });
           }
-          // Fotos de climatizationItems dentro de dynamic items
+          // Fotos y vídeos de climatizationItems dentro de dynamic items
           if (item.climatizationItems) {
             item.climatizationItems.forEach(climatizationItem => {
               if (climatizationItem.photos) {
@@ -1036,6 +1071,12 @@ export function useSupabaseChecklistBase({
                       photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
                     );
                     filesToUpload.push(...base64Photos);
+                  }
+                  if (unit.videos) {
+                    const base64Videos = unit.videos.filter(video => 
+                      video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
+                    );
+                    filesToUpload.push(...base64Videos);
                   }
                 });
               }
@@ -1070,14 +1111,18 @@ export function useSupabaseChecklistBase({
       // Archivos de carpentryItems que están en base64
       if (section.carpentryItems) {
         section.carpentryItems.forEach(item => {
-          // Fotos cuando cantidad = 1
           if (item.photos) {
             const base64Photos = item.photos.filter(photo => 
               photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
             );
             filesToUpload.push(...base64Photos);
           }
-          // Fotos de units cuando cantidad > 1
+          if ((item as any).videos) {
+            const base64Videos = (item as any).videos.filter((video: FileUpload) => 
+              video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
+            );
+            filesToUpload.push(...base64Videos);
+          }
           if (item.units) {
             item.units.forEach(unit => {
               if (unit.photos) {
@@ -1085,6 +1130,12 @@ export function useSupabaseChecklistBase({
                   photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
                 );
                 filesToUpload.push(...base64Photos);
+              }
+              if (unit.videos) {
+                const base64Videos = unit.videos.filter(video => 
+                  video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
+                );
+                filesToUpload.push(...base64Videos);
               }
             });
           }
@@ -1094,14 +1145,12 @@ export function useSupabaseChecklistBase({
       // Archivos de climatizationItems que están en base64
       if (section.climatizationItems) {
         section.climatizationItems.forEach(item => {
-          // Fotos cuando cantidad = 1
           if (item.photos) {
             const base64Photos = item.photos.filter(photo => 
               photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
             );
             filesToUpload.push(...base64Photos);
           }
-          // Fotos de units cuando cantidad > 1
           if (item.units) {
             item.units.forEach(unit => {
               if (unit.photos) {
@@ -1109,6 +1158,12 @@ export function useSupabaseChecklistBase({
                   photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
                 );
                 filesToUpload.push(...base64Photos);
+              }
+              if (unit.videos) {
+                const base64Videos = unit.videos.filter(video => 
+                  video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
+                );
+                filesToUpload.push(...base64Videos);
               }
             });
           }
@@ -1360,11 +1415,21 @@ export function useSupabaseChecklistBase({
                       updateFileWithMap(photo, `dynamicItem ${item.id} carpentryItem ${carpentryItem.id}`);
                     });
                   }
+                  if ((carpentryItem as any).videos) {
+                    (carpentryItem as any).videos.forEach((video: FileUpload) => {
+                      updateFileWithMap(video, `dynamicItem ${item.id} carpentryItem ${carpentryItem.id} videos`);
+                    });
+                  }
                   if (carpentryItem.units) {
                     carpentryItem.units.forEach(unit => {
                       if (unit.photos) {
                         unit.photos.forEach(photo => {
                           updateFileWithMap(photo, `dynamicItem ${item.id} carpentryItem ${carpentryItem.id} unit ${unit.id}`);
+                        });
+                      }
+                      if (unit.videos) {
+                        unit.videos.forEach(video => {
+                          updateFileWithMap(video, `dynamicItem ${item.id} carpentryItem ${carpentryItem.id} unit ${unit.id} videos`);
                         });
                       }
                     });
@@ -1384,6 +1449,11 @@ export function useSupabaseChecklistBase({
                       if (unit.photos) {
                         unit.photos.forEach(photo => {
                           updateFileWithMap(photo, `dynamicItem ${item.id} climatizationItem ${climatizationItem.id} unit ${unit.id}`);
+                        });
+                      }
+                      if (unit.videos) {
+                        unit.videos.forEach(video => {
+                          updateFileWithMap(video, `dynamicItem ${item.id} climatizationItem ${climatizationItem.id} unit ${unit.id} videos`);
                         });
                       }
                     });
@@ -1414,16 +1484,19 @@ export function useSupabaseChecklistBase({
             });
           }
 
-          // Actualizar carpentryItems
+          // Actualizar carpentryItems (sección: salón, cocina, etc.)
           if (sectionToSave.carpentryItems) {
             sectionToSave.carpentryItems.forEach(item => {
-              // Fotos cuando cantidad = 1
               if (item.photos) {
                 item.photos.forEach(photo => {
                   updateFileWithMap(photo, `carpentryItem ${item.id}`);
                 });
               }
-              // Fotos de units cuando cantidad > 1
+              if ((item as any).videos) {
+                (item as any).videos.forEach((video: FileUpload) => {
+                  updateFileWithMap(video, `carpentryItem ${item.id} videos`);
+                });
+              }
               if (item.units) {
                 item.units.forEach(unit => {
                   if (unit.photos) {
@@ -1431,26 +1504,34 @@ export function useSupabaseChecklistBase({
                       updateFileWithMap(photo, `carpentryItem ${item.id} unit ${unit.id}`);
                     });
                   }
+                  if (unit.videos) {
+                    unit.videos.forEach(video => {
+                      updateFileWithMap(video, `carpentryItem ${item.id} unit ${unit.id} videos`);
+                    });
+                  }
                 });
               }
             });
           }
 
-          // Actualizar climatizationItems
+          // Actualizar climatizationItems (sección)
           if (sectionToSave.climatizationItems) {
             sectionToSave.climatizationItems.forEach(item => {
-              // Fotos cuando cantidad = 1
               if (item.photos) {
                 item.photos.forEach(photo => {
                   updateFileWithMap(photo, `climatizationItem ${item.id}`);
                 });
               }
-              // Fotos de units cuando cantidad > 1
               if (item.units) {
                 item.units.forEach(unit => {
                   if (unit.photos) {
                     unit.photos.forEach(photo => {
                       updateFileWithMap(photo, `climatizationItem ${item.id} unit ${unit.id}`);
+                    });
+                  }
+                  if (unit.videos) {
+                    unit.videos.forEach(video => {
+                      updateFileWithMap(video, `climatizationItem ${item.id} unit ${unit.id} videos`);
                     });
                   }
                 });
@@ -1561,8 +1642,8 @@ export function useSupabaseChecklistBase({
       
       // Si es una sección dinámica (habitaciones, banos), procesar cada dynamic item con su zona correspondiente
       if ((sectionId === "habitaciones" || sectionId === "banos") && sectionToSave.dynamicItems && sectionToSave.dynamicItems.length > 0) {
-        // Encontrar todas las zonas del tipo correcto para esta sección
-        const zonesOfType = zones.filter(z => z.zone_type === expectedZoneType);
+        // Usar la lista de zonas ya obtenida/creada (zonesOfTypeForSave) para que habitación 2 y 3 tengan zona
+        const zonesOfType = zonesOfTypeForSave.length > 0 ? zonesOfTypeForSave : zones.filter(z => z.zone_type === expectedZoneType).sort((a, b) => (a.zone_name || '').localeCompare(b.zone_name || ''));
         
         console.log(`[useSupabaseChecklistBase:${inspectionType}] Processing ${sectionToSave.dynamicItems.length} dynamic items with ${zonesOfType.length} zones`);
         
@@ -2428,6 +2509,7 @@ export function useSupabaseChecklistBase({
     isLoading,
     updateSection,
     saveCurrentSection,
+    saveAllSections,
     finalizeChecklist,
   };
 }
