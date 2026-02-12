@@ -1039,6 +1039,18 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     return grouped;
   }, [filteredProperties]);
 
+  // En móvil, con búsqueda activa: solo mostrar fases que tienen resultados
+  const mobileVisibleColumns = useMemo(() => {
+    if (searchQuery.trim().length === 0) return visibleColumns;
+    return visibleColumns.filter((column) => {
+      const isProjectView = viewLevel === "project" && filteredProjectsByPhase;
+      const properties = isProjectView ? [] : (filteredProperties[column.key] || []);
+      const projects = isProjectView ? (filteredProjectsByPhase?.[column.key] || []) : undefined;
+      const count = isProjectView ? (projects?.length ?? 0) : properties.length;
+      return count > 0;
+    });
+  }, [searchQuery, visibleColumns, viewLevel, filteredProperties, filteredProjectsByPhase]);
+
   // Toggle phase collapse
   const togglePhaseCollapse = useCallback((phase: RenoKanbanPhase) => {
     setCollapsedPhases(prev => {
@@ -1808,9 +1820,9 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
         scrollbarWidth: isHovered ? "thin" : "none",
       }}
     >
-      {/* Mobile: Clean vertical layout */}
+      {/* Mobile: solo mostrar fases con resultados cuando hay búsqueda activa */}
       <div className="flex flex-col md:hidden gap-1 pb-20 px-1">
-        {visibleColumns.map((column) => {
+        {mobileVisibleColumns.map((column) => {
           const isProjectView = viewLevel === "project" && filteredProjectsByPhase;
           const properties = isProjectView ? [] : (filteredProperties[column.key] || []);
           const projects = isProjectView ? (filteredProjectsByPhase?.[column.key] || []) : undefined;

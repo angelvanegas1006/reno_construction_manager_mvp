@@ -513,21 +513,33 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       propertiesByPhase.set(mapping.phase, phaseList);
     });
 
-    // Paso 3: Obtener todas las propiedades existentes en Supabase (PostgREST limita a 1000 por defecto)
+    // Paso 3: Obtener todas las propiedades existentes en Supabase (paginando: PostgREST limita a 1000 por petición)
+    const PAGE_SIZE = 1000;
     const MAX_PROPERTIES_FETCH = 15000;
-    const { data: existingProperties, error: fetchError } = await supabase
-      .from('properties')
-      .select('id, reno_phase, airtable_property_id')
-      .order('created_at', { ascending: false })
-      .range(0, MAX_PROPERTIES_FETCH - 1);
-
-    if (fetchError) {
-      throw new Error(`Error fetching existing properties: ${fetchError.message}`);
+    type ExistingRow = { id: string; reno_phase: string | null; airtable_property_id: string | null };
+    const existingProperties: ExistingRow[] = [];
+    let from = 0;
+    let hasMore = true;
+    while (hasMore && existingProperties.length < MAX_PROPERTIES_FETCH) {
+      const to = from + PAGE_SIZE - 1;
+      const { data: page, error: fetchError } = await supabase
+        .from('properties')
+        .select('id, reno_phase, airtable_property_id')
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      if (fetchError) {
+        throw new Error(`Error fetching existing properties: ${fetchError.message}`);
+      }
+      const list = (page ?? []) as ExistingRow[];
+      existingProperties.push(...list);
+      hasMore = list.length === PAGE_SIZE;
+      from += PAGE_SIZE;
     }
+    console.log(`[Unified Sync] Fetched ${existingProperties.length} existing properties (paginated)`);
 
-    const existingPropertyIds = new Set(existingProperties?.map(p => p.id) || []);
+    const existingPropertyIds = new Set(existingProperties.map(p => p.id));
     const existingPropertyMap = new Map(
-      existingProperties?.map(p => [p.id, p]) || []
+      existingProperties.map(p => [p.id, p])
     );
 
     // Crear set de IDs de Airtable que están en alguna vista
@@ -619,17 +631,13 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
     }
 
     // Paso 5: Mover propiedades que no están en ninguna vista a "orphaned"
+    // Solo las que tienen airtable_property_id (vinculadas a Airtable). Las manuales/test no se tocan.
     console.log('\n🧹 Cleaning up properties not in any Airtable view...');
     
-    const propertiesToOrphan = existingProperties?.filter(p => {
-      // Solo considerar propiedades que tienen airtable_property_id
-      if (!p.airtable_property_id) {
-        return false; // Propiedades creadas manualmente, no mover
-      }
-      
-      // Si no está en ninguna vista, mover a orphaned
+    const propertiesToOrphan = existingProperties.filter((p: ExistingRow) => {
+      if (!p.airtable_property_id) return false;
       return !airtableIdsInViews.has(p.airtable_property_id);
-    }) || [];
+    });
 
     if (propertiesToOrphan.length > 0) {
       const orphanIds = propertiesToOrphan.map(p => p.id);
