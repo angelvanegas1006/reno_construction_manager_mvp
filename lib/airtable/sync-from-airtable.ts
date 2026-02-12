@@ -512,13 +512,74 @@ export function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
       }
       return null;
     })(),
-    // Campos para Upcoming Settlements (Pending to validate Budget)
-    estimated_end_date: getFieldValue('Est. Reno End Date', [
-      'Est. Reno End Date', 
-      'Estimated Reno End Date',
-      'Est. Reno End Date:',
-      'Estimated End Date'
-    ]) || null,
+    // Est. reno end date (Reno estimated end date) - field id fldRd1iqLDAcoanAj
+    estimated_end_date: (() => {
+      const dateValue = fields['fldRd1iqLDAcoanAj'] !== undefined
+        ? fields['fldRd1iqLDAcoanAj']
+        : getFieldValue('Est. Reno End Date', [
+            'Est. Reno End Date',
+            'Estimated Reno End Date',
+            'Est. Reno End Date:',
+            'Estimated End Date',
+          ]);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+        } catch (e) {
+          // Ignore
+        }
+      }
+      return null;
+    })(),
+    // Budget PH ready date - field id fldIUOKPTULx6yPJ5
+    budget_ph_ready_date: (() => {
+      const dateValue = fields['fldIUOKPTULx6yPJ5'] !== undefined
+        ? fields['fldIUOKPTULx6yPJ5']
+        : getFieldValue('Budget PH ready date', ['Budget PH ready date', 'Budget PH Ready Date']);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+        } catch (e) {
+          // Ignore
+        }
+      }
+      return null;
+    })(),
+    // Renovator budget approval date - field id fld8k0QStiOzgm9cX
+    renovator_budget_approval_date: (() => {
+      const dateValue = fields['fld8k0QStiOzgm9cX'] !== undefined
+        ? fields['fld8k0QStiOzgm9cX']
+        : getFieldValue('Renovator budget approval date', [
+            'Renovator budget approval date',
+            'Renovator Budget Approval Date',
+          ]);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+        } catch (e) {
+          // Ignore
+        }
+      }
+      return null;
+    })(),
+    // Reno end date - field id fld9WgryX1uugMtdL
+    reno_end_date: (() => {
+      const dateValue = fields['fld9WgryX1uugMtdL'] !== undefined
+        ? fields['fld9WgryX1uugMtdL']
+        : getFieldValue('Reno end date', ['Reno end date', 'Reno End Date']);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+        } catch (e) {
+          // Ignore
+        }
+      }
+      return null;
+    })(),
     start_date: (() => {
       // Buscar primero por field ID directamente, luego por nombres alternativos
       const dateValue = fields['fldCnB9pCmpG5khiH'] !== undefined 
@@ -541,22 +602,20 @@ export function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
       }
       return null;
     })(),
-    Est_reno_start_date: (() => {
-      // Buscar primero por field ID directamente, luego por nombres alternativos
-      const dateValue = fields['fldPX58nQYf9HsTRE'] !== undefined 
+    // Est. reno start date (columna est_reno_start_date en Supabase)
+    est_reno_start_date: (() => {
+      const dateValue = fields['fldPX58nQYf9HsTRE'] !== undefined
         ? fields['fldPX58nQYf9HsTRE']
         : getFieldValue('Est. reno start date', [
             'Est. reno start date',
             'Est. Reno Start Date',
             'Estimated Reno Start Date',
-            'Estimated reno start date'
+            'Estimated reno start date',
           ]);
       if (dateValue) {
         try {
           const date = new Date(dateValue);
-          if (!isNaN(date.getTime())) {
-            return date.toISOString().split('T')[0]; // YYYY-MM-DD
-          }
+          if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
         } catch (e) {
           // Ignore
         }
@@ -742,6 +801,22 @@ export function mapAirtableToSupabase(airtableProperty: AirtableProperty): any {
         } catch (e) {
           // Ignore
         }
+      }
+      return null;
+    })(),
+    // Utilities: Water, Gas, Electricity status + Utilities notes (field IDs de Airtable)
+    water_status: getFieldValue('fldPqhw8SDUUbFAci', ['Water status', 'Water Status']) || null,
+    gas_status: getFieldValue('fldFg2bvCorelCAyM', ['Gas status', 'Gas Status']) || null,
+    electricity_status: getFieldValue('fldERIHBvXSjZN24B', ['Electricity status', 'Electricity Status']) || null,
+    utilities_notes: getFieldValue('fldL7XsAluSiW9go2', ['Utilities notes', 'Utilities Notes', 'notes']) || null,
+    // Visit Date (flddFKqUl6WiDe97c) → Fecha de visita inicial
+    initial_visit_date: (() => {
+      const dateValue = getFieldValue('flddFKqUl6WiDe97c', ['Visit Date', 'Visit date']);
+      if (dateValue) {
+        try {
+          const date = new Date(dateValue);
+          if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+        } catch (e) { /* ignore */ }
       }
       return null;
     })(),

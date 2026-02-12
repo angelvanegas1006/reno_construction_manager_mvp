@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, User, Building2, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell, Flag, Wrench, Folder, Key } from "lucide-react";
+import { CheckCircle2, Clock, User, Building2, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell, Flag, Wrench, Folder, Key, Droplets, Flame, Zap } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,10 @@ export function PropertyStatusSidebar({
   const keysLocation = supabaseProperty?.keys_location;
   const createdAt = supabaseProperty?.created_at || property.createdAt;
   const driveFolderUrl = supabaseProperty?.drive_folder_url;
+  const waterStatus = supabaseProperty?.water_status;
+  const gasStatus = supabaseProperty?.gas_status;
+  const electricityStatus = supabaseProperty?.electricity_status;
+  const hasUtilitiesInfo = waterStatus || gasStatus || electricityStatus;
   
   // Get days based on phase
   const daysToVisit = property.daysToVisit;
@@ -178,8 +182,8 @@ export function PropertyStatusSidebar({
   };
 
   return (
-    <div className="w-full lg:w-80 border-l-0 lg:border-l bg-card dark:bg-[var(--prophero-gray-900)] flex flex-col overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
+    <div className="w-full lg:w-80 h-full border-l-0 lg:border-l bg-card dark:bg-[var(--prophero-gray-900)] flex flex-col overflow-hidden min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Status Section */}
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -233,6 +237,36 @@ export function PropertyStatusSidebar({
               Ubicación de las llaves
             </h4>
             <p className="text-sm text-foreground">{keysLocation}</p>
+          </div>
+        )}
+
+        {/* Suministros: Agua, Gas, Electricidad (sin nota de suministros) */}
+        {hasUtilitiesInfo && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2">Suministros</h4>
+            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+              {waterStatus != null && waterStatus !== "" && (
+                <span className="flex items-center gap-1.5">
+                  <Droplets className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-muted-foreground">Agua:</span>
+                  <span className="text-foreground">{waterStatus}</span>
+                </span>
+              )}
+              {gasStatus != null && gasStatus !== "" && (
+                <span className="flex items-center gap-1.5">
+                  <Flame className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-muted-foreground">Gas:</span>
+                  <span className="text-foreground">{gasStatus}</span>
+                </span>
+              )}
+              {electricityStatus != null && electricityStatus !== "" && (
+                <span className="flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-muted-foreground">Electricidad:</span>
+                  <span className="text-foreground">{electricityStatus}</span>
+                </span>
+              )}
+            </div>
           </div>
         )}
 

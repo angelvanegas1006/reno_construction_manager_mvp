@@ -27,57 +27,58 @@ async function runLocalSync() {
     console.log(`   - Total errores: ${result.totalErrors}`);
     console.log(`   - Timestamp: ${result.timestamp}\n`);
 
-    // Verificar el campo Est_reno_start_date en Supabase
-    console.log('🔍 Verificando campo Est_reno_start_date en Supabase...\n');
-    
+    // Verificar todos los campos de fechas en Supabase
+    const dateColumns = [
+      'budget_ph_ready_date',
+      'renovator_budget_approval_date',
+      'initial_visit_date',
+      'est_reno_start_date',
+      'start_date',
+      'estimated_end_date',
+      'reno_end_date',
+    ] as const;
+
+    console.log('🔍 Verificando campos de fechas en Supabase...\n');
+
     const supabase = createAdminClient();
+    const selectFields = ['id', 'address', ...dateColumns].join(', ');
     const { data: properties, error } = await supabase
       .from('properties')
-      .select('id, address, Est_reno_start_date')
+      .select(selectFields)
       .order('updated_at', { ascending: false })
-      .limit(20);
+      .limit(50);
 
     if (error) {
       console.error('❌ Error al consultar Supabase:', error);
       return;
     }
 
-    const withDate = properties?.filter(p => p.Est_reno_start_date !== null) || [];
-    const withoutDate = properties?.filter(p => p.Est_reno_start_date === null) || [];
+    const total = properties?.length ?? 0;
+    console.log(`📋 Muestra: ${total} propiedades (últimas por updated_at)\n`);
 
-    console.log(`   - Propiedades con Est_reno_start_date: ${withDate.length}`);
-    console.log(`   - Propiedades sin Est_reno_start_date: ${withoutDate.length}\n`);
+    const counts: Record<string, number> = {};
+    dateColumns.forEach((col) => {
+      counts[col] = properties?.filter((p: any) => p[col] != null && p[col] !== '').length ?? 0;
+    });
 
-    if (withDate.length > 0) {
-      console.log('📅 Ejemplos de propiedades con fecha:');
-      withDate.slice(0, 5).forEach(prop => {
-        console.log(`   - ${prop.address || prop.id}: ${prop.Est_reno_start_date}`);
+    console.log('📊 Conteo por campo de fecha:');
+    dateColumns.forEach((col) => {
+      console.log(`   - ${col}: ${counts[col]} de ${total}`);
+    });
+
+    // Ejemplos de propiedades con al menos una fecha
+    const withAnyDate = properties?.filter((p: any) =>
+      dateColumns.some((col) => p[col] != null && p[col] !== '')
+    ) ?? [];
+    if (withAnyDate.length > 0) {
+      console.log('\n📅 Ejemplos (propiedades con al menos una fecha):');
+      withAnyDate.slice(0, 5).forEach((prop: any) => {
+        const dates = dateColumns.filter((c) => prop[c]).map((c) => `${c}=${prop[c]}`);
+        console.log(`   - ${prop.address || prop.id}: ${dates.join(', ')}`);
       });
     }
 
-    if (withoutDate.length > 0) {
-      console.log('\n⚠️  Ejemplos de propiedades sin fecha:');
-      withoutDate.slice(0, 5).forEach(prop => {
-        console.log(`   - ${prop.address || prop.id}`);
-      });
-    }
-
-    // Consultar todas las propiedades para estadísticas completas
-    const { data: allProperties, error: allError } = await supabase
-      .from('properties')
-      .select('Est_reno_start_date');
-
-    if (!allError && allProperties) {
-      const totalWithDate = allProperties.filter(p => p.Est_reno_start_date !== null).length;
-      const totalWithoutDate = allProperties.filter(p => p.Est_reno_start_date === null).length;
-      
-      console.log('\n📊 Estadísticas completas:');
-      console.log(`   - Total propiedades: ${allProperties.length}`);
-      console.log(`   - Con Est_reno_start_date: ${totalWithDate} (${((totalWithDate / allProperties.length) * 100).toFixed(1)}%)`);
-      console.log(`   - Sin Est_reno_start_date: ${totalWithoutDate} (${((totalWithoutDate / allProperties.length) * 100).toFixed(1)}%)\n`);
-    }
-
-    console.log('✨ Verificación completada\n');
+    console.log('\n✨ Verificación completada\n');
 
   } catch (error: any) {
     console.error('❌ Error durante la sincronización:', error);
