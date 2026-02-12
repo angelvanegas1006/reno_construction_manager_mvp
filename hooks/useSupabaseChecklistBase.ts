@@ -1679,9 +1679,24 @@ export function useSupabaseChecklistBase({
 
       console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Section saved successfully`);
       toast.success("Sección guardada correctamente");
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error desconocido';
       console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error saving section:`, error);
-      toast.error("Error al guardar sección");
+      try {
+        sessionStorage.setItem('checklist-last-save-failed', JSON.stringify({
+          propertyId,
+          inspectionType,
+          at: Date.now(),
+        }));
+      } catch (_) { /* sessionStorage puede fallar en privado */ }
+      const userMessage = message.startsWith('Cuota de almacenamiento') ? message : `Error al guardar sección: ${message}`;
+      toast.error(userMessage, {
+        duration: 10000,
+        action: {
+          label: 'Reintentar',
+          onClick: () => { saveCurrentSection(sectionId); },
+        },
+      });
     } finally {
       savingRef.current = false;
     }
