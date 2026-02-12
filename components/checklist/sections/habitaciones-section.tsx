@@ -87,13 +87,14 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       { id: "puerta-entrada" },
     ], []);
 
-    // Usar useMemo para asegurar que questions se actualice cuando dynamicItems cambie
+    // Usar useMemo: si questions está vacío o no existe, usar defaultQuestions (acabados, electricidad, puerta-entrada)
+    // Así la habitación 1 siempre muestra las preguntas aunque en BD no haya elementos guardados aún
     const questions = useMemo(() => {
-      if (habitacionIndex !== undefined) {
-        const latestHabitacion = dynamicItems[habitacionIndex];
-        return latestHabitacion?.questions || defaultQuestions;
+      const fromData = habitacionIndex !== undefined ? dynamicItems[habitacionIndex]?.questions : habitacion?.questions;
+      if (fromData && fromData.length > 0) {
+        return defaultQuestions.map((dq) => fromData.find((q: ChecklistQuestion) => q.id === dq.id) || { ...dq });
       }
-      return habitacion?.questions || defaultQuestions;
+      return defaultQuestions;
     }, [dynamicItems, habitacionIndex, habitacion?.questions, defaultQuestions]);
 
     // Initialize carpentry items - use dynamicItems directly to ensure we get the latest data
@@ -179,7 +180,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         return;
       }
       
-      const currentQuestions = latestHabitacion.questions || defaultQuestions;
+      // Si questions está vacío, usar defaultQuestions para que acabados/electricidad/puerta-entrada existan siempre
+      const rawQuestions = latestHabitacion.questions;
+      const currentQuestions = (rawQuestions && rawQuestions.length > 0)
+        ? defaultQuestions.map((dq) => rawQuestions.find((q: ChecklistQuestion) => q.id === dq.id) || { ...dq })
+        : defaultQuestions;
       console.log(`📋 [handleQuestionUpdate] currentQuestions:`, currentQuestions.map(q => q.id));
       
       const questionBefore = currentQuestions.find(q => q.id === questionId);
