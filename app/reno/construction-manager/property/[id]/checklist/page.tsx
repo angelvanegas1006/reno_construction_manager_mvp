@@ -288,16 +288,22 @@ export default function RenoChecklistPage() {
     [updateSection, isChecklistCompleted]
   );
 
+  // Normalizar sectionId para guardar: habitaciones-1, habitaciones-2 -> habitaciones; banos-1, banos-2 -> banos
+  const getSectionIdForSave = useCallback((sectionIdWithPrefix: string) => {
+    const sectionId = sectionIdWithPrefix.replace(/^checklist-/, '');
+    if (/^habitaciones-\d+$/.test(sectionId)) return 'habitaciones';
+    if (/^banos-\d+$/.test(sectionId)) return 'banos';
+    return sectionId;
+  }, []);
+
   // Handle section click - Guardar la sección que SALIMOS antes de cambiar (crítico para no perder fotos en móvil)
   const handleSectionClick = useCallback(async (sectionId: string) => {
-    const currentSectionIdWithoutPrefix = activeSection.replace(/^checklist-/, '');
-    const nextSectionIdWithoutPrefix = sectionId.replace(/^checklist-/, '');
-    const isChangingSection = currentSectionIdWithoutPrefix !== nextSectionIdWithoutPrefix;
+    const currentSectionIdForSave = getSectionIdForSave(activeSection);
+    const isChangingSection = currentSectionIdForSave !== getSectionIdForSave(sectionId);
 
-    if (isChangingSection && checklist?.sections[currentSectionIdWithoutPrefix]) {
+    if (isChangingSection && checklist?.sections[currentSectionIdForSave]) {
       try {
-        // Guardar siempre la sección que estamos dejando (con su id) para que las fotos se suban
-        await saveCurrentSection(currentSectionIdWithoutPrefix);
+        await saveCurrentSection(currentSectionIdForSave);
         setHasUnsavedChanges(false);
       } catch (error) {
         console.error("Error al guardar antes de cambiar de sección:", error);
@@ -345,15 +351,15 @@ export default function RenoChecklistPage() {
         }
       }, 150); // 150ms de delay para asegurar que React haya renderizado completamente
     });
-  }, [activeSection, checklist, saveCurrentSection]);
+  }, [activeSection, checklist, saveCurrentSection, getSectionIdForSave]);
 
-  // Handle continue - Guarda la sección actual (con su id) y luego cambia de sección
+  // Handle continue - Guarda la sección actual (id normalizado: habitaciones-N -> habitaciones) y luego cambia de sección
   const handleContinue = useCallback(async (nextSectionId: string) => {
     if (!checklist) return;
     try {
-      const currentSectionId = activeSection.replace(/^checklist-/, '');
-      if (checklist.sections[currentSectionId]) {
-        await saveCurrentSection(currentSectionId);
+      const currentSectionIdForSave = getSectionIdForSave(activeSection);
+      if (checklist.sections[currentSectionIdForSave]) {
+        await saveCurrentSection(currentSectionIdForSave);
       }
       setHasUnsavedChanges(false);
 
@@ -366,32 +372,31 @@ export default function RenoChecklistPage() {
       console.error("Error al guardar antes de continuar:", error);
       toast.error("Error al guardar cambios. Intenta nuevamente.");
     }
-  }, [checklist, activeSection, saveCurrentSection, handleSectionClick, t]);
+  }, [checklist, activeSection, saveCurrentSection, handleSectionClick, getSectionIdForSave, t]);
 
   // Handle save
   const handleSave = useCallback(async () => {
     if (!checklist) return;
     try {
-      // IMPORTANTE: Convertir "checklist-estado-general" -> "estado-general"
-      // y pasar el sectionId directamente a saveCurrentSection
-      const sectionIdWithoutPrefix = activeSection.replace(/^checklist-/, '');
+      // Normalizar: checklist-habitaciones-2 -> habitaciones, checklist-banos-2 -> banos
+      const sectionIdForSave = getSectionIdForSave(activeSection);
       
       // Verificar que la sección existe
-      if (!checklist.sections[sectionIdWithoutPrefix]) {
-        console.warn('[RenoChecklistPage] ⚠️ No se encontró la sección:', sectionIdWithoutPrefix);
+      if (!checklist.sections[sectionIdForSave]) {
+        console.warn('[RenoChecklistPage] ⚠️ No se encontró la sección:', sectionIdForSave);
         toast.error("Error: No se encontró la sección a guardar");
         return;
       }
       
-      // Pasar sectionId directamente a saveCurrentSection para forzar guardar esta sección
-      await saveCurrentSection(sectionIdWithoutPrefix);
+      // Pasar sectionId normalizado a saveCurrentSection (habitaciones-N -> habitaciones)
+      await saveCurrentSection(sectionIdForSave);
       setHasUnsavedChanges(false);
       toast.success(t.messages.saveSuccess);
     } catch (error) {
       console.error("Error al guardar:", error);
       toast.error("Error al guardar cambios");
     }
-  }, [checklist, t, saveCurrentSection, activeSection]);
+  }, [checklist, t, saveCurrentSection, activeSection, getSectionIdForSave]);
 
   // Handle complete inspection
   const handleCompleteInspection = useCallback(async () => {
@@ -992,6 +997,7 @@ export default function RenoChecklistPage() {
             return (
               <Suspense fallback={<SectionLoader />}>
                 <HabitacionesSection
+                  key={`habitaciones-${index}`}
                   section={habitacionesSection}
                   habitacionIndex={index}
                 onUpdate={(updates) => {
@@ -1006,7 +1012,7 @@ export default function RenoChecklistPage() {
                 }}
                 onContinue={async () => {
                   try {
-                    await saveCurrentSection();
+                    await saveCurrentSection("habitaciones");
                     setHasUnsavedChanges(false);
                     toast.success(t.messages.saveSuccess || "Cambios guardados");
                     if (index + 1 < (habitacionesSection.dynamicCount || 0)) {
@@ -1048,6 +1054,7 @@ export default function RenoChecklistPage() {
             return (
               <Suspense fallback={<SectionLoader />}>
                 <BanosSection
+                  key={`banos-${index}`}
                   section={banosSection}
                   banoIndex={index}
                 onUpdate={(updates) => {
@@ -1062,7 +1069,7 @@ export default function RenoChecklistPage() {
                 }}
                 onContinue={async () => {
                   try {
-                    await saveCurrentSection();
+                    await saveCurrentSection("banos");
                     setHasUnsavedChanges(false);
                     toast.success(t.messages.saveSuccess || "Cambios guardados");
                     if (index + 1 < (banosSection.dynamicCount || 0)) {
@@ -1184,7 +1191,7 @@ export default function RenoChecklistPage() {
           }
         }
 
-        const sectionIdToSave = activeSection.replace(/^checklist-/, "");
+        const sectionIdToSave = getSectionIdForSave(activeSection);
         if (checklist?.sections[sectionIdToSave]) {
           await saveCurrentSection(sectionIdToSave);
         }
@@ -1268,6 +1275,7 @@ export default function RenoChecklistPage() {
       activeSection,
       checklist,
       saveCurrentSection,
+      getSectionIdForSave,
       finalizeChecklist,
       supabaseProperty?.next_reno_steps,
       refetchProperty,

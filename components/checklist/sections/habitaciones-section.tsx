@@ -1982,9 +1982,10 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
             </h1>
           </div>
 
-          {/* Fotos y video de la habitación */}
+          {/* Fotos y video de la habitación - key por habitación evita que se muestren fotos de otra habitación */}
           <Card className="p-4 sm:p-6 space-y-4">
             <ChecklistUploadZoneComponent
+              key={`fotos-habitacion-${habitacionIndex}`}
               title={t.checklist.sections.habitaciones.fotosVideoHabitacion.title}
               description={t.checklist.sections.habitaciones.fotosVideoHabitacion.description}
               uploadZone={uploadZone}

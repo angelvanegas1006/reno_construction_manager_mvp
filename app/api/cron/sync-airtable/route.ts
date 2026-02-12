@@ -68,8 +68,10 @@ export async function GET(request: NextRequest) {
     const result = await syncAllPhasesFromAirtable();
 
     const budgetSync = result.budgetSync;
+    const totalMovedToOrphaned = result.totalMovedToOrphaned ?? 0;
     const summaryParts: (string | null)[] = [
       `Fases: ${result.totalCreated} creadas, ${result.totalUpdated} actualizadas`,
+      totalMovedToOrphaned > 0 ? `Orphaned: ${totalMovedToOrphaned} movidas` : null,
       result.totalErrors > 0 ? `Errores: ${result.totalErrors}` : null,
     ];
     if (budgetSync) {
@@ -90,6 +92,7 @@ export async function GET(request: NextRequest) {
       totalCreated: result.totalCreated,
       totalUpdated: result.totalUpdated,
       totalErrors: result.totalErrors,
+      totalMovedToOrphaned: result.totalMovedToOrphaned ?? 0,
       phases: result.phases,
       budgetSync: result.budgetSync,
     });

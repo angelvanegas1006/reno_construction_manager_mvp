@@ -26,6 +26,8 @@ export interface AllPhasesSyncResult {
   totalCreated: number;
   totalUpdated: number;
   totalErrors: number;
+  /** Propiedades movidas a fase orphaned (no están en ninguna vista de Airtable) */
+  totalMovedToOrphaned: number;
   /** Sincronización de presupuestos desde Airtable Transactions (propiedades sin budget_pdf_url) */
   budgetSync?: SyncBudgetsResult;
 }
@@ -104,6 +106,7 @@ export async function syncAllPhasesFromAirtable(): Promise<AllPhasesSyncResult> 
     totalCreated: unifiedResult.totalCreated,
     totalUpdated: unifiedResult.totalUpdated,
     totalErrors: unifiedResult.totalErrors,
+    totalMovedToOrphaned: unifiedResult.totalMovedToOrphaned,
     budgetSync,
   };
 }
