@@ -310,6 +310,8 @@ export type Database = {
           assigned_site_manager_email?: string | null
           project_id?: string | null
           ready_for_commercialization?: boolean | null
+          reno_precheck_comments?: string | null
+          reno_precheck_checks?: { categoryChecks?: Record<string, boolean>; itemChecks?: Record<string, boolean> } | null
         }
         Relationships: [
           {

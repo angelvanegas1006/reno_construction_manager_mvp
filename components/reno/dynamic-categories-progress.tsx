@@ -825,21 +825,22 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
     if (justOpened && groupedCategories.length > 0) {
       const defaultsCat = Object.fromEntries(groupedCategories.map((g) => [g.categoryName, false]));
       const defaultsItem = Object.fromEntries(finalizeItemKeys.map((k) => [k, false]));
-      supabase
-        .from('properties')
-        .select('reno_precheck_comments, reno_precheck_checks')
-        .eq('id', property.id)
-        .single()
-        .then(({ data }) => {
+      (async () => {
+        try {
+          const { data } = await supabase
+            .from('properties')
+            .select('reno_precheck_comments, reno_precheck_checks')
+            .eq('id', property.id)
+            .single();
           const saved = data as { reno_precheck_comments?: string | null; reno_precheck_checks?: { categoryChecks?: Record<string, boolean>; itemChecks?: Record<string, boolean> } | null } | null;
           setFinalizeComments(saved?.reno_precheck_comments ?? '');
           setFinalizeCheckboxes(saved?.reno_precheck_checks?.categoryChecks ? { ...defaultsCat, ...saved.reno_precheck_checks.categoryChecks } : defaultsCat);
           setFinalizeItemCheckboxes(saved?.reno_precheck_checks?.itemChecks ? { ...defaultsItem, ...saved.reno_precheck_checks.itemChecks } : defaultsItem);
-        })
-        .catch(() => {
+        } catch {
           setFinalizeCheckboxes(Object.fromEntries(groupedCategories.map((g) => [g.categoryName, false])));
           setFinalizeItemCheckboxes(Object.fromEntries(finalizeItemKeys.map((k) => [k, false])));
-        });
+        }
+      })();
     }
   }, [finalizeModalOpen, groupedCategories, finalizeItemKeys, property.id]);
 
