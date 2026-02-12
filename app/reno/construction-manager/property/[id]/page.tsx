@@ -19,6 +19,7 @@ import { FutureDatePicker } from "@/components/property/future-date-picker";
 import { useI18n } from "@/lib/i18n";
 import { RenoKanbanPhase, PROJECT_KANBAN_PHASE_LABELS } from "@/lib/reno-kanban-config";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
+import { useSupabaseInspection } from "@/hooks/useSupabaseInspection";
 import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
 import type { Database } from '@/lib/supabase/types';
 import { ReportProblemModal } from "@/components/reno/report-problem-modal";
@@ -91,6 +92,10 @@ export default function RenoPropertyDetailPage() {
   const { property: supabaseProperty, loading: supabaseLoading, updateProperty: updateSupabaseProperty, refetch } = useSupabaseProperty(propertyId);
   const { categories: dynamicCategories, loading: categoriesLoading } = useDynamicCategories(propertyId);
   const hasCheckedInitialTab = useRef(false); // Track if we've already checked and set the initial tab
+
+  // Saber si ya existe inspección (checklist a medias) para mostrar "Continuar checklist"
+  const { inspection: inspectionInitial } = useSupabaseInspection(propertyId, "initial", !!propertyId);
+  const { inspection: inspectionFinal } = useSupabaseInspection(propertyId, "final", !!propertyId);
   
   // Calculate average progress from dynamic categories (for reno-in-progress phase)
   const averageCategoriesProgress = dynamicCategories.length > 0
@@ -698,6 +703,8 @@ export default function RenoPropertyDetailPage() {
         // For initial-check, final-check, or pendiente-suministros phases, show checklist CTA (pendiente-suministros: solo check final)
         if (currentPhase === "initial-check" || currentPhase === "final-check" || currentPhase === "pendiente-suministros") {
           const checklistType = (currentPhase === "final-check" || currentPhase === "pendiente-suministros") ? t.kanban.finalCheck : t.kanban.initialCheck;
+          // Checklist a medias: ya existe inspección → mostrar "Continuar checklist"
+          const hasChecklistStarted = currentPhase === "initial-check" ? !!inspectionInitial : !!inspectionFinal;
           // Check for date in both local state and supabase property
           const estimatedDate = localEstimatedVisitDate || (supabaseProperty as any)?.['Estimated Visit Date'] || property?.estimatedVisitDate;
           const hasEstimatedDate = !!estimatedDate;
@@ -793,9 +800,11 @@ export default function RenoPropertyDetailPage() {
                     size="lg"
                     className="mt-4 min-w-[200px]"
                   >
-                    {currentPhase === "initial-check"
-                      ? t.propertyAction.openInitialChecklist
-                      : t.propertyAction.openFinalChecklist}
+                    {hasChecklistStarted
+                      ? (t.propertySidebar.continueChecklist ?? "Continuar checklist")
+                      : currentPhase === "initial-check"
+                        ? t.propertyAction.openInitialChecklist
+                        : t.propertyAction.openFinalChecklist}
                   </Button>
                   <Button
                     variant="outline"
