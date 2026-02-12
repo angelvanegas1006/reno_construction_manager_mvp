@@ -961,9 +961,10 @@ export function useSupabaseChecklistBase({
 
       if (sectionId === "habitaciones" || sectionId === "banos") {
         // Secciones dinámicas: ordenar por nombre y crear zonas faltantes si hay más habitaciones/baños que zonas
-        zonesOfTypeForSave = zones
+        const initialZonesOfType = zones
           .filter(z => z.zone_type === expectedZoneType)
           .sort((a, b) => (a.zone_name || '').localeCompare(b.zone_name || ''));
+        zonesOfTypeForSave = [...initialZonesOfType];
         const needed = section.dynamicItems?.length ?? 0;
         while (zonesOfTypeForSave.length < needed) {
           const displayName = expectedZoneType === "dormitorio" ? "Habitación" : expectedZoneType === "bano" ? "Baño" : "Zona";
@@ -975,6 +976,10 @@ export function useSupabaseChecklistBase({
           if (!created) break;
           zonesOfTypeForSave.push(created);
           console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Created missing zone:`, created.zone_name);
+        }
+        // Refrescar inspección para que el estado zones incluya las nuevas zonas en el próximo guardado
+        if (zonesOfTypeForSave.length > initialZonesOfType.length) {
+          await refetchInspection();
         }
         zone = zonesOfTypeForSave[0] ?? null;
       } else {
@@ -1092,6 +1097,13 @@ export function useSupabaseChecklistBase({
                 filesToUpload.push(...base64Photos);
               }
             });
+          }
+          // Fotos de mobiliario (detalle) dentro de dynamic items
+          if (item.mobiliario?.question?.photos) {
+            const base64Photos = item.mobiliario.question.photos.filter(photo => 
+              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+            );
+            filesToUpload.push(...base64Photos);
           }
         });
       }
@@ -1468,6 +1480,12 @@ export function useSupabaseChecklistBase({
                       updateFileWithMap(photo, `dynamicItem ${item.id} question ${question.id}`);
                     });
                   }
+                });
+              }
+              // Actualizar fotos de mobiliario (detalle) dentro de dynamic items
+              if (item.mobiliario?.question?.photos) {
+                item.mobiliario.question.photos.forEach(photo => {
+                  updateFileWithMap(photo, `dynamicItem ${item.id} mobiliario-detalle`);
                 });
               }
             });
