@@ -386,9 +386,9 @@ export function convertMobiliarioToElements(
 
   // Si existe mobiliario y hay question, crear elemento adicional
   if (mobiliario.existeMobiliario && mobiliario.question) {
-    const imageUrls = mobiliario.question.photos
-      ?.filter(photo => photo.data)
-      .map(photo => photo.data) || null;
+    // Solo guardar URLs HTTP (fotos ya subidas), igual que en upload zones y questions
+    const photosWithHttp = mobiliario.question.photos?.filter(photo => photo.data && photo.data.startsWith('http')) || [];
+    const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
 
     // Nota: badElements se puede incluir en notes si es necesario
     const notesWithBadElements = mobiliario.question.badElements && mobiliario.question.badElements.length > 0
