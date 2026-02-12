@@ -11,6 +11,29 @@ export function isPropertyExpired(property: Property): boolean {
 }
 
 /**
+ * Fases donde NO se debe mostrar el tag "vencida" ni el borde rojo claro
+ * basado en proximaActualizacion (next_update). En estas fases ese campo
+ * no se usa para "próxima actualización" del mismo modo.
+ */
+const PHASES_NO_EXPIRED_BADGE: string[] = [
+  "furnishing",
+  "cleaning",
+  "final-check",
+  "pendiente-suministros",
+  "furnishing-cleaning",
+];
+
+/**
+ * Indica si se debe mostrar la propiedad como "vencida" (tag + borde rojo claro).
+ * En amoblamiento, limpieza, final-check y pendiente-suministros no se muestra.
+ */
+export function shouldShowExpiredBadge(property: Property, phase?: string): boolean {
+  if (!isPropertyExpired(property)) return false;
+  if (phase && PHASES_NO_EXPIRED_BADGE.includes(phase)) return false;
+  return true;
+}
+
+/**
  * Sort properties: expired first, then others
  */
 export function sortPropertiesByExpired(properties: Property[]): Property[] {

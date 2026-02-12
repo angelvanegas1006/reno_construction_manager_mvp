@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MapPin, Home, Calendar, Building2, Euro, FileText, Map, ChevronLeft, ChevronRight, X, Grid3x3 } from "lucide-react";
+import { MapPin, Home, Calendar, Building2, Euro, FileText, Map, ChevronLeft, ChevronRight, X, Grid3x3, Clock, User, Wrench, Key, Folder, ClipboardList, Droplets, Flame, Zap } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ export function PropertySummaryTab({
   property,
   supabaseProperty,
 }: PropertySummaryTabProps) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   // Extract data from Supabase property or fallback to Property
   // Note: Some fields may not exist in Supabase yet, using available ones
@@ -54,6 +54,81 @@ export function PropertySummaryTab({
   // Obtener pics_urls de supabaseProperty
   const picsUrls = supabaseProperty?.pics_urls || [];
   const hasPics = Array.isArray(picsUrls) && picsUrls.length > 0;
+
+  // Datos de estado y seguimiento (misma info que el sidebar derecho)
+  const renoPhase = supabaseProperty?.reno_phase || property.renoPhase || "upcoming-settlements";
+  const createdAt = supabaseProperty?.created_at || property.createdAt;
+  const formattedDate = createdAt
+    ? new Date(createdAt).toLocaleDateString(language === "es" ? "es-ES" : "en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
+  const phaseLabels: Record<string, string> = {
+    "upcoming-settlements": t.kanban?.upcomingSettlements ?? "Upcoming Settlements",
+    "initial-check": t.kanban?.initialCheck ?? "Revisión Inicial",
+    "reno-budget-renovator": t.kanban?.renoBudgetRenovator ?? "Presupuesto renovador",
+    "reno-budget-client": t.kanban?.renoBudgetClient ?? "Presupuesto cliente",
+    "reno-budget-start": t.kanban?.renoBudgetStart ?? "Presupuesto a empezar",
+    "reno-budget": t.kanban?.renoBudget ?? "Presupuesto",
+    "upcoming": t.kanban?.upcoming ?? "Próximas",
+    "reno-in-progress": t.kanban?.renoInProgress ?? "Reno in progress",
+    "furnishing": t.kanban?.furnishing ?? "Amoblamiento",
+    "final-check": t.kanban?.finalCheck ?? "Revisión Final",
+    "cleaning": t.kanban?.cleaning ?? "Limpieza",
+    "done": t.kanban?.done ?? "Hecho",
+    "pendiente-suministros": t.kanban?.pendienteSuministros ?? "Pendiente suministros",
+  };
+  const phaseLabel = phaseLabels[renoPhase] || renoPhase;
+  const renovatorName = supabaseProperty?.["Renovator name"] || property.renovador;
+  const responsibleOwner = supabaseProperty?.responsible_owner;
+  const renoType = property.renoType || supabaseProperty?.reno_type;
+  const keysLocation = supabaseProperty?.keys_location;
+  const waterStatus = supabaseProperty?.water_status;
+  const gasStatus = supabaseProperty?.gas_status;
+  const electricityStatus = supabaseProperty?.electricity_status;
+  const utilitiesNotes = supabaseProperty?.utilities_notes;
+  const hasUtilitiesInfo = waterStatus || gasStatus || electricityStatus || utilitiesNotes;
+  const daysToVisit = property.daysToVisit;
+  const daysToStartRenoSinceRSD = property.daysToStartRenoSinceRSD;
+  const renoDuration = property.renoDuration;
+  const daysToPropertyReady = property.daysToPropertyReady;
+  const getDaysInfo = () => {
+    if ((renoPhase === "initial-check" || renoPhase === "upcoming-settlements") && daysToVisit != null) return { label: "Días para visitar", value: daysToVisit };
+    if ((renoPhase === "reno-budget-renovator" || renoPhase === "reno-budget-client" || renoPhase === "reno-budget-start") && daysToStartRenoSinceRSD != null) return { label: "Días desde la firma", value: daysToStartRenoSinceRSD };
+    if (renoPhase === "reno-in-progress" && renoDuration != null) return { label: "Duración de la obra", value: renoDuration };
+    if ((renoPhase === "furnishing" || renoPhase === "cleaning") && daysToPropertyReady != null) return { label: "Días para propiedad lista", value: daysToPropertyReady };
+    return null;
+  };
+  const daysInfo = getDaysInfo();
+  const driveFolderUrl = supabaseProperty?.drive_folder_url;
+  const initialVisitDate = supabaseProperty?.initial_visit_date;
+  const formattedInitialVisitDate = initialVisitDate
+    ? new Date(initialVisitDate).toLocaleDateString(language === "es" ? "es-ES" : "en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : null;
+
+  // Fechas para la sección Resumen (solo en esta pestaña, no en el sidebar)
+  const dateLocale = language === "es" ? "es-ES" : "en-GB";
+  const dateOpts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
+  const formatDate = (d: string | null | undefined) =>
+    d ? new Date(d).toLocaleDateString(dateLocale, dateOpts) : null;
+  const budgetPhReadyDate = formatDate(supabaseProperty?.budget_ph_ready_date);
+  const renovatorBudgetApprovalDate = formatDate(supabaseProperty?.renovator_budget_approval_date);
+  const estRenoStartDate = formatDate(supabaseProperty?.est_reno_start_date);
+  const renoStartDate = formatDate(supabaseProperty?.start_date);
+  const renoEstimatedEndDate = formatDate(supabaseProperty?.estimated_end_date);
+  const renoEndDate = formatDate(supabaseProperty?.reno_end_date);
+  const hasAnyDate =
+    budgetPhReadyDate ||
+    renovatorBudgetApprovalDate ||
+    estRenoStartDate ||
+    renoStartDate ||
+    renoEstimatedEndDate ||
+    renoEndDate;
+
+  const hasPrecheck = renoPhase === "reno-in-progress" && (supabaseProperty?.reno_precheck_comments || (supabaseProperty?.reno_precheck_checks && typeof supabaseProperty.reno_precheck_checks === "object" && (Object.keys((supabaseProperty.reno_precheck_checks as any).categoryChecks || {}).length > 0 || Object.keys((supabaseProperty.reno_precheck_checks as any).itemChecks || {}).length > 0)));
+  const hasStatusInfo = phaseLabel || renovatorName || responsibleOwner || renoType || keysLocation || hasUtilitiesInfo || daysInfo || driveFolderUrl || hasPrecheck || formattedInitialVisitDate;
 
   // Estado para la galería
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -307,88 +382,267 @@ export function PropertySummaryTab({
         </DialogContent>
       </Dialog>
 
-      {/* Amenities Grid */}
-      <div className="bg-card rounded-lg border p-6 shadow-sm">
-        <h3 className="text-lg font-semibold mb-4 text-foreground">Amenities</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {usableArea && (
-            <div className="flex items-center gap-2">
-              <Home className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{usableArea} m²</p>
-                <p className="text-xs text-muted-foreground">Útil</p>
+      {/* Sección Fechas - solo en Resumen, orden cronológico de negocio */}
+      {hasAnyDate && (
+        <div className="bg-card rounded-lg border p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Fechas</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {budgetPhReadyDate && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.propertyDates?.budgetPhReadyDate ?? "Budget PH ready date"}</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {budgetPhReadyDate}
+                </p>
               </div>
-            </div>
-          )}
-          {builtArea && (
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{builtArea} m²</p>
-                <p className="text-xs text-muted-foreground">Construida</p>
+            )}
+            {renovatorBudgetApprovalDate && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.propertyDates?.renovatorBudgetApprovalDate ?? "Renovator budget approval date"}</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {renovatorBudgetApprovalDate}
+                </p>
               </div>
-            </div>
-          )}
-          {bedrooms && (
-            <div className="flex items-center gap-2">
-              <Home className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{bedrooms}</p>
-                <p className="text-xs text-muted-foreground">Habitaciones</p>
+            )}
+            {estRenoStartDate && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.propertyDates?.estRenoStartDate ?? "Est. reno start date"}</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {estRenoStartDate}
+                </p>
               </div>
-            </div>
-          )}
-          {bathrooms && (
-            <div className="flex items-center gap-2">
-              <Home className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{bathrooms}</p>
-                <p className="text-xs text-muted-foreground">Baños</p>
+            )}
+            {renoStartDate && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.propertyDates?.renoStartDate ?? "Reno start date"}</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {renoStartDate}
+                </p>
               </div>
-            </div>
-          )}
-          {parkingSpaces !== undefined && parkingSpaces > 0 && (
-            <div className="flex items-center gap-2">
-              <Home className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{parkingSpaces}</p>
-                <p className="text-xs text-muted-foreground">Plazas parking</p>
+            )}
+            {renoEstimatedEndDate && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.propertyDates?.renoEstimatedEndDate ?? "Reno estimated end date"}</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {renoEstimatedEndDate}
+                </p>
               </div>
-            </div>
-          )}
-          {hasElevator && (
-            <div className="flex items-center gap-2">
-              <Home className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Sí</p>
-                <p className="text-xs text-muted-foreground">Ascensor</p>
+            )}
+            {renoEndDate && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t.propertyDates?.renoEndDate ?? "Reno end date"}</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {renoEndDate}
+                </p>
               </div>
-            </div>
-          )}
-          {hasBalcony && (
-            <div className="flex items-center gap-2">
-              <Home className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Sí</p>
-                <p className="text-xs text-muted-foreground">Balcón/Terraza</p>
-              </div>
-            </div>
-          )}
-          {hasStorage && (
-            <div className="flex items-center gap-2">
-              <Home className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Sí</p>
-                <p className="text-xs text-muted-foreground">Trastero</p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Property Information */}
+      {/* Estado y seguimiento - misma información que el panel derecho, mejor presentada */}
+      {hasStatusInfo && (
+        <div className="bg-card rounded-lg border p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Estado y seguimiento</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Fase (sin "Creada el...") */}
+            {phaseLabel && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Fase</p>
+                <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                  {phaseLabel}
+                </span>
+              </div>
+            )}
+
+            {/* Reformista */}
+            {renovatorName && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reformista</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {renovatorName}
+                </p>
+              </div>
+            )}
+
+            {/* Analista de reno */}
+            {responsibleOwner && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Analista de reno</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {responsibleOwner}
+                </p>
+              </div>
+            )}
+
+            {/* Tipo de reforma */}
+            {renoType && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tipo de reforma</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {renoType}
+                </p>
+              </div>
+            )}
+
+            {/* Ubicación de las llaves */}
+            {keysLocation && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Ubicación de las llaves</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <Key className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {keysLocation}
+                </p>
+              </div>
+            )}
+
+            {/* Fecha de visita inicial (Visit Date desde Airtable) */}
+            {formattedInitialVisitDate && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Fecha de visita inicial</p>
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {formattedInitialVisitDate}
+                </p>
+              </div>
+            )}
+
+            {/* Suministros: Agua, Gas, Electricidad + Notas */}
+            {hasUtilitiesInfo && (
+              <div className="space-y-1 md:col-span-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Suministros</p>
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+                  {waterStatus != null && waterStatus !== "" && (
+                    <span className="flex items-center gap-1.5">
+                      <Droplets className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-muted-foreground">Agua:</span>
+                      <span className="text-foreground">{waterStatus}</span>
+                    </span>
+                  )}
+                  {gasStatus != null && gasStatus !== "" && (
+                    <span className="flex items-center gap-1.5">
+                      <Flame className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-muted-foreground">Gas:</span>
+                      <span className="text-foreground">{gasStatus}</span>
+                    </span>
+                  )}
+                  {electricityStatus != null && electricityStatus !== "" && (
+                    <span className="flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-muted-foreground">Electricidad:</span>
+                      <span className="text-foreground">{electricityStatus}</span>
+                    </span>
+                  )}
+                </div>
+                {utilitiesNotes != null && utilitiesNotes !== "" && (
+                  <p className="text-sm text-foreground mt-2 whitespace-pre-wrap">{utilitiesNotes}</p>
+                )}
+              </div>
+            )}
+
+            {/* Días (según fase) */}
+            {daysInfo && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{daysInfo.label}</p>
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {daysInfo.value} días
+                </p>
+              </div>
+            )}
+
+            {/* Carpeta Drive */}
+            {driveFolderUrl && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Carpeta Drive</p>
+                <a
+                  href={driveFolderUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"
+                >
+                  <Folder className="h-4 w-4 shrink-0" />
+                  Abrir carpeta
+                </a>
+              </div>
+            )}
+
+            {/* Notas Precheck (solo reno-in-progress) */}
+            {hasPrecheck && (
+              <div className="space-y-1 md:col-span-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4 shrink-0" />
+                  Notas Precheck
+                </p>
+                {supabaseProperty?.reno_precheck_comments ? (
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{supabaseProperty.reno_precheck_comments}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Precheck guardado (sin comentarios).</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Información de la propiedad (incluye habitaciones, baños, m², etc. con mejor diseño) */}
       <div className="bg-card rounded-lg border p-6 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4 text-foreground">Información de la propiedad</h3>
+        <h3 className="text-lg font-semibold mb-4 text-foreground">Información de la propiedad</h3>
+        {/* Características principales: habitaciones, baños, m², etc. */}
+        {(bedrooms != null || bathrooms != null || usableArea || builtArea || (parkingSpaces !== undefined && parkingSpaces > 0) || hasElevator || hasBalcony || hasStorage) && (
+          <div className="flex flex-wrap gap-3 mb-6 pb-4 border-b">
+            {bedrooms != null && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-3 py-1.5 text-sm font-medium text-foreground">
+                <Home className="h-4 w-4 text-muted-foreground shrink-0" />
+                {bedrooms} {bedrooms === 1 ? 'habitación' : 'habitaciones'}
+              </span>
+            )}
+            {bathrooms != null && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-3 py-1.5 text-sm font-medium text-foreground">
+                <Home className="h-4 w-4 text-muted-foreground shrink-0" />
+                {bathrooms} {bathrooms === 1 ? 'baño' : 'baños'}
+              </span>
+            )}
+            {usableArea && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-3 py-1.5 text-sm font-medium text-foreground">
+                {usableArea} m² útiles
+              </span>
+            )}
+            {builtArea && builtArea !== usableArea && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-3 py-1.5 text-sm font-medium text-foreground">
+                {builtArea} m² construidos
+              </span>
+            )}
+            {parkingSpaces !== undefined && parkingSpaces > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-3 py-1.5 text-sm font-medium text-foreground">
+                {parkingSpaces} {parkingSpaces === 1 ? 'plaza' : 'plazas'} parking
+              </span>
+            )}
+            {hasElevator && (
+              <span className="inline-flex items-center rounded-md bg-muted/60 px-3 py-1.5 text-sm font-medium text-foreground">
+                Ascensor
+              </span>
+            )}
+            {hasBalcony && (
+              <span className="inline-flex items-center rounded-md bg-muted/60 px-3 py-1.5 text-sm font-medium text-foreground">
+                Balcón / Terraza
+              </span>
+            )}
+            {hasStorage && (
+              <span className="inline-flex items-center rounded-md bg-muted/60 px-3 py-1.5 text-sm font-medium text-foreground">
+                Trastero
+              </span>
+            )}
+          </div>
+        )}
         <div className="space-y-4">
           {propertyType && (
             <div className="pt-2 border-t first:border-t-0 first:pt-0">
@@ -452,43 +706,6 @@ export function PropertySummaryTab({
           </div>
         </div>
       )}
-
-      {/* Legal and Community Status */}
-      <div className="bg-card rounded-lg border p-6 shadow-sm">
-        <h3 className="text-lg font-semibold mb-4">Estado legal y de la comunidad</h3>
-        <div className="space-y-3">
-          {/* Estos campos vendrían de Supabase/Airtable */}
-          <div className="flex items-start gap-2">
-            <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-            <p className="text-sm">El edificio tiene una ITE favorable en vigor</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-            <p className="text-sm">Esta propiedad se comercializa en exclusiva</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-            <p className="text-sm">El edificio tiene seguro activo</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
-            <p className="text-sm">Comunidad de propietarios constituida</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <span className="text-red-600 dark:text-red-400 mt-0.5">✗</span>
-            <p className="text-sm">La propiedad no está actualmente alquilada</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Documentation */}
-      <div className="bg-card rounded-lg border p-6 shadow-sm">
-        <h3 className="text-lg font-semibold mb-4">Documentación</h3>
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Los documentos se cargarán desde la checklist</p>
-          {/* Placeholder para documentos cuando estén disponibles */}
-        </div>
-      </div>
 
       {/* Location Map */}
       <div className="bg-card rounded-lg border p-6 shadow-sm">

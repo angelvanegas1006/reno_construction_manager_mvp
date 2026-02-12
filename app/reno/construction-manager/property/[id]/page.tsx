@@ -806,20 +806,23 @@ export default function RenoPropertyDetailPage() {
                         ? t.propertyAction.openInitialChecklist
                         : t.propertyAction.openFinalChecklist}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="mt-2 min-w-[200px]"
-                    asChild
-                  >
-                    <a
-                      href="https://airtable.com/appT59F8wolMDKZeG/pagBa0X9ifuUspF1k"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {/* Ocultar "Hacer check en Airtable" en revisión final (final-check, furnishing, cleaning, amueblamiento, etc.) */}
+                  {currentPhase === "initial-check" && (
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="mt-2 min-w-[200px]"
+                      asChild
                     >
-                      Hacer check en Airtable
-                    </a>
-                  </Button>
+                      <a
+                        href="https://airtable.com/appT59F8wolMDKZeG/pagBa0X9ifuUspF1k"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Hacer check en Airtable
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1219,8 +1222,8 @@ export default function RenoPropertyDetailPage() {
             </div>
           </div>
 
-          {/* Right Sidebar - Status - Hidden on mobile */}
-          <div className="hidden lg:block">
+          {/* Right Sidebar - Status - Hidden on mobile; h-full + min-h-0 para que el contenido haga scroll */}
+          <div className="hidden lg:block h-full min-h-0">
             <PropertyStatusSidebar
               property={property}
               supabaseProperty={supabaseProperty}

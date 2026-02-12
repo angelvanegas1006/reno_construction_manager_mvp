@@ -63,6 +63,17 @@ const CLIMATIZATION_ITEMS_SALON = [
   { id: "split-ac", translationKey: "splitAc" },
 ] as const;
 
+// Fases que usan checklist final (revisión final): ocultar botón "Enviar checklist" / "Hacer check en Airtable"
+const FINAL_CHECKLIST_PHASES: readonly string[] = [
+  "final-check",
+  "furnishing",
+  "cleaning",
+  "pendiente-suministros",
+  "amueblamiento", // Kanban Proyectos: Amoblamiento
+  "check-final", // Kanban Proyectos: Revisión final
+  "furnishing-cleaning", // Legacy
+];
+
 export default function RenoChecklistPage() {
   const paramsPromise = useParams();
   const router = useRouter();
@@ -127,11 +138,11 @@ export default function RenoChecklistPage() {
     return getPropertyRenoPhaseFromSupabase(supabaseProperty);
   }, [supabaseProperty]);
 
-  // Determine checklist type based on phase
+  // Determine checklist type based on phase (FINAL_CHECKLIST_PHASES → reno_final, resto → reno_initial)
   const checklistType: ChecklistType = useMemo(() => {
     if (!property || !supabaseProperty) return "reno_initial";
     const phase = getPropertyRenoPhase(property);
-    const result = (phase === "final-check" || phase === "furnishing" || phase === "cleaning" || phase === "pendiente-suministros") ? "reno_final" : "reno_initial";
+    const result = phase && FINAL_CHECKLIST_PHASES.includes(phase) ? "reno_final" : "reno_initial";
     console.log('[ChecklistPage] 🔍 Checklist type determination:', {
       phase,
       checklistType: result,
@@ -166,14 +177,12 @@ export default function RenoChecklistPage() {
     } catch (_) { /* ignorar */ }
   }, [propertyId, checklistType]);
 
-  // Redirect back if trying to access final-check but not in final-check, furnishing, cleaning, or pendiente-suministros phase
-  // Initial-check remains accessible from all phases
+  // Redirect back if trying to access final checklist but not in a "revision final" phase
   useEffect(() => {
     if (!isLoading && property && supabaseProperty) {
       const phase = getPropertyRenoPhase(property);
-      // Allow final-check checklist from furnishing, final-check, cleaning, and pendiente-suministros phases
-      // Only redirect if trying to access final-check but not in one of these phases
-      if (checklistType === "reno_final" && phase && phase !== "final-check" && phase !== "furnishing" && phase !== "cleaning" && phase !== "pendiente-suministros") {
+      const isFinalPhase = phase && FINAL_CHECKLIST_PHASES.includes(phase);
+      if (checklistType === "reno_final" && phase && !isFinalPhase) {
         router.replace(`/reno/construction-manager/property/${property.id}`);
       }
     }
@@ -1487,20 +1496,21 @@ export default function RenoChecklistPage() {
                   variant: "outline",
                   disabled: !hasUnsavedChanges,
                 },
-                {
-                  label: t.checklist.submitChecklist,
-                  onClick: async () => {
-                    if (!property || isCompleting) return;
-                    // Final check: mostrar modal "¿La vivienda está lista para la comercialización?"
-                    if (checklistType === "reno_final") {
-                      setShowReadyForCommercializationModal(true);
-                      return;
-                    }
-                    await handleSubmitCheck();
-                  },
-                  variant: "default" as const,
-                  disabled: isCompleting,
-                },
+                // Ocultar botón "Enviar checklist" (finalizar con Airtable) en todo lo que sea revisión final:
+                // final-check, amoblamiento (furnishing), cleaning, pendiente-suministros (checklistType === reno_final)
+                ...(checklistType !== "reno_final"
+                  ? [
+                      {
+                        label: t.checklist.submitChecklist,
+                        onClick: async () => {
+                          if (!property || isCompleting) return;
+                          await handleSubmitCheck();
+                        },
+                        variant: "default" as const,
+                        disabled: isCompleting,
+                      },
+                    ]
+                  : []),
               ]
         }
       />
