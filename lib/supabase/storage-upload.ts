@@ -99,13 +99,56 @@ function base64ToFile(base64: string, filename: string, mimeType: string): File 
   return new File([blob], filename, { type: mimeType });
 }
 
+const UPLOAD_BATCH_SIZE = 3; // Subir de 3 en 3 para no saturar memoria ni bloquear la UI
+
+async function uploadOneFile(
+  file: FileUpload,
+  propertyId: string,
+  inspectionId: string,
+  zoneId?: string
+): Promise<string | null> {
+  if (file.data && file.data.startsWith('http')) return file.data;
+
+  if (file.data && file.data.startsWith('data:')) {
+    const mimeMatch = file.data.match(/data:([^;]+);/);
+    const mimeType = mimeMatch ? mimeMatch[1] : file.type || 'image/jpeg';
+    const base64Length = file.data.length;
+    const estimatedSizeBytes = Math.floor((base64Length * 3) / 4);
+    let dataToUpload = file.data;
+    if (file.data.startsWith('data:image/') && estimatedSizeBytes > IMAGE_COMPRESS_THRESHOLD_BYTES) {
+      try {
+        dataToUpload = await compressImageDataUrlIfNeeded(file.data, IMAGE_COMPRESS_THRESHOLD_BYTES);
+      } catch (e) {
+        console.warn('[storage-upload] Compression failed, uploading original:', file.name, e);
+      }
+    }
+    try {
+      const fileObj = base64ToFile(dataToUpload, file.name, mimeType);
+      return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
+    } catch (error: any) {
+      if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) return null;
+      console.warn('[storage-upload] Error subiendo archivo:', file.name, error?.message);
+      return null;
+    }
+  }
+
+  if (file.data && !file.data.startsWith('http') && !file.data.startsWith('data:')) {
+    try {
+      const fileObj = base64ToFile(file.data, file.name, file.type || 'image/jpeg');
+      return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
+    } catch (error: any) {
+      if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) return null;
+      console.warn('[storage-upload] Error subiendo archivo (base64 raw):', file.name, error?.message);
+      return null;
+    }
+  }
+
+  return null;
+}
+
 /**
- * Sube múltiples archivos a Supabase Storage (tolerante a fallos: un fallo no aborta el resto).
- * @param files Array de FileUpload a subir
- * @param propertyId ID de la propiedad
- * @param inspectionId ID de la inspección
- * @param zoneId ID de la zona (opcional)
- * @returns Array de misma longitud que files: URL string en posición correcta o null si falló/no válido
+ * Sube múltiples archivos a Supabase Storage en lotes (evita saturar memoria y que la app vaya lenta).
+ * Un fallo en un archivo no aborta el resto.
  */
 export async function uploadFilesToStorage(
   files: FileUpload[],
@@ -113,87 +156,19 @@ export async function uploadFilesToStorage(
   inspectionId: string,
   zoneId?: string
 ): Promise<(string | null)[]> {
-  const uploadPromises = files.map(async (file): Promise<string | null> => {
-    // Si ya tiene URL (ya subido), retornar directamente
-    if (file.data && file.data.startsWith('http')) {
-      return file.data;
-    }
+  const results: (string | null)[] = new Array(files.length).fill(null);
 
-    // Si tiene data como base64, convertirlo a File y subirlo
-    if (file.data && file.data.startsWith('data:')) {
-      const mimeMatch = file.data.match(/data:([^;]+);/);
-      const mimeType = mimeMatch ? mimeMatch[1] : file.type || 'image/jpeg';
-      const base64Length = file.data.length;
-      const estimatedSizeBytes = Math.floor((base64Length * 3) / 4);
-      const estimatedSizeMB = (estimatedSizeBytes / (1024 * 1024)).toFixed(2);
-      let dataToUpload = file.data;
-      if (file.data.startsWith('data:image/') && estimatedSizeBytes > IMAGE_COMPRESS_THRESHOLD_BYTES) {
-        try {
-          dataToUpload = await compressImageDataUrlIfNeeded(file.data, IMAGE_COMPRESS_THRESHOLD_BYTES);
-          if (dataToUpload !== file.data) {
-            const newEst = Math.floor((dataToUpload.length * 3) / 4);
-            console.log('[storage-upload] 🗜️ Image compressed before upload:', { name: file.name, originalMB: estimatedSizeMB, newMB: (newEst / (1024 * 1024)).toFixed(2) });
-          }
-        } catch (e) {
-          console.warn('[storage-upload] Compression failed, uploading original:', file.name, e);
-        }
-      }
-      try {
-        const fileObj = base64ToFile(dataToUpload, file.name, mimeType);
-        return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
-      } catch (error: any) {
-        if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
-          console.warn(`[storage-upload] Bucket '${STORAGE_BUCKET}' no encontrado.`);
-          return null;
-        }
-        console.warn('[storage-upload] Error subiendo archivo (base64 data:):', {
-          name: file.name,
-          base64Length,
-          estimatedSizeMB,
-          errorMessage: error?.message,
-          error,
-        });
-        return null;
-      }
-    }
-
-    // Si es base64 sin prefijo data:
-    if (file.data && !file.data.startsWith('http') && !file.data.startsWith('data:')) {
-      const base64Length = file.data.length;
-      const estimatedSizeMB = (Math.floor((base64Length * 3) / 4) / (1024 * 1024)).toFixed(2);
-      try {
-        const fileObj = base64ToFile(file.data, file.name, file.type || 'image/jpeg');
-        return await uploadFileToStorage(fileObj, propertyId, inspectionId, zoneId);
-      } catch (error: any) {
-        if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) {
-          console.warn(`[storage-upload] Bucket '${STORAGE_BUCKET}' no encontrado.`);
-          return null;
-        }
-        console.warn('[storage-upload] Error subiendo archivo (base64 raw):', {
-          name: file.name,
-          base64Length,
-          estimatedSizeMB,
-          errorMessage: error?.message,
-          error,
-        });
-        return null;
-      }
-    }
-
-    return null;
-  });
-
-  const settled = await Promise.allSettled(uploadPromises);
-  return settled.map((result, index) => {
-    if (result.status === 'fulfilled') return result.value;
-    const file = files[index];
-    console.warn('[storage-upload] Upload rejected (Promise.allSettled):', {
-      fileIndex: index,
-      fileName: file?.name,
-      reason: result.reason,
+  for (let i = 0; i < files.length; i += UPLOAD_BATCH_SIZE) {
+    const batch = files.slice(i, i + UPLOAD_BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map((file) => uploadOneFile(file, propertyId, inspectionId, zoneId))
+    );
+    batchResults.forEach((url, j) => {
+      results[i + j] = url;
     });
-    return null;
-  });
+  }
+
+  return results;
 }
 
 /**
