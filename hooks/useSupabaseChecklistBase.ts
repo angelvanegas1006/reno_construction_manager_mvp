@@ -100,6 +100,8 @@ export function useSupabaseChecklistBase({
   // Contador de reintentos de refetch cuando zones siguen en 0 (evitar mostrar checklist vacío antes de que existan zonas)
   const zonesRefetchRetryCountRef = useRef<number>(0);
   const maxZonesRefetchRetries = 5;
+  /** Cuando es true, saveCurrentSection no hace refetch; evita que saveAllSections sobrescriba el checklist con datos parciales tras cada sección */
+  const savingAllSectionsRef = useRef<boolean>(false);
   
   // Keep checklistRef in sync with checklist state
   useEffect(() => {
@@ -1765,7 +1767,11 @@ export function useSupabaseChecklistBase({
             e.image_urls.some((url: string) => url.startsWith('data:') || !url.startsWith('http'))
           );
           
-          if (hasPhotosToUpdate) {
+          // No refetch durante saveAllSections: cada refetch reemplaza el checklist con lo que hay en BD
+          // (solo la sección guardada hasta ese momento), borrando el resto de secciones en memoria
+          if (savingAllSectionsRef.current) {
+            debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping refetch during saveAllSections (evita perder otras secciones)`);
+          } else if (hasPhotosToUpdate) {
             // Refetch solo si hay fotos que necesitan URLs actualizadas desde Storage
             debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Refetching to update photo URLs...`);
             await refetchInspection();
@@ -2043,7 +2049,6 @@ export function useSupabaseChecklistBase({
     // Si ya hay un guardado en progreso, esperar a que termine
     if (savingRef.current) {
       debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Save already in progress, waiting...`);
-      // Esperar hasta que termine el guardado actual
       while (savingRef.current) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -2054,9 +2059,8 @@ export function useSupabaseChecklistBase({
     const sectionIds = Object.keys(checklist.sections);
     debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📋 Found ${sectionIds.length} sections to save:`, sectionIds);
     
-    // Guardar cada sección usando la misma lógica que saveCurrentSection
-    // Pero temporalmente cambiando currentSectionRef para cada una
     const originalSectionRef = currentSectionRef.current;
+    savingAllSectionsRef.current = true;
     
     try {
       for (const sectionId of sectionIds) {
@@ -2066,32 +2070,26 @@ export function useSupabaseChecklistBase({
           continue;
         }
 
-        // Temporalmente cambiar currentSectionRef para que saveCurrentSection guarde esta sección
         currentSectionRef.current = sectionId;
-        
         debugLog(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving section: ${sectionId}`);
         
-        // Guardar esta sección (saveCurrentSection maneja subida de archivos y guardado de elementos)
-        // Usar directamente la lógica de saveCurrentSection pero sin el flag de protección
-        // porque estamos iterando secuencialmente
         await saveCurrentSection();
-        
-        // Pequeña pausa para evitar rate limiting y asegurar que el guardado anterior termine
         await new Promise(resolve => setTimeout(resolve, 200));
       }
       
-      // Restaurar sección original
       currentSectionRef.current = originalSectionRef;
       
-      // Refetch para asegurar que todos los datos estén actualizados
+      // Un solo refetch al final: así el checklist se actualiza con TODAS las secciones ya guardadas
+      // y no se sobrescribe con datos parciales tras cada sección (que borraba el resto en memoria)
       await refetchInspection();
       
       debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ All sections saved successfully`);
     } catch (error) {
-      // Restaurar sección original incluso si hay error
       currentSectionRef.current = originalSectionRef;
       debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error saving all sections:`, error);
       throw error;
+    } finally {
+      savingAllSectionsRef.current = false;
     }
   }, [checklist, inspection, supabaseProperty, saveCurrentSection, refetchInspection, inspectionType]);
 
