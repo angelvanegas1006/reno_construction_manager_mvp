@@ -88,8 +88,22 @@ export function convertSectionToZones(
 
   const zones: ZoneInsert[] = [];
 
-  // Secciones dinámicas (habitaciones, banos)
-  if (section.dynamicItems && section.dynamicItems.length > 0) {
+  // Secciones dinámicas (habitaciones, banos): crear una zona por habitación/baño
+  // Si dynamicItems está vacío (p. ej. al crear inspección) usar dynamicCount para crear las zonas
+  if (sectionId === 'habitaciones' || sectionId === 'banos') {
+    const count = Math.max(
+      section.dynamicItems?.length ?? 0,
+      section.dynamicCount ?? 1,
+      1
+    );
+    for (let i = 0; i < count; i++) {
+      zones.push({
+        inspection_id: inspectionId,
+        zone_type: zoneType,
+        zone_name: `${ZONE_TYPE_TO_NAME[zoneType]} ${i + 1}`,
+      });
+    }
+  } else if (section.dynamicItems && section.dynamicItems.length > 0) {
     section.dynamicItems.forEach((item, index) => {
       const zoneName = `${ZONE_TYPE_TO_NAME[zoneType]} ${index + 1}`;
       zones.push({
@@ -99,7 +113,7 @@ export function convertSectionToZones(
       });
     });
   } else {
-    // Secciones fijas
+    // Secciones fijas (salon, cocina, etc.)
     const zoneName = ZONE_TYPE_TO_NAME[zoneType];
     zones.push({
       inspection_id: inspectionId,
