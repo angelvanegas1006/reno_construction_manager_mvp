@@ -330,6 +330,23 @@ export default function RenoChecklistPage() {
     return sectionId;
   }, []);
 
+  // Guardado automático cada 60 s si hay cambios sin guardar (reduce pérdida de progreso si la app se cierra)
+  const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (isChecklistCompleted || !checklist) return;
+    autoSaveIntervalRef.current = setInterval(() => {
+      if (!hasUnsavedChanges || !checklist) return;
+      const sectionIdForSave = getSectionIdForSave(activeSection);
+      if (!checklist.sections[sectionIdForSave]) return;
+      saveCurrentSection(sectionIdForSave)
+        .then(() => setHasUnsavedChanges(false))
+        .catch(() => { /* no molestar con toast en auto-save */ });
+    }, 60 * 1000);
+    return () => {
+      if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current);
+    };
+  }, [hasUnsavedChanges, checklist, activeSection, getSectionIdForSave, saveCurrentSection, isChecklistCompleted]);
+
   // Handle section click - Guardar la sección que SALIMOS antes de cambiar (crítico para no perder fotos en móvil)
   // Si el guardado falla, NO cambiamos de sección para no perder el avance; mostramos Reintentar.
   const handleSectionClick = useCallback(async (sectionId: string) => {
