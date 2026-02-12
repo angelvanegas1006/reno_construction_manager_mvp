@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { FileUpload } from "@/lib/property-storage";
+import { compressImageDataUrlIfNeeded } from "@/lib/image-compress";
 
 interface UseFileUploadProps {
   maxFileSize?: number; // in MB
@@ -81,36 +82,30 @@ export function useFileUpload({
     return null;
   }, [maxFileSize, acceptedTypes]);
 
+  // Comprimir imágenes al añadirlas (1.5 MB umbral) para no llenar memoria con muchas fotos
+  const IMAGE_COMPRESS_THRESHOLD_BYTES = 1.5 * 1024 * 1024;
+
   const processFile = useCallback(async (file: File): Promise<FileUpload> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        const fileUpload = {
+      reader.onload = async () => {
+        let data = reader.result as string;
+        if (data.startsWith("data:image/")) {
+          try {
+            data = await compressImageDataUrlIfNeeded(data, IMAGE_COMPRESS_THRESHOLD_BYTES);
+          } catch (_) { /* usar original */ }
+        }
+        const fileUpload: FileUpload = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           name: file.name,
           type: file.type,
           size: file.size,
-          data: base64,
+          data,
           uploadedAt: new Date().toISOString(),
         };
-        console.log('[useFileUpload] ✅ File processed:', {
-          id: fileUpload.id,
-          name: fileUpload.name,
-          hasData: !!fileUpload.data,
-          dataLength: fileUpload.data?.length || 0,
-          dataPreview: fileUpload.data?.substring(0, 50)
-        });
         resolve(fileUpload);
       };
-      
-      reader.onerror = (error) => {
-        console.error('[useFileUpload] ❌ Error processing file:', { name: file.name, error });
-        reject(new Error("Error al procesar el archivo"));
-      };
-      
-      console.log('[useFileUpload] 🔄 Processing file:', { name: file.name, type: file.type, size: file.size });
+      reader.onerror = () => reject(new Error("Error al procesar el archivo"));
       reader.readAsDataURL(file);
     });
   }, []);
