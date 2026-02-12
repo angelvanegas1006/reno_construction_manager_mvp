@@ -193,7 +193,7 @@ export default function RenoChecklistPage() {
   });
   
   // Seleccionar el hook apropiado según el tipo de checklist
-  const { checklist, updateSection, isLoading: checklistLoading, finalizeChecklist, saveCurrentSection } = 
+  const { checklist, updateSection, isLoading: checklistLoading, finalizeChecklist, saveCurrentSection, saveAllSections } = 
     checklistType === "reno_final" ? finalChecklist : initialChecklist;
 
   // Use Supabase inspection hook to get completeInspection function
@@ -1298,9 +1298,14 @@ export default function RenoChecklistPage() {
           }
         }
 
-        const sectionIdToSave = getSectionIdForSave(activeSection);
-        if (checklist?.sections[sectionIdToSave]) {
-          await saveCurrentSection(sectionIdToSave);
+        // Guardar TODAS las secciones antes de validar y enviar (evita "no se puede enviar" por datos no guardados)
+        if (typeof saveAllSections === "function") {
+          await saveAllSections();
+        } else {
+          const sectionIdToSave = getSectionIdForSave(activeSection);
+          if (checklist?.sections[sectionIdToSave]) {
+            await saveCurrentSection(sectionIdToSave);
+          }
         }
 
         const incompleteSection = getFirstIncompleteSection(checklist);
