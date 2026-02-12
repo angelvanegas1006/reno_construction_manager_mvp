@@ -61,6 +61,13 @@ export async function uploadFileToStorage(
       console.error(`[storage-upload] ⚠️ Error de Row Level Security. Por favor ejecuta las políticas SQL en Supabase Dashboard → SQL Editor. Ver docs/SUPABASE_STORAGE_INSPECTION_IMAGES.md`);
       throw new Error(`Error de Row Level Security. Por favor ejecuta las políticas SQL en Supabase Dashboard → SQL Editor. Ver docs/SUPABASE_STORAGE_INSPECTION_IMAGES.md`);
     }
+    // Cuota de almacenamiento de Supabase superada (plan Free = 1 GB). Mensaje claro para el usuario.
+    if (error.message?.toLowerCase().includes('quota') || error.message?.toLowerCase().includes('exceeded')) {
+      throw new Error(
+        'Cuota de almacenamiento superada. El proyecto ha alcanzado el límite de espacio (p. ej. 1 GB en plan gratuito). ' +
+        'Libera espacio en Supabase Dashboard → Storage o sube un vídeo más corto/ligero.'
+      );
+    }
     throw new Error(`Error al subir archivo: ${error.message}`);
   }
 

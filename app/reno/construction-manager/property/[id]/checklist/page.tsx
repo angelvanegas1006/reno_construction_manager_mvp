@@ -96,6 +96,17 @@ export default function RenoChecklistPage() {
     }
   }, [propertyId, sourcePage, viewMode, unwrappedSearchParams]);
 
+  // Avisar antes de salir si hay cambios sin guardar (evita perder avance al cerrar pestaña o volver atrás)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   // Load property from Supabase
   const { property: supabaseProperty, loading: supabaseLoading, error: propertyError, refetch: refetchProperty } = useSupabaseProperty(propertyId);
   
@@ -131,6 +142,29 @@ export default function RenoChecklistPage() {
     });
     return result;
   }, [property, supabaseProperty, getPropertyRenoPhase]);
+
+  // Si la última vez el guardado falló y el usuario salió, informar al volver (solo una vez)
+  useEffect(() => {
+    if (!propertyId || typeof sessionStorage === "undefined") return;
+    const inspectionTypeForDraft = checklistType === "reno_final" ? "final" : "initial";
+    try {
+      const raw = sessionStorage.getItem("checklist-last-save-failed");
+      if (!raw) return;
+      const data = JSON.parse(raw) as { propertyId: string; inspectionType: string; at: number };
+      const twoHours = 2 * 60 * 60 * 1000;
+      if (
+        data.propertyId === propertyId &&
+        data.inspectionType === inspectionTypeForDraft &&
+        Date.now() - data.at < twoHours
+      ) {
+        sessionStorage.removeItem("checklist-last-save-failed");
+        toast.info(
+          "La última vez el guardado falló. Si saliste de la página, esos cambios no se guardaron. Usa «Reintentar» cuando veas un error y no salgas hasta que guarde bien.",
+          { duration: 8000 }
+        );
+      }
+    } catch (_) { /* ignorar */ }
+  }, [propertyId, checklistType]);
 
   // Redirect back if trying to access final-check but not in final-check, furnishing, cleaning, or pendiente-suministros phase
   // Initial-check remains accessible from all phases
@@ -297,6 +331,7 @@ export default function RenoChecklistPage() {
   }, []);
 
   // Handle section click - Guardar la sección que SALIMOS antes de cambiar (crítico para no perder fotos en móvil)
+  // Si el guardado falla, NO cambiamos de sección para no perder el avance; mostramos Reintentar.
   const handleSectionClick = useCallback(async (sectionId: string) => {
     const currentSectionIdForSave = getSectionIdForSave(activeSection);
     const isChangingSection = currentSectionIdForSave !== getSectionIdForSave(sectionId);
@@ -305,9 +340,29 @@ export default function RenoChecklistPage() {
       try {
         await saveCurrentSection(currentSectionIdForSave);
         setHasUnsavedChanges(false);
-      } catch (error) {
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Error desconocido";
         console.error("Error al guardar antes de cambiar de sección:", error);
-        toast.error("Error al guardar cambios. Los cambios no se guardaron.");
+        const userMessage = message.startsWith("Cuota de almacenamiento") ? message : `Error al guardar cambios: ${message}`;
+        toast.error(userMessage, {
+          duration: 10000,
+          action: {
+            label: "Reintentar",
+            onClick: async () => {
+              try {
+                await saveCurrentSection(currentSectionIdForSave);
+                setHasUnsavedChanges(false);
+                setActiveSection(sectionId);
+                setIsMobileSidebarOpen(false);
+                toast.success("Cambios guardados");
+              } catch (retryErr) {
+                const retryMsg = retryErr instanceof Error ? retryErr.message : "Error desconocido";
+                toast.error(retryMsg.startsWith("Cuota de almacenamiento") ? retryMsg : `Error al guardar: ${retryMsg}`);
+              }
+            },
+          },
+        });
+        return; // No cambiar de sección; el usuario sigue en la actual con sus datos
       }
     }
 
@@ -354,23 +409,40 @@ export default function RenoChecklistPage() {
   }, [activeSection, checklist, saveCurrentSection, getSectionIdForSave]);
 
   // Handle continue - Guarda la sección actual (id normalizado: habitaciones-N -> habitaciones) y luego cambia de sección
+  // Si el guardado falla, no avanzamos y mostramos Reintentar para no perder el avance.
   const handleContinue = useCallback(async (nextSectionId: string) => {
     if (!checklist) return;
+    const currentSectionIdForSave = getSectionIdForSave(activeSection);
     try {
-      const currentSectionIdForSave = getSectionIdForSave(activeSection);
       if (checklist.sections[currentSectionIdForSave]) {
         await saveCurrentSection(currentSectionIdForSave);
       }
       setHasUnsavedChanges(false);
-
-      // Cambiar a la siguiente sección
       handleSectionClick(nextSectionId);
-      
-      // Mostrar toast de confirmación
       toast.success(t.messages.saveSuccess || "Cambios guardados");
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Error desconocido";
       console.error("Error al guardar antes de continuar:", error);
-      toast.error("Error al guardar cambios. Intenta nuevamente.");
+      const userMessage = message.startsWith("Cuota de almacenamiento") ? message : `Error al guardar cambios: ${message}`;
+      toast.error(userMessage, {
+        duration: 10000,
+        action: {
+          label: "Reintentar",
+          onClick: async () => {
+            try {
+              if (checklist.sections[currentSectionIdForSave]) {
+                await saveCurrentSection(currentSectionIdForSave);
+              }
+              setHasUnsavedChanges(false);
+              handleSectionClick(nextSectionId);
+              toast.success(t.messages.saveSuccess || "Cambios guardados");
+            } catch (retryErr: unknown) {
+              const retryMsg = retryErr instanceof Error ? retryErr.message : "Error desconocido";
+              toast.error(retryMsg.startsWith("Cuota de almacenamiento") ? retryMsg : `Error al guardar: ${retryMsg}`);
+            }
+          },
+        },
+      });
     }
   }, [checklist, activeSection, saveCurrentSection, handleSectionClick, getSectionIdForSave, t]);
 
@@ -392,9 +464,27 @@ export default function RenoChecklistPage() {
       await saveCurrentSection(sectionIdForSave);
       setHasUnsavedChanges(false);
       toast.success(t.messages.saveSuccess);
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Error desconocido";
       console.error("Error al guardar:", error);
-      toast.error("Error al guardar cambios");
+      const userMessage = message.startsWith("Cuota de almacenamiento") ? message : `Error al guardar: ${message}`;
+      toast.error(userMessage, {
+        duration: 10000,
+        action: {
+          label: "Reintentar",
+          onClick: async () => {
+            try {
+              const sectionIdForSaveRetry = getSectionIdForSave(activeSection);
+              await saveCurrentSection(sectionIdForSaveRetry);
+              setHasUnsavedChanges(false);
+              toast.success(t.messages.saveSuccess);
+            } catch (retryErr: unknown) {
+              const retryMsg = retryErr instanceof Error ? retryErr.message : "Error desconocido";
+              toast.error(retryMsg.startsWith("Cuota de almacenamiento") ? retryMsg : `Error al guardar: ${retryMsg}`);
+            }
+          },
+        },
+      });
     }
   }, [checklist, t, saveCurrentSection, activeSection, getSectionIdForSave]);
 
