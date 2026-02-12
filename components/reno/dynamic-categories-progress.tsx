@@ -215,6 +215,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   const [finalizeModalOpen, setFinalizeModalOpen] = useState(false);
   const [finalizeCheckboxes, setFinalizeCheckboxes] = useState<Record<string, boolean>>({});
   const [finalizeItemCheckboxes, setFinalizeItemCheckboxes] = useState<Record<string, boolean>>({});
+  const [finalizeComments, setFinalizeComments] = useState('');
   const [isFinalizing, setIsFinalizing] = useState(false);
 
   // Verificar si hay categorías sin actividades
@@ -822,14 +823,43 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
     const justOpened = finalizeModalOpen && !prevFinalizeModalOpen.current;
     prevFinalizeModalOpen.current = finalizeModalOpen;
     if (justOpened && groupedCategories.length > 0) {
-      setFinalizeCheckboxes(
-        Object.fromEntries(groupedCategories.map((g) => [g.categoryName, false]))
-      );
-      setFinalizeItemCheckboxes(
-        Object.fromEntries(finalizeItemKeys.map((k) => [k, false]))
-      );
+      const defaultsCat = Object.fromEntries(groupedCategories.map((g) => [g.categoryName, false]));
+      const defaultsItem = Object.fromEntries(finalizeItemKeys.map((k) => [k, false]));
+      (async () => {
+        try {
+          const { data } = await supabase
+            .from('properties')
+            .select('reno_precheck_comments, reno_precheck_checks')
+            .eq('id', property.id)
+            .single();
+          const saved = data as { reno_precheck_comments?: string | null; reno_precheck_checks?: { categoryChecks?: Record<string, boolean>; itemChecks?: Record<string, boolean> } | null } | null;
+          setFinalizeComments(saved?.reno_precheck_comments ?? '');
+          setFinalizeCheckboxes(saved?.reno_precheck_checks?.categoryChecks ? { ...defaultsCat, ...saved.reno_precheck_checks.categoryChecks } : defaultsCat);
+          setFinalizeItemCheckboxes(saved?.reno_precheck_checks?.itemChecks ? { ...defaultsItem, ...saved.reno_precheck_checks.itemChecks } : defaultsItem);
+        } catch {
+          setFinalizeCheckboxes(Object.fromEntries(groupedCategories.map((g) => [g.categoryName, false])));
+          setFinalizeItemCheckboxes(Object.fromEntries(finalizeItemKeys.map((k) => [k, false])));
+        }
+      })();
     }
-  }, [finalizeModalOpen, groupedCategories, finalizeItemKeys]);
+  }, [finalizeModalOpen, groupedCategories, finalizeItemKeys, property.id]);
+
+  const savePrecheck = useCallback(async () => {
+    try {
+      const { error } = await supabase
+        .from('properties')
+        .update({
+          reno_precheck_comments: finalizeComments.trim() || null,
+          reno_precheck_checks: { categoryChecks: finalizeCheckboxes, itemChecks: finalizeItemCheckboxes },
+        })
+        .eq('id', property.id);
+      if (error) throw error;
+      toast.success('Precheck guardado');
+    } catch (e) {
+      console.error('Error saving precheck:', e);
+      toast.error('Error al guardar el precheck');
+    }
+  }, [property.id, finalizeComments, finalizeCheckboxes, finalizeItemCheckboxes]);
 
   const allFinalizeCheckboxesChecked =
     groupedCategories.length > 0 &&
@@ -1678,7 +1708,17 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       </div>
 
       {/* Modal Dar obra por finalizada */}
-      <Dialog open={finalizeModalOpen} onOpenChange={setFinalizeModalOpen}>
+      <Dialog
+        open={finalizeModalOpen}
+        onOpenChange={async (open) => {
+          if (!open) {
+            await savePrecheck();
+            setFinalizeModalOpen(false);
+          } else {
+            setFinalizeModalOpen(true);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[680px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t.propertyPage.finalizeModalTitle}</DialogTitle>
@@ -1787,20 +1827,43 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
               );
             })}
           </div>
+          <div className="space-y-2 pt-2 border-t">
+            <Label className="text-sm font-medium">Comentarios</Label>
+            <Textarea
+              placeholder="Comentarios del precheck (opcional)"
+              value={finalizeComments}
+              onChange={(e) => setFinalizeComments(e.target.value)}
+              className="min-h-[80px] resize-y"
+            />
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button
               variant="outline"
-              onClick={() => setFinalizeModalOpen(false)}
+              onClick={async () => {
+                await savePrecheck();
+                setFinalizeModalOpen(false);
+              }}
               disabled={isFinalizing}
             >
               {t.propertyPage.cancel}
             </Button>
-            <Button
-              onClick={handleConfirmFinalize}
-              disabled={!allFinalizeCheckboxesChecked || isFinalizing}
-            >
-              {isFinalizing ? t.propertyPage.finalizing : t.propertyPage.avanzarAAmoblamiento}
-            </Button>
+            {allFinalizeCheckboxesChecked ? (
+              <Button
+                onClick={handleConfirmFinalize}
+                disabled={isFinalizing}
+              >
+                {isFinalizing ? t.propertyPage.finalizing : t.propertyPage.avanzarAAmoblamiento}
+              </Button>
+            ) : (
+              <Button
+                onClick={async () => {
+                  await savePrecheck();
+                }}
+                disabled={isFinalizing}
+              >
+                Guardar
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
