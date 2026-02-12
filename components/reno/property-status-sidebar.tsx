@@ -278,6 +278,21 @@ export function PropertyStatusSidebar({
           </div>
         )}
 
+        {/* Notas Precheck - solo fase Reno in progress */}
+        {renoPhase === "reno-in-progress" && (supabaseProperty?.reno_precheck_comments || (supabaseProperty?.reno_precheck_checks && typeof supabaseProperty.reno_precheck_checks === "object" && (Object.keys((supabaseProperty.reno_precheck_checks as any).categoryChecks || {}).length > 0 || Object.keys((supabaseProperty.reno_precheck_checks as any).itemChecks || {}).length > 0))) && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              Notas Precheck
+            </h4>
+            {supabaseProperty?.reno_precheck_comments ? (
+              <p className="text-sm text-foreground whitespace-pre-wrap">{supabaseProperty.reno_precheck_comments}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Precheck guardado (sin comentarios).</p>
+            )}
+          </div>
+        )}
+
         {/* Property Creation Date */}
         {formattedDate && (
           <div className="pt-4 border-t">

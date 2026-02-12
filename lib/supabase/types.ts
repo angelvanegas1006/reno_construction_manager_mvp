@@ -212,6 +212,8 @@ export type Database = {
           airtable_property_id?: string | null
           airtable_properties_record_id?: string | null
           ready_for_commercialization?: boolean | null
+          reno_precheck_comments?: string | null
+          reno_precheck_checks?: { categoryChecks?: Record<string, boolean>; itemChecks?: Record<string, boolean> } | null
           area_cluster?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
