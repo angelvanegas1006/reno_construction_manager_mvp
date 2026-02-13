@@ -1,34 +1,60 @@
 import { ChecklistData, ChecklistSection, ChecklistQuestion, ChecklistUploadZone, ChecklistDynamicItem, ChecklistCarpentryItem, ChecklistClimatizationItem } from "@/lib/checklist-storage";
 
+// Entorno-zonas-comunes: solo validar portal, fachada y preguntas acceso-principal, comunicaciones, ascensor (alineado con checklist-validation)
+const ENTORNO_REQUIRED_UPLOAD_IDS = ["portal", "fachada"];
+const ENTORNO_REQUIRED_QUESTION_IDS = ["acceso-principal", "comunicaciones", "ascensor"];
+
 /**
  * Calcula el progreso de una sección del checklist
  * Simplificado: cuenta grupos en lugar de campos individuales para facilitar llegar al 100%
+ * Para entorno-zonas-comunes: solo considera los elementos requeridos (portal, fachada, acceso-principal, comunicaciones, ascensor)
  */
 export function calculateSectionProgress(section: ChecklistSection | undefined): number {
   if (!section) return 0;
 
+  const isEntornoZonas = section.id === "entorno-zonas-comunes";
   let totalGroups = 0;
   let completedGroups = 0;
 
-  // Grupo: Upload Zones (completo si al menos uno tiene fotos/videos)
+  // Grupo(s): Upload Zones
   if (section.uploadZones && section.uploadZones.length > 0) {
-    totalGroups++;
-    const hasAnyPhotosOrVideos = section.uploadZones.some((zone: ChecklistUploadZone) => 
-      (zone.photos && zone.photos.length > 0) || (zone.videos && zone.videos.length > 0)
-    );
-    if (hasAnyPhotosOrVideos) {
-      completedGroups++;
+    if (isEntornoZonas) {
+      // Entorno: requiere portal Y fachada (cada uno es un grupo o ambos juntos)
+      const zonesToCheck = section.uploadZones.filter((z) => ENTORNO_REQUIRED_UPLOAD_IDS.includes(z.id));
+      if (zonesToCheck.length > 0) {
+        totalGroups++;
+        const allRequiredHaveMedia = zonesToCheck.every((zone: ChecklistUploadZone) =>
+          (zone.photos && zone.photos.length > 0) || (zone.videos && zone.videos.length > 0)
+        );
+        if (allRequiredHaveMedia) completedGroups++;
+      }
+    } else {
+      totalGroups++;
+      const hasAnyPhotosOrVideos = section.uploadZones.some((zone: ChecklistUploadZone) =>
+        (zone.photos && zone.photos.length > 0) || (zone.videos && zone.videos.length > 0)
+      );
+      if (hasAnyPhotosOrVideos) completedGroups++;
     }
   }
 
-  // Grupo: Questions (completo si todas tienen status)
+  // Grupo: Questions
   if (section.questions && section.questions.length > 0) {
-    totalGroups++;
-    const allQuestionsHaveStatus = section.questions.every((question: ChecklistQuestion) => 
-      question.status !== undefined && question.status !== null
-    );
-    if (allQuestionsHaveStatus) {
-      completedGroups++;
+    if (isEntornoZonas) {
+      // Entorno: solo las preguntas requeridas (acceso-principal, comunicaciones, ascensor)
+      const questionsToCheck = section.questions.filter((q) => ENTORNO_REQUIRED_QUESTION_IDS.includes(q.id));
+      if (questionsToCheck.length > 0) {
+        totalGroups++;
+        const allRequiredHaveStatus = questionsToCheck.every((q: ChecklistQuestion) =>
+          q.status !== undefined && q.status !== null
+        );
+        if (allRequiredHaveStatus) completedGroups++;
+      }
+    } else {
+      totalGroups++;
+      const allQuestionsHaveStatus = section.questions.every((question: ChecklistQuestion) =>
+        question.status !== undefined && question.status !== null
+      );
+      if (allQuestionsHaveStatus) completedGroups++;
     }
   }
 

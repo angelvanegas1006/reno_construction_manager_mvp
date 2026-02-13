@@ -170,6 +170,7 @@ export function useSupabaseChecklistBase({
           { id: "comunicaciones" },
           { id: "electricidad" },
           { id: "carpinteria" },
+          { id: "ascensor" },
         ],
       },
       "estado-general": {
