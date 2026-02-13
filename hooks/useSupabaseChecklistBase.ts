@@ -1753,7 +1753,7 @@ export function useSupabaseChecklistBase({
           const result = await supabase
             .from('inspection_elements')
             .upsert(sanitizedElements, {
-              onConflict: ['zone_id', 'element_name'],
+              onConflict: 'zone_id,element_name',
             })
             .select();
           batchUpsertError = result.error;

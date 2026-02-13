@@ -487,7 +487,7 @@ export async function finalizeInitialCheckInAirtable(
       if (hasElementsInDb && zones) {
         const checklistData = convertSupabaseToChecklist(
           zones,
-          elements,
+          elements ?? [],
           property.bedrooms,
           property.bathrooms
         );
