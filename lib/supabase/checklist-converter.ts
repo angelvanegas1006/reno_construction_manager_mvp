@@ -7,8 +7,11 @@ type InspectionElement = Database['public']['Tables']['inspection_elements']['Ro
 type ZoneInsert = Database['public']['Tables']['inspection_zones']['Insert'];
 type ElementInsert = Database['public']['Tables']['inspection_elements']['Insert'];
 
-// Mapeo de secciones a zone_type
-const SECTION_TO_ZONE_TYPE: Record<string, string> = {
+/**
+ * Fuente de verdad: mapeo sectionId -> zone_type y nombres de zona.
+ * El hook useSupabaseChecklistBase no debe duplicar este mapeo.
+ */
+export const SECTION_TO_ZONE_TYPE: Record<string, string> = {
   'entorno-zonas-comunes': 'entorno',
   'estado-general': 'distribucion',
   'entrada-pasillos': 'entrada',
@@ -18,6 +21,33 @@ const SECTION_TO_ZONE_TYPE: Record<string, string> = {
   'cocina': 'cocina',
   'exteriores': 'exterior',
 };
+
+/** zone_type que corresponden a secciones fijas (una sola zona por sección). Usado para reparación. */
+export const FIXED_ZONE_TYPES = ['entorno', 'distribucion', 'entrada', 'salon', 'cocina', 'exterior'] as const;
+
+/** Orden de secciones para check final (entorno primero). Usado en createInitialZones y saveAllSections. */
+export const SECTION_ORDER_FINAL: readonly string[] = [
+  'entorno-zonas-comunes',
+  'estado-general',
+  'entrada-pasillos',
+  'habitaciones',
+  'salon',
+  'banos',
+  'cocina',
+  'exteriores',
+];
+
+/** Orden de secciones para check initial (entorno al final). */
+export const SECTION_ORDER_INITIAL: readonly string[] = [
+  'estado-general',
+  'entrada-pasillos',
+  'habitaciones',
+  'salon',
+  'banos',
+  'cocina',
+  'exteriores',
+  'entorno-zonas-comunes',
+];
 
 // Helper para extraer badElements de notes (formato: "notes\nBad elements: item1, item2")
 function extractBadElementsFromNotes(notes: string | null): string[] | undefined {
@@ -83,8 +113,8 @@ function normalizeDynamicItemStructure(
   }
 }
 
-// Mapeo de zone_type a nombre de zona
-const ZONE_TYPE_TO_NAME: Record<string, string> = {
+/** Mapeo de zone_type a nombre de zona para mostrar. Fuente de verdad. */
+export const ZONE_TYPE_TO_NAME: Record<string, string> = {
   'entorno': 'Entorno y Zonas Comunes',
   'distribucion': 'Estado General',
   'entrada': 'Entrada y Pasillos',
@@ -94,6 +124,18 @@ const ZONE_TYPE_TO_NAME: Record<string, string> = {
   'cocina': 'Cocina',
   'exterior': 'Exteriores',
 };
+
+/**
+ * Devuelve zone_type y nombre de zona para un sectionId. Fuente única de verdad para el hook.
+ * Para secciones fijas devuelve el nombre de la única zona; para dinámicas el nombre base (ej. "Habitación").
+ */
+export function getZoneConfig(sectionId: string): { zoneType: string; zoneName: string } | null {
+  const zoneType = SECTION_TO_ZONE_TYPE[sectionId];
+  if (!zoneType) return null;
+  const zoneName = ZONE_TYPE_TO_NAME[zoneType];
+  if (!zoneName) return null;
+  return { zoneType, zoneName };
+}
 
 // Mapeo de ChecklistStatus a condition enum de Supabase
 function mapStatusToCondition(status: ChecklistStatus | undefined): string | null {

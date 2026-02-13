@@ -37,6 +37,11 @@ import {
   convertSectionToElements,
   convertDynamicItemToElements,
   convertSupabaseToChecklist,
+  getZoneConfig,
+  SECTION_ORDER_FINAL,
+  SECTION_ORDER_INITIAL,
+  FIXED_ZONE_TYPES,
+  ZONE_TYPE_TO_NAME,
 } from "@/lib/supabase/checklist-converter";
 import { uploadFilesToStorage } from "@/lib/supabase/storage-upload";
 import type { FileUpload } from "@/lib/checklist-storage";
@@ -105,6 +110,8 @@ export function useSupabaseChecklistBase({
   const savingAllSectionsRef = useRef<boolean>(false);
   /** Checklist con URLs actualizadas tras cada save, para pasar a finalize si Supabase tiene 0 elementos */
   const checklistForFinalizeRef = useRef<ChecklistData | null>(null);
+  /** Inspecciones para las que ya se ejecutó la reparación de zonas fijas faltantes (evita bucle). */
+  const repairedZonesForInspectionRef = useRef<string | null>(null);
   
   // Keep checklistRef in sync with checklist state
   useEffect(() => {
@@ -229,11 +236,14 @@ export function useSupabaseChecklistBase({
       },
     });
 
-    // Crear zonas para cada sección
+    // Orden fijo: entorno, estado-general, entrada-pasillos, habitaciones (N), salon, banos (N), cocina, exteriores.
+    // Si una creación falla, se registra y se continúa con el resto.
+    const sectionOrder = [...SECTION_ORDER_FINAL];
     let zonesCreated = 0;
-    for (const [sectionId, section] of Object.entries(tempChecklist.sections)) {
+    for (const sectionId of sectionOrder) {
+      const section = tempChecklist.sections[sectionId];
+      if (!section) continue;
       const zonesToCreate = convertSectionToZones(sectionId, section, inspectionId);
-      
       for (const zoneData of zonesToCreate) {
         const createdZone = await createZone(zoneData);
         if (createdZone) {
@@ -245,12 +255,17 @@ export function useSupabaseChecklistBase({
             sectionId,
           });
         } else {
-          console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Failed to create zone:`, zoneData);
+          console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Failed to create zone (continuing):`, {
+            sectionId,
+            zoneType: zoneData.zone_type,
+            zoneName: zoneData.zone_name,
+          });
         }
       }
     }
-    
-    console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Created ${zonesCreated} zones total`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[useSupabaseChecklistBase:${inspectionType}] 📊 createInitialZones: ${zonesCreated} zones created total`);
+    }
   }, [supabaseProperty, propertyId, checklistType, createZone, inspectionType]);
 
   // Guardar funciones en ref para acceso estable
@@ -571,6 +586,37 @@ export function useSupabaseChecklistBase({
           setIsLoading(false);
           initializationInProgressRef.current = false;
           return;
+        }
+
+        // Reparación: si hay zonas pero faltan zonas fijas (entorno, distribucion, etc.), crearlas una vez por inspección
+        if (zones.length > 0 && inspection?.id && createZone && repairedZonesForInspectionRef.current !== inspection.id) {
+          const existingZoneTypes = new Set(zones.map(z => z.zone_type));
+          const missingFixed = FIXED_ZONE_TYPES.filter(zt => !existingZoneTypes.has(zt));
+          if (missingFixed.length > 0) {
+            console.log(`[useSupabaseChecklistBase:${inspectionType}] 🔧 Repairing missing fixed zones:`, missingFixed);
+            let created = 0;
+            for (const zoneType of missingFixed) {
+              const zoneName = ZONE_TYPE_TO_NAME[zoneType];
+              if (!zoneName) continue;
+              const createdZone = await createZone({
+                inspection_id: inspection.id,
+                zone_type: zoneType,
+                zone_name: zoneName,
+              });
+              if (createdZone) {
+                created++;
+                console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Repaired zone:`, zoneType, createdZone.zone_name);
+              }
+            }
+            if (created > 0) {
+              repairedZonesForInspectionRef.current = inspection.id;
+              await refetchInspection();
+              await new Promise(resolve => setTimeout(resolve, 300));
+              initializationInProgressRef.current = false;
+              return; // El efecto se re-ejecutará con zones actualizado
+            }
+          }
+          repairedZonesForInspectionRef.current = inspection.id;
         }
 
         // Cargar checklist desde Supabase
@@ -952,15 +998,9 @@ export function useSupabaseChecklistBase({
 
       console.log(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving section:`, sectionId);
 
-      // Encontrar zona(s) correspondiente(s) a la sección
-      const expectedZoneType = sectionId === "habitaciones" ? "dormitorio" :
-                              sectionId === "banos" ? "bano" :
-                              sectionId === "entorno-zonas-comunes" ? "entorno" :
-                              sectionId === "estado-general" ? "distribucion" :
-                              sectionId === "entrada-pasillos" ? "entrada" :
-                              sectionId === "salon" ? "salon" :
-                              sectionId === "cocina" ? "cocina" :
-                              sectionId === "exteriores" ? "exterior" : null;
+      // Fuente de verdad: mapeo sectionId -> zone_type y nombre desde checklist-converter
+      const zoneConfig = getZoneConfig(sectionId);
+      const expectedZoneType = zoneConfig?.zoneType ?? null;
 
       let zone: typeof zones[0] | null = null;
       let zonesOfTypeForSave: typeof zones = [];
@@ -972,12 +1012,12 @@ export function useSupabaseChecklistBase({
           .sort((a, b) => (a.zone_name || '').localeCompare(b.zone_name || ''));
         zonesOfTypeForSave = [...initialZonesOfType];
         const needed = section.dynamicItems?.length ?? 0;
+        const displayNameBase = zoneConfig?.zoneName ?? 'Zona';
         while (zonesOfTypeForSave.length < needed) {
-          const displayName = expectedZoneType === "dormitorio" ? "Habitación" : expectedZoneType === "bano" ? "Baño" : "Zona";
           const created = await createZone({
             inspection_id: inspection.id,
             zone_type: expectedZoneType ?? undefined,
-            zone_name: `${displayName} ${zonesOfTypeForSave.length + 1}`,
+            zone_name: `${displayNameBase} ${zonesOfTypeForSave.length + 1}`,
           });
           if (!created) break;
           zonesOfTypeForSave.push(created);
@@ -990,10 +1030,24 @@ export function useSupabaseChecklistBase({
         zone = zonesOfTypeForSave[0] ?? null;
       } else {
         zone = zones.find(z => z.zone_type === expectedZoneType) ?? null;
+        // Secciones fijas: si no existe la zona, crearla usando getZoneConfig (fuente de verdad)
+        if (!zone && zoneConfig && inspection?.id) {
+          const created = await createZone({
+            inspection_id: inspection.id,
+            zone_type: zoneConfig.zoneType as 'entorno' | 'distribucion' | 'entrada' | 'salon' | 'cocina' | 'exterior',
+            zone_name: zoneConfig.zoneName,
+          });
+          if (created) {
+            await refetchInspection();
+            zone = created;
+            console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Created missing zone for section "${sectionId}":`, created.zone_name);
+          }
+        }
       }
 
       if (!zone) {
         console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Zone not found for section:`, sectionId, "expectedZoneType:", expectedZoneType, "zones:", zones.map(z => z.zone_type));
+        toast.error(`No se puede guardar: falta la zona para "${sectionId}". Recarga la página e inténtalo de nuevo.`);
         savingRef.current = false;
         return;
       }
@@ -1656,7 +1710,10 @@ export function useSupabaseChecklistBase({
           });
         } catch (uploadError) {
           console.error(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error uploading files:`, uploadError);
-          toast.info("Se ha guardado el checklist. Algunas fotos no se pudieron subir; puedes volver a esta sección y guardar de nuevo para reintentar.", { duration: 6000 });
+          toast.error("Las fotos no se pudieron subir. Revisa la consola para más detalles.", {
+            description: "El resto del checklist se guardará; puedes volver a esta sección y guardar de nuevo para reintentar las fotos.",
+            duration: 8000,
+          });
           // No hacer return: seguir con conversión y upsert para persistir preguntas/notas y elementos (fotos con image_urls vacío)
         }
       }
@@ -1781,8 +1838,11 @@ export function useSupabaseChecklistBase({
             ).map(e => ({ zone_id: e.zone_id, element_name: e.element_name })),
           };
           debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error batch upserting elements:`, errorDetails);
-          console.error(`[useSupabaseChecklistBase] Upsert error:`, errorMessage, errorDetails);
-          toast.error(`Error al guardar: ${errorMessage}`);
+          console.error(`[useSupabaseChecklistBase] Upsert error (objeto completo):`, batchUpsertError, errorDetails);
+          toast.error("Error al guardar la sección. Revisa la consola para más detalles.", {
+            description: errorMessage,
+            duration: 10000,
+          });
         } else {
           debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Batch saved ${elementsToSave.length} elements successfully`);
           
@@ -1846,7 +1906,7 @@ export function useSupabaseChecklistBase({
     } finally {
       savingRef.current = false;
     }
-  }, [checklist, inspection, supabaseProperty, checklistType, refetchInspection, inspectionType]);
+  }, [checklist, inspection, supabaseProperty, checklistType, refetchInspection, inspectionType, createZone]);
 
   // Helper para debounce - agrupa múltiples guardados en uno solo
   // Se declara después de saveCurrentSection para evitar error de "used before declaration"
@@ -2096,9 +2156,10 @@ export function useSupabaseChecklistBase({
     }
 
     debugLog(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving ALL sections before finalizing...`);
-    
-    const sectionIds = Object.keys(checklist.sections);
-    debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📋 Found ${sectionIds.length} sections to save:`, sectionIds);
+    // Orden determinista: igual que la UI (final = entorno primero, initial = entorno al final)
+    const sectionOrder = inspectionType === 'final' ? [...SECTION_ORDER_FINAL] : [...SECTION_ORDER_INITIAL];
+    const sectionIds = sectionOrder.filter(id => checklist.sections[id] != null);
+    debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📋 Saving ${sectionIds.length} sections in order:`, sectionIds);
     
     const originalSectionRef = currentSectionRef.current;
     savingAllSectionsRef.current = true;

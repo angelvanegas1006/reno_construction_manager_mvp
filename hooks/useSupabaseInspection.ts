@@ -246,11 +246,8 @@ export function useSupabaseInspection(
     try {
       setError(null);
 
-      // Obtener usuario actual
+      // Obtener usuario actual (puede ser null con Auth0; created_by es opcional en BD)
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('Usuario no autenticado');
-      }
 
       // Obtener has_elevator de la propiedad
       const { data: property } = await supabase
@@ -262,10 +259,10 @@ export function useSupabaseInspection(
       // Generar public_link_id único
       const publicLinkId = crypto.randomUUID();
 
-      // Intentar crear con inspection_type primero
+      // Intentar crear con inspection_type primero (created_by opcional: null con Auth0)
       const newInspection: InspectionInsert & { inspection_type?: string } = {
         property_id: propertyId,
-        created_by: user.id,
+        ...(user?.id && { created_by: user.id }),
         inspection_type: type,
         inspection_status: 'in_progress',
         has_elevator: property?.has_elevator ?? false,
@@ -298,7 +295,7 @@ export function useSupabaseInspection(
           // Crear sin inspection_type
           const newInspectionWithoutType = {
             property_id: propertyId,
-            created_by: user.id,
+            ...(user?.id && { created_by: user.id }),
             inspection_status: 'in_progress',
             has_elevator: property?.has_elevator ?? false,
             public_link_id: publicLinkId,
@@ -358,17 +355,14 @@ export function useSupabaseInspection(
       
       setError(errorMessage);
       toast.error(errorMessage);
-      console.error('Error creating inspection:', {
-        error: err,
-        message: errorMessage,
+      // Log con mensaje primero para que siempre sea visible (evitar "Error creating inspection: {}")
+      console.error(`[useSupabaseInspection] Error creating inspection: ${errorMessage}`, {
         propertyId,
         type,
-        errorStringified: JSON.stringify(err, Object.getOwnPropertyNames(err)),
-        errorDetails: err instanceof Error ? {
-          name: err.name,
-          message: err.message,
-          stack: err.stack,
-        } : err,
+        errorCode: (err as any)?.code,
+        errorMessage: (err as any)?.message,
+        errorDetails: (err as any)?.details,
+        errorHint: (err as any)?.hint,
       });
       return null;
     }
