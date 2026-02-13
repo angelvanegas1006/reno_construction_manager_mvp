@@ -5,6 +5,10 @@ Las fotos que se toman en cada sección del initial check y final check se suben
 - **Código**: [lib/supabase/storage-upload.ts](../lib/supabase/storage-upload.ts) – constante `STORAGE_BUCKET = 'inspection-images'`
 - **Path**: `{propertyId}/{inspectionId}/{zoneId}/{fileName}`
 
+## Auth0 y políticas de Storage
+
+La app usa **Auth0** para el login. En ese flujo el cliente **no tiene sesión de Supabase** (`auth.uid()` es `null`). Si las políticas del bucket `inspection-images` exigen `auth.uid() IS NOT NULL` o están definidas solo para `TO authenticated`, las subidas desde el navegador (cliente con anon key) **fallan**. Por tanto, cuando el upload se hace desde el cliente con anon key, las políticas **no deben depender de `auth.uid()`**. En este proyecto se usan políticas para el rol **anon** (ver [migración 021](../supabase/migrations/021_inspection_images_storage_anon.sql) y sección "Políticas RLS").
+
 ## Comprobar que el bucket existe
 
 1. Supabase Dashboard → **Storage**
@@ -15,31 +19,27 @@ Las fotos que se toman en cada sección del initial check y final check se suben
 
 Si el bucket existe pero las subidas fallan con error de RLS/policy, hay que crear políticas sobre `storage.objects` para el bucket `inspection-images`.
 
-### Opción A: Desde el Dashboard
+### Proyecto actual (Auth0 / anon key)
+
+En este proyecto las políticas aplicadas son las de la migración **[supabase/migrations/021_inspection_images_storage_anon.sql](../supabase/migrations/021_inspection_images_storage_anon.sql)**. Resumen:
+
+- **INSERT** para rol `anon`: permitir subida con `WITH CHECK (bucket_id = 'inspection-images')`.
+- **SELECT** para rol `anon` y para `public`: permitir lectura con `USING (bucket_id = 'inspection-images')` para que las URLs de las fotos funcionen.
+
+Si tienes permisos de owner, ejecuta esa migración en Supabase Dashboard → SQL Editor. Si recibes "must be owner of relation objects", configura las políticas desde el Dashboard:
 
 1. Storage → bucket **inspection-images** → **Policies**
-2. New policy:
-   - **INSERT**: Allow authenticated users – condition: `bucket_id = 'inspection-images'` y `auth.uid() IS NOT NULL`
-   - **SELECT**: Allow public o authenticated – condition: `bucket_id = 'inspection-images'` (para que las URLs públicas funcionen si el bucket es público)
-   - **UPDATE** / **DELETE** (opcional): Allow authenticated, mismo bucket
+2. New policy para **INSERT**: Allow **anon** (no solo authenticated), condition: `bucket_id = 'inspection-images'`.
+3. New policy para **SELECT**: Allow **public** o **anon**, condition: `bucket_id = 'inspection-images'`.
 
-### Opción B: SQL (requiere permisos de owner)
+### Referencia: políticas que exigen auth.uid() (no usar con Auth0 desde cliente)
 
-En SQL Editor de Supabase puedes crear políticas similares a las del bucket `checklists` pero para `inspection-images`:
+Si en el futuro se usara **solo** sesión Supabase (sin Auth0) desde el cliente, podrían usarse políticas que exigen `auth.uid()`:
 
-```sql
--- INSERT: usuarios autenticados pueden subir
-CREATE POLICY "Allow authenticated to upload inspection-images"
-ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'inspection-images' AND auth.uid()::text IS NOT NULL);
+- **INSERT**: `TO authenticated` con `WITH CHECK (bucket_id = 'inspection-images' AND auth.uid()::text IS NOT NULL)`.
+- **SELECT**: `TO public` con `USING (bucket_id = 'inspection-images')`.
 
--- SELECT: lectura (público o authenticated según si el bucket es público)
-CREATE POLICY "Allow public read inspection-images"
-ON storage.objects FOR SELECT TO public
-USING (bucket_id = 'inspection-images');
-```
-
-Si ya existen políticas con otros nombres para este bucket, no duplicar; revisar en Storage → inspection-images → Policies.
+Con Auth0 y cliente anon, **no** uses políticas que exijan `auth.uid()` para INSERT en este bucket.
 
 ## Script de comprobación
 
