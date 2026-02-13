@@ -111,8 +111,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
 
     const handleQuestionUpdate = useCallback((questionId: string, updates: Partial<ChecklistQuestion>) => {
       if (banoIndex === undefined) return;
-      // Priorizar dynamicItems del useMemo que se actualiza cuando section.dynamicItems cambia
-      const latestDynamicItems = dynamicItems.length > 0 ? dynamicItems : (section.dynamicItems || []);
+      const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
       
       const currentQuestions = latestBano.questions || defaultQuestions;

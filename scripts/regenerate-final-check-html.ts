@@ -4,7 +4,10 @@
  * Uso: npx tsx scripts/regenerate-final-check-html.ts SP-V4P-KDH-005658
  */
 
+import { loadEnvConfig } from '@next/env';
 import { createAdminClient } from '../lib/supabase/admin';
+
+loadEnvConfig(process.cwd());
 import { generateChecklistHTML } from '../lib/html/checklist-html-generator';
 import { translations } from '../lib/i18n/translations';
 import { convertSupabaseToChecklist } from '../lib/supabase/checklist-converter';
@@ -84,21 +87,106 @@ async function main() {
 
     console.log(`✅ Datos obtenidos: ${zones?.length || 0} zonas, ${elements?.length || 0} elementos`);
 
-    // 4. Convertir a formato ChecklistData
-    const checklistData = convertSupabaseToChecklist(
-      zones || [],
-      elements || [],
-      property.bedrooms || null,
-      property.bathrooms || null
-    );
+    let fullChecklist: any;
 
-    const fullChecklist = {
-      propertyId,
-      checklistType,
-      sections: checklistData.sections || {},
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (elements && elements.length > 0) {
+      // 4a. Hay elementos: convertir desde Supabase
+      const checklistData = convertSupabaseToChecklist(
+        zones || [],
+        elements,
+        property.bedrooms || null,
+        property.bathrooms || null
+      );
+      fullChecklist = {
+        propertyId,
+        checklistType,
+        sections: checklistData.sections || {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    } else {
+      // 4b. Sin elementos: intentar recuperar fotos desde Storage
+      console.log('\n⚠️ 0 elementos en BD. Buscando fotos en Storage...');
+      const basePath = `${propertyId}/${inspection.id}`;
+      const { data: storageFiles } = await supabase.storage
+        .from('inspection-images')
+        .list(basePath, { limit: 500 });
+
+      const SECTION_TO_ZONE: Record<string, string> = {
+        entorno: 'entorno-zonas-comunes',
+        distribucion: 'estado-general',
+        entrada: 'entrada-pasillos',
+        dormitorio: 'habitaciones',
+        salon: 'salon',
+        bano: 'banos',
+        cocina: 'cocina',
+        exterior: 'exteriores',
+      };
+
+      const sections: Record<string, any> = {};
+      let totalPhotos = 0;
+
+      if (storageFiles?.length) {
+        for (const item of storageFiles) {
+          if (item.id && item.name) {
+            const zoneId = item.name;
+            const zone = zones?.find((z: any) => z.id === zoneId);
+            const zoneType = zone?.zone_type || 'entorno';
+            const sectionId = SECTION_TO_ZONE[zoneType] || 'entorno-zonas-comunes';
+
+            const { data: zoneFiles } = await supabase.storage
+              .from('inspection-images')
+              .list(`${basePath}/${zoneId}`, { limit: 200 });
+
+            const photos: { data: string }[] = [];
+            if (zoneFiles) {
+              for (const f of zoneFiles) {
+                if (f.name && /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name)) {
+                  const { data: urlData } = supabase.storage
+                    .from('inspection-images')
+                    .getPublicUrl(`${basePath}/${zoneId}/${f.name}`);
+                  photos.push({ data: urlData.publicUrl });
+                  totalPhotos++;
+                }
+              }
+            }
+
+            if (photos.length > 0) {
+              if (!sections[sectionId]) {
+                sections[sectionId] = { id: sectionId, uploadZones: [], questions: [], dynamicItems: [] };
+              }
+              const uploadZone = {
+                id: `fotos-${zoneId}`,
+                photos: photos.map(p => ({ id: crypto.randomUUID(), name: 'photo', size: 0, type: 'image/jpeg', data: p.data, uploadedAt: new Date().toISOString() })),
+                videos: [],
+              };
+              if (sectionId === 'habitaciones' || sectionId === 'banos') {
+                const idx = (sections[sectionId].dynamicItems?.length || 0) + 1;
+                sections[sectionId].dynamicItems = sections[sectionId].dynamicItems || [];
+                sections[sectionId].dynamicItems.push({ id: `${sectionId}-${idx}`, uploadZone, questions: [] });
+              } else {
+                sections[sectionId].uploadZones = sections[sectionId].uploadZones || [];
+                sections[sectionId].uploadZones.push(uploadZone);
+              }
+            }
+          }
+        }
+      }
+
+      if (totalPhotos > 0) {
+        console.log(`✅ Recuperadas ${totalPhotos} fotos desde Storage`);
+      } else {
+        console.log('⚠️ No hay fotos en Storage. Se generará HTML vacío.');
+      }
+
+      fullChecklist = {
+        propertyId,
+        checklistType,
+        sections,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
 
     // 5. Generar HTML
     console.log('\n📄 Generando HTML...');
@@ -109,7 +197,8 @@ async function main() {
         propertyId,
         renovatorName: property['Renovator name'] || undefined,
       },
-      translations.es
+      translations.es,
+      'final'
     );
 
     // 6. Subir a Storage

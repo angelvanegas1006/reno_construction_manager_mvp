@@ -292,6 +292,7 @@ export function generateChecklistPublicSelectorUrl(propertyId: string): string {
 
 /**
  * Finaliza el checklist y actualiza todos los campos en Airtable
+ * @param checklistFromClient - Checklist en memoria del cliente. Si Supabase devuelve 0 elementos pero este tiene fotos, se usa para generar el HTML (evita HTML vacío por race condition o fallo de guardado).
  */
 export async function finalizeInitialCheckInAirtable(
   propertyId: string,
@@ -303,7 +304,8 @@ export async function finalizeInitialCheckInAirtable(
     progress?: number; // Progreso del checklist (0-100)
     /** Solo reno_final: true = lista para comercialización → "OK", false = no lista → "NO OK" */
     readyForCommercialization?: boolean;
-  }
+  },
+  checklistFromClient?: ChecklistData
 ): Promise<boolean> {
   const supabase = createClient();
   // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
@@ -441,29 +443,55 @@ export async function finalizeInitialCheckInAirtable(
 
     if (!inspectionError && inspection && typeof inspection === 'object' && 'id' in inspection) {
       const inspectionData = inspection as { id: string };
-      
+
+      // Pequeño delay para evitar race condition: el guardado puede no estar replicado aún
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Cargar zonas y elementos del checklist
-      const { data: zones } = await supabase
+      let { data: zones } = await supabase
         .from('inspection_zones')
         .select('*')
         .eq('inspection_id', inspectionData.id);
 
-      const { data: elements } = await supabase
+      let { data: elements } = await supabase
         .from('inspection_elements')
         .select('*')
         .in('zone_id', zones?.map(z => z.id) || []);
 
-      if (zones && elements) {
-        // Convertir a formato ChecklistData
+      // Si hay zonas pero 0 elementos, reintentar una vez (eventual consistency)
+      if (zones && zones.length > 0 && (!elements || elements.length === 0)) {
+        console.warn('[Initial Check Sync] ⚠️ 0 elementos en Supabase, reintentando en 1s...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const retry = await supabase
+          .from('inspection_elements')
+          .select('*')
+          .in('zone_id', zones.map(z => z.id));
+        elements = retry.data;
+      }
+
+      // Usar checklistFromClient si Supabase tiene 0 elementos pero el cliente tiene fotos (fallback por race condition o fallo de guardado)
+      const hasElementsInDb = elements && elements.length > 0;
+      const hasPhotosInClient = checklistFromClient?.sections && Object.values(checklistFromClient.sections).some(sec => {
+        const countPhotos = (p: { data?: string }[]) => p?.filter(x => x.data?.startsWith?.('http')).length ?? 0;
+        let n = 0;
+        if (sec.uploadZones) sec.uploadZones.forEach(z => { n += countPhotos(z.photos || []); });
+        if (sec.questions) sec.questions.forEach(q => { n += countPhotos(q.photos || []); });
+        if (sec.dynamicItems) sec.dynamicItems.forEach(di => {
+          n += countPhotos(di.uploadZone?.photos || []);
+          di.questions?.forEach(q => { n += countPhotos(q.photos || []); });
+        });
+        return n > 0;
+      });
+
+      let fullChecklist: ChecklistData;
+      if (hasElementsInDb && zones) {
         const checklistData = convertSupabaseToChecklist(
           zones,
           elements,
           property.bedrooms,
           property.bathrooms
         );
-
-        // Crear ChecklistData completo
-        const fullChecklist: ChecklistData = {
+        fullChecklist = {
           propertyId,
           checklistType,
           sections: checklistData.sections || {},
@@ -471,7 +499,35 @@ export async function finalizeInitialCheckInAirtable(
           createdAt: checklistData.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
+      } else if (hasPhotosInClient && checklistFromClient) {
+        console.warn('[Initial Check Sync] ⚠️ Usando checklist del cliente (Supabase tenía 0 elementos)');
+        fullChecklist = {
+          ...checklistFromClient,
+          propertyId,
+          checklistType,
+          completedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      } else if (zones) {
+        const checklistData = convertSupabaseToChecklist(
+          zones,
+          elements || [],
+          property.bedrooms,
+          property.bathrooms
+        );
+        fullChecklist = {
+          propertyId,
+          checklistType,
+          sections: checklistData.sections || {},
+          completedAt: new Date().toISOString(),
+          createdAt: checklistData.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      } else {
+        fullChecklist = null as any;
+      }
 
+      if (fullChecklist) {
         // 2. Generar y subir PDF
         try {
           console.log('[Initial Check Sync] 📄 Generating PDF...');
