@@ -31,6 +31,7 @@ import {
 import { useSupabaseInspection, type InspectionType } from "@/hooks/useSupabaseInspection";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/lib/supabase/types";
 import {
   convertSectionToZones,
   convertSectionToElements,
@@ -102,6 +103,8 @@ export function useSupabaseChecklistBase({
   const maxZonesRefetchRetries = 5;
   /** Cuando es true, saveCurrentSection no hace refetch; evita que saveAllSections sobrescriba el checklist con datos parciales tras cada sección */
   const savingAllSectionsRef = useRef<boolean>(false);
+  /** Checklist con URLs actualizadas tras cada save, para pasar a finalize si Supabase tiene 0 elementos */
+  const checklistForFinalizeRef = useRef<ChecklistData | null>(null);
   
   // Keep checklistRef in sync with checklist state
   useEffect(() => {
@@ -1658,6 +1661,10 @@ export function useSupabaseChecklistBase({
         }
       }
 
+      if (savingAllSectionsRef.current && checklistForFinalizeRef.current?.sections) {
+        checklistForFinalizeRef.current.sections[sectionId] = JSON.parse(JSON.stringify(sectionToSave));
+      }
+
       // Convertir sección a elementos de Supabase (siempre ejecutar; sectionToSave tiene URLs si la subida fue ok, si no quedan base64 y el converter solo persiste HTTP)
       let elementsToSave: any[] = [];
       
@@ -1714,25 +1721,58 @@ export function useSupabaseChecklistBase({
       // Log siempre visible para diagnosticar por qué no se guardan elementos
       console.log(`[useSupabaseChecklistBase:${inspectionType}] 📤 About to upsert elements:`, elementsToSave.length, "elementNames:", elementsToSave.map(e => e.element_name));
       if (elementsToSave.length === 0) {
-        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ elementsToSave is empty - no elements will be persisted for section:`, sectionId);
+        const hasSectionData = !!(sectionToSave.uploadZones?.length || sectionToSave.questions?.length ||
+          sectionToSave.dynamicItems?.length || sectionToSave.carpentryItems?.length || sectionToSave.climatizationItems?.length);
+        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ elementsToSave is empty for section:`, sectionId, hasSectionData ? '(la sección tiene datos - posible bug)' : '');
+        if (hasSectionData) {
+          toast.warning(`Sección "${sectionId}" no generó elementos para guardar. Si añadiste fotos, intenta guardar de nuevo.`, { duration: 5000 });
+        }
       }
 
       if (elementsToSave.length > 0) {
-        // Batch upsert: guardar todos los elementos en una sola operación
-        const { data: upsertedElements, error: batchUpsertError } = await supabase
-          .from('inspection_elements')
-          .upsert(elementsToSave, {
-            onConflict: 'zone_id,element_name',
-          })
-          .select();
-        
+        // Quitar undefined para evitar problemas de serialización; mantener null explícito
+        type ElementInsert = Database['public']['Tables']['inspection_elements']['Insert'];
+        const sanitizedElements: ElementInsert[] = elementsToSave.map((el) => {
+          const clean: ElementInsert = {
+            zone_id: el.zone_id,
+            element_name: el.element_name,
+          };
+          if (el.condition !== undefined) clean.condition = el.condition;
+          if (el.notes !== undefined) clean.notes = el.notes;
+          if (el.image_urls !== undefined) clean.image_urls = el.image_urls;
+          if (el.video_urls !== undefined) clean.video_urls = el.video_urls;
+          if (el.quantity !== undefined) clean.quantity = el.quantity;
+          if (el.exists !== undefined) clean.exists = el.exists;
+          return clean;
+        });
+
+        // Batch upsert: onConflict como array (formato para UNIQUE(zone_id, element_name))
+        let batchUpsertError: any = null;
+        let upsertedElements: any = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const result = await supabase
+            .from('inspection_elements')
+            .upsert(sanitizedElements, {
+              onConflict: 'zone_id,element_name',
+            })
+            .select();
+          batchUpsertError = result.error;
+          upsertedElements = result.data;
+          if (!batchUpsertError) break;
+          if (attempt === 0) {
+            console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Upsert retry (attempt 1 failed):`, batchUpsertError?.message);
+            await new Promise(r => setTimeout(r, 500));
+          }
+        }
+
         if (batchUpsertError) {
-          // Mejorar el logging del error para ver qué está pasando
+          const err = batchUpsertError as { code?: string; message?: string; details?: string; hint?: string };
+          const errorMessage = (err?.message ?? err?.details ?? String(batchUpsertError)) || 'Error desconocido';
           const errorDetails = {
-            code: (batchUpsertError as any)?.code,
-            message: (batchUpsertError as any)?.message,
-            details: (batchUpsertError as any)?.details,
-            hint: (batchUpsertError as any)?.hint,
+            code: err?.code,
+            message: err?.message,
+            details: err?.details,
+            hint: err?.hint,
             elementsCount: elementsToSave.length,
             elementNames: elementsToSave.map(e => e.element_name),
             zoneIds: [...new Set(elementsToSave.map(e => e.zone_id))],
@@ -1741,8 +1781,8 @@ export function useSupabaseChecklistBase({
             ).map(e => ({ zone_id: e.zone_id, element_name: e.element_name })),
           };
           debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error batch upserting elements:`, errorDetails);
-          console.error('Full error object:', batchUpsertError);
-          toast.error(`Error al guardar ${elementsToSave.length} elementos: ${(batchUpsertError as any)?.message || 'Error desconocido'}`);
+          console.error(`[useSupabaseChecklistBase] Upsert error:`, errorMessage, errorDetails);
+          toast.error(`Error al guardar: ${errorMessage}`);
         } else {
           debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Batch saved ${elementsToSave.length} elements successfully`);
           
@@ -2062,6 +2102,7 @@ export function useSupabaseChecklistBase({
     
     const originalSectionRef = currentSectionRef.current;
     savingAllSectionsRef.current = true;
+    checklistForFinalizeRef.current = JSON.parse(JSON.stringify(checklist));
     
     try {
       for (const sectionId of sectionIds) {
@@ -2127,6 +2168,42 @@ export function useSupabaseChecklistBase({
       // Esto asegura que todas las fotos y datos se guarden, no solo la sección actual
       await saveAllSections();
 
+      // Verificación: comprobar que los elementos se guardaron en Supabase
+      const supabaseVerify = createClient();
+      const { data: verifyZones } = await supabaseVerify
+        .from('inspection_zones')
+        .select('id')
+        .eq('inspection_id', inspection.id);
+      const zoneIds = verifyZones?.map(z => z.id) || [];
+      const { count: elementsCount } = await supabaseVerify
+        .from('inspection_elements')
+        .select('*', { count: 'exact', head: true })
+        .in('zone_id', zoneIds.length ? zoneIds : ['00000000-0000-0000-0000-000000000000']);
+
+      const hasChecklistData = Object.values(checklist.sections || {}).some(sec => {
+        const hasPhotos = (p: { data?: string }[]) => p?.some(x => x.data?.startsWith?.('http')) ?? false;
+        if (sec.uploadZones?.some(z => hasPhotos(z.photos || []))) return true;
+        if (sec.questions?.some(q => hasPhotos(q.photos || []))) return true;
+        if (sec.dynamicItems?.some(di => hasPhotos(di.uploadZone?.photos || []) || di.questions?.some(q => hasPhotos(q.photos || [])))) return true;
+        return false;
+      });
+
+      if (zoneIds.length > 0 && (elementsCount ?? 0) === 0 && hasChecklistData) {
+        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ 0 elementos en Supabase pero checklist tiene datos. Reintentando guardado...`);
+        await saveAllSections();
+        const { count: retryCount } = await supabaseVerify
+          .from('inspection_elements')
+          .select('*', { count: 'exact', head: true })
+          .in('zone_id', zoneIds);
+        if ((retryCount ?? 0) === 0) {
+          toast.error(
+            "No se pudieron guardar los datos del checklist. Guarda cada sección manualmente (botón Guardar en cada una) y vuelve a intentar.",
+            { duration: 8000 }
+          );
+          return false;
+        }
+      }
+
       // Calcular progreso
       const sections = Object.values(checklist.sections);
       const totalSections = sections.length;
@@ -2159,13 +2236,18 @@ export function useSupabaseChecklistBase({
         return false;
       }
       
-      const success = await finalizeInitialCheckInAirtable(propertyId, checklistType as 'reno_initial' | 'reno_final', {
-        estimatedVisitDate,
-        autoVisitDate,
-        nextRenoSteps,
-        progress,
-        readyForCommercialization: data?.readyForCommercialization,
-      });
+      const success = await finalizeInitialCheckInAirtable(
+        propertyId,
+        checklistType as 'reno_initial' | 'reno_final',
+        {
+          estimatedVisitDate,
+          autoVisitDate,
+          nextRenoSteps,
+          progress,
+          readyForCommercialization: data?.readyForCommercialization,
+        },
+        checklistForFinalizeRef.current || undefined
+      );
 
       if (success) {
         toast.success("Checklist finalizado correctamente");
