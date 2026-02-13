@@ -899,21 +899,43 @@ export function convertSupabaseToChecklist(
               climatizationItem.cantidad = 1;
             }
           }
-          // Mobiliario
-          else if (element.element_name === 'mobiliario') {
-            dynamicItem.mobiliario = {
-              existeMobiliario: element.exists ?? false,
+          // Mobiliario (habitaciones: toggle + question; banos: solo question)
+          else if (element.element_name === 'mobiliario-detalle') {
+            // Procesar mobiliario-detalle primero: si existe detalle, existe mobiliario
+            if (!dynamicItem.mobiliario) {
+              dynamicItem.mobiliario = { existeMobiliario: true };
+            }
+            dynamicItem.mobiliario.question = {
+              id: 'mobiliario',
+              status: mapConditionToStatus(element.condition),
+              notes: element.notes || undefined,
+              photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+              badElements: extractBadElementsFromNotes(element.notes),
             };
-          } else if (element.element_name === 'mobiliario-detalle') {
-            if (dynamicItem.mobiliario) {
-              dynamicItem.mobiliario.question = {
+          } else if (element.element_name === 'mobiliario') {
+            if (sectionId === 'banos' && element.condition != null) {
+              // Banos: mobiliario es una pregunta (sin toggle), guardada con condition
+              const question: ChecklistQuestion = {
                 id: 'mobiliario',
                 status: mapConditionToStatus(element.condition),
-                notes: element.notes || undefined,
+                notes: cleanNotesFromBadElements(element.notes) || undefined,
                 photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
-                // badElements se extraen de notes si están presentes
-              badElements: extractBadElementsFromNotes(element.notes),
+                badElements: extractBadElementsFromNotes(element.notes),
               };
+              if (!dynamicItem.questions) dynamicItem.questions = [];
+              const existingIdx = dynamicItem.questions.findIndex((q: ChecklistQuestion) => q.id === 'mobiliario');
+              if (existingIdx >= 0) {
+                dynamicItem.questions[existingIdx] = { ...dynamicItem.questions[existingIdx], ...question };
+              } else {
+                dynamicItem.questions.push(question);
+              }
+            } else {
+              // Habitaciones/salón: mobiliario con toggle (exists)
+              if (!dynamicItem.mobiliario) {
+                dynamicItem.mobiliario = { existeMobiliario: element.exists ?? false };
+              } else {
+                dynamicItem.mobiliario.existeMobiliario = element.exists ?? false;
+              }
             }
           }
         });

@@ -1496,10 +1496,20 @@ export default function RenoChecklistPage() {
                   variant: "outline",
                   disabled: !hasUnsavedChanges,
                 },
-                // Ocultar botón "Enviar checklist" (finalizar con Airtable) en todo lo que sea revisión final:
-                // final-check, amoblamiento (furnishing), cleaning, pendiente-suministros (checklistType === reno_final)
-                ...(checklistType !== "reno_final"
+                // Botón "Enviar checklist": initial check llama handleSubmitCheck; final check abre modal comercialización
+                ...(checklistType === "reno_final"
                   ? [
+                      {
+                        label: t.checklist.submitChecklist,
+                        onClick: async () => {
+                          if (!property || isCompleting) return;
+                          setShowReadyForCommercializationModal(true);
+                        },
+                        variant: "default" as const,
+                        disabled: isCompleting,
+                      },
+                    ]
+                  : [
                       {
                         label: t.checklist.submitChecklist,
                         onClick: async () => {
@@ -1509,8 +1519,7 @@ export default function RenoChecklistPage() {
                         variant: "default" as const,
                         disabled: isCompleting,
                       },
-                    ]
-                  : []),
+                    ]),
               ]
         }
       />
