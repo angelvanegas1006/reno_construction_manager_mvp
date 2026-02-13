@@ -31,6 +31,7 @@ import {
 import { useSupabaseInspection, type InspectionType } from "@/hooks/useSupabaseInspection";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/lib/supabase/types";
 import {
   convertSectionToZones,
   convertSectionToElements,
@@ -1730,8 +1731,9 @@ export function useSupabaseChecklistBase({
 
       if (elementsToSave.length > 0) {
         // Quitar undefined para evitar problemas de serialización; mantener null explícito
-        const sanitizedElements = elementsToSave.map((el) => {
-          const clean: Record<string, unknown> = {
+        type ElementInsert = Database['public']['Tables']['inspection_elements']['Insert'];
+        const sanitizedElements: ElementInsert[] = elementsToSave.map((el) => {
+          const clean: ElementInsert = {
             zone_id: el.zone_id,
             element_name: el.element_name,
           };
