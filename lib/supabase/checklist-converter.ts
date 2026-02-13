@@ -35,6 +35,54 @@ function cleanNotesFromBadElements(notes: string | null): string | null {
   return notes.replace(/\nBad elements:.*$/, '').trim() || null;
 }
 
+// Estructura por defecto para habitaciones (carpintería y climatización)
+const HABITACIONES_CARPENTRY_IDS = ['ventanas', 'persianas', 'armarios'] as const;
+const HABITACIONES_CLIMATIZATION_IDS = ['radiadores', 'split-ac'] as const;
+const BANOS_CARPENTRY_IDS = ['ventanas', 'persianas'] as const;
+
+// Normaliza un dynamicItem para que tenga estructura completa (carpentryItems, climatizationItems, uploadZone)
+function normalizeDynamicItemStructure(
+  dynamicItem: ChecklistDynamicItem,
+  sectionId: string,
+  index: number
+): void {
+  const baseId = `fotos-video-${sectionId}-${index + 1}`;
+  if (!dynamicItem.uploadZone) {
+    dynamicItem.uploadZone = { id: baseId, photos: [], videos: [] };
+  }
+  if (sectionId === 'habitaciones') {
+    if (!dynamicItem.carpentryItems || dynamicItem.carpentryItems.length === 0) {
+      dynamicItem.carpentryItems = HABITACIONES_CARPENTRY_IDS.map(id => ({ id, cantidad: 0 }));
+    } else {
+      // Asegurar que todos los items por defecto existan
+      HABITACIONES_CARPENTRY_IDS.forEach(id => {
+        if (!dynamicItem.carpentryItems!.find(item => item.id === id)) {
+          dynamicItem.carpentryItems!.push({ id, cantidad: 0 });
+        }
+      });
+    }
+    if (!dynamicItem.climatizationItems || dynamicItem.climatizationItems.length === 0) {
+      dynamicItem.climatizationItems = HABITACIONES_CLIMATIZATION_IDS.map(id => ({ id, cantidad: 0 }));
+    } else {
+      HABITACIONES_CLIMATIZATION_IDS.forEach(id => {
+        if (!dynamicItem.climatizationItems!.find(item => item.id === id)) {
+          dynamicItem.climatizationItems!.push({ id, cantidad: 0 });
+        }
+      });
+    }
+  } else if (sectionId === 'banos') {
+    if (!dynamicItem.carpentryItems || dynamicItem.carpentryItems.length === 0) {
+      dynamicItem.carpentryItems = BANOS_CARPENTRY_IDS.map(id => ({ id, cantidad: 0 }));
+    } else {
+      BANOS_CARPENTRY_IDS.forEach(id => {
+        if (!dynamicItem.carpentryItems!.find(item => item.id === id)) {
+          dynamicItem.carpentryItems!.push({ id, cantidad: 0 });
+        }
+      });
+    }
+  }
+}
+
 // Mapeo de zone_type a nombre de zona
 const ZONE_TYPE_TO_NAME: Record<string, string> = {
   'entorno': 'Entorno y Zonas Comunes',
@@ -869,6 +917,9 @@ export function convertSupabaseToChecklist(
             }
           }
         });
+
+        // Normalizar estructura para que todas las habitaciones/baños tengan carpentryItems, climatizationItems, uploadZone
+        normalizeDynamicItemStructure(dynamicItem, sectionId, index);
 
         if (!section.dynamicItems) section.dynamicItems = [];
         section.dynamicItems.push(dynamicItem);
