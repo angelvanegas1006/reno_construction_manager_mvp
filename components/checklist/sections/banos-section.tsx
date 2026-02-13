@@ -93,8 +93,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
 
     // Handlers
     const handleUploadZoneUpdate = useCallback((updates: ChecklistUploadZone) => {
-      if (banoIndex === undefined || !bano) return;
-      // Priorizar section.dynamicItems para obtener los datos más actualizados
+      if (banoIndex === undefined) return;
       const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
       const updatedItems = [...latestDynamicItems];
@@ -111,7 +110,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
     }, [bano, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleQuestionUpdate = useCallback((questionId: string, updates: Partial<ChecklistQuestion>) => {
-      if (banoIndex === undefined || !bano) return;
+      if (banoIndex === undefined) return;
       // Priorizar dynamicItems del useMemo que se actualiza cuando section.dynamicItems cambia
       const latestDynamicItems = dynamicItems.length > 0 ? dynamicItems : (section.dynamicItems || []);
       const latestBano = latestDynamicItems[banoIndex] || bano;
@@ -134,7 +133,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
     }, [bano, dynamicItems, banoIndex, defaultQuestions, onUpdate, section.dynamicItems]);
 
     const handleCarpentryQuantityChange = useCallback((itemId: string, delta: number) => {
-      if (banoIndex === undefined || !bano) return;
+      if (banoIndex === undefined) return;
       const currentDynamicItems = section.dynamicItems || [];
       const currentBano = currentDynamicItems[banoIndex] || bano;
       const currentItems: ChecklistCarpentryItem[] = (currentBano.carpentryItems || carpentryItems) as ChecklistCarpentryItem[];
@@ -175,8 +174,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
     }, [section.dynamicItems, banoIndex, bano, carpentryItems, onUpdate]);
 
     const handleCarpentryStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
-      if (banoIndex === undefined || !bano) return;
-      // Priorizar section.dynamicItems para obtener los datos más actualizados
+      if (banoIndex === undefined) return;
       const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
       const currentItems = latestBano?.carpentryItems || carpentryItems;
@@ -193,16 +191,16 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         }
         return item;
       });
-      const updatedDynamicItems = [...dynamicItems];
+      const updatedDynamicItems = [...latestDynamicItems];
       updatedDynamicItems[banoIndex] = {
-        ...bano,
+        ...latestBano,
         carpentryItems: updatedItems,
       };
       onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate]);
+    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleCarpentryNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
-      if (banoIndex === undefined || !bano) return;
+      if (banoIndex === undefined) return;
       // Priorizar section.dynamicItems para obtener los datos más actualizados
       const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
@@ -229,7 +227,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
     }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleCarpentryPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      if (banoIndex === undefined || !bano) return;
+      if (banoIndex === undefined) return;
       // Priorizar section.dynamicItems para obtener los datos más actualizados
       const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
@@ -256,7 +254,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
     }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleCarpentryBadElementsChange = useCallback((itemId: string, unitIndex: number | null, badElements: string[]) => {
-      if (banoIndex === undefined || !bano) return;
+      if (banoIndex === undefined) return;
       // Priorizar section.dynamicItems para obtener los datos más actualizados
       const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
