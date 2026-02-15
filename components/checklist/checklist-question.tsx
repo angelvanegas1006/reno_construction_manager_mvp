@@ -17,6 +17,7 @@ interface ChecklistQuestionProps {
   description?: string;
   onUpdate: (updates: Partial<ChecklistQuestionType>) => void;
   showPhotos?: boolean;
+  showPhotosForMobiliario?: boolean; // Si true, mostrar fotos para buen_estado/necesita_reparacion/necesita_reemplazo (no solo necesita_reparacion/reemplazo)
   showNotes?: boolean;
   elements?: Array<{ id: string; label: string }>; // Specific elements for this question
   readOnly?: boolean; // Si es true, el componente es solo lectura
@@ -31,6 +32,7 @@ export function ChecklistQuestion({
   description,
   onUpdate,
   showPhotos = true,
+  showPhotosForMobiliario = false,
   showNotes = true,
   elements = [],
   readOnly = false,
@@ -88,25 +90,20 @@ export function ChecklistQuestion({
       label,
     });
     
-    // If status is "no_aplica", clear badElements, notes, and photos
+    // If status is "no_aplica", clear badElements, notes, and photos (use []/"" so merge keeps them)
     if (status === "no_aplica") {
       const updates = { 
         status, 
-        badElements: undefined, 
-        notes: undefined, 
-        photos: undefined 
+        badElements: [] as string[], 
+        notes: "", 
+        photos: [] as typeof question.photos 
       };
       console.log(`📤 [ChecklistQuestion] Calling onUpdate with:`, updates);
       onUpdate(updates);
       console.log(`✅ [ChecklistQuestion] onUpdate called successfully`);
     } else if (status === "buen_estado") {
-      // For "buen_estado", clear badElements and photos, but keep notes (needed for mobiliario)
-      const updates = { 
-        status, 
-        badElements: undefined, 
-        photos: undefined 
-        // Keep notes - don't clear them
-      };
+      // For "buen_estado" only send status so we don't overwrite photos/notes (mobiliario keeps multimedia)
+      const updates = { status };
       console.log(`📤 [ChecklistQuestion] Calling onUpdate with:`, updates);
       onUpdate(updates);
       console.log(`✅ [ChecklistQuestion] onUpdate called successfully`);
@@ -223,12 +220,12 @@ export function ChecklistQuestion({
         </div>
       )}
 
-      {/* Photos (required when status is "necesita_reparacion" or "necesita_reemplazo") */}
-      {showPhotos && requiresDetails && (
+      {/* Photos: para mobiliario mostrar en buen_estado/necesita_reparacion/necesita_reemplazo; para otros solo en necesita_reparacion/reemplazo */}
+      {showPhotos && (requiresDetails || (showPhotosForMobiliario && (questionStatus === "buen_estado" || requiresDetails))) && (
         <div className="space-y-2">
           <ChecklistUploadZoneComponent
             title="Fotos"
-            description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
+            description={showPhotosForMobiliario ? "Añade fotos del mobiliario" : "Añade fotos del problema o elemento que necesita reparación/reemplazo"}
             uploadZone={uploadZone}
             onUpdate={handleUploadZoneUpdate}
             isRequired={requiresDetails}

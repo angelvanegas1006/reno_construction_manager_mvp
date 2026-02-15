@@ -46,7 +46,11 @@ if (typeof window !== 'undefined' && !errorInterceptorsInstalled) {
     if (!arg) return false;
     const msg = typeof arg === 'string' ? arg : arg?.message || arg?.toString() || '';
     const name = arg?.name || '';
-    return msg === 'Failed to fetch' || (name === 'TypeError' && String(msg).includes('fetch'));
+    return (
+      msg === 'Failed to fetch' ||
+      (name === 'TypeError' && String(msg).includes('fetch')) ||
+      String(msg).includes('Failed to fetch')
+    );
   };
   
   // Interceptar console.error con mejor detección

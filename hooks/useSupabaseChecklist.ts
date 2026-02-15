@@ -974,6 +974,19 @@ export function useSupabaseChecklist({
           }),
         }));
       }
+      // Actualizar URLs de fotos de mobiliario para que el converter guarde image_urls
+      if (updatedSection.mobiliario?.question?.photos && updatedSection.mobiliario.question.photos.length > 0) {
+        updatedSection.mobiliario = {
+          ...updatedSection.mobiliario,
+          question: {
+            ...updatedSection.mobiliario.question,
+            photos: updatedSection.mobiliario.question.photos.map(photo => {
+              const updatedUrl = fileUrlMap.get(photo.id) || photo.data;
+              return { ...photo, data: updatedUrl };
+            }),
+          },
+        };
+      }
 
       // Log de la sección antes de convertir
       console.log(`[useSupabaseChecklist] 📋 Section data before conversion:`, {
