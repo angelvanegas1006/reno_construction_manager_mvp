@@ -22,6 +22,33 @@ const debugError = (...args: any[]) => {
     }
   }
 };
+
+/** Merge profundo: objetos anidados se fusionan, arrays y primitivos se reemplazan. */
+function deepMergeSection<T extends object>(target: T, source: Partial<T>): T {
+  const result = { ...target };
+  for (const key of Object.keys(source) as (keyof T)[]) {
+    const srcVal = source[key];
+    if (srcVal === undefined) continue;
+    const tgtVal = (target as Record<string, unknown>)[key as string];
+    if (
+      tgtVal !== null &&
+      typeof tgtVal === "object" &&
+      !Array.isArray(tgtVal) &&
+      srcVal !== null &&
+      typeof srcVal === "object" &&
+      !Array.isArray(srcVal)
+    ) {
+      (result as Record<string, unknown>)[key as string] = deepMergeSection(
+        tgtVal as object,
+        srcVal as object
+      );
+    } else {
+      (result as Record<string, unknown>)[key as string] = srcVal;
+    }
+  }
+  return result;
+}
+
 import {
   ChecklistData,
   ChecklistSection,
@@ -112,6 +139,10 @@ export function useSupabaseChecklistBase({
   const checklistForFinalizeRef = useRef<ChecklistData | null>(null);
   /** Inspecciones para las que ya se ejecutó la reparación de zonas fijas faltantes (evita bucle). */
   const repairedZonesForInspectionRef = useRef<string | null>(null);
+  /** Actualizaciones pendientes de sección (evita perder fotos de mobiliario cuando el usuario pulsa Continuar antes de que React aplique el estado). */
+  const pendingSectionUpdatesRef = useRef<Record<string, Partial<ChecklistSection>>>({});
+  /** Sección que acabamos de guardar; al refetch solo actualizamos esta sección para no sobrescribir mobiliario de otras (entrada, salon, etc.). */
+  const lastSavedSectionIdRef = useRef<string | null>(null);
   
   // Keep checklistRef in sync with checklist state
   useEffect(() => {
@@ -814,7 +845,9 @@ export function useSupabaseChecklistBase({
         const hasUserData = current && Object.values(current.sections || {}).some(section => {
           if (section.uploadZones?.some(z => (z.photos?.length ?? 0) > 0 || (z.videos?.length ?? 0) > 0)) return true;
           if (section.questions?.some(q => q.status || (q.notes && q.notes.trim()))) return true;
+          if (section.mobiliario?.question?.status || section.mobiliario?.question?.photos?.length || section.mobiliario?.question?.notes?.trim()) return true;
           if (section.dynamicItems?.some(item => item.questions?.some((q: any) => q.status || (q.notes && q.notes?.trim())))) return true;
+          if (section.dynamicItems?.some(item => item.mobiliario?.question?.status || item.mobiliario?.question?.photos?.length || item.mobiliario?.question?.notes?.trim())) return true;
           return false;
         });
         if (hasUserData && elements.length === 0) {
@@ -926,16 +959,41 @@ export function useSupabaseChecklistBase({
         debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Recalculated conversion data in reload`);
       }
       
-      const loadedChecklist = createChecklist(propertyId, checklistType, supabaseData.sections || {});
+      const loadedSections = supabaseData.sections || {};
       const currentForReload = checklistRef.current;
       const hasUserDataReload = currentForReload && Object.values(currentForReload.sections || {}).some(section => {
         if (section.uploadZones?.some(z => (z.photos?.length ?? 0) > 0 || (z.videos?.length ?? 0) > 0)) return true;
         if (section.questions?.some(q => q.status || (q.notes && q.notes.trim()))) return true;
+        if (section.mobiliario?.question?.status || section.mobiliario?.question?.photos?.length || section.mobiliario?.question?.notes?.trim()) return true;
         if (section.dynamicItems?.some(item => item.questions?.some((q: any) => q.status || (q.notes && q.notes?.trim())))) return true;
+        if (section.dynamicItems?.some(item => item.mobiliario?.question?.status || item.mobiliario?.question?.photos?.length || item.mobiliario?.question?.notes?.trim())) return true;
         return false;
       });
       if (!(hasUserDataReload && elements.length === 0)) {
-        setChecklist(loadedChecklist);
+        const savedSectionId = lastSavedSectionIdRef.current;
+        lastSavedSectionIdRef.current = null;
+        if (savedSectionId && currentForReload) {
+          // Solo actualizar la sección guardada; preservar mobiliario de entrada, salon, etc.
+          const loadedSection = loadedSections[savedSectionId];
+          if (loadedSection) {
+            setChecklist(prev => {
+              if (!prev) return createChecklist(propertyId, checklistType, loadedSections);
+              const merged = {
+                ...prev,
+                sections: {
+                  ...prev.sections,
+                  [savedSectionId]: loadedSection,
+                },
+              };
+              return merged;
+            });
+            debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📦 Merged only section "${savedSectionId}" (preserving other sections' mobiliario)`);
+          } else {
+            setChecklist(createChecklist(propertyId, checklistType, loadedSections));
+          }
+        } else {
+          setChecklist(createChecklist(propertyId, checklistType, loadedSections));
+        }
       } else {
         console.log(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping zones/elements reload - checklist has user data and Supabase has 0 elements`);
       }
@@ -989,11 +1047,19 @@ export function useSupabaseChecklistBase({
     try {
       // Usar ref para leer la sección más reciente (evita estado desactualizado al pulsar Continuar justo después de editar)
       const checklistToUse = checklistRef.current ?? checklist;
-      const section = checklistToUse.sections?.[sectionId];
+      let section = checklistToUse.sections?.[sectionId];
       if (!section) {
         console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Section not found:`, sectionId, "available:", Object.keys(checklist.sections || {}));
         savingRef.current = false;
         return;
+      }
+
+      // Fusionar actualizaciones pendientes (fotos de mobiliario, etc.) antes de guardar
+      const pending = pendingSectionUpdatesRef.current[sectionId];
+      if (pending && Object.keys(pending).length > 0) {
+        section = deepMergeSection(section, pending);
+        pendingSectionUpdatesRef.current[sectionId] = {};
+        debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📦 Merged pending section updates for:`, sectionId);
       }
 
       console.log(`[useSupabaseChecklistBase:${inspectionType}] 💾 Saving section:`, sectionId);
@@ -1011,7 +1077,16 @@ export function useSupabaseChecklistBase({
           .filter(z => z.zone_type === expectedZoneType)
           .sort((a, b) => (a.zone_name || '').localeCompare(b.zone_name || ''));
         zonesOfTypeForSave = [...initialZonesOfType];
-        const needed = section.dynamicItems?.length ?? 0;
+        const requestedCount = section.dynamicItems?.length ?? 0;
+        // No crear más zonas que las que tiene la propiedad (evita habitación/baño fantasma al guardar)
+        // Si la propiedad no tiene bedrooms/bathrooms, usar zonas existentes como máximo (nunca crear más)
+        const maxFromProperty = sectionId === "habitaciones"
+          ? (supabaseProperty?.bedrooms ?? initialZonesOfType.length)
+          : (supabaseProperty?.bathrooms ?? initialZonesOfType.length);
+        const needed = Math.min(requestedCount, maxFromProperty);
+        if (requestedCount > maxFromProperty) {
+          debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Capping zones: requested ${requestedCount}, max ${maxFromProperty} ${sectionId}`);
+        }
         const displayNameBase = zoneConfig?.zoneName ?? 'Zona';
         while (zonesOfTypeForSave.length < needed) {
           const created = await createZone({
@@ -1180,6 +1255,14 @@ export function useSupabaseChecklistBase({
         });
       }
 
+      // Archivos de mobiliario (secciones fijas: entrada-pasillos, salon)
+      if (section.mobiliario?.question?.photos) {
+        const base64Photos = section.mobiliario.question.photos.filter(photo => 
+          photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
+        );
+        filesToUpload.push(...base64Photos);
+      }
+
       // Archivos de carpentryItems que están en base64
       if (section.carpentryItems) {
         section.carpentryItems.forEach(item => {
@@ -1327,6 +1410,20 @@ export function useSupabaseChecklistBase({
               }
             });
           }
+        });
+      }
+
+      // Log mobiliario antes de convertir (diagnóstico persistencia fotos)
+      if (section.mobiliario?.question) {
+        const mq = section.mobiliario.question;
+        const photosCount = mq.photos?.length ?? 0;
+        const hasHttpPhotos = mq.photos?.some(p => p.data?.startsWith?.('http')) ?? false;
+        debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📦 Mobiliario before convert:`, {
+          sectionId,
+          status: mq.status,
+          photosCount,
+          hasHttpPhotos,
+          photoDataTypes: mq.photos?.map(p => (p.data?.substring?.(0, 20) ?? '') + '...') ?? [],
         });
       }
 
@@ -1562,6 +1659,20 @@ export function useSupabaseChecklistBase({
             });
           }
 
+          // Actualizar fotos de mobiliario (secciones fijas: entrada-pasillos, salon)
+          if (sectionToSave.mobiliario?.question?.photos && sectionToSave.mobiliario.question.photos.length > 0) {
+            sectionToSave.mobiliario = {
+              ...sectionToSave.mobiliario,
+              question: {
+                ...sectionToSave.mobiliario.question,
+                photos: sectionToSave.mobiliario.question.photos.map(photo => {
+                  const updatedUrl = fileIdToUrlMap.get(photo.id) ?? photo.data;
+                  return { ...photo, data: updatedUrl };
+                }),
+              },
+            };
+          }
+
           // Actualizar carpentryItems (sección: salón, cocina, etc.)
           if (sectionToSave.carpentryItems) {
             sectionToSave.carpentryItems.forEach(item => {
@@ -1787,17 +1898,29 @@ export function useSupabaseChecklistBase({
       }
 
       if (elementsToSave.length > 0) {
-        // Quitar undefined para evitar problemas de serialización; mantener null explícito
+        // Deduplicar por (zone_id, element_name): PostgreSQL "ON CONFLICT DO UPDATE" no puede afectar la misma fila dos veces
+        const seen = new Map<string, typeof elementsToSave[0]>();
+        elementsToSave.forEach((el) => {
+          const key = `${el.zone_id}:${el.element_name}`;
+          seen.set(key, el);
+        });
+        const deduped = Array.from(seen.values());
+        if (deduped.length !== elementsToSave.length) {
+          console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Removed ${elementsToSave.length - deduped.length} duplicate (zone_id, element_name) before upsert`);
+        }
+
+        // Quitar undefined; image_urls/video_urls siempre array (Supabase TEXT[] puede rechazar null)
         type ElementInsert = Database['public']['Tables']['inspection_elements']['Insert'];
-        const sanitizedElements: ElementInsert[] = elementsToSave.map((el) => {
+        const sanitizedElements: ElementInsert[] = deduped.map((el) => {
           const clean: ElementInsert = {
             zone_id: el.zone_id,
             element_name: el.element_name,
           };
           if (el.condition !== undefined) clean.condition = el.condition;
           if (el.notes !== undefined) clean.notes = el.notes;
-          if (el.image_urls !== undefined) clean.image_urls = el.image_urls;
-          if (el.video_urls !== undefined) clean.video_urls = el.video_urls;
+          // Enviar siempre array para columnas TEXT[] (evitar null que puede fallar en algunos entornos)
+          clean.image_urls = Array.isArray(el.image_urls) && el.image_urls.length > 0 ? el.image_urls : [];
+          clean.video_urls = Array.isArray(el.video_urls) && el.video_urls.length > 0 ? el.video_urls : [];
           if (el.quantity !== undefined) clean.quantity = el.quantity;
           if (el.exists !== undefined) clean.exists = el.exists;
           return clean;
@@ -1823,11 +1946,14 @@ export function useSupabaseChecklistBase({
         }
 
         if (batchUpsertError) {
+          // PostgrestError puede tener message/code no enumerables; extraer explícitamente
           const err = batchUpsertError as { code?: string; message?: string; details?: string; hint?: string };
-          const errorMessage = (err?.message ?? err?.details ?? String(batchUpsertError)) || 'Error desconocido';
+          const msg = err?.message ?? err?.details ?? (typeof (batchUpsertError as any)?.message === 'string' ? (batchUpsertError as any).message : null);
+          const code = err?.code ?? (batchUpsertError as any)?.code;
+          const errorMessage = msg || String(batchUpsertError) || 'Error desconocido';
           const errorDetails = {
-            code: err?.code,
-            message: err?.message,
+            code: code ?? err?.code,
+            message: msg ?? err?.message,
             details: err?.details,
             hint: err?.hint,
             elementsCount: elementsToSave.length,
@@ -1837,14 +1963,14 @@ export function useSupabaseChecklistBase({
               arr.findIndex(ee => ee.zone_id === e.zone_id && ee.element_name === e.element_name) !== idx
             ).map(e => ({ zone_id: e.zone_id, element_name: e.element_name })),
           };
-          debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error batch upserting elements:`, errorDetails);
-          console.error(`[useSupabaseChecklistBase] Upsert error (objeto completo):`, batchUpsertError, errorDetails);
+          debugError(`[useSupabaseChecklistBase:${inspectionType}] ❌ Error batch upserting elements:`, errorMessage, errorDetails);
+          console.error(`[useSupabaseChecklistBase] Upsert error:`, errorMessage, code ?? '', errorDetails);
           toast.error("Error al guardar la sección. Revisa la consola para más detalles.", {
             description: errorMessage,
             duration: 10000,
           });
         } else {
-          debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Batch saved ${elementsToSave.length} elements successfully`);
+          debugLog(`[useSupabaseChecklistBase:${inspectionType}] ✅ Batch saved ${deduped.length} elements successfully`);
           
           // Si es entorno-zonas-comunes, actualizar has_elevator en la inspección según pregunta ascensor
           if (sectionId === 'entorno-zonas-comunes') {
@@ -1861,23 +1987,25 @@ export function useSupabaseChecklistBase({
             }
           }
           
-          // Optimización: Solo refetch si hay elementos con fotos que necesitan URLs actualizadas
-          // Esto evita el refetch completo innecesario que puede tomar 1-3 segundos
+          // Refetch cuando hay elementos con fotos: para sincronizar con BD (mobiliario, etc.)
+          // - hasPhotosToUpdate: fotos en base64 que necesitan URLs desde Storage
+          // - hasElementsWithPhotos: elementos con image_urls ya guardados (para sincronizar checklist con BD)
           const hasPhotosToUpdate = elementsToSave.some(e => 
             e.image_urls && e.image_urls.length > 0 && 
             e.image_urls.some((url: string) => url.startsWith('data:') || !url.startsWith('http'))
           );
+          const hasElementsWithPhotos = elementsToSave.some(e => e.image_urls && e.image_urls.length > 0);
           
           // No refetch durante saveAllSections: cada refetch reemplaza el checklist con lo que hay en BD
           // (solo la sección guardada hasta ese momento), borrando el resto de secciones en memoria
           if (savingAllSectionsRef.current) {
             debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping refetch during saveAllSections (evita perder otras secciones)`);
-          } else if (hasPhotosToUpdate) {
-            // Refetch solo si hay fotos que necesitan URLs actualizadas desde Storage
-            debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Refetching to update photo URLs...`);
+          } else if (hasPhotosToUpdate || hasElementsWithPhotos) {
+            // Refetch para actualizar URLs o sincronizar checklist con BD
+            lastSavedSectionIdRef.current = sectionId; // Solo actualizar esta sección al recargar (evita borrar mobiliario de entrada/salon)
+            debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Refetching (photosToUpdate=${hasPhotosToUpdate}, elementsWithPhotos=${hasElementsWithPhotos})...`);
             await refetchInspection();
           } else {
-            // No refetch necesario - el estado local ya está actualizado
             debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping refetch - no photos to update`);
           }
         }
@@ -1931,6 +2059,32 @@ export function useSupabaseChecklistBase({
       sectionDataKeys: Object.keys(sectionData),
       dynamicItemsLength: sectionData.dynamicItems?.length || 0,
     });
+
+    // Cap dynamicCount y dynamicItems al número real de zonas (evita baño/habitación fantasma)
+    if ((sectionId === "habitaciones" || sectionId === "banos") && sectionData) {
+      const zoneType = sectionId === "habitaciones" ? "dormitorio" : "bano";
+      const zonesOfType = zones.filter(z => z.zone_type === zoneType);
+      const maxCount = zonesOfType.length;
+      if (maxCount > 0) {
+        let capped = false;
+        if (sectionData.dynamicCount !== undefined && sectionData.dynamicCount > maxCount) {
+          sectionData = { ...sectionData, dynamicCount: maxCount };
+          capped = true;
+        }
+        if (sectionData.dynamicItems !== undefined && sectionData.dynamicItems.length > maxCount) {
+          sectionData = { ...sectionData, dynamicItems: sectionData.dynamicItems.slice(0, maxCount) };
+          capped = true;
+        }
+        if (capped) {
+          debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Capped ${sectionId} to ${maxCount} (zones)`);
+        }
+      }
+    }
+
+    // Acumular en pendingSectionUpdatesRef para que saveCurrentSection tenga los últimos datos
+    // (evita perder fotos de mobiliario cuando el usuario pulsa Continuar antes de que React aplique el estado)
+    const prev = pendingSectionUpdatesRef.current[sectionId] || {};
+    pendingSectionUpdatesRef.current[sectionId] = deepMergeSection(prev, sectionData);
     
     if (sectionData.dynamicItems) {
       console.log(`📦 [useSupabaseChecklistBase:${inspectionType}] dynamicItems received:`, sectionData.dynamicItems.map((item, idx) => ({
@@ -2136,7 +2290,7 @@ export function useSupabaseChecklistBase({
     // El guardado se hará en handleContinue o handleSectionClick
     
     debugLog(`✅ [useSupabaseChecklistBase:${inspectionType}] updateSection COMPLETED (sin autoguardado)`);
-  }, [inspectionType, debouncedSave]);
+  }, [inspectionType, debouncedSave, zones]);
 
   // Guardar todas las secciones antes de finalizar
   // Esta función guarda todas las secciones del checklist, no solo la actual
@@ -2245,7 +2399,9 @@ export function useSupabaseChecklistBase({
         const hasPhotos = (p: { data?: string }[]) => p?.some(x => x.data?.startsWith?.('http')) ?? false;
         if (sec.uploadZones?.some(z => hasPhotos(z.photos || []))) return true;
         if (sec.questions?.some(q => hasPhotos(q.photos || []))) return true;
+        if (sec.mobiliario?.question?.status || sec.mobiliario?.question?.photos?.length || sec.mobiliario?.question?.notes?.trim()) return true;
         if (sec.dynamicItems?.some(di => hasPhotos(di.uploadZone?.photos || []) || di.questions?.some(q => hasPhotos(q.photos || [])))) return true;
+        if (sec.dynamicItems?.some(di => di.mobiliario?.question?.status || di.mobiliario?.question?.photos?.length || di.mobiliario?.question?.notes?.trim())) return true;
         return false;
       });
 
