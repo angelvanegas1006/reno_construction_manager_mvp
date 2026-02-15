@@ -455,7 +455,8 @@ export function convertItemsToElements(
 }
 
 /**
- * Convierte mobiliario a elementos de inspección
+ * Convierte mobiliario a elementos de inspección.
+ * Siempre crea "mobiliario-detalle" cuando hay question (estado + fotos), sin depender del toggle existeMobiliario.
  */
 export function convertMobiliarioToElements(
   mobiliario: { existeMobiliario?: boolean; question?: ChecklistQuestion },
@@ -463,7 +464,8 @@ export function convertMobiliarioToElements(
 ): ElementInsert[] {
   const elements: ElementInsert[] = [];
 
-  // Elemento principal de mobiliario
+  // Elemento principal de mobiliario (exists = true cuando hay question para reportar)
+  const hasQuestion = !!mobiliario.question;
   elements.push({
     zone_id: zoneId,
     element_name: 'mobiliario',
@@ -471,16 +473,22 @@ export function convertMobiliarioToElements(
     notes: null,
     image_urls: null,
     quantity: null,
-    exists: mobiliario.existeMobiliario ?? null,
+    exists: hasQuestion ? true : (mobiliario.existeMobiliario ?? null),
   });
 
-  // Si existe mobiliario y hay question, crear elemento adicional
-  if (mobiliario.existeMobiliario && mobiliario.question) {
-    // Solo guardar URLs HTTP (fotos ya subidas), igual que en upload zones y questions
+  // Crear mobiliario-detalle cuando hay question (estado + fotos/notas), para que siempre se guarde el contenido multimedia
+  if (mobiliario.question) {
     const photosWithHttp = mobiliario.question.photos?.filter(photo => photo.data && photo.data.startsWith('http')) || [];
     const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
-
-    // Nota: badElements se puede incluir en notes si es necesario
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[convertMobiliarioToElements] mobiliario.question:', {
+        zoneId,
+        status: mobiliario.question.status,
+        photosCount: mobiliario.question.photos?.length ?? 0,
+        photosWithHttpCount: photosWithHttp.length,
+        imageUrls: imageUrls ?? [],
+      });
+    }
     const notesWithBadElements = mobiliario.question.badElements && mobiliario.question.badElements.length > 0
       ? `${mobiliario.question.notes || ''}\nBad elements: ${mobiliario.question.badElements.join(', ')}`.trim()
       : mobiliario.question.notes || null;
@@ -514,9 +522,12 @@ export function convertSectionToElements(
     elements.push(...convertUploadZonesToElements(section.uploadZones, zoneId));
   }
 
-  // Questions
+  // Questions (excluir "mobiliario": se persiste vía section.mobiliario → convertMobiliarioToElements)
   if (section.questions && section.questions.length > 0) {
-    elements.push(...convertQuestionsToElements(section.questions, zoneId));
+    const questionsWithoutMobiliario = section.questions.filter(q => q.id !== 'mobiliario');
+    if (questionsWithoutMobiliario.length > 0) {
+      elements.push(...convertQuestionsToElements(questionsWithoutMobiliario, zoneId));
+    }
   }
 
   // Carpentry items
@@ -947,13 +958,23 @@ export function convertSupabaseToChecklist(
             if (!dynamicItem.mobiliario) {
               dynamicItem.mobiliario = { existeMobiliario: true };
             }
+            const mobiliarioPhotos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
             dynamicItem.mobiliario.question = {
               id: 'mobiliario',
               status: mapConditionToStatus(element.condition),
-              notes: element.notes || undefined,
-              photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+              notes: cleanNotesFromBadElements(element.notes) || undefined,
+              photos: mobiliarioPhotos,
               badElements: extractBadElementsFromNotes(element.notes),
             };
+            if (process.env.NODE_ENV === 'development' && mobiliarioPhotos && mobiliarioPhotos.length > 0) {
+              console.log('[convertSupabaseToChecklist] 📦 Loaded mobiliario-detalle (dynamic item):', {
+                sectionId,
+                dynamicItemId: dynamicItem.id,
+                zoneId: element.zone_id,
+                status: dynamicItem.mobiliario.question?.status,
+                photosCount: mobiliarioPhotos.length,
+              });
+            }
           } else if (element.element_name === 'mobiliario') {
             if (sectionId === 'banos' && element.condition != null) {
               // Banos: mobiliario es una pregunta (sin toggle), guardada con condition
@@ -1111,6 +1132,32 @@ export function convertSupabaseToChecklist(
           }
           // Cargar videos desde video_urls
           uploadZone.videos = element.video_urls?.map(url => urlToFileUpload(url, true)) || [];
+        }
+        // Mobiliario (elemento principal: exists)
+        else if (element.element_name === 'mobiliario') {
+          if (!section.mobiliario) section.mobiliario = { existeMobiliario: true, question: { id: 'mobiliario' } };
+          section.mobiliario.existeMobiliario = element.exists ?? true;
+        }
+        // Mobiliario detalle (estado, notas, fotos)
+        else if (element.element_name === 'mobiliario-detalle') {
+          if (!section.mobiliario) section.mobiliario = { existeMobiliario: true, question: { id: 'mobiliario' } };
+          const photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+          section.mobiliario.question = {
+            ...(section.mobiliario.question || { id: 'mobiliario' }),
+            id: 'mobiliario',
+            status: mapConditionToStatus(element.condition),
+            notes: cleanNotesFromBadElements(element.notes) || undefined,
+            photos,
+            badElements: extractBadElementsFromNotes(element.notes),
+          };
+          if (process.env.NODE_ENV === 'development' && photos && photos.length > 0) {
+            console.log('[convertSupabaseToChecklist] 📦 Loaded mobiliario-detalle (fixed section):', {
+              sectionId,
+              zoneId: element.zone_id,
+              status: section.mobiliario.question?.status,
+              photosCount: photos.length,
+            });
+          }
         }
         // Questions
         // Questions are elements that don't start with 'fotos-', 'videos-', or item type prefixes

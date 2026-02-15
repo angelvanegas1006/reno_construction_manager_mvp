@@ -47,7 +47,7 @@ function getDefaultHabitacionStructure(index: number): ChecklistDynamicItem {
     uploadZone: { id: `fotos-video-habitaciones-${index + 1}`, photos: [], videos: [] },
     carpentryItems: CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
     climatizationItems: CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 })),
-    mobiliario: { existeMobiliario: false },
+    mobiliario: { existeMobiliario: true, question: { id: "mobiliario" } },
   };
 }
 
@@ -136,8 +136,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       }));
     })();
 
-    // Initialize mobiliario
-    const mobiliario = habitacion?.mobiliario || { existeMobiliario: false };
+    // Initialize mobiliario (siempre mostrar reporte de estado, sin toggle)
+    const mobiliario = habitacion?.mobiliario || { existeMobiliario: true, question: { id: "mobiliario" } };
 
     // Initialize upload zone - usar ID único con índice
     const uploadZone = habitacion?.uploadZone || (habitacionIndex !== undefined 
@@ -612,7 +612,10 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
     const handleMobiliarioQuestionUpdate = useCallback((updates: Partial<ChecklistQuestion>) => {
       if (habitacionIndex === undefined || !habitacion) return;
-      // Siempre usar section.dynamicItems directamente para obtener el estado más reciente
+      // Solo aplicar claves definidas para no borrar fotos/notas al cambiar estado
+      const definedUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([, v]) => v !== undefined)
+      ) as Partial<ChecklistQuestion>;
       const currentDynamicItems = section.dynamicItems || dynamicItems;
       const currentHabitacion = currentDynamicItems[habitacionIndex] || habitacion;
       const currentMobiliario = currentHabitacion.mobiliario || mobiliario;
@@ -621,7 +624,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         ...currentHabitacion,
         mobiliario: {
           ...currentMobiliario,
-          question: { ...(currentMobiliario.question || { id: "mobiliario" }), ...updates },
+          existeMobiliario: true,
+          question: { ...(currentMobiliario.question || { id: "mobiliario" }), ...definedUpdates },
         },
       };
       console.log(`[HabitacionesSection] handleMobiliarioQuestionUpdate:`, {
@@ -772,7 +776,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const effectiveQuestions = effectiveHabitacion.questions || defaultQuestions;
       const effectiveCarpentryItems = effectiveHabitacion.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
       const effectiveClimatizationItems = effectiveHabitacion.climatizationItems || CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
-      const effectiveMobiliario = effectiveHabitacion.mobiliario || { existeMobiliario: false };
+      const effectiveMobiliario = effectiveHabitacion.mobiliario || { existeMobiliario: true, question: { id: "mobiliario" } };
       const effectiveUploadZone = effectiveHabitacion.uploadZone || { id: "fotos-video-habitaciones-1", photos: [], videos: [] };
 
       // Handlers for single bedroom (when dynamicCount === 1)
@@ -1848,92 +1852,71 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
             </div>
           </Card>
 
-          {/* Mobiliario */}
+          {/* Mobiliario: reporte de estado siempre visible, sin toggle */}
           <Card className="p-4 sm:p-6 space-y-4">
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-semibold text-foreground leading-tight">
-                  {t.checklist.sections.habitaciones.mobiliario.existeMobiliario}
-                </Label>
-                <Switch
-                  checked={(currentHabitacion.mobiliario || effectiveMobiliario).existeMobiliario || false}
-                  onCheckedChange={(existeMobiliario) => {
-                    const index = habitacionIndex !== undefined ? habitacionIndex : 0;
-                    const latestItems = section.dynamicItems || dynamicItems;
-                    const currentHabitacionForUpdate = latestItems[index] || currentHabitacion;
-                    const currentMobiliario = currentHabitacionForUpdate.mobiliario || effectiveMobiliario;
-                    const updatedItems = [...latestItems];
-                    updatedItems[index] = {
-                      ...currentHabitacionForUpdate,
-                      mobiliario: {
-                        existeMobiliario,
-                        question: existeMobiliario ? (currentMobiliario.question || { id: "mobiliario" }) : undefined,
-                      },
-                    };
-                    onUpdate({ dynamicItems: updatedItems });
-                  }}
-                />
-              </div>
-
-              {(currentHabitacion.mobiliario || effectiveMobiliario).existeMobiliario && (
-                <div className="space-y-4 pt-4 border-t">
-                  <ChecklistQuestionComponent
-                    question={(currentHabitacion.mobiliario || effectiveMobiliario).question || { id: "mobiliario" }}
-                    questionId="mobiliario"
-                    label=""
-                    onUpdate={(updates) => {
-                      const index = habitacionIndex !== undefined ? habitacionIndex : 0;
-                      const latestItems = section.dynamicItems || dynamicItems;
-                      const currentHabitacionForUpdate = latestItems[index] || currentHabitacion;
-                      const currentMobiliario = currentHabitacionForUpdate.mobiliario || effectiveMobiliario;
-                      const updatedItems = [...latestItems];
-                      updatedItems[index] = {
-                        ...currentHabitacionForUpdate,
-                        mobiliario: {
-                          ...currentMobiliario,
-                          question: { ...(currentMobiliario.question || { id: "mobiliario" }), ...updates },
-                        },
-                      };
-                      onUpdate({ dynamicItems: updatedItems });
-                    }}
-                    elements={[]}
-                    showNotes={false}
-                  />
-                  {/* Campo de notas obligatorio para describir qué mobiliario existe */}
-                  {(() => {
-                    const mobiliarioQuestion = (currentHabitacion.mobiliario || effectiveMobiliario).question;
-                    const needsDetails = mobiliarioQuestion?.status === "buen_estado" || mobiliarioQuestion?.status === "necesita_reparacion" || mobiliarioQuestion?.status === "necesita_reemplazo";
-                    return needsDetails && (
-                      <div className="space-y-2">
-                        <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                          {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
-                        </Label>
-                        <Textarea
-                          value={mobiliarioQuestion?.notes || ""}
-                          onChange={(e) => {
-                            const index = habitacionIndex !== undefined ? habitacionIndex : 0;
-                            const latestItems = section.dynamicItems || dynamicItems;
-                            const currentHabitacionForUpdate = latestItems[index] || currentHabitacion;
-                            const currentMobiliario = currentHabitacionForUpdate.mobiliario || effectiveMobiliario;
-                            const updatedItems = [...latestItems];
-                            updatedItems[index] = {
-                              ...currentHabitacionForUpdate,
-                              mobiliario: {
-                                ...currentMobiliario,
-                                question: { ...(currentMobiliario.question || { id: "mobiliario" }), notes: e.target.value },
-                              },
-                            };
-                            onUpdate({ dynamicItems: updatedItems });
-                          }}
-                          placeholder="Describe qué mobiliario existe en la habitación..."
-                          className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
-                          required={true}
-                        />
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
+              <ChecklistQuestionComponent
+                question={(currentHabitacion.mobiliario || effectiveMobiliario).question || { id: "mobiliario" }}
+                questionId="mobiliario"
+                label=""
+                description="Selecciona el estado del mobiliario"
+                showPhotosForMobiliario={true}
+                onUpdate={(updates) => {
+                  const definedUpdates = Object.fromEntries(
+                    Object.entries(updates).filter(([, v]) => v !== undefined)
+                  ) as Partial<ChecklistQuestion>;
+                  const index = habitacionIndex !== undefined ? habitacionIndex : 0;
+                  const latestItems = section.dynamicItems || dynamicItems;
+                  const currentHabitacionForUpdate = latestItems[index] || currentHabitacion;
+                  const currentMobiliario = currentHabitacionForUpdate.mobiliario || effectiveMobiliario;
+                  const updatedItems = [...latestItems];
+                  updatedItems[index] = {
+                    ...currentHabitacionForUpdate,
+                    mobiliario: {
+                      ...currentMobiliario,
+                      existeMobiliario: true,
+                      question: { ...(currentMobiliario.question || { id: "mobiliario" }), ...definedUpdates },
+                    },
+                  };
+                  onUpdate({ dynamicItems: updatedItems });
+                }}
+                elements={[]}
+                showNotes={false}
+                showPhotos={true}
+              />
+              {(() => {
+                const mobiliarioQuestion = (currentHabitacion.mobiliario || effectiveMobiliario).question;
+                const needsDetails = mobiliarioQuestion?.status === "buen_estado" || mobiliarioQuestion?.status === "necesita_reparacion" || mobiliarioQuestion?.status === "necesita_reemplazo";
+                return needsDetails && (
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                      {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                    </Label>
+                    <Textarea
+                      value={mobiliarioQuestion?.notes || ""}
+                      onChange={(e) => {
+                        const index = habitacionIndex !== undefined ? habitacionIndex : 0;
+                        const latestItems = section.dynamicItems || dynamicItems;
+                        const currentHabitacionForUpdate = latestItems[index] || currentHabitacion;
+                        const currentMobiliario = currentHabitacionForUpdate.mobiliario || effectiveMobiliario;
+                        const updatedItems = [...latestItems];
+                        updatedItems[index] = {
+                          ...currentHabitacionForUpdate,
+                          mobiliario: {
+                            ...currentMobiliario,
+                            existeMobiliario: true,
+                            question: { ...(currentMobiliario.question || { id: "mobiliario" }), notes: e.target.value },
+                          },
+                        };
+                        onUpdate({ dynamicItems: updatedItems });
+                      }}
+                      placeholder="Describe qué mobiliario existe en la habitación..."
+                      className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                      required={true}
+                    />
+                  </div>
+                );
+              })()}
             </div>
           </Card>
 
@@ -2578,44 +2561,32 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
             </div>
           </Card>
 
-          {/* Mobiliario */}
+          {/* Mobiliario: reporte de estado siempre visible, sin toggle */}
           <Card className="p-4 sm:p-6 space-y-4">
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-semibold text-foreground leading-tight">
-                  {t.checklist.sections.habitaciones.mobiliario.existeMobiliario}
-                </Label>
-                <Switch
-                  checked={mobiliario.existeMobiliario || false}
-                  onCheckedChange={handleMobiliarioToggle}
-                />
-              </div>
-
-              {mobiliario.existeMobiliario && (
-                <div className="space-y-4 pt-4 border-t">
-                  <ChecklistQuestionComponent
-                    question={mobiliario.question || { id: "mobiliario" }}
-                    questionId="mobiliario"
-                    label=""
-                    onUpdate={handleMobiliarioQuestionUpdate}
-                    elements={[]}
-                    showNotes={false}
+              <ChecklistQuestionComponent
+                question={mobiliario.question || { id: "mobiliario" }}
+                questionId="mobiliario"
+                label=""
+                description="Selecciona el estado del mobiliario"
+                onUpdate={handleMobiliarioQuestionUpdate}
+                elements={[]}
+                showNotes={false}
+                showPhotos={true}
+                showPhotosForMobiliario={true}
+              />
+              {(mobiliario.question?.status === "buen_estado" || mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
+                <div className="space-y-2">
+                  <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                    {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                  </Label>
+                  <Textarea
+                    value={mobiliario.question?.notes || ""}
+                    onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
+                    placeholder="Describe qué mobiliario existe en la habitación..."
+                    className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                    required={true}
                   />
-                  {/* Campo de notas obligatorio para describir qué mobiliario existe */}
-                  {(mobiliario.question?.status === "buen_estado" || mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
-                    <div className="space-y-2">
-                      <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                        {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
-                      </Label>
-                      <Textarea
-                        value={mobiliario.question?.notes || ""}
-                        onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
-                        placeholder="Describe qué mobiliario existe en la habitación..."
-                        className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
-                        required={true}
-                      />
-                    </div>
-                  )}
                 </div>
               )}
             </div>

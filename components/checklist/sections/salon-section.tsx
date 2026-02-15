@@ -76,8 +76,8 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
       }));
     }, [section.climatizationItems]);
 
-    // Initialize mobiliario
-    const mobiliario = section.mobiliario || { existeMobiliario: false };
+    // Mobiliario: sin toggle; siempre mostrar reporte (buen estado / necesita reparación / etc.) y multimedia
+    const mobiliario = section.mobiliario || { existeMobiliario: true, question: { id: "mobiliario" } };
 
     const handleUploadZoneUpdate = useCallback((updates: ChecklistUploadZone) => {
       const updatedZones = [updates];
@@ -323,10 +323,15 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     }, [mobiliario, onUpdate]);
 
     const handleMobiliarioQuestionUpdate = useCallback((updates: Partial<ChecklistQuestion>) => {
+      // Solo aplicar claves definidas para no borrar fotos/notas al cambiar estado (p. ej. buen_estado)
+      const definedUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([, v]) => v !== undefined)
+      ) as Partial<ChecklistQuestion>;
       onUpdate({
         mobiliario: {
           ...mobiliario,
-          question: { ...(mobiliario.question || { id: "mobiliario" }), ...updates },
+          existeMobiliario: true,
+          question: { ...(mobiliario.question || { id: "mobiliario" }), ...definedUpdates },
         },
       });
     }, [mobiliario, onUpdate]);
@@ -830,44 +835,32 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
           </div>
         </Card>
 
-        {/* Mobiliario */}
+        {/* Mobiliario: reportar estado (buen estado / necesita reparación / etc.) y multimedia, sin toggle */}
         <Card className="p-4 sm:p-6 space-y-4">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words">
-                {t.checklist.sections.salon.mobiliario.existeMobiliario}
-              </Label>
-              <Switch
-                checked={mobiliario.existeMobiliario || false}
-                onCheckedChange={handleMobiliarioToggle}
-              />
-            </div>
-
-            {mobiliario.existeMobiliario && (
-              <div className="space-y-4 pt-4 border-t">
-                <ChecklistQuestionComponent
-                  question={mobiliario.question || { id: "mobiliario" }}
-                  questionId="mobiliario"
-                  label=""
-                  onUpdate={handleMobiliarioQuestionUpdate}
-                  elements={[]}
-                  showNotes={false}
+            <ChecklistQuestionComponent
+              question={mobiliario.question || { id: "mobiliario" }}
+              questionId="mobiliario"
+              label=""
+              description="Selecciona el estado del mobiliario"
+              onUpdate={handleMobiliarioQuestionUpdate}
+              elements={[]}
+              showNotes={false}
+              showPhotos={true}
+              showPhotosForMobiliario={true}
+            />
+            {(mobiliario.question?.status === "buen_estado" || mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
+              <div className="space-y-2">
+                <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
+                  {t.checklist.sections.salon.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                </Label>
+                <Textarea
+                  value={mobiliario.question?.notes || ""}
+                  onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
+                  placeholder="Describe qué mobiliario existe en el salón..."
+                  className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
+                  required={true}
                 />
-                {/* Campo de notas obligatorio para describir qué mobiliario existe */}
-                {(mobiliario.question?.status === "buen_estado" || mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
-                  <div className="space-y-2">
-                    <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                      {t.checklist.sections.salon.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
-                    </Label>
-                    <Textarea
-                      value={mobiliario.question?.notes || ""}
-                      onChange={(e) => handleMobiliarioQuestionUpdate({ notes: e.target.value })}
-                      placeholder="Describe qué mobiliario existe en el salón..."
-                      className="min-h-[80px] text-xs sm:text-sm leading-relaxed w-full"
-                      required={true}
-                    />
-                  </div>
-                )}
               </div>
             )}
           </div>

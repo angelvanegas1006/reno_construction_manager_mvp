@@ -122,9 +122,11 @@ export function useDynamicCategories(propertyId: string | null): UseDynamicCateg
             : (err as any)?.code
               ? `${(err as any).code}: ${(err as any).message || 'Unknown'}`
               : 'Error fetching categories';
+      const errStr = String(err);
       const isNetworkError =
         rawMessage === 'Failed to fetch' ||
-        ((err as any)?.name === 'TypeError' && rawMessage?.includes('fetch'));
+        ((err as any)?.name === 'TypeError' && rawMessage?.includes('fetch')) ||
+        errStr.includes('Failed to fetch');
       const errorMessage = isNetworkError
         ? 'No se pudo conectar. Comprueba tu conexión y que las variables de Supabase estén configuradas.'
         : rawMessage;
