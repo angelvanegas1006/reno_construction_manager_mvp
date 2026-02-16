@@ -20,6 +20,7 @@ import { CategoryPhotoUpload } from './category-photo-upload';
 import { PartidaItem } from './partida-item';
 import { ChecklistUploadZone as ChecklistUploadZoneType, FileUpload } from '@/lib/checklist-storage';
 import { uploadFilesToStorage } from '@/lib/supabase/storage-upload';
+import { compressImageDataUrlIfNeeded } from '@/lib/image-compress';
 import { parseActivitiesText } from '@/lib/parsers/parse-activities-text';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -207,6 +208,8 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
     uploadZone?: ChecklistUploadZoneType;
     notes: string;
   }>>({});
+  // Ref con la última versión (evita perder fotos en móvil al guardar rápido, antes de que React aplique el state)
+  const categoryUpdateDataRef = useRef<Record<string, { uploadZone?: ChecklistUploadZoneType; notes: string }>>({});
   
   // Estado para controlar qué categoría está mostrando el modal de fotos
   const [photoDialogOpen, setPhotoDialogOpen] = useState<Record<string, boolean>>({});
@@ -577,8 +580,8 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       if (currentValue !== undefined && currentValue !== savedValue) {
         changesToSave[cat.id] = currentValue;
         
-        // Incluir fotos/videos/notas si existen para esta categoría
-        const updateData = categoryUpdateData[cat.id];
+        // Usar ref como fallback: evita perder fotos en móvil si el usuario guarda antes de que React aplique el state
+        const updateData = categoryUpdateDataRef.current[cat.id] ?? categoryUpdateData[cat.id];
         if (updateData && updateData.uploadZone) {
           const uploadZone = updateData.uploadZone;
           
@@ -597,27 +600,41 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
               // Por ahora, subir manualmente cada archivo
               const supabase = createClient();
               
+              const IMAGE_COMPRESS_THRESHOLD = 2.5 * 1024 * 1024; // 2.5 MB - evita OOM en móvil
               const uploadPromises = filesToUpload.map(async (file) => {
                 // Si ya tiene URL, retornarla
                 if (file.data && file.data.startsWith('http')) {
                   return file.data;
                 }
 
+                // Comprimir imágenes grandes antes de convertir (evita OOM en móvil)
+                let dataToConvert = file.data;
+                let mimeType = file.type;
+                if (file.data?.startsWith('data:image/')) {
+                  try {
+                    dataToConvert = await compressImageDataUrlIfNeeded(file.data, IMAGE_COMPRESS_THRESHOLD);
+                    const mimeMatch = dataToConvert.match(/data:([^;]+);/);
+                    if (mimeMatch) mimeType = mimeMatch[1]; // compress devuelve image/jpeg
+                  } catch {
+                    /* usar original si falla compresión */
+                  }
+                }
+
                 // Convertir base64 a File
-                const base64Data = file.data.includes(',') ? file.data.split(',')[1] : file.data;
+                const base64Data = dataToConvert.includes(',') ? dataToConvert.split(',')[1] : dataToConvert;
                 const byteCharacters = atob(base64Data);
                 const byteNumbers = new Array(byteCharacters.length);
                 for (let i = 0; i < byteCharacters.length; i++) {
                   byteNumbers[i] = byteCharacters.charCodeAt(i);
                 }
                 const byteArray = new Uint8Array(byteNumbers);
-                const blob = new Blob([byteArray], { type: file.type });
-                const fileObj = new File([blob], file.name, { type: file.type });
+                const blob = new Blob([byteArray], { type: mimeType });
+                const fileObj = new File([blob], file.name, { type: mimeType });
 
                 // Generar nombre único
                 const timestamp = Date.now();
                 const randomString = Math.random().toString(36).substring(2, 8);
-                const fileExtension = file.name.split('.').pop() || (file.type.startsWith('image/') ? 'jpg' : 'mp4');
+                const fileExtension = file.name.split('.').pop() || (mimeType.startsWith('image/') ? 'jpg' : 'mp4');
                 const fileName = `${timestamp}_${randomString}.${fileExtension}`;
                 const path = `${property.id}/${cat.id}/${fileName}`;
 
@@ -625,7 +642,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                 const { data: uploadData, error: uploadError } = await supabase.storage
                   .from('category-updates')
                   .upload(path, fileObj, {
-                    contentType: file.type,
+                    contentType: mimeType,
                     upsert: false,
                   });
 
@@ -766,6 +783,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       setHasUnsavedChanges(false);
       setEditingInput({});
       // Limpiar datos de updates
+      categoryUpdateDataRef.current = {};
       setCategoryUpdateData({});
       setPhotoDialogOpen({});
     }
@@ -1657,31 +1675,35 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                         }}
                         onSave={(data) => {
                           // Guardar notas cuando cambian
+                          const newEntry = {
+                            uploadZone: categoryUpdateDataRef.current[firstCategoryId]?.uploadZone,
+                            notes: data.notes || "",
+                          };
+                          categoryUpdateDataRef.current[firstCategoryId] = newEntry;
                           setCategoryUpdateData(prev => ({
                             ...prev,
-                            [firstCategoryId]: {
-                              uploadZone: prev[firstCategoryId]?.uploadZone,
-                              notes: data.notes || "",
-                            },
+                            [firstCategoryId]: newEntry,
                           }));
                         }}
                         onUploadZoneChange={(uploadZone) => {
                           // Guardar el uploadZone completo (incluye base64) para subirlo cuando se guarde el progreso
+                          const newEntry = {
+                            uploadZone,
+                            notes: categoryUpdateDataRef.current[firstCategoryId]?.notes || "",
+                          };
+                          categoryUpdateDataRef.current[firstCategoryId] = newEntry;
                           setCategoryUpdateData(prev => ({
                             ...prev,
-                            [firstCategoryId]: {
-                              uploadZone,
-                              notes: prev[firstCategoryId]?.notes || "",
-                            },
+                            [firstCategoryId]: newEntry,
                           }));
                         }}
                         initialData={{
-                          photos: categoryUpdateData[firstCategoryId]?.uploadZone?.photos
+                          photos: (categoryUpdateData[firstCategoryId]?.uploadZone?.photos || [])
                             .filter(p => p.data && p.data.startsWith('http'))
-                            .map(p => p.data) || [],
-                          videos: categoryUpdateData[firstCategoryId]?.uploadZone?.videos
+                            .map(p => p.data),
+                          videos: (categoryUpdateData[firstCategoryId]?.uploadZone?.videos || [])
                             .filter(v => v.data && v.data.startsWith('http'))
-                            .map(v => v.data) || [],
+                            .map(v => v.data),
                           notes: categoryUpdateData[firstCategoryId]?.notes || "",
                         }}
                       />

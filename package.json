@@ -71,7 +71,8 @@
     "run:link-projects-to-properties": "tsx scripts/run-link-projects-to-properties.ts",
     "sync:projects": "tsx scripts/sync-projects.ts",
     "diagnose:projects-properties": "tsx scripts/diagnose-projects-properties-sync.ts",
-    "verify:projects-properties-link": "tsx scripts/verify-projects-and-properties-link.ts"
+    "verify:projects-properties-link": "tsx scripts/verify-projects-and-properties-link.ts",
+    "delete:inspections": "tsx scripts/delete-inspections-for-property.ts"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.10.0",
