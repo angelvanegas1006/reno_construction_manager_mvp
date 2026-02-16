@@ -1,4 +1,5 @@
 import { ChecklistData, ChecklistStatus, ChecklistSection, FileUpload } from '@/lib/checklist-storage';
+import { PROPHERO_LOGO_DATA_URL } from '@/lib/assets/prophero-logo-base64';
 
 /**
  * Helper para obtener el label traducido de un elemento
@@ -977,115 +978,146 @@ export async function generateChecklistHTML(
 
 body {
   font-family: 'Inter', sans-serif;
+  font-size: 14px;
   background-color: #F8FAFC;
   color: #1E293B;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 16px;
 }
 
-.header {
-  background: #141D57;
-  color: white;
-  padding: 30px 20px;
-  margin-bottom: 30px;
+/* Header: fondo blanco full width (Rectangle 1 - Figma) */
+.report-header-wrapper {
+  width: 100%;
+  min-width: 100%;
+  background: #FFFFFF;
 }
 
-.header-content {
-  max-width: 1200px;
-  margin: 0 auto;
+.report-header {
+  position: relative;
+  width: 100%;
+  min-width: 100%;
+  height: 123px;
+  min-height: 123px;
+  background: #FFFFFF;
+  padding: 26px 64px;
 }
 
-.header h1 {
+.logo-prophero {
+  position: absolute;
+  width: 322px;
+  height: 70px;
+  left: 64px;
+  top: 26px;
+  object-fit: contain;
+}
+
+/* Separador debajo del header */
+.header-divider {
+  height: 1px;
+  background: #E2E8F0;
+  width: 100%;
+}
+
+/* Bloque: titulo, direccion, fecha - Figma */
+.report-intro {
+  position: relative;
+  background: #F8FAFC;
+  padding: 24px 64px 32px;
+  margin-bottom: 20px;
+  min-height: 130px;
+}
+
+/* INFORME DE LA PROPIEDAD */
+.report-intro-title {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
   font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 5px;
+  line-height: 34px;
+  letter-spacing: -1.5px;
+  color: rgba(0, 0, 0, 0.87);
+  text-transform: uppercase;
+  margin-bottom: 12px;
 }
 
-.header p {
-  font-size: 14px;
-  opacity: 0.8;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+/* Dirección */
+.report-intro-address {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 30px;
+  letter-spacing: -1.5px;
+  color: rgba(0, 0, 0, 0.87);
+  margin-bottom: 8px;
+}
+
+/* Fecha de inspección */
+.report-intro-date {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: -1px;
+  color: #71717A;
 }
 
 .property-info {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 30px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.property-info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.property-info-item {
-  display: flex;
-  flex-direction: column;
-}
-
-.property-info-label {
-  font-size: 12px;
-  color: #64748B;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 5px;
-}
-
-.property-info-value {
-  font-size: 16px;
-  font-weight: 500;
-  color: #1E293B;
+  display: none;
 }
 
 .section-container {
-  background: white;
+  background: #FFFFFF;
+  border: 1px solid #FAFAFA;
   border-radius: 8px;
-  padding: 30px;
-  margin-bottom: 30px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #E2E8F0;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #E2E8F0;
 }
 
 .section-title {
   font-size: 24px;
-  font-weight: 600;
-  color: #1E293B;
+  font-weight: 500;
+  line-height: 32px;
+  letter-spacing: -1.5px;
+  color: #212121;
 }
 
 .see-all-images-link {
-  color: #3B82F6;
+  color: #162EB7;
   text-decoration: none;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
+  line-height: 24px;
+  letter-spacing: -0.7px;
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .see-all-images-link:hover {
-  color: #2563EB;
+  color: #0F1E8C;
 }
 
 .section-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px;
+  gap: 20px;
+  align-items: stretch;
 }
 
 @media (max-width: 768px) {
@@ -1094,30 +1126,49 @@ body {
   }
 }
 
-/* Image Carousel */
+/* Image Carousel - rellena toda la altura de la estancia (grid stretch) */
 .image-carousel {
   position: relative;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .carousel-container {
   position: relative;
   width: 100%;
-  min-height: 400px;
+  flex: 1;
+  min-height: 200px;
   overflow: hidden;
+  border: 1px solid #D4D4D8;
   border-radius: 8px;
   background: #F1F5F9;
+  box-shadow: 0px 0px 16px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 8px;
 }
 
+.carousel-images-wrapper {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
 .carousel-images-group {
   display: none;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .carousel-images-group.active {
@@ -1126,69 +1177,63 @@ body {
 
 .carousel-image {
   width: 100%;
-  height: 300px;
+  flex: 1;
+  min-height: 1px;
   object-fit: cover;
-  border-radius: 6px;
-  flex-shrink: 0;
-}
-
-.carousel-image.single {
-  height: 400px;
+  border-radius: 4px;
 }
 
 .carousel-nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.9);
+  background: #D9E7FF;
   border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  color: #1E293B;
+  font-size: 16px;
+  color: #162EB7;
   transition: background 0.2s;
   z-index: 10;
 }
 
 .carousel-nav:hover {
-  background: white;
+  background: #C5DBFF;
 }
 
 .carousel-nav.prev {
-  left: 10px;
+  left: 8px;
 }
 
 .carousel-nav.next {
-  right: 10px;
+  right: 8px;
 }
 
 .carousel-counter {
-  position: absolute;
-  bottom: 15px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 5px 15px;
-  border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
   font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.5px;
+  color: #71717A;
+  padding: 8px 0;
 }
 
 /* Conditions List */
 .conditions-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
 }
 
 .category-group {
   border-bottom: 1px solid #E2E8F0;
-  padding-bottom: 15px;
+  padding-bottom: 10px;
 }
 
 .category-group:last-child {
@@ -1196,63 +1241,61 @@ body {
 }
 
 .category-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #475569;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .condition-item {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 12px 0;
-  gap: 15px;
+  padding: 8px 0;
+  gap: 12px;
 }
 
 .condition-label {
   flex: 1;
-  font-size: 14px;
+  font-size: 13px;
   color: #1E293B;
   font-weight: 500;
 }
 
 .condition-badge {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11px;
   font-weight: 600;
   border: 1px solid;
   white-space: nowrap;
 }
 
 .condition-notes {
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: 6px;
+  font-size: 12px;
   color: #64748B;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .condition-bad-elements {
-  margin-top: 6px;
-  font-size: 12px;
+  margin-top: 4px;
+  font-size: 11px;
   color: #B45309;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
+/* Mini imágenes ocultas: se ven en el carrusel de la izquierda */
 .condition-photos {
-  margin-top: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: none !important;
 }
 
 .condition-thumbnail {
-  width: 80px;
-  height: 80px;
+  width: 56px;
+  height: 56px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid #E2E8F0;
 }
 
@@ -1273,7 +1316,7 @@ body {
   background: rgba(0, 0, 0, 0.8);
   z-index: 1000;
   overflow-y: auto;
-  padding: 20px;
+  padding: 16px;
 }
 
 .modal-overlay.active {
@@ -1284,26 +1327,26 @@ body {
 
 .modal-content {
   background: white;
-  border-radius: 12px;
-  max-width: 900px;
+  border-radius: 8px;
+  max-width: 720px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  padding: 30px;
+  padding: 20px;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #E2E8F0;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #E2E8F0;
 }
 
 .modal-title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: #1E293B;
 }
@@ -1311,12 +1354,12 @@ body {
 .modal-close {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 20px;
   color: #64748B;
   cursor: pointer;
   padding: 0;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1330,42 +1373,42 @@ body {
 
 .modal-main-image {
   width: 100%;
-  height: 400px;
+  height: 280px;
   object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  border-radius: 6px;
+  margin-bottom: 14px;
   background: #F1F5F9;
 }
 
 .modal-observations {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .modal-observations-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #1E293B;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .modal-observations-text {
-  font-size: 14px;
+  font-size: 12px;
   color: #64748B;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .modal-thumbnails {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   overflow-x: auto;
-  padding: 10px 0;
+  padding: 8px 0;
 }
 
 .modal-thumbnail {
-  width: 100px;
-  height: 100px;
+  width: 72px;
+  height: 72px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
   border: 2px solid transparent;
   transition: border-color 0.2s;
@@ -1381,14 +1424,14 @@ body {
 }
 
 .modal-done-button {
-  margin-top: 20px;
+  margin-top: 14px;
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   background: #3B82F6;
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
@@ -1400,55 +1443,30 @@ body {
 
 /* Dynamic sections (Habitaciones, Baños) */
 .dynamic-section {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .dynamic-section-title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: #1E293B;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 </style>
 </head>
 <body>
-<div class="container">
-<header class="header">
-<div class="header-content">
-<h1>Informe de Propiedad</h1>
-<p>Checklist ${checklistTypeLabel === 'initial' ? 'Inicial' : 'Final'}</p>
-</div>
+<div class="report-header-wrapper">
+<header class="report-header">
+<img class="logo-prophero" src="${PROPHERO_LOGO_DATA_URL}" alt="PropHero" />
 </header>
-
-<div class="property-info">
-<div class="property-info-grid">
-<div class="property-info-item">
-<div class="property-info-label">Dirección</div>
-<div class="property-info-value">${escapeHtml(propertyInfo.address)}</div>
 </div>
-<div class="property-info-item">
-<div class="property-info-label">ID Propiedad</div>
-<div class="property-info-value">${escapeHtml(propertyInfo.propertyId)}</div>
+<div class="header-divider"></div>
+<div class="report-intro">
+<div class="report-intro-title">Informe de la Propiedad</div>
+<div class="report-intro-address">${escapeHtml(propertyInfo.address)}</div>
+<div class="report-intro-date">Fecha de inspección: ${escapeHtml(completedDate)}</div>
 </div>
-<div class="property-info-item">
-<div class="property-info-label">Fecha de Inspección</div>
-<div class="property-info-value">${escapeHtml(completedDate)}</div>
-</div>`;
-
-  if (propertyInfo.driveFolderUrl && propertyInfo.driveFolderUrl.trim().length > 0) {
-    html += `
-<div class="property-info-item">
-<div class="property-info-label">Carpeta de Drive</div>
-<div class="property-info-value">
-<a href="${escapeHtml(propertyInfo.driveFolderUrl)}" target="_blank" rel="noopener noreferrer" style="color: #3B82F6; text-decoration: none;">
-Abrir carpeta en Google Drive →
-</a>
-</div>
-</div>`;
-  }
-
-  html += `</div>
-</div>`;
+<div class="container">`;
 
   // Generar secciones
   for (const sectionId of sectionOrder) {
@@ -1506,7 +1524,7 @@ function initCarousel(sectionId) {
   if (imageGroups.length === 0) return;
 
   let currentGroupIndex = 0;
-  const imagesPerGroup = 2;
+  const imagesPerGroup = parseInt(carousel.getAttribute('data-images-per-group') || '4');
   const totalImages = parseInt(carousel.getAttribute('data-total-images') || '0');
 
   function showGroup(groupIndex) {
@@ -1519,7 +1537,7 @@ function initCarousel(sectionId) {
       if (startImage === endImage) {
         counter.textContent = \`\${startImage} de \${totalImages}\`;
       } else {
-        counter.textContent = \`\${endImage} de \${totalImages}\`;
+        counter.textContent = \`\${startImage}-\${endImage} de \${totalImages}\`;
       }
     }
   }
@@ -1633,40 +1651,32 @@ function generateSectionHTML(
   // Carrusel de imágenes (izquierda)
   html += `<div class="image-carousel">`;
   if (images.length > 0) {
-    html += `<div class="carousel-container" id="carousel-${sectionId}" data-total-images="${images.length}">`;
-    
-    // Si hay más de 2 imágenes, agruparlas de 2 en 2
-    if (images.length > 2) {
-      const imagesPerGroup = 2;
-      const totalGroups = Math.ceil(images.length / imagesPerGroup);
-      
-      for (let groupIndex = 0; groupIndex < totalGroups; groupIndex++) {
-        const startIndex = groupIndex * imagesPerGroup;
-        const endIndex = Math.min(startIndex + imagesPerGroup, images.length);
-        
-        html += `<div class="carousel-images-group ${groupIndex === 0 ? 'active' : ''}">`;
-        for (let i = startIndex; i < endIndex; i++) {
-          html += `<img src="${escapeHtml(images[i].url)}" alt="${escapeHtml(images[i].label || '')}" class="carousel-image" />`;
-        }
-        html += `</div>`;
+    // 1-3 imágenes: mostrar todas. 4+: mostrar 1 por vista para que cada una ocupe todo el espacio
+    const imagesPerGroup = images.length >= 4 ? 1 : images.length;
+    html += `<div class="carousel-container" id="carousel-${sectionId}" data-total-images="${images.length}" data-images-per-group="${imagesPerGroup}">`;
+    const totalGroups = Math.ceil(images.length / imagesPerGroup);
+
+    html += `<div class="carousel-images-wrapper">`;
+    for (let groupIndex = 0; groupIndex < totalGroups; groupIndex++) {
+      const startIndex = groupIndex * imagesPerGroup;
+      const endIndex = Math.min(startIndex + imagesPerGroup, images.length);
+
+      html += `<div class="carousel-images-group ${groupIndex === 0 ? 'active' : ''}">`;
+      for (let i = startIndex; i < endIndex; i++) {
+        html += `<img src="${escapeHtml(images[i].url)}" alt="${escapeHtml(images[i].label || '')}" class="carousel-image" />`;
       }
-      
-      html += `<button class="carousel-nav prev">‹</button>
-<button class="carousel-nav next">›</button>
-<div class="carousel-counter">${Math.min(2, images.length)} de ${images.length}</div>`;
-    } else {
-      // Si hay 1 o 2 imágenes, mostrarlas todas sin agrupar
-      html += `<div class="carousel-images-group active">`;
-      images.forEach((img) => {
-        html += `<img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.label || '')}" class="carousel-image ${images.length === 1 ? 'single' : ''}" />`;
-      });
       html += `</div>`;
-      
-      if (images.length > 1) {
-        html += `<div class="carousel-counter">${images.length} de ${images.length}</div>`;
-      }
     }
-    
+    html += `</div>`;
+
+    if (totalGroups > 1) {
+      html += `<button class="carousel-nav prev">‹</button>
+<button class="carousel-nav next">›</button>`;
+    }
+    const counterText = totalGroups > 1
+      ? (imagesPerGroup === 1 ? `1 de ${images.length}` : `1-${Math.min(imagesPerGroup, images.length)} de ${images.length}`)
+      : `${images.length} de ${images.length}`;
+    html += `<div class="carousel-counter">${counterText}</div>`;
     html += `</div>`;
   } else {
     html += `<div class="carousel-container" style="display: flex; align-items: center; justify-content: center; color: #94A3B8;">
