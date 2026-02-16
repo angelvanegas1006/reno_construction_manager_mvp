@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
+import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
 
 interface ReportProblemModalProps {
   open: boolean;
@@ -29,6 +30,7 @@ export function ReportProblemModal({
   propertyName,
   onSuccess,
 }: ReportProblemModalProps) {
+  const { user } = useSupabaseAuthContext();
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +46,15 @@ export function ReportProblemModal({
 
     try {
       const timestamp = new Date().toISOString();
-      
+
+      const userInfo = user
+        ? {
+            userId: user.id,
+            userEmail: user.email ?? null,
+            userName: user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email ?? null,
+          }
+        : null;
+
       const response = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: {
@@ -55,6 +65,7 @@ export function ReportProblemModal({
             propertyName: propertyName,
             message: message.trim(),
             timestamp: timestamp,
+            user: userInfo,
           },
         }),
       });
