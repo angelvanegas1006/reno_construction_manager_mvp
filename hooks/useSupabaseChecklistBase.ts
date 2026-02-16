@@ -2031,6 +2031,8 @@ export function useSupabaseChecklistBase({
           onClick: () => { saveCurrentSection(sectionId); },
         },
       });
+      // Re-throw para que el caller (handleSectionClick, handleContinue) no cambie de sección
+      throw error;
     } finally {
       savingRef.current = false;
     }

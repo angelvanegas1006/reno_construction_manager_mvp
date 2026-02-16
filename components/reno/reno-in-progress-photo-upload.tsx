@@ -84,9 +84,10 @@ export function RenoInProgressPhotoUpload({
         totalPayloadSize: JSON.stringify(photoUrls).length,
       });
 
-      // Subir fotos en lotes de 3 para evitar problemas con el límite del body parser (1MB por defecto)
-      // Cada foto en base64 puede ser ~1-2MB, así que 3 fotos por lote es seguro
-      const BATCH_SIZE = 3;
+      // Subir fotos de 1 en 1 en móvil (fotos de cámara pueden ser 3-8MB en base64)
+      // En desktop usar lotes de 2 para equilibrar velocidad vs límite body (~1MB)
+      const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const BATCH_SIZE = isMobile ? 1 : 2;
       const uploadedBatchPhotos: string[] = [];
       const failedBatchPhotos: string[] = [];
       
