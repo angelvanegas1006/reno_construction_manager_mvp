@@ -54,20 +54,15 @@ export function useFileUpload({
     onFilesChangeRef.current = onFilesChange;
   }, [onFilesChange]);
   
-  // Call onFilesChange after files state updates (deferred to avoid render-time updates)
-  // Skip the initial mount to avoid calling with empty array
+  // Call onFilesChange after files state updates (useEffect = post-commit, evita render-time updates)
+  // Sin setTimeout para propagar fotos más rápido en móvil (evita perder fotos al guardar rápido)
   useEffect(() => {
     // Skip initial mount
     if (isInitialMountRef.current) {
       isInitialMountRef.current = false;
       return;
     }
-    
-    // Use setTimeout to defer to next tick, preventing render-time updates
-    const timeoutId = setTimeout(() => {
-      onFilesChangeRef.current(files);
-    }, 0);
-    return () => clearTimeout(timeoutId);
+    onFilesChangeRef.current(files);
   }, [files]);
 
   const validateFile = useCallback((file: File): string | null => {
