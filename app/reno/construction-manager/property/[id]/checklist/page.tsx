@@ -924,7 +924,7 @@ export default function RenoChecklistPage() {
               ],
               carpentryItems: CARPENTRY_ITEMS_SALON.map(item => ({ id: item.id, cantidad: 0 })),
               climatizationItems: CLIMATIZATION_ITEMS_SALON.map(item => ({ id: item.id, cantidad: 0 })),
-              mobiliario: { existeMobiliario: false },
+              mobiliario: { existeMobiliario: true, question: { id: "mobiliario" } },
             }}
             onUpdate={(updates) => {
               updateChecklistSection("salon", updates);
