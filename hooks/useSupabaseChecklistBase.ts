@@ -2202,6 +2202,27 @@ export function useSupabaseChecklistBase({
         });
         console.log(`✅ [useSupabaseChecklistBase:${inspectionType}] Cloned dynamicItems length:`, updatedSection.dynamicItems.length);
       }
+      // Clonar mobiliario (salon, entrada-pasillos) para preservar question.photos y evitar pérdida de datos
+      if (sectionData.mobiliario !== undefined) {
+        updatedSection.mobiliario = {
+          ...sectionData.mobiliario,
+          question: sectionData.mobiliario.question
+            ? {
+                ...sectionData.mobiliario.question,
+                photos: sectionData.mobiliario.question.photos
+                  ? [...sectionData.mobiliario.question.photos]
+                  : undefined,
+                badElements: sectionData.mobiliario.question.badElements
+                  ? [...sectionData.mobiliario.question.badElements]
+                  : undefined,
+              }
+            : undefined,
+        };
+        debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📦 Cloned mobiliario (section-level):`, {
+          hasQuestion: !!updatedSection.mobiliario?.question,
+          photosCount: updatedSection.mobiliario?.question?.photos?.length ?? 0,
+        });
+      }
       if (sectionData.uploadZones !== undefined) {
         updatedSection.uploadZones = sectionData.uploadZones.map(zone => ({ ...zone }));
       }

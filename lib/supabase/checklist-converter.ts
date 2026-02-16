@@ -81,6 +81,12 @@ function normalizeDynamicItemStructure(
     dynamicItem.uploadZone = { id: baseId, photos: [], videos: [] };
   }
   if (sectionId === 'habitaciones') {
+    // Mobiliario: asegurar estructura para que el reporte y multimedia se guarden correctamente
+    if (!dynamicItem.mobiliario) {
+      dynamicItem.mobiliario = { existeMobiliario: true, question: { id: 'mobiliario' } };
+    } else if (!dynamicItem.mobiliario.question) {
+      dynamicItem.mobiliario.question = { id: 'mobiliario' };
+    }
     if (!dynamicItem.carpentryItems || dynamicItem.carpentryItems.length === 0) {
       dynamicItem.carpentryItems = HABITACIONES_CARPENTRY_IDS.map(id => ({ id, cantidad: 0 }));
     } else {
