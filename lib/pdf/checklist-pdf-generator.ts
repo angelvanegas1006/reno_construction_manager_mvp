@@ -278,22 +278,18 @@ export async function generateChecklistPDF(
     }
   };
 
-  // ========== HEADER AZUL OSCURO ==========
+  // ========== HEADER BLANCO CON LOGO PROPHERO (#FFFFFF) ==========
   const headerHeight = 35;
-  doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+  doc.setFillColor(COLORS.white[0], COLORS.white[1], COLORS.white[2]);
   doc.rect(0, 0, pageWidth, headerHeight, 'F');
-  
-  // Título principal "Informe de Propiedad"
-  doc.setTextColor(COLORS.white[0], COLORS.white[1], COLORS.white[2]);
-  doc.setFontSize(28);
+
+  // Logo PropHero - texto azul (#2050F6) sobre fondo blanco
+  const logoX = 15;
+  const logoY = 10;
+  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.text('Informe de Propiedad', margin, 18);
-  
-  // Subtítulo "CHECKLIST DE INSPECCIÓN"
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(COLORS.slate400[0], COLORS.slate400[1], COLORS.slate400[2]);
-  doc.text('CHECKLIST DE INSPECCIÓN', margin, 25);
+  doc.setTextColor(32, 80, 246); // #2050F6
+  doc.text('PropHero', logoX, logoY + 6);
   
   // Badge "Revisión Finalizada" a la derecha
   const badgeText = 'Revisión Finalizada';
@@ -351,30 +347,17 @@ export async function generateChecklistPDF(
   const gridCol1X = margin + 2;
   const gridCol2X = margin + contentWidth / 2;
   
-  // Dirección
+  // Dirección (destacada)
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.slate400[0], COLORS.slate400[1], COLORS.slate400[2]);
   doc.text('DIRECCIÓN', gridCol1X, yPosition);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(COLORS.slate800[0], COLORS.slate800[1], COLORS.slate800[2]);
-  doc.text(propertyInfo.address, gridCol1X, yPosition + 4);
-  
-  // ID Propiedad
-  doc.setFontSize(7);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.slate400[0], COLORS.slate400[1], COLORS.slate400[2]);
-  doc.text('ID PROPIEDAD', gridCol2X, yPosition);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(COLORS.slate600[0], COLORS.slate600[1], COLORS.slate600[2]);
-  doc.setFillColor(COLORS.slate100[0], COLORS.slate100[1], COLORS.slate100[2]);
-  const idWidth = doc.getTextWidth(propertyInfo.propertyId) + 4;
-  doc.roundedRect(gridCol2X, yPosition + 1, idWidth, 4, 1, 1, 'F');
-  doc.text(propertyInfo.propertyId, gridCol2X + 2, yPosition + 4);
-  
-  // Fecha de Inspección (ocupa 2 columnas)
+  doc.setTextColor(COLORS.slate900[0], COLORS.slate900[1], COLORS.slate900[2]);
+  doc.text(propertyInfo.address, gridCol1X, yPosition + 5);
+
+  // Fecha de Inspección
   yPosition += 8;
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
