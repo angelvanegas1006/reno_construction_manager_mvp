@@ -18,14 +18,21 @@ interface ChecklistUploadZoneProps {
   isRequired?: boolean;
   maxFiles?: number;
   maxSizeMB?: number;
+  /** Límite de tamaño para fotos en MB. Por defecto 2048 (2GB) = sin tope práctico. */
+  maxPhotoSizeMB?: number;
+  /** Límite de tamaño para videos en MB. Por defecto 2048 (2GB) = sin tope práctico. */
+  maxVideoSizeMB?: number;
   hideTitle?: boolean; // Para ocultar el título cuando se muestra fuera del Card
   readOnly?: boolean; // Si es true, el componente es solo lectura
 }
 
-// Sin límite práctico por imagen (64 MB) para evitar fallos en móvil; fotos de cámara suelen superar 5 MB
-const DEFAULT_MAX_SIZE = 64; // MB
+// Sin límite práctico: fotos y videos 2GB por defecto
+const DEFAULT_MAX_PHOTO_SIZE_MB = 2048;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+
+// Videos: sin tope práctico (2GB cubre grabaciones largas de inspección)
+const DEFAULT_MAX_VIDEO_SIZE_MB = 2048;
 
 export function ChecklistUploadZone({
   title,
@@ -34,7 +41,9 @@ export function ChecklistUploadZone({
   onUpdate,
   isRequired = false,
   maxFiles = 10,
-  maxSizeMB = DEFAULT_MAX_SIZE,
+  maxSizeMB = DEFAULT_MAX_PHOTO_SIZE_MB,
+  maxPhotoSizeMB = DEFAULT_MAX_PHOTO_SIZE_MB,
+  maxVideoSizeMB = DEFAULT_MAX_VIDEO_SIZE_MB,
   hideTitle = false,
   readOnly = false,
 }: ChecklistUploadZoneProps) {
@@ -114,7 +123,7 @@ export function ChecklistUploadZone({
   }, [uploadZone.photos.length, uploadZone.videos.length, uploadZone]);
 
   const photosHook = useFileUpload({
-    maxFileSize: maxSizeMB,
+    maxFileSize: maxPhotoSizeMB,
     acceptedTypes: PHOTO_TYPES,
     onFilesChange: useCallback((allFiles) => {
       // Filter to only include photos
@@ -163,7 +172,7 @@ export function ChecklistUploadZone({
   });
 
   const videosHook = useFileUpload({
-    maxFileSize: maxSizeMB * 10, // Videos can be larger
+    maxFileSize: maxVideoSizeMB, // Videos sin tope práctico (2GB por defecto)
     acceptedTypes: VIDEO_TYPES,
     onFilesChange: useCallback((allFiles) => {
       // Filter to only include videos
@@ -380,7 +389,7 @@ export function ChecklistUploadZone({
           Arrastra y suelta archivos aquí
         </p>
         <p className="text-xs text-[var(--prophero-gray-500)] dark:text-[var(--prophero-gray-500)] mb-3">
-          O haz clic para explorar (máx. {maxFiles} archivos, {maxSizeMB}MB cada uno)
+          O haz clic para explorar (fotos y videos: sin límite de tamaño)
         </p>
         
         <input
