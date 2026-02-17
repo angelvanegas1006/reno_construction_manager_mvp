@@ -624,7 +624,7 @@ export function ChecklistUploadZone({
                     <button
                       type="button"
                       onClick={() => handleRemovePhoto(index)}
-                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -647,7 +647,7 @@ export function ChecklistUploadZone({
                   <button
                     type="button"
                     onClick={() => handleRemoveVideo(index)}
-                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
                   >
                     <X className="h-3 w-3" />
                   </button>
