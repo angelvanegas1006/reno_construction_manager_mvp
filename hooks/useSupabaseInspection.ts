@@ -246,6 +246,29 @@ export function useSupabaseInspection(
     try {
       setError(null);
 
+      // PRIMERO: buscar si ya existe una inspección in_progress para esta propiedad y tipo.
+      // Evita crear duplicadas cuando múltiples hooks o re-renders llaman a createInspection.
+      const { data: existing } = await supabase
+        .from('property_inspections')
+        .select('*')
+        .eq('property_id', propertyId)
+        .eq('inspection_type', type)
+        .eq('inspection_status', 'in_progress')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) {
+        console.log(`[useSupabaseInspection] ♻️ Reusing existing in_progress inspection:`, {
+          id: existing.id,
+          propertyId,
+          type,
+          createdAt: existing.created_at,
+        });
+        setInspection(existing);
+        return existing;
+      }
+
       // Obtener usuario actual (puede ser null con Auth0; created_by es opcional en BD)
       const { data: { user } } = await supabase.auth.getUser();
 
