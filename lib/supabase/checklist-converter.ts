@@ -858,7 +858,13 @@ export function convertSupabaseToChecklist(
 
     // Si es sección dinámica (habitaciones, banos)
     if (sectionId === 'habitaciones' || sectionId === 'banos') {
-      zonesOfType.forEach((zone, index) => {
+      // Capear zonas procesadas al número de habitaciones/baños de la propiedad.
+      // Evita habitaciones/baños fantasma causados por zonas huérfanas duplicadas en la DB.
+      const propCount = sectionId === 'habitaciones' ? propertyBedrooms
+        : sectionId === 'banos' ? propertyBathrooms : null;
+      const zonesToProcess = (propCount != null && propCount > 0)
+        ? zonesOfType.slice(0, propCount) : zonesOfType;
+      zonesToProcess.forEach((zone, index) => {
         const zoneElements = elementsByZone.get(zone.id) || [];
         const dynamicItem: ChecklistDynamicItem = {
           id: `${sectionId}-${index + 1}`,
@@ -1040,9 +1046,10 @@ export function convertSupabaseToChecklist(
         section.dynamicItems.push(dynamicItem);
       });
       
-      // Actualizar dynamicCount basado en el número de zonas encontradas
-      // Esto asegura que el contador refleje el número real de habitaciones/baños
-      section.dynamicCount = zonesOfType.length;
+      // Actualizar dynamicCount capeado al número de habitaciones/baños de la propiedad.
+      // Sin este cap, zonas huérfanas duplicadas causan habitaciones fantasma en blanco.
+      section.dynamicCount = (propCount != null && propCount > 0)
+        ? Math.min(zonesOfType.length, propCount) : zonesOfType.length;
     } else {
       // Sección fija (no dinámica)
       // Para secciones fijas, buscar elementos por zone_id directamente

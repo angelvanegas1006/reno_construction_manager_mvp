@@ -1084,16 +1084,26 @@ export function useSupabaseChecklistBase({
       let zonesOfTypeForSave: typeof zones = [];
 
       if (sectionId === "habitaciones" || sectionId === "banos") {
-        // Secciones dinámicas: ordenar por nombre y crear zonas faltantes si hay más habitaciones/baños que zonas
-        const initialZonesOfType = zones
-          .filter(z => z.zone_type === expectedZoneType)
-          .sort((a, b) => (a.zone_name || '').localeCompare(b.zone_name || ''));
+        // Secciones dinámicas: consultar zonas DIRECTAMENTE desde Supabase para evitar
+        // el closure stale de `zones` (que NO está en el dependency array de useCallback).
+        // Sin esta consulta fresca, auto-save y manual save pueden ver zones=[] y crear duplicados.
+        const freshClient = createClient();
+        const { data: freshZonesData } = await freshClient
+          .from('inspection_zones')
+          .select('*')
+          .eq('inspection_id', inspection.id)
+          .eq('zone_type', expectedZoneType!)
+          .order('zone_name');
+        const initialZonesOfType = (freshZonesData || []) as typeof zones;
         zonesOfTypeForSave = [...initialZonesOfType];
+
+        // Marcar la sección ANTES del while loop de creación de zonas.
+        // createZone llama fetchInspection() internamente, lo que dispara el useEffect de recarga.
+        // Si lastSavedSectionIdRef es null en ese momento, el effect hace un full-replace del
+        // checklist con datos parciales, causando que habitaciones desaparezcan.
+        lastSavedSectionIdRef.current = sectionId;
+
         const requestedCount = section.dynamicItems?.length ?? 0;
-        // Confiar en el estado local (dynamicItems.length) como fuente de verdad.
-        // El cap absoluto de 20 ya se aplica en updateSection.
-        // NO usar supabaseProperty?.bedrooms/bathrooms aquí porque puede estar desactualizado
-        // (refetchProperty es async y no se espera en handleCountChange).
         const needed = requestedCount;
         if (needed > 0) {
           console.log(`[useSupabaseChecklistBase:${inspectionType}] 📦 ${sectionId}: requested=${requestedCount}, existingZones=${initialZonesOfType.length}, needed=${needed}`);
@@ -1109,9 +1119,6 @@ export function useSupabaseChecklistBase({
           zonesOfTypeForSave.push(created);
           console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Created missing zone:`, created.zone_name);
         }
-        // Marcar la sección ANTES del refetch para que si el useEffect de reload se dispara
-        // a mitad del save, solo actualice ESTA sección y no reemplace todo el checklist.
-        lastSavedSectionIdRef.current = sectionId;
         // Refrescar inspección para que el estado zones incluya las nuevas zonas en el próximo guardado
         if (zonesOfTypeForSave.length > initialZonesOfType.length) {
           await refetchInspection();

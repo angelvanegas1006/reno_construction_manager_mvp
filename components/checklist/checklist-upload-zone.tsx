@@ -51,6 +51,10 @@ export function ChecklistUploadZone({
   
   // Detectar si estamos en mobile o tablet (no desktop)
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
+
+  // Modo ráfaga: permite tomar varias fotos seguidas sin salir del flujo de cámara
+  const [cameraBurstActive, setCameraBurstActive] = useState(false);
+  const [burstStartCount, setBurstStartCount] = useState(0);
   
   useEffect(() => {
     // Solo ejecutar en el cliente
@@ -204,6 +208,28 @@ export function ChecklistUploadZone({
       }
     }, [handleVideosChange]),
   });
+
+  // Modo ráfaga: abre la cámara nativa sin salir del modo burst
+  const openCameraInBurst = useCallback(() => {
+    if (!readOnly && photosHook.fileInputRef.current) {
+      photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
+      photosHook.fileInputRef.current.capture = "environment";
+      photosHook.fileInputRef.current.multiple = true;
+      photosHook.fileInputRef.current.click();
+    }
+  }, [readOnly, photosHook.fileInputRef]);
+
+  // Iniciar modo ráfaga: guarda el conteo actual de fotos y abre la cámara
+  const startCameraBurst = useCallback(() => {
+    setCameraBurstActive(true);
+    setBurstStartCount(uploadZoneRef.current.photos.length);
+    openCameraInBurst();
+  }, [openCameraInBurst]);
+
+  // Tomar otra foto en modo ráfaga (no resetea el estado burst)
+  const handleBurstTakeAnother = useCallback(() => {
+    openCameraInBurst();
+  }, [openCameraInBurst]);
 
   const [localError, setLocalError] = React.useState<string | null>(null);
 
@@ -414,24 +440,17 @@ export function ChecklistUploadZone({
         <div className="flex flex-col sm:flex-row gap-2 justify-center">
           {isMobileOrTablet ? (
             <>
-              {/* Botones para mobile: captura directa desde cámara */}
+              {/* Botón de cámara con modo ráfaga: abre la cámara nativa y entra en burst mode */}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  if (!readOnly && photosHook.fileInputRef.current) {
-                    photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
-                    photosHook.fileInputRef.current.capture = "environment";
-                    photosHook.fileInputRef.current.multiple = true;
-                    photosHook.fileInputRef.current.click();
-                  }
-                }}
+                onClick={startCameraBurst}
                 disabled={readOnly}
                 className="flex items-center gap-1"
               >
                 <Camera className="h-4 w-4" />
-                Tomar foto
+                Tomar fotos
               </Button>
               <Button
                 type="button"
@@ -605,6 +624,35 @@ export function ChecklistUploadZone({
 
       {localError && (
         <p className="text-sm text-red-500 mt-2">{localError}</p>
+      )}
+
+      {/* Barra de modo ráfaga: permite tomar varias fotos seguidas sin salir del flujo */}
+      {cameraBurstActive && isMobileOrTablet && (
+        <div className="sticky bottom-0 z-10 bg-blue-50 dark:bg-blue-900/50 border-t border-blue-200 dark:border-blue-800 p-3 mt-3 flex items-center justify-between rounded-lg shadow-md">
+          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+            {uploadZone.photos.length - burstStartCount} foto{uploadZone.photos.length - burstStartCount !== 1 ? 's' : ''} tomada{uploadZone.photos.length - burstStartCount !== 1 ? 's' : ''}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleBurstTakeAnother}
+              className="flex items-center gap-1 border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300"
+            >
+              <Camera className="h-4 w-4" />
+              Tomar otra
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setCameraBurstActive(false)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Listo
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
