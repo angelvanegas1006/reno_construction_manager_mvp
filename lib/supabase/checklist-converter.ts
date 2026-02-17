@@ -232,19 +232,21 @@ export function convertUploadZonesToElements(
 
   uploadZones.forEach((uploadZone) => {
     // Crear elemento para fotos (siempre crear el elemento, incluso si está vacío)
-    const allPhotos = uploadZone.photos || [];
-    // IMPORTANTE: Solo guardar URLs HTTP (fotos ya subidas), NO base64
-    // Las fotos en base64 se subirán primero y luego se guardarán con sus URLs
-    const photosWithHttp = allPhotos.filter(photo => photo.data && photo.data.startsWith('http'));
-    const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
+    const allPhotos = (uploadZone.photos || []).filter(photo => photo.data && photo.data.length > 0);
+    // Incluir fotos HTTP preferentemente; si la subida falló (base64), preservar como fallback
+    const httpPhotos = allPhotos.filter(photo => photo.data!.startsWith('http'));
+    const imageUrls = httpPhotos.length > 0
+      ? httpPhotos.map(photo => photo.data!)
+      : allPhotos.length > 0
+        ? allPhotos.map(photo => photo.data!)
+        : null;
     
     console.log(`[convertUploadZonesToElements] Processing upload zone "${uploadZone.id}":`, {
       zoneId,
       uploadZoneId: uploadZone.id,
       totalPhotos: allPhotos.length,
-      photosWithHttp: photosWithHttp.length,
-      photosWithBase64: allPhotos.filter(p => p.data?.startsWith('data:')).length,
-      photosWithoutData: allPhotos.filter(p => !p.data).length,
+      photosWithHttp: httpPhotos.length,
+      photosNonHttp: allPhotos.length - httpPhotos.length,
       imageUrls: imageUrls,
       imageUrlsCount: imageUrls?.length || 0,
       willCreateElement: true, // Siempre crear el elemento
@@ -303,10 +305,14 @@ export function convertQuestionsToElements(
   const elements: ElementInsert[] = [];
 
   questions.forEach((question) => {
-    // IMPORTANTE: Solo guardar URLs HTTP (fotos ya subidas), NO base64
-    // Las fotos en base64 se subirán primero y luego se guardarán con sus URLs
-    const photosWithHttp = question.photos?.filter(photo => photo.data && photo.data.startsWith('http')) || [];
-    const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
+    // Incluir fotos HTTP preferentemente; si la subida falló (base64), preservar como fallback
+    const allQPhotos = question.photos?.filter(photo => photo.data && photo.data.length > 0) || [];
+    const httpQPhotos = allQPhotos.filter(photo => photo.data!.startsWith('http'));
+    const imageUrls = httpQPhotos.length > 0
+      ? httpQPhotos.map(photo => photo.data!)
+      : allQPhotos.length > 0
+        ? allQPhotos.map(photo => photo.data!)
+        : null;
 
     // Nota: badElements se puede incluir en notes si es necesario
     const notesWithBadElements = question.badElements && question.badElements.length > 0
@@ -323,8 +329,8 @@ export function convertQuestionsToElements(
       hasNotes: !!notesWithBadElements,
       notesPreview: notesWithBadElements?.substring(0, 50),
       totalPhotos: question.photos?.length || 0,
-      photosWithHttp: photosWithHttp.length,
-      photosWithBase64: question.photos?.filter(p => p.data?.startsWith('data:')).length || 0,
+      photosWithHttp: httpQPhotos.length,
+      photosNonHttp: allQPhotos.length - httpQPhotos.length,
       imageUrlsCount: imageUrls?.length || 0,
       willCreateElement: true, // Siempre crear el elemento, incluso si no tiene estado o fotos
     });
@@ -378,10 +384,14 @@ export function convertItemsToElements(
     });
 
     if (item.cantidad === 1) {
-      // Un solo elemento
-      // IMPORTANTE: Solo guardar URLs HTTP (fotos ya subidas), NO base64
-      const photosWithHttp = item.photos?.filter(photo => photo.data && photo.data.startsWith('http')) || [];
-      const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
+      // Un solo elemento — preservar fotos base64 como fallback si upload falló
+      const allItemPhotos = item.photos?.filter(photo => photo.data && photo.data.length > 0) || [];
+      const httpItemPhotos = allItemPhotos.filter(photo => photo.data!.startsWith('http'));
+      const imageUrls = httpItemPhotos.length > 0
+        ? httpItemPhotos.map(photo => photo.data!)
+        : allItemPhotos.length > 0
+          ? allItemPhotos.map(photo => photo.data!)
+          : null;
 
       // Nota: badElements se puede incluir en notes si es necesario
       const badElements = 'badElements' in item ? item.badElements : undefined;
@@ -398,8 +408,8 @@ export function convertItemsToElements(
         estado: item.estado,
         hasNotes: !!notesWithBadElements,
         notesPreview: notesWithBadElements?.substring(0, 50),
-        photosWithHttp: photosWithHttp.length,
-        photosWithBase64: item.photos?.filter(p => p.data?.startsWith('data:')).length || 0,
+        photosWithHttp: httpItemPhotos.length,
+        photosNonHttp: allItemPhotos.length - httpItemPhotos.length,
         imageUrlsCount: imageUrls?.length || 0,
         quantity: 1,
       });
@@ -417,9 +427,14 @@ export function convertItemsToElements(
     } else if (item.units && item.units.length > 0) {
       // Múltiples unidades - crear un elemento por unidad
       item.units.forEach((unit, index) => {
-        // IMPORTANTE: Solo guardar URLs HTTP (fotos ya subidas), NO base64
-        const photosWithHttp = unit.photos?.filter(photo => photo.data && photo.data.startsWith('http')) || [];
-        const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
+        // Preservar fotos base64 como fallback si upload falló
+        const allUnitPhotos = unit.photos?.filter(photo => photo.data && photo.data.length > 0) || [];
+        const httpUnitPhotos = allUnitPhotos.filter(photo => photo.data!.startsWith('http'));
+        const imageUrls = httpUnitPhotos.length > 0
+          ? httpUnitPhotos.map(photo => photo.data!)
+          : allUnitPhotos.length > 0
+            ? allUnitPhotos.map(photo => photo.data!)
+            : null;
 
         // Nota: badElements se puede incluir en notes si es necesario
         const badElements = 'badElements' in unit ? unit.badElements : undefined;
@@ -436,8 +451,8 @@ export function convertItemsToElements(
           estado: unit.estado,
           hasNotes: !!notesWithBadElements,
           notesPreview: notesWithBadElements?.substring(0, 50),
-          photosWithHttp: photosWithHttp.length,
-          photosWithBase64: unit.photos?.filter(p => p.data?.startsWith('data:')).length || 0,
+          photosWithHttp: httpUnitPhotos.length,
+          photosNonHttp: allUnitPhotos.length - httpUnitPhotos.length,
           imageUrlsCount: imageUrls?.length || 0,
           quantity: 1,
         });
@@ -484,15 +499,24 @@ export function convertMobiliarioToElements(
 
   // Crear mobiliario-detalle cuando hay question (estado + fotos/notas), para que siempre se guarde el contenido multimedia
   if (mobiliario.question) {
-    const photosWithHttp = mobiliario.question.photos?.filter(photo => photo.data && photo.data.startsWith('http')) || [];
-    const imageUrls = photosWithHttp.length > 0 ? photosWithHttp.map(photo => photo.data) : null;
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[convertMobiliarioToElements] mobiliario.question:', {
+    // Incluir fotos HTTP preferentemente; si la subida falló (base64), preservarlas como fallback
+    // en vez de perderlas silenciosamente. Esto evita que un fallo de Storage borre las fotos.
+    const allPhotosWithData = mobiliario.question.photos?.filter(photo => photo.data && photo.data.length > 0) || [];
+    const httpPhotos = allPhotosWithData.filter(photo => photo.data!.startsWith('http'));
+    const imageUrls = httpPhotos.length > 0
+      ? httpPhotos.map(photo => photo.data!)
+      : allPhotosWithData.length > 0
+        ? allPhotosWithData.map(photo => photo.data!)
+        : null;
+    // Log siempre visible para diagnosticar pérdida de fotos en producción
+    if (allPhotosWithData.length > 0) {
+      console.log('[convertMobiliarioToElements] mobiliario.question photos:', {
         zoneId,
         status: mobiliario.question.status,
-        photosCount: mobiliario.question.photos?.length ?? 0,
-        photosWithHttpCount: photosWithHttp.length,
-        imageUrls: imageUrls ?? [],
+        totalPhotos: allPhotosWithData.length,
+        httpPhotos: httpPhotos.length,
+        nonHttpPhotos: allPhotosWithData.length - httpPhotos.length,
+        imageUrlsCount: imageUrls?.length ?? 0,
       });
     }
     const notesWithBadElements = mobiliario.question.badElements && mobiliario.question.badElements.length > 0

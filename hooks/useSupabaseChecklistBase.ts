@@ -1090,14 +1090,13 @@ export function useSupabaseChecklistBase({
           .sort((a, b) => (a.zone_name || '').localeCompare(b.zone_name || ''));
         zonesOfTypeForSave = [...initialZonesOfType];
         const requestedCount = section.dynamicItems?.length ?? 0;
-        // No crear más zonas que las que tiene la propiedad (evita habitación/baño fantasma al guardar)
-        // Si la propiedad no tiene bedrooms/bathrooms, usar zonas existentes como máximo (nunca crear más)
-        const maxFromProperty = sectionId === "habitaciones"
-          ? (supabaseProperty?.bedrooms ?? initialZonesOfType.length)
-          : (supabaseProperty?.bathrooms ?? initialZonesOfType.length);
-        const needed = Math.min(requestedCount, maxFromProperty);
-        if (requestedCount > maxFromProperty) {
-          debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Capping zones: requested ${requestedCount}, max ${maxFromProperty} ${sectionId}`);
+        // Confiar en el estado local (dynamicItems.length) como fuente de verdad.
+        // El cap absoluto de 20 ya se aplica en updateSection.
+        // NO usar supabaseProperty?.bedrooms/bathrooms aquí porque puede estar desactualizado
+        // (refetchProperty es async y no se espera en handleCountChange).
+        const needed = requestedCount;
+        if (needed > 0) {
+          console.log(`[useSupabaseChecklistBase:${inspectionType}] 📦 ${sectionId}: requested=${requestedCount}, existingZones=${initialZonesOfType.length}, needed=${needed}`);
         }
         const displayNameBase = zoneConfig?.zoneName ?? 'Zona';
         while (zonesOfTypeForSave.length < needed) {
@@ -1110,6 +1109,9 @@ export function useSupabaseChecklistBase({
           zonesOfTypeForSave.push(created);
           console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Created missing zone:`, created.zone_name);
         }
+        // Marcar la sección ANTES del refetch para que si el useEffect de reload se dispara
+        // a mitad del save, solo actualice ESTA sección y no reemplace todo el checklist.
+        lastSavedSectionIdRef.current = sectionId;
         // Refrescar inspección para que el estado zones incluya las nuevas zonas en el próximo guardado
         if (zonesOfTypeForSave.length > initialZonesOfType.length) {
           await refetchInspection();
@@ -1269,9 +1271,12 @@ export function useSupabaseChecklistBase({
 
       // Archivos de mobiliario (secciones fijas: entrada-pasillos, salon)
       if (section.mobiliario?.question?.photos) {
-        const base64Photos = section.mobiliario.question.photos.filter(photo => 
+        const mobPhotos = section.mobiliario.question.photos;
+        const base64Photos = mobPhotos.filter(photo => 
           photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
         );
+        const httpPhotos = mobPhotos.filter(photo => photo.data?.startsWith('http'));
+        console.log(`[useSupabaseChecklistBase:${inspectionType}] 📸 Mobiliario photos (${sectionId}): total=${mobPhotos.length}, base64=${base64Photos.length}, http=${httpPhotos.length}`);
         filesToUpload.push(...base64Photos);
       }
 
@@ -1672,17 +1677,15 @@ export function useSupabaseChecklistBase({
           }
 
           // Actualizar fotos de mobiliario (secciones fijas: entrada-pasillos, salon)
-          if (sectionToSave.mobiliario?.question?.photos && sectionToSave.mobiliario.question.photos.length > 0) {
-            sectionToSave.mobiliario = {
-              ...sectionToSave.mobiliario,
-              question: {
-                ...sectionToSave.mobiliario.question,
-                photos: sectionToSave.mobiliario.question.photos.map(photo => {
-                  const updatedUrl = fileIdToUrlMap.get(photo.id) ?? photo.data;
-                  return { ...photo, data: updatedUrl };
-                }),
-              },
-            };
+          // Usar updateFileWithMap (mutación in-place) igual que questions, carpentryItems, etc.
+          if (sectionToSave.mobiliario?.question?.photos) {
+            let mobMapped = 0;
+            sectionToSave.mobiliario.question.photos.forEach(photo => {
+              if (updateFileWithMap(photo, `mobiliario (fixed section ${sectionId})`)) mobMapped++;
+            });
+            const mobTotal = sectionToSave.mobiliario.question.photos.length;
+            const mobHttp = sectionToSave.mobiliario.question.photos.filter(p => p.data?.startsWith('http')).length;
+            console.log(`[useSupabaseChecklistBase:${inspectionType}] 📸 Mobiliario URL mapping (${sectionId}): total=${mobTotal}, mapped=${mobMapped}, http=${mobHttp}`);
           }
 
           // Actualizar carpentryItems (sección: salón, cocina, etc.)
