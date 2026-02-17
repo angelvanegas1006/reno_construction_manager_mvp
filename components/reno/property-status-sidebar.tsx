@@ -98,23 +98,22 @@ export function PropertyStatusSidebar({
       const checklistType = (renoPhase === "final-check" || renoPhase === "pendiente-suministros") ? "final" : "initial";
       
       if (renoPhase === "initial-check" || renoPhase === "final-check" || renoPhase === "pendiente-suministros") {
-        // Try to fetch with inspection_type first
+        // Fetch latest inspection of the expected type (maybeSingle to avoid 406 when 0 or >1 rows)
         let { data, error } = await supabase
           .from("property_inspections")
           .select("id, inspection_status, completed_at")
           .eq("property_id", propertyId)
           .eq("inspection_type", checklistType)
-          .single();
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        // Handle errors: 406 (Not Acceptable) or column doesn't exist - try without inspection_type
+        // Handle errors: column doesn't exist - try without inspection_type
         if (error && (
           error.code === '42883' || 
           error.message?.includes('column') || 
-          error.message?.includes('does not exist') ||
-          error.message?.includes('406') ||
-          error.code === 'PGRST116'
+          error.message?.includes('does not exist')
         )) {
-          // Try without inspection_type filter
           const { data: allData, error: allError } = await supabase
             .from("property_inspections")
             .select("id, inspection_status, completed_at")
@@ -124,13 +123,11 @@ export function PropertyStatusSidebar({
             .maybeSingle();
           
           if (allError && allError.code !== 'PGRST116') {
-            // Silently fail - checklist might not exist yet
             return;
           }
           data = allData;
           error = null;
         } else if (error && error.code !== 'PGRST116') {
-          // Silently fail for other errors
           return;
         }
 
