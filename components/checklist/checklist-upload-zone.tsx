@@ -100,6 +100,10 @@ export function ChecklistUploadZone({
     });
   }, [onUpdate]);
 
+  // Refs para inputs de galería separados (sin capture)
+  const photoGalleryInputRef = React.useRef<HTMLInputElement>(null);
+  const videoGalleryInputRef = React.useRef<HTMLInputElement>(null);
+
   // Track processed file IDs to avoid duplicates
   const processedPhotoIdsRef = React.useRef<Set<string>>(new Set());
   const processedVideoIdsRef = React.useRef<Set<string>>(new Set());
@@ -418,6 +422,7 @@ export function ChecklistUploadZone({
           O haz clic para explorar (fotos y videos: sin límite de tamaño)
         </p>
         
+        {/* Inputs para cámara (con capture) */}
         <input
           ref={photosHook.fileInputRef}
           type="file"
@@ -434,6 +439,25 @@ export function ChecklistUploadZone({
           accept={VIDEO_TYPES.join(",")}
           onChange={videosHook.handleFileSelect}
           capture={isMobileOrTablet ? "environment" : undefined}
+          className="hidden"
+        />
+        {/* Inputs separados para galería (SIN capture) – en iOS/Android, capture
+            hace que el picker abra directamente la cámara. Con un input separado
+            sin capture, el picker muestra la galería correctamente. */}
+        <input
+          ref={photoGalleryInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={photosHook.handleFileSelect}
+          className="hidden"
+        />
+        <input
+          ref={videoGalleryInputRef}
+          type="file"
+          multiple
+          accept="video/*"
+          onChange={videosHook.handleFileSelect}
           className="hidden"
         />
 
@@ -457,11 +481,8 @@ export function ChecklistUploadZone({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (!readOnly && photosHook.fileInputRef.current) {
-                    photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
-                    photosHook.fileInputRef.current.removeAttribute('capture');
-                    photosHook.fileInputRef.current.multiple = true;
-                    photosHook.fileInputRef.current.click();
+                  if (!readOnly && photoGalleryInputRef.current) {
+                    photoGalleryInputRef.current.click();
                   }
                 }}
                 disabled={readOnly}
@@ -493,11 +514,8 @@ export function ChecklistUploadZone({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  if (!readOnly && videosHook.fileInputRef.current) {
-                    videosHook.fileInputRef.current.accept = VIDEO_TYPES.join(",");
-                    videosHook.fileInputRef.current.removeAttribute('capture');
-                    videosHook.fileInputRef.current.multiple = true;
-                    videosHook.fileInputRef.current.click();
+                  if (!readOnly && videoGalleryInputRef.current) {
+                    videoGalleryInputRef.current.click();
                   }
                 }}
                 disabled={readOnly}
