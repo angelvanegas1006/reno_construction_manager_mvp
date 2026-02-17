@@ -339,7 +339,7 @@ export default function RenoChecklistPage() {
     return sectionId;
   }, []);
 
-  // Guardado automático cada 60 s si hay cambios sin guardar (reduce pérdida de progreso si la app se cierra)
+  // Guardado automático cada 15 s si hay cambios sin guardar (reduce pérdida de progreso en móvil)
   const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     if (isChecklistCompleted || !checklist) return;
@@ -350,11 +350,60 @@ export default function RenoChecklistPage() {
       saveCurrentSection(sectionIdForSave)
         .then(() => setHasUnsavedChanges(false))
         .catch(() => { /* no molestar con toast en auto-save */ });
-    }, 60 * 1000);
+    }, 15 * 1000);
     return () => {
       if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current);
     };
   }, [hasUnsavedChanges, checklist, activeSection, getSectionIdForSave, saveCurrentSection, isChecklistCompleted]);
+
+  // Guardar al salir de la página (mobile: visibilitychange/pagehide, desktop: beforeunload)
+  // Crítico para móvil donde el usuario cierra el navegador, cambia de app o hace swipe-back
+  const saveOnLeaveRef = useRef(saveCurrentSection);
+  const hasUnsavedRef = useRef(hasUnsavedChanges);
+  const activeSectionRef = useRef(activeSection);
+  const checklistRef = useRef(checklist);
+  const isCompletedRef = useRef(isChecklistCompleted);
+  useEffect(() => {
+    saveOnLeaveRef.current = saveCurrentSection;
+    hasUnsavedRef.current = hasUnsavedChanges;
+    activeSectionRef.current = activeSection;
+    checklistRef.current = checklist;
+    isCompletedRef.current = isChecklistCompleted;
+  }, [saveCurrentSection, hasUnsavedChanges, activeSection, checklist, isChecklistCompleted]);
+
+  useEffect(() => {
+    const triggerSaveOnLeave = () => {
+      if (isCompletedRef.current || !hasUnsavedRef.current || !checklistRef.current) return;
+      const sectionId = getSectionIdForSave(activeSectionRef.current);
+      if (!checklistRef.current.sections[sectionId]) return;
+      console.log('[ChecklistPage] 💾 Save-on-leave triggered for section:', sectionId);
+      saveOnLeaveRef.current(sectionId).catch(() => {});
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        triggerSaveOnLeave();
+      }
+    };
+
+    const handlePageHide = () => {
+      triggerSaveOnLeave();
+    };
+
+    const handleBeforeUnload = () => {
+      triggerSaveOnLeave();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [getSectionIdForSave]);
 
   // Handle section click - Guardar la sección que SALIMOS antes de cambiar (crítico para no perder fotos en móvil)
   // Si el guardado falla, NO cambiamos de sección para no perder el avance; mostramos Reintentar.

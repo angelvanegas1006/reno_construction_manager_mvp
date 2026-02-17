@@ -2062,24 +2062,24 @@ export function useSupabaseChecklistBase({
       dynamicItemsLength: sectionData.dynamicItems?.length || 0,
     });
 
-    // Cap dynamicCount y dynamicItems al número real de zonas (evita baño/habitación fantasma)
+    // Cap absoluto de 20 habitaciones/baños (mismo límite que la UI).
+    // NO capear a zones.length ni a supabaseProperty.bedrooms aquí porque:
+    //   1. zones.length causa deadlock: el usuario nunca puede incrementar si no hay zonas creadas aún
+    //   2. supabaseProperty.bedrooms aún no se actualiza cuando onUpdate se ejecuta (onPropertyUpdate es async)
+    // El cap real por propiedad se aplica en saveCurrentSection (línea ~1083) donde sí tiene el valor actualizado.
     if ((sectionId === "habitaciones" || sectionId === "banos") && sectionData) {
-      const zoneType = sectionId === "habitaciones" ? "dormitorio" : "bano";
-      const zonesOfType = zones.filter(z => z.zone_type === zoneType);
-      const maxCount = zonesOfType.length;
-      if (maxCount > 0) {
-        let capped = false;
-        if (sectionData.dynamicCount !== undefined && sectionData.dynamicCount > maxCount) {
-          sectionData = { ...sectionData, dynamicCount: maxCount };
-          capped = true;
-        }
-        if (sectionData.dynamicItems !== undefined && sectionData.dynamicItems.length > maxCount) {
-          sectionData = { ...sectionData, dynamicItems: sectionData.dynamicItems.slice(0, maxCount) };
-          capped = true;
-        }
-        if (capped) {
-          debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Capped ${sectionId} to ${maxCount} (zones)`);
-        }
+      const maxCount = 20;
+      let capped = false;
+      if (sectionData.dynamicCount !== undefined && sectionData.dynamicCount > maxCount) {
+        sectionData = { ...sectionData, dynamicCount: maxCount };
+        capped = true;
+      }
+      if (sectionData.dynamicItems !== undefined && sectionData.dynamicItems.length > maxCount) {
+        sectionData = { ...sectionData, dynamicItems: sectionData.dynamicItems.slice(0, maxCount) };
+        capped = true;
+      }
+      if (capped) {
+        debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⚠️ Capped ${sectionId} to ${maxCount} (absolute max)`);
       }
     }
 

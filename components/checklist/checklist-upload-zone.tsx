@@ -28,8 +28,8 @@ interface ChecklistUploadZoneProps {
 
 // Sin límite práctico: fotos y videos 2GB por defecto
 const DEFAULT_MAX_PHOTO_SIZE_MB = 2048;
-const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/3gpp", "video/mpeg"];
 
 // Videos: sin tope práctico (2GB cubre grabaciones largas de inspección)
 const DEFAULT_MAX_VIDEO_SIZE_MB = 2048;

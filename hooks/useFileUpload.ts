@@ -31,10 +31,42 @@ const DEFAULT_ACCEPTED_TYPES = [
   "image/jpeg",
   "image/png", 
   "image/webp",
+  "image/heic",
+  "image/heif",
   "video/mp4",
   "video/webm",
+  "video/quicktime",
+  "video/3gpp",
+  "video/mpeg",
   "application/pdf",
 ];
+
+/**
+ * Infer MIME type from file extension when file.type is empty.
+ * Common on mobile browsers (iOS Safari, some Android) for camera captures.
+ */
+function inferMimeType(file: File): string {
+  if (file.type && file.type !== "") return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase() || "";
+  const extMap: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    heic: "image/heic",
+    heif: "image/heif",
+    gif: "image/gif",
+    mp4: "video/mp4",
+    mov: "video/quicktime",
+    webm: "video/webm",
+    "3gp": "video/3gpp",
+    mpeg: "video/mpeg",
+    mpg: "video/mpeg",
+    avi: "video/x-msvideo",
+    pdf: "application/pdf",
+  };
+  return extMap[ext] || "";
+}
 
 export function useFileUpload({
   maxFileSize = DEFAULT_MAX_SIZE,
@@ -70,7 +102,24 @@ export function useFileUpload({
       return `El archivo es demasiado grande. Máximo ${maxFileSize}MB`;
     }
     
-    if (!acceptedTypes.includes(file.type)) {
+    const mimeType = inferMimeType(file);
+    if (!acceptedTypes.includes(mimeType)) {
+      // Fallback: if MIME is still unknown, allow image/* and video/* based on extension
+      const ext = file.name.split(".").pop()?.toLowerCase() || "";
+      const imageExts = ["jpg", "jpeg", "png", "webp", "heic", "heif", "gif"];
+      const videoExts = ["mp4", "mov", "webm", "3gp", "mpeg", "mpg", "avi", "m4v"];
+      const hasImageType = acceptedTypes.some(t => t.startsWith("image/"));
+      const hasVideoType = acceptedTypes.some(t => t.startsWith("video/"));
+      
+      if (hasImageType && imageExts.includes(ext)) {
+        console.log(`[useFileUpload] 📱 Allowing image by extension fallback: ${file.name} (type="${file.type}", ext="${ext}")`);
+        return null;
+      }
+      if (hasVideoType && videoExts.includes(ext)) {
+        console.log(`[useFileUpload] 📱 Allowing video by extension fallback: ${file.name} (type="${file.type}", ext="${ext}")`);
+        return null;
+      }
+      
       return `Tipo de archivo no soportado. Tipos permitidos: ${acceptedTypes.join(", ")}`;
     }
     
@@ -90,10 +139,11 @@ export function useFileUpload({
             data = await compressImageDataUrlIfNeeded(data, IMAGE_COMPRESS_THRESHOLD_BYTES);
           } catch (_) { /* usar original */ }
         }
+        const resolvedType = inferMimeType(file);
         const fileUpload: FileUpload = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           name: file.name,
-          type: file.type,
+          type: resolvedType || file.type,
           size: file.size,
           data,
           uploadedAt: new Date().toISOString(),
