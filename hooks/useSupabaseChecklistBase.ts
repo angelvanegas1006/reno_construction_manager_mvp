@@ -1153,92 +1153,53 @@ export function useSupabaseChecklistBase({
         return;
       }
 
-      // Recopilar todos los archivos (fotos y videos) que necesitan ser subidos (base64)
+      // Recopilar todos los archivos (fotos y videos) que necesitan ser subidos
+      // Incluye: base64 (data:), blob URLs (blob: - videos sin convertir a base64), y raw base64 sin prefijo
       const filesToUpload: FileUpload[] = [];
+      const needsUpload = (f: FileUpload) =>
+        f.data && (f.data.startsWith('data:') || f.data.startsWith('blob:') || (!f.data.startsWith('http') && f.data.length > 100));
       
-      // Archivos de uploadZones que están en base64
+      // Archivos de uploadZones
       if (section.uploadZones) {
         section.uploadZones.forEach(zone => {
           if (zone.photos) {
-            const base64Photos = zone.photos.filter(photo => 
-              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-            );
-            filesToUpload.push(...base64Photos);
+            filesToUpload.push(...zone.photos.filter(needsUpload));
           }
           if (zone.videos) {
-            const base64Videos = zone.videos.filter(video => 
-              video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
-            );
-            filesToUpload.push(...base64Videos);
+            filesToUpload.push(...zone.videos.filter(needsUpload));
           }
         });
       }
 
-      // Archivos de dynamicItems que están en base64
+      // Archivos de dynamicItems
       if (section.dynamicItems) {
         section.dynamicItems.forEach(item => {
           if (item.uploadZone?.photos) {
-            const base64Photos = item.uploadZone.photos.filter(photo => 
-              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-            );
-            filesToUpload.push(...base64Photos);
+            filesToUpload.push(...item.uploadZone.photos.filter(needsUpload));
           }
           if (item.uploadZone?.videos) {
-            const base64Videos = item.uploadZone.videos.filter(video => 
-              video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
-            );
-            filesToUpload.push(...base64Videos);
+            filesToUpload.push(...item.uploadZone.videos.filter(needsUpload));
           }
           // Fotos de carpentryItems dentro de dynamic items
           if (item.carpentryItems) {
             item.carpentryItems.forEach(carpentryItem => {
-              if (carpentryItem.photos) {
-                const base64Photos = carpentryItem.photos.filter(photo => 
-                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                );
-                filesToUpload.push(...base64Photos);
-              }
+              if (carpentryItem.photos) filesToUpload.push(...carpentryItem.photos.filter(needsUpload));
               if (carpentryItem.units) {
                 carpentryItem.units.forEach(unit => {
-                  if (unit.photos) {
-                    const base64Photos = unit.photos.filter(photo => 
-                      photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                    );
-                    filesToUpload.push(...base64Photos);
-                  }
-                  if (unit.videos) {
-                    const base64Videos = unit.videos.filter(video => 
-                      video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
-                    );
-                    filesToUpload.push(...base64Videos);
-                  }
+                  if (unit.photos) filesToUpload.push(...unit.photos.filter(needsUpload));
+                  if (unit.videos) filesToUpload.push(...unit.videos.filter(needsUpload));
                 });
               }
             });
           }
-          // Fotos y vídeos de climatizationItems dentro de dynamic items
+          // Fotos y videos de climatizationItems dentro de dynamic items
           if (item.climatizationItems) {
             item.climatizationItems.forEach(climatizationItem => {
-              if (climatizationItem.photos) {
-                const base64Photos = climatizationItem.photos.filter(photo => 
-                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                );
-                filesToUpload.push(...base64Photos);
-              }
+              if (climatizationItem.photos) filesToUpload.push(...climatizationItem.photos.filter(needsUpload));
               if (climatizationItem.units) {
                 climatizationItem.units.forEach(unit => {
-                  if (unit.photos) {
-                    const base64Photos = unit.photos.filter(photo => 
-                      photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                    );
-                    filesToUpload.push(...base64Photos);
-                  }
-                  if (unit.videos) {
-                    const base64Videos = unit.videos.filter(video => 
-                      video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
-                    );
-                    filesToUpload.push(...base64Videos);
-                  }
+                  if (unit.photos) filesToUpload.push(...unit.photos.filter(needsUpload));
+                  if (unit.videos) filesToUpload.push(...unit.videos.filter(needsUpload));
                 });
               }
             });
@@ -1246,196 +1207,53 @@ export function useSupabaseChecklistBase({
           // Fotos de questions dentro de dynamic items
           if (item.questions) {
             item.questions.forEach(question => {
-              if (question.photos) {
-                const base64Photos = question.photos.filter(photo => 
-                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                );
-                filesToUpload.push(...base64Photos);
-              }
+              if (question.photos) filesToUpload.push(...question.photos.filter(needsUpload));
             });
           }
           // Fotos de mobiliario (detalle) dentro de dynamic items
           if (item.mobiliario?.question?.photos) {
-            const base64Photos = item.mobiliario.question.photos.filter(photo => 
-              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-            );
-            filesToUpload.push(...base64Photos);
+            filesToUpload.push(...item.mobiliario.question.photos.filter(needsUpload));
           }
         });
       }
 
-      // Archivos de questions que están en base64
+      // Archivos de questions
       if (section.questions) {
         section.questions.forEach(question => {
-          if (question.photos) {
-            const base64Photos = question.photos.filter(photo => 
-              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-            );
-            filesToUpload.push(...base64Photos);
-          }
+          if (question.photos) filesToUpload.push(...question.photos.filter(needsUpload));
         });
       }
 
       // Archivos de mobiliario (secciones fijas: entrada-pasillos, salon)
       if (section.mobiliario?.question?.photos) {
         const mobPhotos = section.mobiliario.question.photos;
-        const base64Photos = mobPhotos.filter(photo => 
-          photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-        );
+        const pendingPhotos = mobPhotos.filter(needsUpload);
         const httpPhotos = mobPhotos.filter(photo => photo.data?.startsWith('http'));
-        console.log(`[useSupabaseChecklistBase:${inspectionType}] 📸 Mobiliario photos (${sectionId}): total=${mobPhotos.length}, base64=${base64Photos.length}, http=${httpPhotos.length}`);
-        filesToUpload.push(...base64Photos);
+        console.log(`[useSupabaseChecklistBase:${inspectionType}] 📸 Mobiliario photos (${sectionId}): total=${mobPhotos.length}, pending=${pendingPhotos.length}, http=${httpPhotos.length}`);
+        filesToUpload.push(...pendingPhotos);
       }
 
-      // Archivos de carpentryItems que están en base64
-      if (section.carpentryItems) {
-        section.carpentryItems.forEach(item => {
-          if (item.photos) {
-            const base64Photos = item.photos.filter(photo => 
-              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-            );
-            filesToUpload.push(...base64Photos);
-          }
-          if ((item as any).videos) {
-            const base64Videos = (item as any).videos.filter((video: FileUpload) => 
-              video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
-            );
-            filesToUpload.push(...base64Videos);
-          }
+      // Helper para recopilar archivos de items con estructura unit-based
+      const collectFromItemsWithUnits = (items: any[] | undefined) => {
+        if (!items) return;
+        items.forEach((item: any) => {
+          if (item.photos) filesToUpload.push(...item.photos.filter(needsUpload));
+          if (item.videos) filesToUpload.push(...item.videos.filter(needsUpload));
           if (item.units) {
-            item.units.forEach(unit => {
-              if (unit.photos) {
-                const base64Photos = unit.photos.filter(photo => 
-                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                );
-                filesToUpload.push(...base64Photos);
-              }
-              if (unit.videos) {
-                const base64Videos = unit.videos.filter(video => 
-                  video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
-                );
-                filesToUpload.push(...base64Videos);
-              }
+            item.units.forEach((unit: any) => {
+              if (unit.photos) filesToUpload.push(...unit.photos.filter(needsUpload));
+              if (unit.videos) filesToUpload.push(...unit.videos.filter(needsUpload));
             });
           }
         });
-      }
+      };
 
-      // Archivos de climatizationItems que están en base64
-      if (section.climatizationItems) {
-        section.climatizationItems.forEach(item => {
-          if (item.photos) {
-            const base64Photos = item.photos.filter(photo => 
-              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-            );
-            filesToUpload.push(...base64Photos);
-          }
-          if (item.units) {
-            item.units.forEach(unit => {
-              if (unit.photos) {
-                const base64Photos = unit.photos.filter(photo => 
-                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                );
-                filesToUpload.push(...base64Photos);
-              }
-              if (unit.videos) {
-                const base64Videos = unit.videos.filter(video => 
-                  video.data && (video.data.startsWith('data:') || (!video.data.startsWith('http') && video.data.length > 100))
-                );
-                filesToUpload.push(...base64Videos);
-              }
-            });
-          }
-        });
-      }
-
-      // Archivos de storageItems que están en base64
-      if (section.storageItems) {
-        section.storageItems.forEach(item => {
-          if (item.photos) {
-            const base64Photos = item.photos.filter(photo => 
-              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-            );
-            filesToUpload.push(...base64Photos);
-          }
-          if (item.units) {
-            item.units.forEach(unit => {
-              if (unit.photos) {
-                const base64Photos = unit.photos.filter(photo => 
-                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                );
-                filesToUpload.push(...base64Photos);
-              }
-            });
-          }
-        });
-      }
-
-      // Archivos de appliancesItems que están en base64
-      if (section.appliancesItems) {
-        section.appliancesItems.forEach(item => {
-          if (item.photos) {
-            const base64Photos = item.photos.filter(photo => 
-              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-            );
-            filesToUpload.push(...base64Photos);
-          }
-          if (item.units) {
-            item.units.forEach(unit => {
-              if (unit.photos) {
-                const base64Photos = unit.photos.filter(photo => 
-                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                );
-                filesToUpload.push(...base64Photos);
-              }
-            });
-          }
-        });
-      }
-
-      // Archivos de securityItems que están en base64
-      if (section.securityItems) {
-        section.securityItems.forEach(item => {
-          if (item.photos) {
-            const base64Photos = item.photos.filter(photo => 
-              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-            );
-            filesToUpload.push(...base64Photos);
-          }
-          if (item.units) {
-            item.units.forEach(unit => {
-              if (unit.photos) {
-                const base64Photos = unit.photos.filter(photo => 
-                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                );
-                filesToUpload.push(...base64Photos);
-              }
-            });
-          }
-        });
-      }
-
-      // Archivos de systemsItems que están en base64
-      if (section.systemsItems) {
-        section.systemsItems.forEach(item => {
-          if (item.photos) {
-            const base64Photos = item.photos.filter(photo => 
-              photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-            );
-            filesToUpload.push(...base64Photos);
-          }
-          if (item.units) {
-            item.units.forEach(unit => {
-              if (unit.photos) {
-                const base64Photos = unit.photos.filter(photo => 
-                  photo.data && (photo.data.startsWith('data:') || (!photo.data.startsWith('http') && photo.data.length > 100))
-                );
-                filesToUpload.push(...base64Photos);
-              }
-            });
-          }
-        });
-      }
+      collectFromItemsWithUnits(section.carpentryItems);
+      collectFromItemsWithUnits(section.climatizationItems);
+      collectFromItemsWithUnits(section.storageItems);
+      collectFromItemsWithUnits(section.appliancesItems);
+      collectFromItemsWithUnits(section.securityItems);
+      collectFromItemsWithUnits(section.systemsItems);
 
       // Log mobiliario antes de convertir (diagnóstico persistencia fotos)
       if (section.mobiliario?.question) {
@@ -1559,7 +1377,7 @@ export function useSupabaseChecklistBase({
           
           // Función helper para actualizar una foto/video usando el mapeo por ID
           const updateFileWithMap = (file: FileUpload, context: string) => {
-            if (file.data && (file.data.startsWith('data:') || (!file.data.startsWith('http') && file.data.length > 100))) {
+            if (file.data && (file.data.startsWith('data:') || file.data.startsWith('blob:') || (!file.data.startsWith('http') && file.data.length > 100))) {
               const url = fileIdToUrlMap.get(file.id);
               if (url) {
                 console.log(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Updating ${context} file ${file.id} with URL:`, url.substring(0, 50) + '...');

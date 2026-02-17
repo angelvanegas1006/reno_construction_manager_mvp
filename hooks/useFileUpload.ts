@@ -45,6 +45,26 @@ const DEFAULT_ACCEPTED_TYPES = [
  * Infer MIME type from file extension when file.type is empty.
  * Common on mobile browsers (iOS Safari, some Android) for camera captures.
  */
+/**
+ * Store para mantener referencia al File original de videos.
+ * Los videos son demasiado grandes para convertir a base64 (readAsDataURL agota la memoria en movil).
+ * Se usa blob URL para preview y el File original para subida directa a Storage.
+ */
+const videoFileStore = new Map<string, File>();
+
+/** Obtener el File original de un video por su FileUpload id */
+export function getOriginalVideoFile(fileUploadId: string): File | undefined {
+  return videoFileStore.get(fileUploadId);
+}
+
+/** Limpiar referencia de un video del store (al eliminar de la UI) */
+export function removeOriginalVideoFile(fileUploadId: string): void {
+  const file = videoFileStore.get(fileUploadId);
+  if (file) {
+    videoFileStore.delete(fileUploadId);
+  }
+}
+
 function inferMimeType(file: File): string {
   if (file.type && file.type !== "") return file.type;
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
@@ -130,6 +150,27 @@ export function useFileUpload({
   const IMAGE_COMPRESS_THRESHOLD_BYTES = 1.5 * 1024 * 1024;
 
   const processFile = useCallback(async (file: File): Promise<FileUpload> => {
+    const resolvedType = inferMimeType(file);
+    const isVideo = resolvedType.startsWith('video/') || file.type.startsWith('video/');
+
+    // Videos: NO usar readAsDataURL (agota la memoria en movil para archivos grandes).
+    // Guardar el File original y usar blob URL para referencia en la UI.
+    if (isVideo) {
+      const blobUrl = URL.createObjectURL(file);
+      const fileUpload: FileUpload = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: file.name,
+        type: resolvedType || file.type,
+        size: file.size,
+        data: blobUrl,
+        uploadedAt: new Date().toISOString(),
+      };
+      videoFileStore.set(fileUpload.id, file);
+      console.log(`[useFileUpload] 🎥 Video stored with blob URL (${(file.size / (1024 * 1024)).toFixed(1)}MB):`, file.name);
+      return fileUpload;
+    }
+
+    // Imagenes: usar readAsDataURL + compresion (archivos pequenos, necesitan preview inline)
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = async () => {
@@ -139,7 +180,6 @@ export function useFileUpload({
             data = await compressImageDataUrlIfNeeded(data, IMAGE_COMPRESS_THRESHOLD_BYTES);
           } catch (_) { /* usar original */ }
         }
-        const resolvedType = inferMimeType(file);
         const fileUpload: FileUpload = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           name: file.name,
@@ -263,8 +303,15 @@ export function useFileUpload({
   }, []);
 
   const removeFile = useCallback((index: number) => {
-    // onFilesChange will be called automatically via useEffect when files state updates
-    setFiles(prev => prev.filter((_, i) => i !== index));
+    setFiles(prev => {
+      const fileToRemove = prev[index];
+      // Limpiar blob URL y store de video si aplica
+      if (fileToRemove?.data?.startsWith('blob:')) {
+        URL.revokeObjectURL(fileToRemove.data);
+        removeOriginalVideoFile(fileToRemove.id);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   }, []);
 
   const clearFiles = useCallback(() => {

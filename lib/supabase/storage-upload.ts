@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import type { FileUpload } from '@/lib/checklist-storage';
 import { compressImageDataUrlIfNeeded } from '@/lib/image-compress';
+import { getOriginalVideoFile, removeOriginalVideoFile } from '@/hooks/useFileUpload';
 
 const STORAGE_BUCKET = 'inspection-images';
 const IMAGE_COMPRESS_THRESHOLD_BYTES = 2.5 * 1024 * 1024; // 2.5 MB – comprimir imágenes más grandes (ej. fotos móvil)
@@ -108,6 +109,28 @@ async function uploadOneFile(
   zoneId?: string
 ): Promise<string | null> {
   if (file.data && file.data.startsWith('http')) return file.data;
+
+  // Videos almacenados con blob URL: subir el File original directamente (sin pasar por base64)
+  if (file.data && file.data.startsWith('blob:')) {
+    const originalFile = getOriginalVideoFile(file.id);
+    if (originalFile) {
+      try {
+        console.log(`[storage-upload] 🎥 Uploading video directly from File object: ${file.name} (${(originalFile.size / (1024 * 1024)).toFixed(1)}MB)`);
+        const url = await uploadFileToStorage(originalFile, propertyId, inspectionId, zoneId);
+        // Limpiar referencia y blob URL tras subida exitosa
+        removeOriginalVideoFile(file.id);
+        URL.revokeObjectURL(file.data);
+        return url;
+      } catch (error: any) {
+        if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) return null;
+        console.warn('[storage-upload] Error uploading video:', file.name, error?.message);
+        return null;
+      }
+    } else {
+      console.warn('[storage-upload] ⚠️ Blob URL found but no original File in store:', file.id, file.name);
+      return null;
+    }
+  }
 
   if (file.data && file.data.startsWith('data:')) {
     const mimeMatch = file.data.match(/data:([^;]+);/);
