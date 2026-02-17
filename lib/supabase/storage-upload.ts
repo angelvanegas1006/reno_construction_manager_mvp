@@ -7,6 +7,23 @@ const STORAGE_BUCKET = 'inspection-images';
 const IMAGE_COMPRESS_THRESHOLD_BYTES = 2.5 * 1024 * 1024; // 2.5 MB – comprimir imágenes más grandes (ej. fotos móvil)
 
 /**
+ * Inferir MIME type a partir de la extensión del archivo.
+ * Necesario en móvil donde file.type puede estar vacío.
+ */
+function inferContentType(fileName: string, fallbackType?: string): string {
+  if (fallbackType && fallbackType !== '') return fallbackType;
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  const map: Record<string, string> = {
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+    heic: 'image/heic', heif: 'image/heif', gif: 'image/gif',
+    mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm',
+    '3gp': 'video/3gpp', mpeg: 'video/mpeg', mpg: 'video/mpeg', avi: 'video/x-msvideo',
+    m4v: 'video/mp4', pdf: 'application/pdf',
+  };
+  return map[ext] || 'application/octet-stream';
+}
+
+/**
  * Sube una imagen o video a Supabase Storage
  * @param file El archivo a subir
  * @param propertyId ID de la propiedad
@@ -33,14 +50,17 @@ export async function uploadFileToStorage(
     ? `${propertyId}/${inspectionId}/${zoneId}/${fileName}`
     : `${propertyId}/${inspectionId}/${fileName}`;
 
+  // Inferir contentType si file.type está vacío (común en móvil)
+  const contentType = inferContentType(file.name, file.type);
+
   const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-  console.log('[storage-upload] 📤 Uploading file:', { name: file.name, sizeBytes: file.size, sizeMB: fileSizeMB, path });
+  console.log('[storage-upload] 📤 Uploading file:', { name: file.name, type: file.type, contentType, sizeBytes: file.size, sizeMB: fileSizeMB, path });
 
   // Subir archivo
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKET)
     .upload(path, file, {
-      contentType: file.type,
+      contentType,
       upsert: false,
     });
 
@@ -112,14 +132,37 @@ async function uploadOneFile(
 
   // Videos almacenados con blob URL: subir el File original directamente (sin pasar por base64)
   if (file.data && file.data.startsWith('blob:')) {
-    const originalFile = getOriginalVideoFile(file.id);
+    let originalFile = getOriginalVideoFile(file.id);
+
+    // Fallback: si el videoFileStore perdió la referencia (ej. hot reload), intentar fetch del blob URL
+    if (!originalFile) {
+      console.warn('[storage-upload] ⚠️ videoFileStore miss, attempting fetch fallback for:', file.id, file.name);
+      try {
+        const resp = await fetch(file.data);
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const ct = inferContentType(file.name, file.type);
+          originalFile = new File([blob], file.name || 'video.mp4', { type: ct });
+          console.log(`[storage-upload] ✅ Recovered video via fetch: ${file.name} (${(originalFile.size / (1024 * 1024)).toFixed(1)}MB)`);
+        }
+      } catch (fetchErr) {
+        console.warn('[storage-upload] ❌ Blob fetch fallback failed:', fetchErr);
+      }
+    }
+
     if (originalFile) {
       try {
-        console.log(`[storage-upload] 🎥 Uploading video directly from File object: ${file.name} (${(originalFile.size / (1024 * 1024)).toFixed(1)}MB)`);
-        const url = await uploadFileToStorage(originalFile, propertyId, inspectionId, zoneId);
+        // Ensure the File has a valid type (mobile cameras sometimes leave it empty)
+        let fileToUpload = originalFile;
+        if (!originalFile.type || originalFile.type === '') {
+          const ct = inferContentType(originalFile.name, '');
+          fileToUpload = new File([originalFile], originalFile.name, { type: ct });
+        }
+        console.log(`[storage-upload] 🎥 Uploading video directly from File object: ${file.name} (${(fileToUpload.size / (1024 * 1024)).toFixed(1)}MB, type: ${fileToUpload.type})`);
+        const url = await uploadFileToStorage(fileToUpload, propertyId, inspectionId, zoneId);
         // Limpiar referencia y blob URL tras subida exitosa
         removeOriginalVideoFile(file.id);
-        URL.revokeObjectURL(file.data);
+        try { URL.revokeObjectURL(file.data); } catch (_) { /* ignore */ }
         return url;
       } catch (error: any) {
         if (error?.message?.includes('Bucket not found') || error?.message?.includes('bucket')) return null;
@@ -127,7 +170,7 @@ async function uploadOneFile(
         return null;
       }
     } else {
-      console.warn('[storage-upload] ⚠️ Blob URL found but no original File in store:', file.id, file.name);
+      console.warn('[storage-upload] ⚠️ Blob URL found but no original File available:', file.id, file.name);
       return null;
     }
   }

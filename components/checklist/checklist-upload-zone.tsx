@@ -179,9 +179,9 @@ export function ChecklistUploadZone({
     maxFileSize: maxVideoSizeMB, // Videos sin tope práctico (2GB por defecto)
     acceptedTypes: VIDEO_TYPES,
     onFilesChange: useCallback((allFiles) => {
-      // Filter to only include videos
+      // Filter to include videos: by type OR by blob URL (videos use blob URLs, images use data: URLs)
       const videos = allFiles.filter(f => 
-        f.type && f.type.startsWith("video/")
+        (f.type && f.type.startsWith("video/")) || (f.data && f.data.startsWith("blob:"))
       );
       
       // Get current video IDs from uploadZone (use ref to get latest value)

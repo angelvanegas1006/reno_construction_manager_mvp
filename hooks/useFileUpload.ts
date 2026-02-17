@@ -151,7 +151,15 @@ export function useFileUpload({
 
   const processFile = useCallback(async (file: File): Promise<FileUpload> => {
     const resolvedType = inferMimeType(file);
-    const isVideo = resolvedType.startsWith('video/') || file.type.startsWith('video/');
+    const isImage = resolvedType.startsWith('image/') || file.type.startsWith('image/');
+    let isVideo = resolvedType.startsWith('video/') || file.type.startsWith('video/');
+
+    // Fallback: archivos grandes sin tipo reconocido que no son imágenes → tratar como video.
+    // En móvil, capture="environment" a veces genera archivos sin type ni extensión.
+    if (!isVideo && !isImage && file.size > 5 * 1024 * 1024) {
+      console.log(`[useFileUpload] ⚠️ Large file without recognized type (${(file.size / (1024*1024)).toFixed(1)}MB), treating as video:`, file.name);
+      isVideo = true;
+    }
 
     // Videos: NO usar readAsDataURL (agota la memoria en movil para archivos grandes).
     // Guardar el File original y usar blob URL para referencia en la UI.
