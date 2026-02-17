@@ -593,40 +593,42 @@ export function ChecklistUploadZone({
               return (
                 <div
                   key={file.id || `photo-${index}`}
-                  className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                  className="relative group aspect-square rounded-lg border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
                 >
-                  {file.data ? (
-                    <img
-                      src={file.data}
-                      alt={file.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                      onError={(e) => {
-                        if (process.env.NODE_ENV === 'development') {
-                          console.error('[ChecklistUploadZone] ❌ Error loading image:', { id: file.id, name: file.name, data: file.data?.substring(0, 50) });
-                        }
-                      }}
-                      onLoad={() => {
-                        if (process.env.NODE_ENV === 'development') {
-                          console.log('[ChecklistUploadZone] ✅ Image loaded:', { id: file.id, name: file.name });
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center flex-col">
-                      <ImageIcon className="h-8 w-8 text-[var(--prophero-gray-400)]" />
-                      <span className="text-xs text-[var(--prophero-gray-400)] mt-2 text-center px-2">{file.name}</span>
-                      <span className="text-xs text-red-500 mt-1">No data</span>
-                    </div>
-                  )}
+                  <div className="w-full h-full rounded-lg overflow-hidden">
+                    {file.data ? (
+                      <img
+                        src={file.data}
+                        alt={file.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => {
+                          if (process.env.NODE_ENV === 'development') {
+                            console.error('[ChecklistUploadZone] ❌ Error loading image:', { id: file.id, name: file.name, data: file.data?.substring(0, 50) });
+                          }
+                        }}
+                        onLoad={() => {
+                          if (process.env.NODE_ENV === 'development') {
+                            console.log('[ChecklistUploadZone] ✅ Image loaded:', { id: file.id, name: file.name });
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center flex-col">
+                        <ImageIcon className="h-8 w-8 text-[var(--prophero-gray-400)]" />
+                        <span className="text-xs text-[var(--prophero-gray-400)] mt-2 text-center px-2">{file.name}</span>
+                        <span className="text-xs text-red-500 mt-1">No data</span>
+                      </div>
+                    )}
+                  </div>
                   {!readOnly && (
                     <button
                       type="button"
                       onClick={() => handleRemovePhoto(index)}
-                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
+                      className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 text-white rounded-full shadow-md opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-20 border-2 border-white dark:border-gray-800"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
@@ -637,7 +639,7 @@ export function ChecklistUploadZone({
             {uploadZone.videos.map((file, index) => (
               <div
                 key={file.id || `video-${index}`}
-                className="relative group aspect-square rounded-lg overflow-hidden border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center"
+                className="relative group aspect-square rounded-lg border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center"
               >
                 <Video className="h-8 w-8 text-[var(--prophero-gray-400)]" />
                 <div className="absolute bottom-2 left-2 right-2">
@@ -647,9 +649,9 @@ export function ChecklistUploadZone({
                   <button
                     type="button"
                     onClick={() => handleRemoveVideo(index)}
-                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
+                    className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 text-white rounded-full shadow-md opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-20 border-2 border-white dark:border-gray-800"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
