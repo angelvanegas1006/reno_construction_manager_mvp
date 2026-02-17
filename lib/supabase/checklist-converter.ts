@@ -1071,10 +1071,14 @@ export function convertSupabaseToChecklist(
         section.dynamicItems.push(dynamicItem);
       });
       
-      // Actualizar dynamicCount capeado al número de habitaciones/baños de la propiedad.
+      // Capear dynamicItems Y dynamicCount al número de habitaciones/baños de la propiedad.
       // Sin este cap, zonas huérfanas duplicadas causan habitaciones fantasma en blanco.
-      section.dynamicCount = (propCount != null && propCount > 0)
+      const cappedCount = (propCount != null && propCount > 0)
         ? Math.min(zonesOfType.length, propCount) : zonesOfType.length;
+      if (section.dynamicItems && section.dynamicItems.length > cappedCount) {
+        section.dynamicItems = section.dynamicItems.slice(0, cappedCount);
+      }
+      section.dynamicCount = cappedCount;
     } else {
       // Sección fija (no dinámica)
       // Para secciones fijas, buscar elementos por zone_id directamente

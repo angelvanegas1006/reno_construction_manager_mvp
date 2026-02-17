@@ -1103,7 +1103,16 @@ export function useSupabaseChecklistBase({
         // checklist con datos parciales, causando que habitaciones desaparezcan.
         lastSavedSectionIdRef.current = sectionId;
 
-        const requestedCount = section.dynamicItems?.length ?? 0;
+        // Capear requestedCount al número real de habitaciones/baños de la propiedad.
+        // Sin este cap, dynamicItems.length puede ser mayor que el conteo real si hubo zonas
+        // huérfanas/duplicadas, generando una habitación/baño fantasma al crear zonas de más.
+        const rawCount = section.dynamicItems?.length ?? 0;
+        const propMax = sectionId === 'habitaciones'
+          ? (supabaseProperty?.bedrooms ?? rawCount)
+          : sectionId === 'banos'
+            ? (supabaseProperty?.bathrooms ?? rawCount)
+            : rawCount;
+        const requestedCount = Math.min(rawCount, propMax > 0 ? propMax : rawCount);
         const needed = requestedCount;
         if (needed > 0) {
           console.log(`[useSupabaseChecklistBase:${inspectionType}] 📦 ${sectionId}: requested=${requestedCount}, existingZones=${initialZonesOfType.length}, needed=${needed}`);
@@ -2078,28 +2087,36 @@ export function useSupabaseChecklistBase({
         });
         console.log(`✅ [useSupabaseChecklistBase:${inspectionType}] Cloned dynamicItems length:`, updatedSection.dynamicItems.length);
       }
-      // Clonar mobiliario (salon, entrada-pasillos) para preservar question.photos/videos y evitar pérdida de datos
+      // Deep-merge mobiliario (salon, entrada-pasillos) para preservar campos existentes
+      // cuando las actualizaciones parciales llegan con closures stale (ej. status + photos en rápida sucesión).
       if (sectionData.mobiliario !== undefined) {
+        const currentMob = currentSection.mobiliario || {};
+        const currentQ = currentMob.question || { id: 'mobiliario' };
+        const newQ = sectionData.mobiliario.question;
         updatedSection.mobiliario = {
+          ...currentMob,
           ...sectionData.mobiliario,
-          question: sectionData.mobiliario.question
+          question: newQ
             ? {
-                ...sectionData.mobiliario.question,
-                photos: sectionData.mobiliario.question.photos
-                  ? [...sectionData.mobiliario.question.photos]
-                  : undefined,
-                videos: sectionData.mobiliario.question.videos
-                  ? [...sectionData.mobiliario.question.videos]
-                  : undefined,
-                badElements: sectionData.mobiliario.question.badElements
-                  ? [...sectionData.mobiliario.question.badElements]
-                  : undefined,
+                ...currentQ,
+                ...newQ,
+                photos: newQ.photos !== undefined
+                  ? (newQ.photos ? [...newQ.photos] : [])
+                  : (currentQ.photos ? [...currentQ.photos] : undefined),
+                videos: newQ.videos !== undefined
+                  ? (newQ.videos ? [...newQ.videos] : [])
+                  : (currentQ.videos ? [...currentQ.videos] : undefined),
+                badElements: newQ.badElements !== undefined
+                  ? (newQ.badElements ? [...newQ.badElements] : [])
+                  : (currentQ.badElements ? [...currentQ.badElements] : undefined),
               }
-            : undefined,
+            : currentQ,
         };
-        debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📦 Cloned mobiliario (section-level):`, {
+        debugLog(`[useSupabaseChecklistBase:${inspectionType}] 📦 Deep-merged mobiliario (section-level):`, {
           hasQuestion: !!updatedSection.mobiliario?.question,
           photosCount: updatedSection.mobiliario?.question?.photos?.length ?? 0,
+          videosCount: updatedSection.mobiliario?.question?.videos?.length ?? 0,
+          status: updatedSection.mobiliario?.question?.status,
         });
       }
       if (sectionData.uploadZones !== undefined) {

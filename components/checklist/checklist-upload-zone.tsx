@@ -52,9 +52,7 @@ export function ChecklistUploadZone({
   // Detectar si estamos en mobile o tablet (no desktop)
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
 
-  // Modo ráfaga: permite tomar varias fotos seguidas sin salir del flujo de cámara
-  const [cameraBurstActive, setCameraBurstActive] = useState(false);
-  const [burstStartCount, setBurstStartCount] = useState(0);
+  
   
   useEffect(() => {
     // Solo ejecutar en el cliente
@@ -227,28 +225,16 @@ export function ChecklistUploadZone({
     setTimeout(() => { cameraActiveRef.current = false; }, 120_000);
   }, []);
 
-  // Modo ráfaga: abre la cámara nativa sin salir del modo burst
-  const openCameraInBurst = useCallback(() => {
+  // Abrir cámara para capturar una sola foto
+  const handleOpenCamera = useCallback(() => {
     if (!readOnly && photosHook.fileInputRef.current) {
       markCameraActive();
       photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
       photosHook.fileInputRef.current.capture = "environment";
-      photosHook.fileInputRef.current.multiple = true;
+      photosHook.fileInputRef.current.multiple = false;
       photosHook.fileInputRef.current.click();
     }
   }, [readOnly, photosHook.fileInputRef, markCameraActive]);
-
-  // Iniciar modo ráfaga: guarda el conteo actual de fotos y abre la cámara
-  const startCameraBurst = useCallback(() => {
-    setCameraBurstActive(true);
-    setBurstStartCount(uploadZoneRef.current.photos.length);
-    openCameraInBurst();
-  }, [openCameraInBurst]);
-
-  // Tomar otra foto en modo ráfaga (no resetea el estado burst)
-  const handleBurstTakeAnother = useCallback(() => {
-    openCameraInBurst();
-  }, [openCameraInBurst]);
 
   const [localError, setLocalError] = React.useState<string | null>(null);
 
@@ -479,17 +465,17 @@ export function ChecklistUploadZone({
         <div className="flex flex-col sm:flex-row gap-2 justify-center">
           {isMobileOrTablet ? (
             <>
-              {/* Botón de cámara con modo ráfaga: abre la cámara nativa y entra en burst mode */}
+              {/* Botón de cámara: captura una foto con la cámara nativa */}
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={startCameraBurst}
+                onClick={handleOpenCamera}
                 disabled={readOnly}
                 className="flex items-center gap-1"
               >
                 <Camera className="h-4 w-4" />
-                Tomar fotos
+                Tomar foto
               </Button>
               <Button
                 type="button"
@@ -664,36 +650,7 @@ export function ChecklistUploadZone({
         <p className="text-sm text-red-500 mt-2">{localError}</p>
       )}
 
-      {/* Barra de modo ráfaga: fixed en la parte inferior de la pantalla para que siempre sea visible en movil */}
-      {cameraBurstActive && isMobileOrTablet && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-blue-600 text-white p-4 shadow-lg safe-area-bottom" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-          <div className="flex items-center justify-between max-w-lg mx-auto">
-            <span className="text-base font-semibold">
-              {uploadZone.photos.length - burstStartCount} foto{uploadZone.photos.length - burstStartCount !== 1 ? 's' : ''}
-            </span>
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleBurstTakeAnother}
-                className="bg-white text-blue-700 hover:bg-blue-50 font-semibold px-4"
-              >
-                <Camera className="h-4 w-4 mr-1" />
-                Otra foto
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => { setCameraBurstActive(false); cameraActiveRef.current = false; }}
-                className="border-white text-white hover:bg-blue-700 font-semibold px-4"
-              >
-                Listo
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }

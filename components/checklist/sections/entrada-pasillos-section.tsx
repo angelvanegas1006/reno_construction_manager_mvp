@@ -343,18 +343,19 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
     }, [section.mobiliario, onUpdate]);
 
     const handleMobiliarioQuestionUpdate = useCallback((updates: Partial<ChecklistQuestion>) => {
-      // Solo aplicar claves definidas para no borrar fotos/notas al cambiar estado (p. ej. buen_estado)
+      // Solo enviar las claves definidas como update parcial.
+      // updateSection hace deep-merge con el estado actual, así que no necesitamos
+      // expandir el mobiliario completo (que puede ser stale por closures de React).
       const definedUpdates = Object.fromEntries(
         Object.entries(updates).filter(([, v]) => v !== undefined)
       ) as Partial<ChecklistQuestion>;
       onUpdate({
         mobiliario: {
-          ...mobiliario,
           existeMobiliario: true,
-          question: { ...(mobiliario.question || { id: "mobiliario" }), ...definedUpdates },
+          question: { id: "mobiliario", ...definedUpdates },
         },
       });
-    }, [mobiliario, onUpdate]);
+    }, [onUpdate]);
 
     const STATUS_OPTIONS: Array<{
       value: ChecklistStatus;
