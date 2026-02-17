@@ -26,8 +26,17 @@ export interface ChecklistQuestion {
   status?: ChecklistStatus;
   notes?: string;
   photos?: FileUpload[];
+  videos?: FileUpload[];
   badElements?: string[]; // IDs of elements that are in bad condition
 }
+
+/**
+ * Ref global para indicar que un picker de cámara/galería está abierto.
+ * Cuando es true, save-on-leave (visibilitychange, pagehide) NO debe disparar saveCurrentSection
+ * porque la página solo fue "hidden" por el picker nativo, no porque el usuario salga de la app.
+ * Se resetea en handleFileSelect y con un failsafe setTimeout.
+ */
+export const cameraActiveRef = { current: false };
 
 // Upload zone data
 export interface ChecklistUploadZone {

@@ -121,21 +121,21 @@ export function ChecklistQuestion({
     onUpdate({ notes });
   };
 
-  // Convert photos array to uploadZone format for ChecklistUploadZone component
+  // Convert photos/videos arrays to uploadZone format for ChecklistUploadZone component
   const uploadZone: ChecklistUploadZoneType = useMemo(() => {
-    // Ensure photos is always an array
     const photos = Array.isArray(question?.photos) ? question.photos : [];
+    const videos = Array.isArray(question?.videos) ? question.videos : [];
     return {
-      id: `${questionId}-photos`,
+      id: `${questionId}-media`,
       photos,
-      videos: [], // Questions don't support videos currently
+      videos,
     };
-  }, [questionId, question?.photos]);
+  }, [questionId, question?.photos, question?.videos]);
 
   const handleUploadZoneUpdate = useCallback((updates: ChecklistUploadZoneType) => {
-    // Ensure photos is always an array
     const photos = Array.isArray(updates?.photos) ? updates.photos : [];
-    onUpdate({ photos });
+    const videos = Array.isArray(updates?.videos) ? updates.videos : [];
+    onUpdate({ photos, videos });
   }, [onUpdate]);
 
   return (

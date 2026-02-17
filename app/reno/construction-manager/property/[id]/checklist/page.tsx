@@ -25,7 +25,7 @@ import { useI18n } from "@/lib/i18n";
 import { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { useSupabaseInitialChecklist } from "@/hooks/useSupabaseInitialChecklist";
 import { useSupabaseFinalChecklist } from "@/hooks/useSupabaseFinalChecklist";
-import { ChecklistType } from "@/lib/checklist-storage";
+import { ChecklistType, cameraActiveRef } from "@/lib/checklist-storage";
 import { useSupabaseProperty } from "@/hooks/useSupabaseProperty";
 import { convertSupabasePropertyToProperty, getPropertyRenoPhaseFromSupabase } from "@/lib/supabase/property-converter";
 import { createClient } from "@/lib/supabase/client";
@@ -374,6 +374,14 @@ export default function RenoChecklistPage() {
   useEffect(() => {
     const triggerSaveOnLeave = () => {
       if (isCompletedRef.current || !hasUnsavedRef.current || !checklistRef.current) return;
+      // No guardar si el picker de cámara/galería está abierto.
+      // La página pasa a "hidden" porque el SO abre el picker nativo, no porque el usuario salga.
+      // Guardar en ese momento dispara refetchInspection que sobrescribe el estado local,
+      // perdiendo fotos recién capturadas y reseteando el modo ráfaga.
+      if (cameraActiveRef.current) {
+        console.log('[ChecklistPage] 📷 Camera/gallery picker active, skipping save-on-leave');
+        return;
+      }
       const sectionId = getSectionIdForSave(activeSectionRef.current);
       if (!checklistRef.current.sections[sectionId]) return;
       console.log('[ChecklistPage] 💾 Save-on-leave triggered for section:', sectionId);

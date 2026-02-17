@@ -5,7 +5,7 @@ import * as React from "react";
 import { Upload, X, Camera, Video, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ChecklistUploadZone as ChecklistUploadZoneType, FileUpload } from "@/lib/checklist-storage";
+import { ChecklistUploadZone as ChecklistUploadZoneType, FileUpload, cameraActiveRef } from "@/lib/checklist-storage";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -134,6 +134,9 @@ export function ChecklistUploadZone({
     maxFileSize: maxPhotoSizeMB,
     acceptedTypes: PHOTO_TYPES,
     onFilesChange: useCallback((allFiles) => {
+      // Desactivar flag de cámara: ya recibimos el archivo del picker
+      cameraActiveRef.current = false;
+
       // Filter to only include photos
       const photos = allFiles.filter(f => 
         f.type && f.type.startsWith("image/")
@@ -180,9 +183,12 @@ export function ChecklistUploadZone({
   });
 
   const videosHook = useFileUpload({
-    maxFileSize: maxVideoSizeMB, // Videos sin tope práctico (2GB por defecto)
+    maxFileSize: maxVideoSizeMB,
     acceptedTypes: VIDEO_TYPES,
     onFilesChange: useCallback((allFiles) => {
+      // Desactivar flag de cámara: ya recibimos el archivo del picker
+      cameraActiveRef.current = false;
+
       // Filter to include videos: by type OR by blob URL (videos use blob URLs, images use data: URLs)
       const videos = allFiles.filter(f => 
         (f.type && f.type.startsWith("video/")) || (f.data && f.data.startsWith("blob:"))
@@ -213,15 +219,24 @@ export function ChecklistUploadZone({
     }, [handleVideosChange]),
   });
 
+  // Helper: marcar cámara/galería como activa para suprimir save-on-leave
+  const markCameraActive = useCallback(() => {
+    cameraActiveRef.current = true;
+    // Failsafe: si el usuario cancela el picker sin seleccionar archivo,
+    // handleFileSelect nunca se llama. Resetear tras 120s para evitar bloquear saves indefinidamente.
+    setTimeout(() => { cameraActiveRef.current = false; }, 120_000);
+  }, []);
+
   // Modo ráfaga: abre la cámara nativa sin salir del modo burst
   const openCameraInBurst = useCallback(() => {
     if (!readOnly && photosHook.fileInputRef.current) {
+      markCameraActive();
       photosHook.fileInputRef.current.accept = PHOTO_TYPES.join(",");
       photosHook.fileInputRef.current.capture = "environment";
       photosHook.fileInputRef.current.multiple = true;
       photosHook.fileInputRef.current.click();
     }
-  }, [readOnly, photosHook.fileInputRef]);
+  }, [readOnly, photosHook.fileInputRef, markCameraActive]);
 
   // Iniciar modo ráfaga: guarda el conteo actual de fotos y abre la cámara
   const startCameraBurst = useCallback(() => {
@@ -482,6 +497,7 @@ export function ChecklistUploadZone({
                 size="sm"
                 onClick={() => {
                   if (!readOnly && photoGalleryInputRef.current) {
+                    markCameraActive();
                     photoGalleryInputRef.current.click();
                   }
                 }}
@@ -497,6 +513,7 @@ export function ChecklistUploadZone({
                 size="sm"
                 onClick={() => {
                   if (!readOnly && videosHook.fileInputRef.current) {
+                    markCameraActive();
                     videosHook.fileInputRef.current.accept = VIDEO_TYPES.join(",");
                     videosHook.fileInputRef.current.capture = "environment";
                     videosHook.fileInputRef.current.multiple = true;
@@ -515,6 +532,7 @@ export function ChecklistUploadZone({
                 size="sm"
                 onClick={() => {
                   if (!readOnly && videoGalleryInputRef.current) {
+                    markCameraActive();
                     videoGalleryInputRef.current.click();
                   }
                 }}
@@ -665,7 +683,7 @@ export function ChecklistUploadZone({
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => setCameraBurstActive(false)}
+                onClick={() => { setCameraBurstActive(false); cameraActiveRef.current = false; }}
                 className="border-white text-white hover:bg-blue-700 font-semibold px-4"
               >
                 Listo

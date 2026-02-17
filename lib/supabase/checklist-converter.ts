@@ -314,6 +314,15 @@ export function convertQuestionsToElements(
         ? allQPhotos.map(photo => photo.data!)
         : null;
 
+    // Videos: misma lógica que fotos (HTTP preferido, fallback a blob/base64)
+    const allQVideos = question.videos?.filter(video => video.data && video.data.length > 0) || [];
+    const httpQVideos = allQVideos.filter(video => video.data!.startsWith('http'));
+    const videoUrls = httpQVideos.length > 0
+      ? httpQVideos.map(video => video.data!)
+      : allQVideos.length > 0
+        ? allQVideos.map(video => video.data!)
+        : null;
+
     // Nota: badElements se puede incluir en notes si es necesario
     const notesWithBadElements = question.badElements && question.badElements.length > 0
       ? `${question.notes || ''}\nBad elements: ${question.badElements.join(', ')}`.trim()
@@ -332,7 +341,9 @@ export function convertQuestionsToElements(
       photosWithHttp: httpQPhotos.length,
       photosNonHttp: allQPhotos.length - httpQPhotos.length,
       imageUrlsCount: imageUrls?.length || 0,
-      willCreateElement: true, // Siempre crear el elemento, incluso si no tiene estado o fotos
+      totalVideos: question.videos?.length || 0,
+      videoUrlsCount: videoUrls?.length || 0,
+      willCreateElement: true,
     });
 
     // IMPORTANTE: Siempre crear el elemento para cada pregunta, incluso si no tiene estado, notas o fotos
@@ -340,9 +351,10 @@ export function convertQuestionsToElements(
     elements.push({
       zone_id: zoneId,
       element_name: question.id,
-      condition: condition, // Puede ser null si no hay estado seleccionado
-      notes: notesWithBadElements, // Puede ser null si no hay notas
-      image_urls: imageUrls, // Puede ser null si no hay fotos con URLs HTTP
+      condition: condition,
+      notes: notesWithBadElements,
+      image_urls: imageUrls,
+      video_urls: videoUrls,
       quantity: null,
       exists: null,
     });
@@ -353,6 +365,7 @@ export function convertQuestionsToElements(
       condition,
       hasNotes: !!notesWithBadElements,
       imageUrlsCount: imageUrls?.length || 0,
+      videoUrlsCount: videoUrls?.length || 0,
     });
   });
 
@@ -497,10 +510,9 @@ export function convertMobiliarioToElements(
     exists: hasQuestion ? true : (mobiliario.existeMobiliario ?? null),
   });
 
-  // Crear mobiliario-detalle cuando hay question (estado + fotos/notas), para que siempre se guarde el contenido multimedia
+  // Crear mobiliario-detalle cuando hay question (estado + fotos/videos/notas), para que siempre se guarde el contenido multimedia
   if (mobiliario.question) {
     // Incluir fotos HTTP preferentemente; si la subida falló (base64), preservarlas como fallback
-    // en vez de perderlas silenciosamente. Esto evita que un fallo de Storage borre las fotos.
     const allPhotosWithData = mobiliario.question.photos?.filter(photo => photo.data && photo.data.length > 0) || [];
     const httpPhotos = allPhotosWithData.filter(photo => photo.data!.startsWith('http'));
     const imageUrls = httpPhotos.length > 0
@@ -508,15 +520,27 @@ export function convertMobiliarioToElements(
       : allPhotosWithData.length > 0
         ? allPhotosWithData.map(photo => photo.data!)
         : null;
-    // Log siempre visible para diagnosticar pérdida de fotos en producción
-    if (allPhotosWithData.length > 0) {
-      console.log('[convertMobiliarioToElements] mobiliario.question photos:', {
+
+    // Videos: misma lógica HTTP-first
+    const allVideosWithData = mobiliario.question.videos?.filter(video => video.data && video.data.length > 0) || [];
+    const httpVideos = allVideosWithData.filter(video => video.data!.startsWith('http'));
+    const videoUrls = httpVideos.length > 0
+      ? httpVideos.map(video => video.data!)
+      : allVideosWithData.length > 0
+        ? allVideosWithData.map(video => video.data!)
+        : null;
+
+    // Log siempre visible para diagnosticar pérdida de fotos/videos en producción
+    if (allPhotosWithData.length > 0 || allVideosWithData.length > 0) {
+      console.log('[convertMobiliarioToElements] mobiliario.question media:', {
         zoneId,
         status: mobiliario.question.status,
         totalPhotos: allPhotosWithData.length,
         httpPhotos: httpPhotos.length,
-        nonHttpPhotos: allPhotosWithData.length - httpPhotos.length,
         imageUrlsCount: imageUrls?.length ?? 0,
+        totalVideos: allVideosWithData.length,
+        httpVideos: httpVideos.length,
+        videoUrlsCount: videoUrls?.length ?? 0,
       });
     }
     const notesWithBadElements = mobiliario.question.badElements && mobiliario.question.badElements.length > 0
@@ -529,6 +553,7 @@ export function convertMobiliarioToElements(
       condition: mapStatusToCondition(mobiliario.question.status),
       notes: notesWithBadElements,
       image_urls: imageUrls && imageUrls.length > 0 ? imageUrls : null,
+      video_urls: videoUrls && videoUrls.length > 0 ? videoUrls : null,
       quantity: null,
       exists: null,
     });
@@ -910,7 +935,7 @@ export function convertSupabaseToChecklist(
               status: mapConditionToStatus(element.condition),
               notes: cleanNotesFromBadElements(element.notes) || undefined,
               photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
-              // badElements se extraen de notes si están presentes
+              videos: element.video_urls?.map(url => urlToFileUpload(url, true)) || undefined,
               badElements: extractBadElementsFromNotes(element.notes),
             };
             if (!dynamicItem.questions) dynamicItem.questions = [];
@@ -1179,20 +1204,23 @@ export function convertSupabaseToChecklist(
         else if (element.element_name === 'mobiliario-detalle') {
           if (!section.mobiliario) section.mobiliario = { existeMobiliario: true, question: { id: 'mobiliario' } };
           const photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+          const videos = element.video_urls?.map(url => urlToFileUpload(url, true)) || undefined;
           section.mobiliario.question = {
             ...(section.mobiliario.question || { id: 'mobiliario' }),
             id: 'mobiliario',
             status: mapConditionToStatus(element.condition),
             notes: cleanNotesFromBadElements(element.notes) || undefined,
             photos,
+            videos,
             badElements: extractBadElementsFromNotes(element.notes),
           };
-          if (process.env.NODE_ENV === 'development' && photos && photos.length > 0) {
+          if (process.env.NODE_ENV === 'development' && (photos?.length || videos?.length)) {
             console.log('[convertSupabaseToChecklist] 📦 Loaded mobiliario-detalle (fixed section):', {
               sectionId,
               zoneId: element.zone_id,
               status: section.mobiliario.question?.status,
-              photosCount: photos.length,
+              photosCount: photos?.length || 0,
+              videosCount: videos?.length || 0,
             });
           }
         }
@@ -1216,6 +1244,7 @@ export function convertSupabaseToChecklist(
             status: mapConditionToStatus(element.condition),
             notes: cleanNotesFromBadElements(element.notes) || undefined,
             photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+            videos: element.video_urls?.map(url => urlToFileUpload(url, true)) || undefined,
             badElements: extractBadElementsFromNotes(element.notes),
           };
           if (!section.questions) section.questions = [];

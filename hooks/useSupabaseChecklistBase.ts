@@ -1204,23 +1204,28 @@ export function useSupabaseChecklistBase({
               }
             });
           }
-          // Fotos de questions dentro de dynamic items
+          // Fotos y videos de questions dentro de dynamic items
           if (item.questions) {
             item.questions.forEach(question => {
               if (question.photos) filesToUpload.push(...question.photos.filter(needsUpload));
+              if (question.videos) filesToUpload.push(...question.videos.filter(needsUpload));
             });
           }
-          // Fotos de mobiliario (detalle) dentro de dynamic items
+          // Fotos y videos de mobiliario (detalle) dentro de dynamic items
           if (item.mobiliario?.question?.photos) {
             filesToUpload.push(...item.mobiliario.question.photos.filter(needsUpload));
+          }
+          if (item.mobiliario?.question?.videos) {
+            filesToUpload.push(...item.mobiliario.question.videos.filter(needsUpload));
           }
         });
       }
 
-      // Archivos de questions
+      // Archivos de questions (fotos y videos)
       if (section.questions) {
         section.questions.forEach(question => {
           if (question.photos) filesToUpload.push(...question.photos.filter(needsUpload));
+          if (question.videos) filesToUpload.push(...question.videos.filter(needsUpload));
         });
       }
 
@@ -1231,6 +1236,9 @@ export function useSupabaseChecklistBase({
         const httpPhotos = mobPhotos.filter(photo => photo.data?.startsWith('http'));
         console.log(`[useSupabaseChecklistBase:${inspectionType}] 📸 Mobiliario photos (${sectionId}): total=${mobPhotos.length}, pending=${pendingPhotos.length}, http=${httpPhotos.length}`);
         filesToUpload.push(...pendingPhotos);
+      }
+      if (section.mobiliario?.question?.videos) {
+        filesToUpload.push(...section.mobiliario.question.videos.filter(needsUpload));
       }
 
       // Helper para recopilar archivos de items con estructura unit-based
@@ -1471,7 +1479,7 @@ export function useSupabaseChecklistBase({
                   }
                 });
               }
-              // Actualizar questions dentro de dynamic items
+              // Actualizar questions dentro de dynamic items (fotos y videos)
               if (item.questions) {
                 item.questions.forEach(question => {
                   if (question.photos) {
@@ -1479,18 +1487,28 @@ export function useSupabaseChecklistBase({
                       updateFileWithMap(photo, `dynamicItem ${item.id} question ${question.id}`);
                     });
                   }
+                  if (question.videos) {
+                    question.videos.forEach(video => {
+                      updateFileWithMap(video, `dynamicItem ${item.id} question ${question.id} videos`);
+                    });
+                  }
                 });
               }
-              // Actualizar fotos de mobiliario (detalle) dentro de dynamic items
+              // Actualizar fotos y videos de mobiliario (detalle) dentro de dynamic items
               if (item.mobiliario?.question?.photos) {
                 item.mobiliario.question.photos.forEach(photo => {
                   updateFileWithMap(photo, `dynamicItem ${item.id} mobiliario-detalle`);
                 });
               }
+              if (item.mobiliario?.question?.videos) {
+                item.mobiliario.question.videos.forEach(video => {
+                  updateFileWithMap(video, `dynamicItem ${item.id} mobiliario-detalle videos`);
+                });
+              }
             });
           }
           
-          // Actualizar questions
+          // Actualizar questions (fotos y videos)
           if (sectionToSave.questions) {
             sectionToSave.questions.forEach(question => {
               if (question.photos) {
@@ -1498,11 +1516,15 @@ export function useSupabaseChecklistBase({
                   updateFileWithMap(photo, `question ${question.id}`);
                 });
               }
+              if (question.videos) {
+                question.videos.forEach(video => {
+                  updateFileWithMap(video, `question ${question.id} videos`);
+                });
+              }
             });
           }
 
-          // Actualizar fotos de mobiliario (secciones fijas: entrada-pasillos, salon)
-          // Usar updateFileWithMap (mutación in-place) igual que questions, carpentryItems, etc.
+          // Actualizar fotos y videos de mobiliario (secciones fijas: entrada-pasillos, salon)
           if (sectionToSave.mobiliario?.question?.photos) {
             let mobMapped = 0;
             sectionToSave.mobiliario.question.photos.forEach(photo => {
@@ -1511,6 +1533,11 @@ export function useSupabaseChecklistBase({
             const mobTotal = sectionToSave.mobiliario.question.photos.length;
             const mobHttp = sectionToSave.mobiliario.question.photos.filter(p => p.data?.startsWith('http')).length;
             console.log(`[useSupabaseChecklistBase:${inspectionType}] 📸 Mobiliario URL mapping (${sectionId}): total=${mobTotal}, mapped=${mobMapped}, http=${mobHttp}`);
+          }
+          if (sectionToSave.mobiliario?.question?.videos) {
+            sectionToSave.mobiliario.question.videos.forEach(video => {
+              updateFileWithMap(video, `mobiliario-videos (fixed section ${sectionId})`);
+            });
           }
 
           // Actualizar carpentryItems (sección: salón, cocina, etc.)
@@ -1962,7 +1989,11 @@ export function useSupabaseChecklistBase({
           const clonedItem: any = { ...item };
           // Deep clone nested arrays
           if (item.questions) {
-            clonedItem.questions = item.questions.map((q: any) => ({ ...q }));
+            clonedItem.questions = item.questions.map((q: any) => ({
+              ...q,
+              photos: q.photos ? [...q.photos] : undefined,
+              videos: q.videos ? [...q.videos] : undefined,
+            }));
             if (itemIdx === 0) {
               console.log(`❓ [useSupabaseChecklistBase:${inspectionType}] Cloned questions for habitacion[0]:`, clonedItem.questions.map((q: any) => ({ id: q.id, status: q.status })));
             }
@@ -2028,6 +2059,9 @@ export function useSupabaseChecklistBase({
               if (item.mobiliario.question.photos) {
                 clonedItem.mobiliario.question.photos = [...item.mobiliario.question.photos];
               }
+              if (item.mobiliario.question.videos) {
+                clonedItem.mobiliario.question.videos = [...item.mobiliario.question.videos];
+              }
               if (item.mobiliario.question.badElements) {
                 clonedItem.mobiliario.question.badElements = [...item.mobiliario.question.badElements];
               }
@@ -2044,7 +2078,7 @@ export function useSupabaseChecklistBase({
         });
         console.log(`✅ [useSupabaseChecklistBase:${inspectionType}] Cloned dynamicItems length:`, updatedSection.dynamicItems.length);
       }
-      // Clonar mobiliario (salon, entrada-pasillos) para preservar question.photos y evitar pérdida de datos
+      // Clonar mobiliario (salon, entrada-pasillos) para preservar question.photos/videos y evitar pérdida de datos
       if (sectionData.mobiliario !== undefined) {
         updatedSection.mobiliario = {
           ...sectionData.mobiliario,
@@ -2053,6 +2087,9 @@ export function useSupabaseChecklistBase({
                 ...sectionData.mobiliario.question,
                 photos: sectionData.mobiliario.question.photos
                   ? [...sectionData.mobiliario.question.photos]
+                  : undefined,
+                videos: sectionData.mobiliario.question.videos
+                  ? [...sectionData.mobiliario.question.videos]
                   : undefined,
                 badElements: sectionData.mobiliario.question.badElements
                   ? [...sectionData.mobiliario.question.badElements]
@@ -2069,7 +2106,11 @@ export function useSupabaseChecklistBase({
         updatedSection.uploadZones = sectionData.uploadZones.map(zone => ({ ...zone }));
       }
       if (sectionData.questions !== undefined) {
-        updatedSection.questions = sectionData.questions.map((q: any) => ({ ...q }));
+        updatedSection.questions = sectionData.questions.map((q: any) => ({
+          ...q,
+          photos: q.photos ? [...q.photos] : undefined,
+          videos: q.videos ? [...q.videos] : undefined,
+        }));
       }
       if (sectionData.carpentryItems !== undefined) {
         updatedSection.carpentryItems = sectionData.carpentryItems.map(item => {
