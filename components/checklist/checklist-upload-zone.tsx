@@ -626,31 +626,33 @@ export function ChecklistUploadZone({
         <p className="text-sm text-red-500 mt-2">{localError}</p>
       )}
 
-      {/* Barra de modo ráfaga: permite tomar varias fotos seguidas sin salir del flujo */}
+      {/* Barra de modo ráfaga: fixed en la parte inferior de la pantalla para que siempre sea visible en movil */}
       {cameraBurstActive && isMobileOrTablet && (
-        <div className="sticky bottom-0 z-10 bg-blue-50 dark:bg-blue-900/50 border-t border-blue-200 dark:border-blue-800 p-3 mt-3 flex items-center justify-between rounded-lg shadow-md">
-          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-            {uploadZone.photos.length - burstStartCount} foto{uploadZone.photos.length - burstStartCount !== 1 ? 's' : ''} tomada{uploadZone.photos.length - burstStartCount !== 1 ? 's' : ''}
-          </span>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={handleBurstTakeAnother}
-              className="flex items-center gap-1 border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300"
-            >
-              <Camera className="h-4 w-4" />
-              Tomar otra
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setCameraBurstActive(false)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Listo
-            </Button>
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-blue-600 text-white p-4 shadow-lg safe-area-bottom" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <div className="flex items-center justify-between max-w-lg mx-auto">
+            <span className="text-base font-semibold">
+              {uploadZone.photos.length - burstStartCount} foto{uploadZone.photos.length - burstStartCount !== 1 ? 's' : ''}
+            </span>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleBurstTakeAnother}
+                className="bg-white text-blue-700 hover:bg-blue-50 font-semibold px-4"
+              >
+                <Camera className="h-4 w-4 mr-1" />
+                Otra foto
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setCameraBurstActive(false)}
+                className="border-white text-white hover:bg-blue-700 font-semibold px-4"
+              >
+                Listo
+              </Button>
+            </div>
           </div>
         </div>
       )}
