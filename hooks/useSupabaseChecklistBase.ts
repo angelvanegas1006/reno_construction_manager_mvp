@@ -1021,8 +1021,20 @@ export function useSupabaseChecklistBase({
     console.log(`[useSupabaseChecklistBase:${inspectionType}] 📌 saveCurrentSection CALLED`, { sectionIdOverride, currentSectionRef: currentSectionRef.current });
 
     if (savingRef.current) {
-      console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Save already in progress, skipping`);
-      return;
+      // Esperar a que termine el save en curso y luego reintentar con los datos más recientes
+      // Crítico: si el auto-save empezó con datos viejos y el usuario pulsa Continue con datos nuevos (e.g. mobiliario),
+      // el save manual NO se puede ignorar o se pierden los cambios.
+      console.log(`[useSupabaseChecklistBase:${inspectionType}] ⏳ Save in progress, waiting to retry with latest data...`);
+      let waitAttempts = 0;
+      while (savingRef.current && waitAttempts < 60) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        waitAttempts++;
+      }
+      if (savingRef.current) {
+        console.warn(`[useSupabaseChecklistBase:${inspectionType}] ⏸️ Save still in progress after 30s, skipping`);
+        return;
+      }
+      console.log(`[useSupabaseChecklistBase:${inspectionType}] ✅ Previous save finished, proceeding with latest data`);
     }
 
     if (!checklist || !inspection?.id || !supabaseProperty) {
