@@ -72,13 +72,15 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       return bano?.questions || defaultQuestions;
     }, [dynamicItems, banoIndex, bano?.questions, defaultQuestions]);
 
-    // Initialize carpentry items
+    // Initialize carpentry items - merge defaults with existing to ensure ALL items are present
     const carpentryItems: ChecklistCarpentryItem[] = (() => {
       if (banoIndex !== undefined) {
         const currentBano = dynamicItems[banoIndex];
-        if (currentBano?.carpentryItems && currentBano.carpentryItems.length > 0) {
-          return currentBano.carpentryItems;
-        }
+        const existingItems = currentBano?.carpentryItems || [];
+        return CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
       }
       return CARPENTRY_ITEMS.map(item => ({
         id: item.id,
@@ -135,7 +137,11 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       if (banoIndex === undefined) return;
       const currentDynamicItems = section.dynamicItems || [];
       const currentBano = currentDynamicItems[banoIndex] || bano;
-      const currentItems: ChecklistCarpentryItem[] = (currentBano.carpentryItems || carpentryItems) as ChecklistCarpentryItem[];
+      const existingItems = currentBano.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       
       const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
@@ -170,13 +176,17 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         carpentryItems: updatedItems,
       };
       onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [section.dynamicItems, banoIndex, bano, carpentryItems, onUpdate]);
+    }, [section.dynamicItems, banoIndex, bano, onUpdate]);
 
     const handleCarpentryStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
       if (banoIndex === undefined) return;
       const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
-      const currentItems = latestBano?.carpentryItems || carpentryItems;
+      const existingItems = latestBano?.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -196,14 +206,17 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         carpentryItems: updatedItems,
       };
       onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
+    }, [bano, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleCarpentryNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
       if (banoIndex === undefined) return;
-      // Priorizar section.dynamicItems para obtener los datos más actualizados
       const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
-      const currentItems = latestBano?.carpentryItems || carpentryItems;
+      const existingItems = latestBano?.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -227,10 +240,13 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
 
     const handleCarpentryPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
       if (banoIndex === undefined) return;
-      // Priorizar section.dynamicItems para obtener los datos más actualizados
       const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
-      const currentItems = latestBano?.carpentryItems || carpentryItems;
+      const existingItems = latestBano?.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -250,14 +266,47 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         carpentryItems: updatedItems,
       };
       onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
+    }, [bano, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
+
+    const handleCarpentryVideosChange = useCallback((itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
+      if (banoIndex === undefined) return;
+      const latestDynamicItems = section.dynamicItems || dynamicItems;
+      const latestBano = latestDynamicItems[banoIndex] || bano;
+      const existingItems = latestBano?.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
+      const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
+        if (item.id === itemId) {
+          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
+            const updatedUnits = item.units.map((unit, idx) =>
+              idx === unitIndex ? { ...unit, videos } : unit
+            );
+            return { ...item, units: updatedUnits };
+          } else {
+            return { ...item, videos };
+          }
+        }
+        return item;
+      });
+      const updatedDynamicItems = [...latestDynamicItems];
+      updatedDynamicItems[banoIndex] = {
+        ...latestBano,
+        carpentryItems: updatedItems,
+      };
+      onUpdate({ dynamicItems: updatedDynamicItems });
+    }, [bano, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleCarpentryBadElementsChange = useCallback((itemId: string, unitIndex: number | null, badElements: string[]) => {
       if (banoIndex === undefined) return;
-      // Priorizar section.dynamicItems para obtener los datos más actualizados
       const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
-      const currentItems = latestBano?.carpentryItems || carpentryItems;
+      const existingItems = latestBano?.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -277,7 +326,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         carpentryItems: updatedItems,
       };
       onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
+    }, [bano, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
     const handleCountChange = useCallback((delta: number) => {
       const newCount = Math.max(0, Math.min(20, dynamicCount + delta));
@@ -430,7 +479,11 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       const handleSingleCarpentryQuantityChange = (itemId: string, delta: number) => {
         const currentDynamicItems = section.dynamicItems || [];
         const currentBano = currentDynamicItems[0] || effectiveBano;
-        const currentItems = currentBano.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentBano.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         
         const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
           if (item.id === itemId) {
@@ -470,7 +523,11 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       const handleSingleCarpentryStatusChange = (itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
         const currentDynamicItems = section.dynamicItems || [];
         const currentBano = currentDynamicItems[0] || effectiveBano;
-        const currentItems = currentBano.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentBano.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
           if (item.id === itemId) {
             if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -495,7 +552,11 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       const handleSingleCarpentryBadElementsChange = (itemId: string, unitIndex: number | null, badElements: string[]) => {
         const currentDynamicItems = section.dynamicItems || [];
         const currentBano = currentDynamicItems[0] || effectiveBano;
-        const currentItems = currentBano.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentBano.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
           if (item.id === itemId) {
             if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -520,7 +581,11 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       const handleSingleCarpentryNotesChange = (itemId: string, unitIndex: number | null, notes: string) => {
         const currentDynamicItems = section.dynamicItems || [];
         const currentBano = currentDynamicItems[0] || effectiveBano;
-        const currentItems = currentBano.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentBano.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
           if (item.id === itemId) {
             if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -545,7 +610,11 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       const handleSingleCarpentryPhotosChange = (itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
         const currentDynamicItems = section.dynamicItems || [];
         const currentBano = currentDynamicItems[0] || effectiveBano;
-        const currentItems = currentBano.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentBano.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
           if (item.id === itemId) {
             if (unitIndex !== null && item.units && item.units.length > unitIndex) {
@@ -555,6 +624,35 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
               return { ...item, units: updatedUnits };
             } else {
               return { ...item, photos };
+            }
+          }
+          return item;
+        });
+        const updatedDynamicItems = [...currentDynamicItems];
+        updatedDynamicItems[0] = {
+          ...currentBano,
+          carpentryItems: updatedItems,
+        };
+        onUpdate({ dynamicItems: updatedDynamicItems });
+      };
+
+      const handleSingleCarpentryVideosChange = (itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
+        const currentDynamicItems = section.dynamicItems || [];
+        const currentBano = currentDynamicItems[0] || effectiveBano;
+        const existingItems = currentBano.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
+        const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
+          if (item.id === itemId) {
+            if (unitIndex !== null && item.units && item.units.length > unitIndex) {
+              const updatedUnits = item.units.map((unit, idx) =>
+                idx === unitIndex ? { ...unit, videos } : unit
+              );
+              return { ...item, units: updatedUnits };
+            } else {
+              return { ...item, videos };
             }
           }
           return item;
@@ -849,14 +947,15 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                         />
                                       </div>
 
-                                      {/* Photos */}
+                                      {/* Photos and videos */}
                                       <div className="space-y-2">
                                         <ChecklistUploadZoneComponent
-                                          title="Fotos"
-                                          description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                          title="Fotos y vídeos"
+                                          description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                           onUpdate={(updates) => {
-                                            handleSingleCarpentryPhotosChange(item.id, index, updates.photos);
+                                            if (updates.photos !== undefined) handleSingleCarpentryPhotosChange(item.id, index, updates.photos);
+                                            if (updates.videos !== undefined) handleSingleCarpentryVideosChange(item.id, index, updates.videos);
                                           }}
                                           isRequired={unitRequiresDetails}
                                           maxFiles={10}
@@ -913,14 +1012,15 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                   />
                                 </div>
 
-                                {/* Photos */}
+                                {/* Photos and videos */}
                                 <div className="space-y-2">
                                   <ChecklistUploadZoneComponent
-                                    title="Fotos"
-                                    description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                    uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: [] }}
+                                    title="Fotos y vídeos"
+                                    description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                    uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: item.videos || [] }}
                                     onUpdate={(updates) => {
-                                      handleSingleCarpentryPhotosChange(item.id, null, updates.photos);
+                                      if (updates.photos !== undefined) handleSingleCarpentryPhotosChange(item.id, null, updates.photos);
+                                      if (updates.videos !== undefined) handleSingleCarpentryVideosChange(item.id, null, updates.videos);
                                     }}
                                     isRequired={true}
                                     maxFiles={10}
@@ -1206,14 +1306,15 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                         />
                                       </div>
 
-                                      {/* Photos */}
+                                      {/* Photos and videos */}
                                       <div className="space-y-2">
                                         <ChecklistUploadZoneComponent
-                                          title="Fotos"
-                                          description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                          title="Fotos y vídeos"
+                                          description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                           onUpdate={(updates) => {
-                                            handleCarpentryPhotosChange(item.id, index, updates.photos);
+                                            if (updates.photos !== undefined) handleCarpentryPhotosChange(item.id, index, updates.photos);
+                                            if (updates.videos !== undefined) handleCarpentryVideosChange(item.id, index, updates.videos);
                                           }}
                                           isRequired={unitRequiresDetails}
                                           maxFiles={10}
@@ -1270,14 +1371,15 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                   />
                                 </div>
 
-                                {/* Photos */}
+                                {/* Photos and videos */}
                                 <div className="space-y-2">
                                   <ChecklistUploadZoneComponent
-                                    title="Fotos"
-                                    description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                    uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: [] }}
+                                    title="Fotos y vídeos"
+                                    description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                    uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: item.videos || [] }}
                                     onUpdate={(updates) => {
-                                      handleCarpentryPhotosChange(item.id, null, updates.photos);
+                                      if (updates.photos !== undefined) handleCarpentryPhotosChange(item.id, null, updates.photos);
+                                      if (updates.videos !== undefined) handleCarpentryVideosChange(item.id, null, updates.videos);
                                     }}
                                     isRequired={true}
                                     maxFiles={10}

@@ -76,6 +76,7 @@ export interface ChecklistClimatizationItem {
   estado?: ChecklistStatus; // Single estado when cantidad = 1
   notes?: string; // Single notes when cantidad = 1
   photos?: FileUpload[]; // Single photos when cantidad = 1
+  videos?: FileUpload[]; // Single videos when cantidad = 1
 }
 
 // Carpentry item (for Entrada Pasillos section) - same structure as ClimatizationItem
@@ -104,6 +105,7 @@ export interface ChecklistSecurityItem {
   estado?: ChecklistStatus; // Single estado when cantidad = 1
   notes?: string; // Single notes when cantidad = 1
   photos?: FileUpload[]; // Single photos when cantidad = 1
+  videos?: FileUpload[]; // Single videos when cantidad = 1 (necesita reparación/reemplazo)
 }
 
 // Systems items (same structure as security items)

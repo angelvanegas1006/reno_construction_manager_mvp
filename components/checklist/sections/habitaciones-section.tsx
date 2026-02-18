@@ -108,13 +108,15 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       return defaultQuestions;
     }, [dynamicItems, habitacionIndex, habitacion?.questions, defaultQuestions]);
 
-    // Initialize carpentry items - use dynamicItems directly to ensure we get the latest data
+    // Initialize carpentry items - merge defaults with existing to ensure ALL items are present
     const carpentryItems = (() => {
       if (habitacionIndex !== undefined) {
         const currentHabitacion = dynamicItems[habitacionIndex];
-        if (currentHabitacion?.carpentryItems && currentHabitacion.carpentryItems.length > 0) {
-          return currentHabitacion.carpentryItems;
-        }
+        const existingItems = currentHabitacion?.carpentryItems || [];
+        return CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
       }
       return CARPENTRY_ITEMS.map(item => ({
         id: item.id,
@@ -122,13 +124,15 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       }));
     })();
 
-    // Initialize climatization items - use dynamicItems directly to ensure we get the latest data
+    // Initialize climatization items - merge defaults with existing to ensure ALL items are present
     const climatizationItems = (() => {
       if (habitacionIndex !== undefined) {
         const currentHabitacion = dynamicItems[habitacionIndex];
-        if (currentHabitacion?.climatizationItems && currentHabitacion.climatizationItems.length > 0) {
-          return currentHabitacion.climatizationItems;
-        }
+        const existingItems = currentHabitacion?.climatizationItems || [];
+        return CLIMATIZATION_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+        });
       }
       return CLIMATIZATION_ITEMS.map(item => ({
         id: item.id,
@@ -242,11 +246,13 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       if (habitacionIndex === undefined) {
         return;
       }
-      
-      // Always get the latest habitacion from section.dynamicItems
       const currentDynamicItems = section.dynamicItems || [];
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      const currentItems = currentHabitacion.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const existingItems = currentHabitacion.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
@@ -295,8 +301,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentDynamicItems = section.dynamicItems || [];
       console.log("📦 [handleCarpentryStatusChange] currentDynamicItems length:", currentDynamicItems.length);
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      console.log("🏠 [handleCarpentryStatusChange] currentHabitacion:", currentHabitacion);
-      const currentItems = currentHabitacion.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const existingItems = currentHabitacion.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       console.log("🪵 [handleCarpentryStatusChange] currentItems:", currentItems);
       const itemToUpdate = currentItems.find(i => i.id === itemId);
       console.log("🎯 [handleCarpentryStatusChange] itemToUpdate BEFORE:", itemToUpdate);
@@ -341,7 +350,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       if (habitacionIndex === undefined) return;
       const currentDynamicItems = section.dynamicItems || [];
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      const currentItems = currentHabitacion.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const existingItems = currentHabitacion.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -368,7 +381,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       if (habitacionIndex === undefined) return;
       const currentDynamicItems = section.dynamicItems || [];
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      const currentItems = currentHabitacion.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const existingItems = currentHabitacion.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -395,7 +412,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       if (habitacionIndex === undefined) return;
       const currentDynamicItems = section.dynamicItems || [];
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      const currentItems = currentHabitacion.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const existingItems = currentHabitacion.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -419,7 +440,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       if (habitacionIndex === undefined) return;
       const currentDynamicItems = section.dynamicItems || [];
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      const currentItems = currentHabitacion.carpentryItems || CARPENTRY_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const existingItems = currentHabitacion.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -444,10 +469,13 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
     const handleClimatizationQuantityChange = useCallback((itemId: string, delta: number) => {
       if (habitacionIndex === undefined) return;
-      // Always get the latest habitacion from section.dynamicItems
       const currentDynamicItems = section.dynamicItems || [];
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      const currentItems = currentHabitacion.climatizationItems || CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const existingItems = currentHabitacion.climatizationItems || [];
+      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const currentCantidad = item.cantidad || 0;
@@ -493,8 +521,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const currentDynamicItems = section.dynamicItems || [];
       console.log("📦 [handleClimatizationStatusChange] currentDynamicItems length:", currentDynamicItems.length);
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      console.log("🏠 [handleClimatizationStatusChange] currentHabitacion:", currentHabitacion);
-      const currentItems = currentHabitacion.climatizationItems || CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const existingItems = currentHabitacion.climatizationItems || [];
+      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+      });
       console.log("🌡️ [handleClimatizationStatusChange] currentItems:", currentItems);
       const itemToUpdate = currentItems.find(i => i.id === itemId);
       console.log("🎯 [handleClimatizationStatusChange] itemToUpdate BEFORE:", itemToUpdate);
@@ -539,7 +570,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       if (habitacionIndex === undefined) return;
       const currentDynamicItems = section.dynamicItems || [];
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      const currentItems = currentHabitacion.climatizationItems || CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const existingItems = currentHabitacion.climatizationItems || [];
+      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -566,7 +601,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       if (habitacionIndex === undefined) return;
       const currentDynamicItems = section.dynamicItems || [];
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      const currentItems = currentHabitacion.climatizationItems || CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+      const existingItems = currentHabitacion.climatizationItems || [];
+      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -577,6 +616,37 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
             return { ...climatizationItem, units: updatedUnits };
           } else {
             return { ...climatizationItem, photos };
+          }
+        }
+        return item;
+      });
+      const updatedDynamicItems = [...currentDynamicItems];
+      updatedDynamicItems[habitacionIndex] = {
+        ...currentHabitacion,
+        climatizationItems: updatedItems,
+      };
+      onUpdate({ dynamicItems: updatedDynamicItems });
+    }, [section.dynamicItems, habitacionIndex, onUpdate]);
+
+    const handleClimatizationVideosChange = useCallback((itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
+      if (habitacionIndex === undefined) return;
+      const currentDynamicItems = section.dynamicItems || [];
+      const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
+      const existingItems = currentHabitacion.climatizationItems || [];
+      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+      });
+      const updatedItems = currentItems.map(item => {
+        if (item.id === itemId) {
+          const climatizationItem = item as ChecklistClimatizationItem;
+          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
+            const updatedUnits = climatizationItem.units.map((unit, idx) =>
+              idx === unitIndex ? { ...unit, videos } : unit
+            );
+            return { ...climatizationItem, units: updatedUnits };
+          } else {
+            return { ...climatizationItem, videos };
           }
         }
         return item;
@@ -783,7 +853,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const handleSingleCarpentryQuantityChange = (itemId: string, delta: number) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentHabitacion.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
             const currentCantidad = item.cantidad || 0;
@@ -823,7 +897,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const handleSingleClimatizationQuantityChange = (itemId: string, delta: number) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const currentItems = currentHabitacion.climatizationItems || effectiveClimatizationItems;
+        const existingItems = currentHabitacion.climatizationItems || [];
+        const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+        });
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
             const currentCantidad = item.cantidad || 0;
@@ -861,7 +939,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const handleSingleClimatizationStatusChange = (itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const currentItems = currentHabitacion.climatizationItems || effectiveClimatizationItems;
+        const existingItems = currentHabitacion.climatizationItems || [];
+        const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+        });
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
             const climatizationItem = item as ChecklistClimatizationItem;
@@ -887,7 +969,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const handleSingleClimatizationNotesChange = (itemId: string, unitIndex: number | null, notes: string) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const currentItems = currentHabitacion.climatizationItems || effectiveClimatizationItems;
+        const existingItems = currentHabitacion.climatizationItems || [];
+        const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+        });
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
             const climatizationItem = item as ChecklistClimatizationItem;
@@ -913,7 +999,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const handleSingleClimatizationPhotosChange = (itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const currentItems = currentHabitacion.climatizationItems || effectiveClimatizationItems;
+        const existingItems = currentHabitacion.climatizationItems || [];
+        const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+        });
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
             const climatizationItem = item as ChecklistClimatizationItem;
@@ -936,11 +1026,45 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         onUpdate({ dynamicItems: updatedDynamicItems });
       };
 
+      const handleSingleClimatizationVideosChange = (itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
+        const currentDynamicItems = section.dynamicItems || dynamicItems;
+        const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
+        const existingItems = currentHabitacion.climatizationItems || [];
+        const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+        });
+        const updatedItems = currentItems.map(item => {
+          if (item.id === itemId) {
+            const climatizationItem = item as ChecklistClimatizationItem;
+            if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
+              const updatedUnits = climatizationItem.units.map((unit, idx) =>
+                idx === unitIndex ? { ...unit, videos } : unit
+              );
+              return { ...climatizationItem, units: updatedUnits };
+            } else {
+              return { ...climatizationItem, videos };
+            }
+          }
+          return item;
+        });
+        const updatedDynamicItems = [...currentDynamicItems];
+        updatedDynamicItems[0] = {
+          ...currentHabitacion,
+          climatizationItems: updatedItems,
+        };
+        onUpdate({ dynamicItems: updatedDynamicItems });
+      };
+
       // Handlers for single bedroom carpentry items (when dynamicCount === 1)
       const handleSingleCarpentryStatusChange = (itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentHabitacion.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
             const carpentryItem = item as ChecklistCarpentryItem;
@@ -966,7 +1090,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const handleSingleCarpentryBadElementsChange = (itemId: string, unitIndex: number | null, badElements: string[]) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentHabitacion.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
             const carpentryItem = item as ChecklistCarpentryItem;
@@ -992,7 +1120,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const handleSingleCarpentryNotesChange = (itemId: string, unitIndex: number | null, notes: string) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentHabitacion.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
             const carpentryItem = item as ChecklistCarpentryItem;
@@ -1018,7 +1150,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const handleSingleCarpentryPhotosChange = (itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentHabitacion.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
             const carpentryItem = item as ChecklistCarpentryItem;
@@ -1044,7 +1180,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const handleSingleCarpentryMediaChange = (itemId: string, unitIndex: number | null, media: { photos: FileUpload[]; videos: FileUpload[] }) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const currentItems = currentHabitacion.carpentryItems || effectiveCarpentryItems;
+        const existingItems = currentHabitacion.carpentryItems || [];
+        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+        });
         const updatedItems = currentItems.map(item => {
           if (item.id === itemId) {
             const carpentryItem = item as ChecklistCarpentryItem;
@@ -1736,11 +1876,12 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       {/* Photos */}
                                       <div className="space-y-2">
                                         <ChecklistUploadZoneComponent
-                                          title="Fotos"
-                                          description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                          title="Fotos y vídeos"
+                                          description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                           onUpdate={(updates) => {
-                                            handleSingleClimatizationPhotosChange(item.id, index, updates.photos);
+                                            if (updates.photos !== undefined) handleSingleClimatizationPhotosChange(item.id, index, updates.photos);
+                                            if (updates.videos !== undefined) handleSingleClimatizationVideosChange(item.id, index, updates.videos);
                                           }}
                                           isRequired={unitRequiresDetails}
                                           maxFiles={10}
@@ -1822,18 +1963,24 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                 {/* Photos */}
                                 <div className="space-y-2">
                                   <ChecklistUploadZoneComponent
-                                    title="Fotos"
-                                    description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                    uploadZone={{ id: `${climatizationItem.id}-photos`, photos: (() => {
-                                      // Always get the latest item from section.dynamicItems to ensure we have the most recent photos
+                                    title="Fotos y vídeos"
+                                    description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                    uploadZone={{ id: `${item.id}-photos`, photos: (() => {
                                       const latestDynamicItems = section.dynamicItems || [];
                                       const latestHabitacion = latestDynamicItems[0] || currentHabitacion;
                                       const latestClimatizationItems = latestHabitacion?.climatizationItems || currentEffectiveClimatizationItems;
                                       const latestItem = latestClimatizationItems.find(i => i.id === itemConfig.id) || item;
                                       return (latestItem as ChecklistClimatizationItem).photos || [];
-                                    })(), videos: [] }}
+                                    })(), videos: (() => {
+                                      const latestDynamicItems = section.dynamicItems || [];
+                                      const latestHabitacion = latestDynamicItems[0] || currentHabitacion;
+                                      const latestClimatizationItems = latestHabitacion?.climatizationItems || currentEffectiveClimatizationItems;
+                                      const latestItem = latestClimatizationItems.find(i => i.id === itemConfig.id) || item;
+                                      return (latestItem as ChecklistClimatizationItem).videos || [];
+                                    })() }}
                                     onUpdate={(updates) => {
-                                      handleSingleClimatizationPhotosChange(item.id, null, updates.photos);
+                                      if (updates.photos !== undefined) handleSingleClimatizationPhotosChange(item.id, null, updates.photos);
+                                      if (updates.videos !== undefined) handleSingleClimatizationVideosChange(item.id, null, updates.videos);
                                     }}
                                     isRequired={true}
                                     maxFiles={10}
@@ -2125,11 +2272,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       {/* Photos */}
                                       <div className="space-y-2">
                                         <ChecklistUploadZoneComponent
-                                          title="Fotos"
-                                          description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                          title="Fotos y vídeos"
+                                          description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                           onUpdate={(updates) => {
-                                            handleCarpentryPhotosChange(item.id, index, updates.photos);
+                                            handleCarpentryMediaChange(item.id, index, { photos: updates.photos || [], videos: updates.videos || [] });
                                           }}
                                           isRequired={unitRequiresDetails}
                                           maxFiles={10}
@@ -2431,11 +2578,12 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       {/* Photos */}
                                       <div className="space-y-2">
                                         <ChecklistUploadZoneComponent
-                                          title="Fotos"
-                                          description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                          title="Fotos y vídeos"
+                                          description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                          uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                           onUpdate={(updates) => {
-                                            handleClimatizationPhotosChange(item.id, index, updates.photos);
+                                            if (updates.photos !== undefined) handleClimatizationPhotosChange(item.id, index, updates.photos);
+                                            if (updates.videos !== undefined) handleClimatizationVideosChange(item.id, index, updates.videos);
                                           }}
                                           isRequired={unitRequiresDetails}
                                           maxFiles={10}
@@ -2530,19 +2678,25 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
                                 {/* Photos */}
                                 <div className="space-y-2">
-                                  <ChecklistUploadZoneComponent
-                                    title="Fotos"
-                                    description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                    uploadZone={{ id: `${climatizationItem.id}-photos`, photos: (() => {
-                                      // Always get the latest item from section.dynamicItems to ensure we have the most recent photos
+                                    <ChecklistUploadZoneComponent
+                                    title="Fotos y vídeos"
+                                    description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                    uploadZone={{ id: `${item.id}-photos`, photos: (() => {
                                       const latestDynamicItems = section.dynamicItems || [];
                                       const latestHabitacion = latestDynamicItems[habitacionIndex];
-                                      const latestClimatizationItems = latestHabitacion?.climatizationItems || CLIMATIZATION_ITEMS.map(item => ({ id: item.id, cantidad: 0 }));
+                                      const latestClimatizationItems = latestHabitacion?.climatizationItems || CLIMATIZATION_ITEMS.map(def => ({ id: def.id, cantidad: 0 }));
                                       const latestItem = latestClimatizationItems.find(i => i.id === itemConfig.id) || item;
                                       return (latestItem as ChecklistClimatizationItem).photos || [];
-                                    })(), videos: [] }}
+                                    })(), videos: (() => {
+                                      const latestDynamicItems = section.dynamicItems || [];
+                                      const latestHabitacion = latestDynamicItems[habitacionIndex];
+                                      const latestClimatizationItems = latestHabitacion?.climatizationItems || CLIMATIZATION_ITEMS.map(def => ({ id: def.id, cantidad: 0 }));
+                                      const latestItem = latestClimatizationItems.find(i => i.id === itemConfig.id) || item;
+                                      return (latestItem as ChecklistClimatizationItem).videos || [];
+                                    })() }}
                                     onUpdate={(updates) => {
-                                      handleClimatizationPhotosChange(climatizationItem.id, null, updates.photos);
+                                      if (updates.photos !== undefined) handleClimatizationPhotosChange(item.id, null, updates.photos);
+                                      if (updates.videos !== undefined) handleClimatizationVideosChange(item.id, null, updates.videos);
                                     }}
                                     isRequired={true}
                                     maxFiles={10}

@@ -391,7 +391,12 @@ export function convertItemsToElements(
       const httpItemPhotos = allItemPhotos.filter(photo => photo.data!.startsWith('http'));
       const imageUrls = httpItemPhotos.length > 0 ? httpItemPhotos.map(photo => photo.data!) : null;
 
-      // Nota: badElements se puede incluir en notes si es necesario
+      const allItemVideos = ('videos' in item && item.videos)
+        ? item.videos.filter((v: FileUpload) => v.data && v.data.length > 0)
+        : [];
+      const httpItemVideos = allItemVideos.filter((v: FileUpload) => v.data!.startsWith('http'));
+      const videoUrls = httpItemVideos.length > 0 ? httpItemVideos.map((v: FileUpload) => v.data!) : null;
+
       const badElements = 'badElements' in item ? item.badElements : undefined;
       const notesWithBadElements = badElements && badElements.length > 0
         ? `${item.notes || ''}\nBad elements: ${badElements.join(', ')}`.trim()
@@ -409,28 +414,31 @@ export function convertItemsToElements(
         photosWithHttp: httpItemPhotos.length,
         photosNonHttp: allItemPhotos.length - httpItemPhotos.length,
         imageUrlsCount: imageUrls?.length || 0,
+        videosWithHttp: httpItemVideos.length,
+        videoUrlsCount: videoUrls?.length || 0,
         quantity: 1,
       });
 
-      // IMPORTANTE: Siempre crear el elemento si cantidad > 0, incluso si no tiene estado
       elements.push({
         zone_id: zoneId,
         element_name: `${itemType}-${item.id}`,
-        condition: condition, // Puede ser null si no hay estado seleccionado
+        condition: condition,
         notes: notesWithBadElements,
         image_urls: imageUrls && imageUrls.length > 0 ? imageUrls : null,
+        video_urls: videoUrls && videoUrls.length > 0 ? videoUrls : null,
         quantity: 1,
         exists: null,
       });
     } else if (item.units && item.units.length > 0) {
-      // Múltiples unidades - crear un elemento por unidad
       item.units.forEach((unit, index) => {
-        // Solo persistir URLs HTTP; base64/blob causa "Failed to fetch" por tamaño excesivo
         const allUnitPhotos = unit.photos?.filter(photo => photo.data && photo.data.length > 0) || [];
         const httpUnitPhotos = allUnitPhotos.filter(photo => photo.data!.startsWith('http'));
         const imageUrls = httpUnitPhotos.length > 0 ? httpUnitPhotos.map(photo => photo.data!) : null;
 
-        // Nota: badElements se puede incluir en notes si es necesario
+        const allUnitVideos = unit.videos?.filter(v => v.data && v.data.length > 0) || [];
+        const httpUnitVideos = allUnitVideos.filter(v => v.data!.startsWith('http'));
+        const videoUrls = httpUnitVideos.length > 0 ? httpUnitVideos.map(v => v.data!) : null;
+
         const badElements = 'badElements' in unit ? unit.badElements : undefined;
         const notesWithBadElements = badElements && badElements.length > 0
           ? `${unit.notes || ''}\nBad elements: ${badElements.join(', ')}`.trim()
@@ -444,20 +452,20 @@ export function convertItemsToElements(
           condition,
           estado: unit.estado,
           hasNotes: !!notesWithBadElements,
-          notesPreview: notesWithBadElements?.substring(0, 50),
           photosWithHttp: httpUnitPhotos.length,
-          photosNonHttp: allUnitPhotos.length - httpUnitPhotos.length,
           imageUrlsCount: imageUrls?.length || 0,
+          videosWithHttp: httpUnitVideos.length,
+          videoUrlsCount: videoUrls?.length || 0,
           quantity: 1,
         });
 
-        // IMPORTANTE: Siempre crear el elemento para cada unidad si cantidad > 0, incluso si no tiene estado
         elements.push({
           zone_id: zoneId,
           element_name: `${itemType}-${item.id}-${index + 1}`,
-          condition: condition, // Puede ser null si no hay estado seleccionado
+          condition: condition,
           notes: notesWithBadElements,
           image_urls: imageUrls && imageUrls.length > 0 ? imageUrls : null,
+          video_urls: videoUrls && videoUrls.length > 0 ? videoUrls : null,
           quantity: 1,
           exists: null,
         });
@@ -941,12 +949,14 @@ export function convertSupabaseToChecklist(
                 estado: mapConditionToStatus(element.condition),
                 notes: cleanNotesFromBadElements(element.notes) || undefined,
                 photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+                videos: element.video_urls?.map(url => urlToFileUpload(url, true)) || undefined,
               };
               carpentryItem.cantidad = Math.max(carpentryItem.cantidad, unitIndex + 1);
             } else {
               carpentryItem.estado = mapConditionToStatus(element.condition);
               carpentryItem.notes = cleanNotesFromBadElements(element.notes) || undefined;
               carpentryItem.photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+              carpentryItem.videos = element.video_urls?.map(url => urlToFileUpload(url, true)) || undefined;
               carpentryItem.cantidad = 1;
             }
           }
@@ -977,6 +987,7 @@ export function convertSupabaseToChecklist(
                 estado: mapConditionToStatus(element.condition),
                 notes: cleanNotesFromBadElements(element.notes) || undefined,
                 photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+                videos: element.video_urls?.map(url => urlToFileUpload(url, true)) || undefined,
               };
               climatizationItem.cantidad = Math.max(climatizationItem.cantidad, unitIndex + 1);
             } else {
@@ -1254,12 +1265,14 @@ export function convertSupabaseToChecklist(
               estado: mapConditionToStatus(element.condition),
               notes: cleanNotesFromBadElements(element.notes) || undefined,
               photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+              videos: element.video_urls?.map(url => urlToFileUpload(url, true)) || undefined,
             };
             carpentryItem.cantidad = Math.max(carpentryItem.cantidad, unitIndex + 1);
           } else {
             carpentryItem.estado = mapConditionToStatus(element.condition);
             carpentryItem.notes = cleanNotesFromBadElements(element.notes) || undefined;
             carpentryItem.photos = element.image_urls?.map(url => urlToFileUpload(url)) || undefined;
+            carpentryItem.videos = element.video_urls?.map(url => urlToFileUpload(url, true)) || undefined;
             carpentryItem.cantidad = 1;
           }
         }
@@ -1290,6 +1303,7 @@ export function convertSupabaseToChecklist(
               estado: mapConditionToStatus(element.condition),
               notes: cleanNotesFromBadElements(element.notes) || undefined,
               photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
+              videos: element.video_urls?.map(url => urlToFileUpload(url, true)) || undefined,
             };
             climatizationItem.cantidad = Math.max(climatizationItem.cantidad, unitIndex + 1);
           } else {

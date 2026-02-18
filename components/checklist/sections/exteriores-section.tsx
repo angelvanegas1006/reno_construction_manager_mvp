@@ -73,12 +73,12 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
       value: ChecklistStatus;
       label: string;
       icon: React.ComponentType<{ className?: string }>;
-    }> = useMemo(() => [
+    }> = [
       { value: "buen_estado", label: t.checklist.buenEstado, icon: ThumbsUp },
       { value: "necesita_reparacion", label: t.checklist.necesitaReparacion, icon: Wrench },
       { value: "necesita_reemplazo", label: t.checklist.necesitaReemplazo, icon: ThumbsDown },
       { value: "no_aplica", label: t.checklist.noAplica, icon: XCircle },
-    ], [t]);
+    ];
 
     // Handlers
     const handleUploadZoneUpdate = useCallback((updates: ChecklistUploadZone) => {
@@ -102,10 +102,16 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
     const handleQuantityChange = useCallback((
       itemId: string,
       delta: number,
-      items: (ChecklistSecurityItem | ChecklistSystemItem)[],
+      _items: (ChecklistSecurityItem | ChecklistSystemItem)[],
       itemsKey: "securityItems" | "systemsItems"
     ) => {
-      const updatedItems = items.map(item => {
+      const itemsConfig = itemsKey === "securityItems" ? SECURITY_ITEMS : SYSTEMS_ITEMS;
+      const existingItems = (itemsKey === "securityItems" ? section.securityItems : section.systemsItems) || [];
+      const currentItems = itemsConfig.map(def => {
+        const existing = existingItems.find(i => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
+      });
+      const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const currentCantidad = item.cantidad || 0;
           const newCantidad = Math.max(0, Math.min(MAX_QUANTITY, currentCantidad + delta));
@@ -156,17 +162,23 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
         return item;
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [onUpdate]);
+    }, [section.securityItems, section.systemsItems, onUpdate]);
 
     // Generic handler for notes changes
     const handleNotesChange = useCallback((
       itemId: string,
       unitIndex: number | null,
       notes: string,
-      items: (ChecklistSecurityItem | ChecklistSystemItem)[],
+      _items: (ChecklistSecurityItem | ChecklistSystemItem)[],
       itemsKey: "securityItems" | "systemsItems"
     ) => {
-      const updatedItems = items.map(item => {
+      const itemsConfig = itemsKey === "securityItems" ? SECURITY_ITEMS : SYSTEMS_ITEMS;
+      const existingItems = (itemsKey === "securityItems" ? section.securityItems : section.systemsItems) || [];
+      const currentItems = itemsConfig.map(def => {
+        const existing = existingItems.find(i => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
+      });
+      const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
@@ -180,17 +192,23 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
         return item;
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [onUpdate]);
+    }, [section.securityItems, section.systemsItems, onUpdate]);
 
     // Generic handler for photos changes
     const handlePhotosChange = useCallback((
       itemId: string,
       unitIndex: number | null,
       photos: FileUpload[],
-      items: (ChecklistSecurityItem | ChecklistSystemItem)[],
+      _items: (ChecklistSecurityItem | ChecklistSystemItem)[],
       itemsKey: "securityItems" | "systemsItems"
     ) => {
-      const updatedItems = items.map(item => {
+      const itemsConfig = itemsKey === "securityItems" ? SECURITY_ITEMS : SYSTEMS_ITEMS;
+      const existingItems = (itemsKey === "securityItems" ? section.securityItems : section.systemsItems) || [];
+      const currentItems = itemsConfig.map(def => {
+        const existing = existingItems.find(i => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
+      });
+      const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
@@ -204,7 +222,37 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
         return item;
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [onUpdate]);
+    }, [section.securityItems, section.systemsItems, onUpdate]);
+
+    // Generic handler for videos changes
+    const handleVideosChange = useCallback((
+      itemId: string,
+      unitIndex: number | null,
+      videos: FileUpload[],
+      _items: (ChecklistSecurityItem | ChecklistSystemItem)[],
+      itemsKey: "securityItems" | "systemsItems"
+    ) => {
+      const itemsConfig = itemsKey === "securityItems" ? SECURITY_ITEMS : SYSTEMS_ITEMS;
+      const existingItems = (itemsKey === "securityItems" ? section.securityItems : section.systemsItems) || [];
+      const currentItems = itemsConfig.map(def => {
+        const existing = existingItems.find(i => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
+      });
+      const updatedItems = currentItems.map(item => {
+        if (item.id === itemId) {
+          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
+            const updatedUnits = item.units.map((unit, idx) =>
+              idx === unitIndex ? { ...unit, videos } : unit
+            );
+            return { ...item, units: updatedUnits };
+          } else {
+            return { ...item, videos };
+          }
+        }
+        return item;
+      });
+      onUpdate({ [itemsKey]: updatedItems });
+    }, [section.securityItems, section.systemsItems, onUpdate]);
 
     // Render function for items with quantity (security, systems) - WITHOUT badElements checkboxes
     const renderQuantityItems = (
@@ -329,14 +377,15 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
                                     />
                                   </div>
 
-                                  {/* Photos */}
+                                  {/* Photos and videos */}
                                   <div className="space-y-2">
                                     <ChecklistUploadZoneComponent
-                                      title="Fotos"
-                                      description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                      uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                      title="Fotos y vídeos"
+                                      description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                      uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                       onUpdate={(updates) => {
                                         handlePhotosChange(item.id, index, updates.photos, items, itemsKey);
+                                        handleVideosChange(item.id, index, updates.videos || [], items, itemsKey);
                                       }}
                                       isRequired={unitRequiresDetails}
                                       maxFiles={10}
@@ -393,14 +442,15 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
                               />
                             </div>
 
-                            {/* Photos */}
+                            {/* Photos and videos */}
                             <div className="space-y-2">
                               <ChecklistUploadZoneComponent
-                                title="Fotos"
-                                description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: [] }}
+                                title="Fotos y vídeos"
+                                description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: item.videos || [] }}
                                 onUpdate={(updates) => {
                                   handlePhotosChange(item.id, null, updates.photos, items, itemsKey);
+                                  handleVideosChange(item.id, null, updates.videos || [], items, itemsKey);
                                 }}
                                 isRequired={true}
                                 maxFiles={10}

@@ -101,9 +101,11 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
     }, [section.questions, defaultQuestions, onUpdate]);
 
     const handleCarpentryQuantityChange = useCallback((itemId: string, delta: number) => {
-      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
-        ? [...section.carpentryItems] // Clonar array para evitar mutaciones
-        : [...carpentryItems];
+      const existingItems = section.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -132,12 +134,14 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
         return item;
       });
       onUpdate({ carpentryItems: updatedItems });
-    }, [section.carpentryItems, carpentryItems, onUpdate]);
+    }, [section.carpentryItems, onUpdate]);
 
     const handleCarpentryStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
-      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
-        ? section.carpentryItems 
-        : carpentryItems;
+      const existingItems = section.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -153,12 +157,14 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
         return item;
       });
       onUpdate({ carpentryItems: updatedItems });
-    }, [section.carpentryItems, carpentryItems, onUpdate]);
+    }, [section.carpentryItems, onUpdate]);
 
     const handleCarpentryNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
-      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
-        ? section.carpentryItems 
-        : carpentryItems;
+      const existingItems = section.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -174,12 +180,14 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
         return item;
       });
       onUpdate({ carpentryItems: updatedItems });
-    }, [section.carpentryItems, carpentryItems, onUpdate]);
+    }, [section.carpentryItems, onUpdate]);
 
     const handleCarpentryPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      const currentItems = (section.carpentryItems && section.carpentryItems.length > 0) 
-        ? section.carpentryItems 
-        : carpentryItems;
+      const existingItems = section.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
@@ -195,11 +203,38 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
         return item;
       });
       onUpdate({ carpentryItems: updatedItems });
-    }, [section.carpentryItems, carpentryItems, onUpdate]);
+    }, [section.carpentryItems, onUpdate]);
+
+    const handleCarpentryVideosChange = useCallback((itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
+      const existingItems = section.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
+      const updatedItems = currentItems.map(item => {
+        if (item.id === itemId) {
+          const carpentryItem = item as ChecklistCarpentryItem;
+          if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
+            const updatedUnits = carpentryItem.units.map((unit, idx) =>
+              idx === unitIndex ? { ...unit, videos } : unit
+            );
+            return { ...carpentryItem, units: updatedUnits };
+          } else {
+            return { ...carpentryItem, videos };
+          }
+        }
+        return item;
+      });
+      onUpdate({ carpentryItems: updatedItems });
+    }, [section.carpentryItems, onUpdate]);
 
     const handleCarpentryBadElementsChange = useCallback((itemId: string, unitIndex: number | null, badElements: string[]) => {
-      const currentItems = section.carpentryItems || carpentryItems;
-      const updatedItems = currentItems.map(item => {
+      const existingItems = section.carpentryItems || [];
+      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+      });
+      const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
         if (item.id === itemId) {
           const carpentryItem = item as ChecklistCarpentryItem;
           if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
@@ -214,12 +249,14 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
         return item;
       });
       onUpdate({ carpentryItems: updatedItems });
-    }, [section.carpentryItems, carpentryItems, onUpdate]);
+    }, [section.carpentryItems, onUpdate]);
 
     const handleClimatizationQuantityChange = useCallback((itemId: string, delta: number) => {
-      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
-        ? [...section.climatizationItems] // Clonar array para evitar mutaciones
-        : [...climatizationItems];
+      const existingItems = section.climatizationItems || [];
+      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -248,12 +285,14 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
         return item;
       });
       onUpdate({ climatizationItems: updatedItems });
-    }, [section.climatizationItems, climatizationItems, onUpdate]);
+    }, [section.climatizationItems, onUpdate]);
 
     const handleClimatizationStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
-      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
-        ? section.climatizationItems 
-        : climatizationItems;
+      const existingItems = section.climatizationItems || [];
+      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -269,12 +308,14 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
         return item;
       });
       onUpdate({ climatizationItems: updatedItems });
-    }, [section.climatizationItems, climatizationItems, onUpdate]);
+    }, [section.climatizationItems, onUpdate]);
 
     const handleClimatizationNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
-      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
-        ? section.climatizationItems 
-        : climatizationItems;
+      const existingItems = section.climatizationItems || [];
+      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -290,12 +331,14 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
         return item;
       });
       onUpdate({ climatizationItems: updatedItems });
-    }, [section.climatizationItems, climatizationItems, onUpdate]);
+    }, [section.climatizationItems, onUpdate]);
 
     const handleClimatizationPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
-        ? section.climatizationItems 
-        : climatizationItems;
+      const existingItems = section.climatizationItems || [];
+      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -311,7 +354,30 @@ export const SalonSection = forwardRef<HTMLDivElement, SalonSectionProps>(
         return item;
       });
       onUpdate({ climatizationItems: updatedItems });
-    }, [section.climatizationItems, climatizationItems, onUpdate]);
+    }, [section.climatizationItems, onUpdate]);
+
+    const handleClimatizationVideosChange = useCallback((itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
+      const existingItems = section.climatizationItems || [];
+      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
+      });
+      const updatedItems = currentItems.map(item => {
+        if (item.id === itemId) {
+          const climatizationItem = item as ChecklistClimatizationItem;
+          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
+            const updatedUnits = climatizationItem.units.map((unit, idx) =>
+              idx === unitIndex ? { ...unit, videos } : unit
+            );
+            return { ...climatizationItem, units: updatedUnits };
+          } else {
+            return { ...climatizationItem, videos };
+          }
+        }
+        return item;
+      });
+      onUpdate({ climatizationItems: updatedItems });
+    }, [section.climatizationItems, onUpdate]);
 
     const handleMobiliarioToggle = useCallback((checked: boolean) => {
       onUpdate({

@@ -135,21 +135,27 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         delta,
         itemsKey,
       });
-      
-      // Always get the latest items directly from section and clone to avoid mutations
+
+      // Merge defaults with existing items so ALL items are always present
       const currentItems = (() => {
         if (itemsKey === "carpentryItems") {
-          return (section.carpentryItems && section.carpentryItems.length > 0)
-            ? [...section.carpentryItems] // Clonar array para evitar mutaciones
-            : [...carpentryItems];
+          const existingItems = section.carpentryItems || [];
+          return CARPENTRY_ITEMS.map(def => {
+            const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+            return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+          });
         } else if (itemsKey === "storageItems") {
-          return (section.storageItems && section.storageItems.length > 0)
-            ? [...section.storageItems] // Clonar array para evitar mutaciones
-            : [...storageItems];
+          const existingItems = section.storageItems || [];
+          return STORAGE_ITEMS.map(def => {
+            const existing = existingItems.find((i: ChecklistStorageItem) => i.id === def.id);
+            return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistStorageItem;
+          });
         } else if (itemsKey === "appliancesItems") {
-          return (section.appliancesItems && section.appliancesItems.length > 0)
-            ? [...section.appliancesItems] // Clonar array para evitar mutaciones
-            : [...appliancesItems];
+          const existingItems = section.appliancesItems || [];
+          return APPLIANCES_ITEMS.map(def => {
+            const existing = existingItems.find((i: ChecklistApplianceItem) => i.id === def.id);
+            return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistApplianceItem;
+          });
         }
         return [];
       })();
@@ -182,14 +188,15 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             while (units.length > newCantidad) {
               units.pop();
             }
-            return { ...item, cantidad: newCantidad, units: units.map(u => ({ ...u })), estado: undefined, notes: undefined, photos: undefined };
+            return { ...item, cantidad: newCantidad, units: units.map(u => ({ ...u })), estado: undefined, notes: undefined, photos: undefined, videos: undefined };
           } else if (newCantidad === 1) {
             const singleEstado = units.length > 0 ? units[0].estado : undefined;
             const singleNotes = units.length > 0 ? units[0].notes : undefined;
             const singlePhotos = units.length > 0 ? units[0].photos : undefined;
-            return { ...item, cantidad: newCantidad, units: undefined, estado: singleEstado, notes: singleNotes, photos: singlePhotos };
+            const singleVideos = units.length > 0 ? (units[0] as { videos?: FileUpload[] }).videos : undefined;
+            return { ...item, cantidad: newCantidad, units: undefined, estado: singleEstado, notes: singleNotes, photos: singlePhotos, videos: singleVideos };
           } else {
-            return { ...item, cantidad: newCantidad, units: undefined, estado: undefined, notes: undefined, photos: undefined };
+            return { ...item, cantidad: newCantidad, units: undefined, estado: undefined, notes: undefined, photos: undefined, videos: undefined };
           }
         }
         return item;
@@ -204,7 +211,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       onUpdate({ [itemsKey]: updatedItems });
       
       console.log(`✅ [CocinaSection] onUpdate called`);
-    }, [section.carpentryItems, section.storageItems, section.appliancesItems, carpentryItems, storageItems, appliancesItems, onUpdate]);
+    }, [section.carpentryItems, section.storageItems, section.appliancesItems, onUpdate]);
 
     // Generic handler for status changes
     const handleStatusChange = useCallback((
@@ -246,7 +253,7 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         return { ...item };
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [section.carpentryItems, section.storageItems, section.appliancesItems, carpentryItems, storageItems, appliancesItems, onUpdate]);
+    }, [section.carpentryItems, section.storageItems, section.appliancesItems, onUpdate]);
 
     // Generic handler for bad elements changes
     const handleBadElementsChange = useCallback((
@@ -280,20 +287,26 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
       notes: string,
       itemsKey: "carpentryItems" | "storageItems" | "appliancesItems"
     ) => {
-      // Always get the latest items directly from section and clone to avoid mutations
+      // Merge defaults with existing items so ALL items are always present
       const currentItems = (() => {
         if (itemsKey === "carpentryItems") {
-          return (section.carpentryItems && section.carpentryItems.length > 0)
-            ? [...section.carpentryItems]
-            : [...carpentryItems];
+          const existingItems = section.carpentryItems || [];
+          return CARPENTRY_ITEMS.map(def => {
+            const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+            return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+          });
         } else if (itemsKey === "storageItems") {
-          return (section.storageItems && section.storageItems.length > 0)
-            ? [...section.storageItems]
-            : [...storageItems];
+          const existingItems = section.storageItems || [];
+          return STORAGE_ITEMS.map(def => {
+            const existing = existingItems.find((i: ChecklistStorageItem) => i.id === def.id);
+            return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistStorageItem;
+          });
         } else if (itemsKey === "appliancesItems") {
-          return (section.appliancesItems && section.appliancesItems.length > 0)
-            ? [...section.appliancesItems]
-            : [...appliancesItems];
+          const existingItems = section.appliancesItems || [];
+          return APPLIANCES_ITEMS.map(def => {
+            const existing = existingItems.find((i: ChecklistApplianceItem) => i.id === def.id);
+            return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistApplianceItem;
+          });
         }
         return [];
       })();
@@ -313,49 +326,56 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
         return { ...item };
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [section.carpentryItems, section.storageItems, section.appliancesItems, carpentryItems, storageItems, appliancesItems, onUpdate]);
+    }, [section.carpentryItems, section.storageItems, section.appliancesItems, onUpdate]);
 
-    // Generic handler for photos changes
-    const handlePhotosChange = useCallback((
+    // Generic handler for photos and videos changes (combined to avoid overwriting one with the other)
+    const handleMediaChange = useCallback((
       itemId: string,
       unitIndex: number | null,
       photos: FileUpload[],
+      videos: FileUpload[],
       itemsKey: "carpentryItems" | "storageItems" | "appliancesItems"
     ) => {
-      // Always get the latest items directly from section and clone to avoid mutations
+      // Merge defaults with existing items so ALL items are always present
       const currentItems = (() => {
         if (itemsKey === "carpentryItems") {
-          return (section.carpentryItems && section.carpentryItems.length > 0)
-            ? [...section.carpentryItems]
-            : [...carpentryItems];
+          const existingItems = section.carpentryItems || [];
+          return CARPENTRY_ITEMS.map(def => {
+            const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
+            return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
+          });
         } else if (itemsKey === "storageItems") {
-          return (section.storageItems && section.storageItems.length > 0)
-            ? [...section.storageItems]
-            : [...storageItems];
+          const existingItems = section.storageItems || [];
+          return STORAGE_ITEMS.map(def => {
+            const existing = existingItems.find((i: ChecklistStorageItem) => i.id === def.id);
+            return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistStorageItem;
+          });
         } else if (itemsKey === "appliancesItems") {
-          return (section.appliancesItems && section.appliancesItems.length > 0)
-            ? [...section.appliancesItems]
-            : [...appliancesItems];
+          const existingItems = section.appliancesItems || [];
+          return APPLIANCES_ITEMS.map(def => {
+            const existing = existingItems.find((i: ChecklistApplianceItem) => i.id === def.id);
+            return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistApplianceItem;
+          });
         }
         return [];
       })();
-      
+
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const itemWithUnits = item as ChecklistCarpentryItem | ChecklistStorageItem | ChecklistApplianceItem;
           if (unitIndex !== null && itemWithUnits.units && itemWithUnits.units.length > unitIndex) {
             const updatedUnits = itemWithUnits.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, photos } : { ...unit }
+              idx === unitIndex ? { ...unit, photos, videos } : { ...unit }
             );
             return { ...item, units: updatedUnits };
           } else {
-            return { ...item, photos };
+            return { ...item, photos, videos };
           }
         }
         return { ...item };
       });
       onUpdate({ [itemsKey]: updatedItems });
-    }, [section.carpentryItems, section.storageItems, section.appliancesItems, carpentryItems, storageItems, appliancesItems, onUpdate]);
+    }, [section.carpentryItems, section.storageItems, section.appliancesItems, onUpdate]);
 
     // Render function for items with quantity (carpentry, storage, appliances)
     const renderQuantityItems = (
@@ -501,14 +521,14 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                                     />
                                   </div>
 
-                                  {/* Photos */}
+                                  {/* Photos and videos */}
                                   <div className="space-y-2">
                                     <ChecklistUploadZoneComponent
-                                      title="Fotos"
+                                      title="Fotos y vídeos"
                                       description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                      uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                      uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                       onUpdate={(updates) => {
-                                        handlePhotosChange(item.id, index, updates.photos, itemsKey);
+                                        handleMediaChange(item.id, index, updates.photos ?? [], updates.videos ?? [], itemsKey);
                                       }}
                                       isRequired={unitRequiresDetails}
                                       maxFiles={10}
@@ -569,14 +589,14 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
                               />
                             </div>
 
-                            {/* Photos */}
+                            {/* Photos and videos */}
                             <div className="space-y-2">
                               <ChecklistUploadZoneComponent
-                                title="Fotos"
+                                title="Fotos y vídeos"
                                 description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                uploadZone={{ id: `${latestItem.id}-photos`, photos: latestItem.photos || [], videos: [] }}
+                                uploadZone={{ id: `${latestItem.id}-photos`, photos: latestItem.photos || [], videos: (latestItem as ChecklistCarpentryItem).videos || [] }}
                                 onUpdate={(updates) => {
-                                  handlePhotosChange(latestItem.id, null, updates.photos, itemsKey);
+                                  handleMediaChange(latestItem.id, null, updates.photos ?? [], updates.videos ?? [], itemsKey);
                                 }}
                                 isRequired={true}
                                 maxFiles={10}

@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useCallback, useMemo } from "react";
+import { forwardRef, useCallback } from "react";
 import { Minus, Plus } from "lucide-react";
 import { ChecklistSection, ChecklistClimatizationItem, ChecklistClimatizationUnit, ChecklistStatus, ChecklistQuestion, ChecklistUploadZone } from "@/lib/checklist-storage";
 import { ChecklistQuestion as ChecklistQuestionComponent } from "../checklist-question";
@@ -51,17 +51,6 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
       ? section.questions 
       : defaultQuestions;
 
-    // Initialize climatization items
-    const climatizationItems = useMemo(() => {
-      if (section.climatizationItems && section.climatizationItems.length > 0) {
-        return section.climatizationItems;
-      }
-      return CLIMATIZATION_ITEMS.map(item => ({
-        id: item.id,
-        cantidad: 0,
-      }));
-    }, [section.climatizationItems]);
-
     const handleUploadZoneUpdate = useCallback((zoneId: string, updates: ChecklistUploadZone) => {
       const currentZones = section.uploadZones || uploadZones;
       const existingIndex = currentZones.findIndex(z => z.id === zoneId);
@@ -104,9 +93,11 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
     }, [section.questions, defaultQuestions, onUpdate]);
 
     const handleClimatizationQuantityChange = useCallback((itemId: string, delta: number) => {
-      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
-        ? [...section.climatizationItems] // Clonar array para evitar mutaciones
-        : [...climatizationItems];
+      const existingItems = section.climatizationItems || [];
+      const currentItems = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find(i => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const currentCantidad = item.cantidad || 0;
@@ -141,12 +132,14 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
         return item;
       });
       onUpdate({ climatizationItems: updatedItems });
-    }, [section.climatizationItems, climatizationItems, onUpdate]);
+    }, [section.climatizationItems, onUpdate]);
 
     const handleClimatizationStatusChange = useCallback((itemId: string, unitIndex: number | null, status: ChecklistStatus) => {
-      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
-        ? section.climatizationItems 
-        : climatizationItems;
+      const existingItems = section.climatizationItems || [];
+      const currentItems = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find(i => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -164,12 +157,14 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
         return item;
       });
       onUpdate({ climatizationItems: updatedItems });
-    }, [section.climatizationItems, climatizationItems, onUpdate]);
+    }, [section.climatizationItems, onUpdate]);
 
     const handleClimatizationNotesChange = useCallback((itemId: string, unitIndex: number | null, notes: string) => {
-      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
-        ? section.climatizationItems 
-        : climatizationItems;
+      const existingItems = section.climatizationItems || [];
+      const currentItems = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find(i => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -187,12 +182,14 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
         return item;
       });
       onUpdate({ climatizationItems: updatedItems });
-    }, [section.climatizationItems, climatizationItems, onUpdate]);
+    }, [section.climatizationItems, onUpdate]);
 
     const handleClimatizationPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      const currentItems = (section.climatizationItems && section.climatizationItems.length > 0) 
-        ? section.climatizationItems 
-        : climatizationItems;
+      const existingItems = section.climatizationItems || [];
+      const currentItems = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find(i => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
+      });
       const updatedItems = currentItems.map(item => {
         if (item.id === itemId) {
           const climatizationItem = item as ChecklistClimatizationItem;
@@ -210,7 +207,30 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
         return item;
       });
       onUpdate({ climatizationItems: updatedItems });
-    }, [section.climatizationItems, climatizationItems, onUpdate]);
+    }, [section.climatizationItems, onUpdate]);
+
+    const handleClimatizationVideosChange = useCallback((itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
+      const existingItems = section.climatizationItems || [];
+      const currentItems = CLIMATIZATION_ITEMS.map(def => {
+        const existing = existingItems.find(i => i.id === def.id);
+        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
+      });
+      const updatedItems = currentItems.map(item => {
+        if (item.id === itemId) {
+          const climatizationItem = item as ChecklistClimatizationItem;
+          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
+            const updatedUnits = climatizationItem.units.map((unit, idx) =>
+              idx === unitIndex ? { ...unit, videos } : unit
+            );
+            return { ...climatizationItem, units: updatedUnits };
+          } else {
+            return { ...climatizationItem, videos };
+          }
+        }
+        return item;
+      });
+      onUpdate({ climatizationItems: updatedItems });
+    }, [section.climatizationItems, onUpdate]);
 
     const STATUS_OPTIONS: Array<{
       value: ChecklistStatus;
@@ -296,10 +316,12 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
 
           <div className="space-y-6">
             {CLIMATIZATION_ITEMS.map((itemConfig) => {
-              const itemsToSearch = (section.climatizationItems && section.climatizationItems.length > 0) 
-                ? section.climatizationItems 
-                : climatizationItems;
-              const item = itemsToSearch.find(i => i.id === itemConfig.id) || {
+              const existingItems = section.climatizationItems || [];
+              const mergedItems = CLIMATIZATION_ITEMS.map(def => {
+                const existing = existingItems.find(i => i.id === def.id);
+                return existing ? { ...existing } : { id: def.id, cantidad: 0 };
+              });
+              const item = mergedItems.find(i => i.id === itemConfig.id) || {
                 id: itemConfig.id,
                 cantidad: 0,
               };
@@ -399,15 +421,16 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                                   </div>
                                 )}
 
-                                {/* Photos for this unit */}
+                                {/* Photos and videos for this unit */}
                                 {unitRequiresDetails && (
                                   <div className="space-y-2">
                                     <ChecklistUploadZoneComponent
-                                      title="Fotos"
-                                      description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                      uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: [] }}
+                                      title="Fotos y vídeos"
+                                      description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
+                                      uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                       onUpdate={(updates) => {
                                         handleClimatizationPhotosChange(item.id, index, updates.photos);
+                                        handleClimatizationVideosChange(item.id, index, updates.videos || []);
                                       }}
                                       isRequired={unitRequiresDetails}
                                       maxFiles={10}

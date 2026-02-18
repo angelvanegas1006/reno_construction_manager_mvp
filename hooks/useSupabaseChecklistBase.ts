@@ -1587,6 +1587,11 @@ export function useSupabaseChecklistBase({
                   updateFileWithMap(photo, `climatizationItem ${item.id}`);
                 });
               }
+              if (item.videos) {
+                item.videos.forEach(video => {
+                  updateFileWithMap(video, `climatizationItem ${item.id} videos`);
+                });
+              }
               if (item.units) {
                 item.units.forEach(unit => {
                   if (unit.photos) {
