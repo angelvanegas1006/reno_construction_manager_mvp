@@ -40,6 +40,7 @@ interface NavbarL1Props {
     label: string;
     onClick: () => void;
     icon?: React.ReactNode;
+    disabled?: boolean;
   }>;
 }
 
@@ -257,6 +258,7 @@ export function NavbarL1({
               key={index}
               variant="outline"
               onClick={action.onClick}
+              disabled={action.disabled}
               className="rounded-full"
             >
               {action.icon}

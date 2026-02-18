@@ -159,6 +159,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
+    // Verificar que Auth0 esté configurado
+    const auth0Domain = process.env.AUTH0_DOMAIN || process.env.NEXT_PUBLIC_AUTH0_DOMAIN;
+    const auth0ClientId = process.env.AUTH0_MANAGEMENT_CLIENT_ID;
+    const auth0ClientSecret = process.env.AUTH0_MANAGEMENT_CLIENT_SECRET;
+    if (!auth0Domain || !auth0ClientId || !auth0ClientSecret) {
+      console.error('[POST /api/admin/users] Auth0 not configured. Missing: AUTH0_DOMAIN, AUTH0_MANAGEMENT_CLIENT_ID, AUTH0_MANAGEMENT_CLIENT_SECRET');
+      return NextResponse.json({
+        error: 'Auth0 no está configurado. Contacta al administrador para configurar AUTH0_DOMAIN, AUTH0_MANAGEMENT_CLIENT_ID y AUTH0_MANAGEMENT_CLIENT_SECRET.',
+      }, { status: 503 });
+    }
+
     // Crear usuario en Auth0
     const auth0Client = getAuth0ManagementClient();
     let auth0User;
@@ -193,6 +204,13 @@ export async function POST(request: NextRequest) {
         }
       } else {
         console.error('[POST /api/admin/users] Auth0 error:', auth0Error);
+        // Traducir errores de red a mensajes más claros
+        const msg = auth0Error?.message || '';
+        if (msg.includes('fetch failed') || msg.includes('Failed to fetch') || msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND') || msg.includes('ETIMEDOUT')) {
+          return NextResponse.json({
+            error: 'No se pudo conectar con Auth0. Verifica tu conexión a internet y que las variables de entorno de Auth0 estén correctas.',
+          }, { status: 503 });
+        }
         throw auth0Error;
       }
     }
@@ -260,8 +278,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[POST /api/admin/users] Error:', error);
+    const msg = error?.message || '';
+    let userMessage = error.message || 'Error interno del servidor';
+    if (msg.includes('fetch failed') || msg.includes('Failed to fetch') || msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND') || msg.includes('ETIMEDOUT')) {
+      userMessage = 'No se pudo conectar con el servicio. Verifica tu conexión a internet.';
+    }
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: userMessage },
       { status: 500 }
     );
   }

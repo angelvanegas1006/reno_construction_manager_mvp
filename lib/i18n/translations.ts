@@ -494,6 +494,7 @@ export interface Translations {
       estimatedVisitDate: string;
       openInitialChecklist: string;
       openFinalChecklist: string;
+      viewGeneratedReport: string;
       completeInitialChecklist: string;
       completeFinalChecklist: string;
       initialCheckDescription: string;
@@ -1593,6 +1594,7 @@ export const translations: Record<Language, Translations> = {
       estimatedVisitDate: "Fecha Estimada de Visita",
       openInitialChecklist: "Abrir Checklist Inicial",
       openFinalChecklist: "Abrir Checklist Final",
+      viewGeneratedReport: "Ver Informe Generado",
       completeInitialChecklist: "Completa el checklist inicial para evaluar el estado de la propiedad antes de comenzar las obras.",
       completeFinalChecklist: "Completa el checklist final para verificar que todas las obras se han realizado correctamente.",
       initialCheckDescription: "Completa el checklist inicial para evaluar el estado de la propiedad antes de comenzar las obras.",
@@ -2644,6 +2646,7 @@ export const translations: Record<Language, Translations> = {
       estimatedVisitDate: "Estimated Visit Date",
       openInitialChecklist: "Open Initial Checklist",
       openFinalChecklist: "Open Final Checklist",
+      viewGeneratedReport: "View Generated Report",
       completeInitialChecklist: "Complete the initial checklist to evaluate the property's status before starting the works.",
       completeFinalChecklist: "Complete the final checklist to verify that all works have been completed correctly.",
       initialCheckDescription: "Complete the initial checklist to evaluate the property's status before starting the works.",

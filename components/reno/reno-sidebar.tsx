@@ -25,7 +25,7 @@ import { HelpModal } from "@/components/reno/help-modal";
 import { extractNameFromEmail } from "@/lib/supabase/user-name-utils";
 import { useHelpConversations } from "@/hooks/useHelpConversations";
 
-// Navigation items for Reno Construction Manager (role for conditional "Proyectos / WIP")
+// Navigation items for Reno Construction Manager. Kanban Proyectos solo para admin y construction_manager.
 const getNavigationItems = (t: any, role?: string) => {
   const items: Array<{ label: string; href: string; icon: typeof Home }> = [
     {
@@ -39,7 +39,6 @@ const getNavigationItems = (t: any, role?: string) => {
       icon: Grid,
     },
   ];
-  // Solo admin y construction_manager ven el Kanban Proyectos/WIP; jefes de obra (foreman) no
   if (role === "admin" || role === "construction_manager") {
     items.push({
       label: t.nav.kanbanProjects,

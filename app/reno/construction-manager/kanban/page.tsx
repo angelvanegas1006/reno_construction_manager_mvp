@@ -116,6 +116,7 @@ export default function RenoConstructionManagerKanbanPage() {
       setSyncAirtableLoading(false);
     }
   }, [refetchProperties]);
+
   const { user, role } = useAppAuth();
 
   // Primer kanban: solo Unit, Building y Lot. Si es foreman, además Project/WIP asignados a él (assigned_site_manager_email).
@@ -167,13 +168,13 @@ export default function RenoConstructionManagerKanbanPage() {
   // Use unified filters hook
   const { filters, updateFilters, filterBadgeCount } = useRenoFilters();
   
-  // Convert RenoFilters to KanbanFilters; en el primer kanban solo tipos Unit/Building/Lot
+  // Kanban 1: solo Unit, Building, Lot
   const kanbanFilters = {
     renovatorNames: filters.renovatorNames,
     technicalConstructors: filters.technicalConstructors,
     areaClusters: filters.areaClusters,
     delayedWorks: filters.delayedWorks,
-    propertyTypes: (filters.propertyTypes ?? []).filter((t) => ["Unit", "Building", "Lot"].includes(t)),
+    propertyTypes: (filters.propertyTypes ?? []).filter((pt) => ["Unit", "Building", "Lot"].includes(pt)),
   };
 
   return (
@@ -204,7 +205,7 @@ export default function RenoConstructionManagerKanbanPage() {
           onViewModeChange={setViewMode}
         />
         
-        {/* Kanban Board */}
+        {/* Kanban Board - Units, Building, Lot (+ Project/WIP asignados si foreman) */}
         <div 
           className={cn(
             "flex-1 p-2 md:p-3 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]",

@@ -23,6 +23,7 @@ const PHASES_WITH_ASSIGNMENT: string[] = [
   "reno-in-progress",
   "furnishing",
   "final-check",
+  "pendiente-suministros",
   "cleaning",
 ];
 

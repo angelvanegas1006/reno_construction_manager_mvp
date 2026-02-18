@@ -982,19 +982,23 @@ body {
   background-color: #F8FAFC;
   color: #1E293B;
   line-height: 1.5;
+  overflow-x: hidden;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 16px;
+  overflow-x: hidden;
 }
 
 /* Header: fondo blanco full width (Rectangle 1 - Figma) */
 .report-header-wrapper {
   width: 100%;
   min-width: 100%;
+  max-width: 100%;
   background: #FFFFFF;
+  overflow-x: hidden;
 }
 
 .report-header {
@@ -1030,6 +1034,7 @@ body {
   padding: 24px 64px 32px;
   margin-bottom: 20px;
   min-height: 130px;
+  overflow-x: hidden;
 }
 
 /* INFORME DE LA PROPIEDAD */
@@ -1126,6 +1131,147 @@ body {
   }
 }
 
+/* Mobile-first: pantallas pequeñas (teléfonos) */
+@media (max-width: 640px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-size: 13px;
+  }
+
+  .container {
+    padding: 12px;
+    max-width: 100%;
+  }
+
+  .report-header {
+    height: auto;
+    min-height: 80px;
+    padding: 16px 16px;
+  }
+
+  .logo-prophero {
+    position: relative;
+    left: 0;
+    width: 180px;
+    height: auto;
+    max-height: 44px;
+    object-fit: contain;
+  }
+
+  .report-intro {
+    padding: 16px 16px 20px;
+    min-height: auto;
+  }
+
+  .report-intro-title {
+    font-size: 20px;
+    line-height: 26px;
+  }
+
+  .report-intro-address {
+    font-size: 16px;
+    line-height: 22px;
+    word-break: break-word;
+  }
+
+  .report-intro-date {
+    font-size: 14px;
+  }
+
+  .section-container {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    line-height: 24px;
+  }
+
+  .see-all-images-link {
+    font-size: 14px;
+  }
+
+  .carousel-container {
+    min-height: 180px;
+  }
+
+  .carousel-nav {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .carousel-nav.prev {
+    left: 4px;
+  }
+
+  .carousel-nav.next {
+    right: 4px;
+  }
+
+  .condition-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .condition-label {
+    font-size: 13px;
+    word-break: break-word;
+  }
+
+  .condition-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  .condition-notes {
+    font-size: 12px;
+  }
+
+  .modal-overlay {
+    padding: 12px;
+    align-items: flex-start;
+  }
+
+  .modal-overlay.active {
+    align-items: flex-start;
+    padding-top: 24px;
+  }
+
+  .modal-content {
+    padding: 16px;
+    max-height: 85vh;
+  }
+
+  .modal-title {
+    font-size: 14px;
+  }
+
+  .modal-main-image {
+    height: 200px;
+  }
+
+  .modal-thumbnail {
+    width: 56px;
+    height: 56px;
+  }
+
+  .dynamic-section-title {
+    font-size: 14px;
+  }
+}
+
 /* Image Carousel - rellena toda la altura de la estancia (grid stretch) */
 .image-carousel {
   position: relative;
@@ -1173,6 +1319,25 @@ body {
 
 .carousel-images-group.active {
   display: flex;
+}
+
+/* Layout compacto: pocas imágenes (1-3) - no dividir en partes iguales */
+.carousel-images-group--few {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.carousel-images-group--few .carousel-image {
+  flex: none;
+  width: auto;
+  max-width: calc(100% / var(--img-count, 1) - 6px);
+  height: auto;
+  max-height: 100%;
+  min-height: 80px;
+  object-fit: contain;
 }
 
 .carousel-image {
@@ -1651,7 +1816,8 @@ function generateSectionHTML(
   // Carrusel de imágenes (izquierda)
   html += `<div class="image-carousel">`;
   if (images.length > 0) {
-    // 1-3 imágenes: mostrar todas. 4+: mostrar 1 por vista para que cada una ocupe todo el espacio
+    // Pocas imágenes (1-3): layout compacto sin dividir. Muchas (4+): carrusel con grupos
+    const useCompactLayout = images.length <= 3;
     const imagesPerGroup = images.length >= 4 ? 1 : images.length;
     html += `<div class="carousel-container" id="carousel-${sectionId}" data-total-images="${images.length}" data-images-per-group="${imagesPerGroup}">`;
     const totalGroups = Math.ceil(images.length / imagesPerGroup);
@@ -1660,8 +1826,11 @@ function generateSectionHTML(
     for (let groupIndex = 0; groupIndex < totalGroups; groupIndex++) {
       const startIndex = groupIndex * imagesPerGroup;
       const endIndex = Math.min(startIndex + imagesPerGroup, images.length);
+      const fewClass = useCompactLayout ? ' carousel-images-group--few' : '';
+      const activeClass = groupIndex === 0 ? ' active' : '';
+      const imgCountStyle = useCompactLayout ? ` style="--img-count: ${endIndex - startIndex}"` : '';
 
-      html += `<div class="carousel-images-group ${groupIndex === 0 ? 'active' : ''}">`;
+      html += `<div class="carousel-images-group${fewClass}${activeClass}"${imgCountStyle}>`;
       for (let i = startIndex; i < endIndex; i++) {
         html += `<img src="${escapeHtml(images[i].url)}" alt="${escapeHtml(images[i].label || '')}" class="carousel-image" />`;
       }
