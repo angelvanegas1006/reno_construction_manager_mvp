@@ -377,37 +377,6 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       onUpdate({ dynamicItems: updatedDynamicItems });
     }, [section.dynamicItems, habitacionIndex, onUpdate]);
 
-    const handleCarpentryPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      if (habitacionIndex === undefined) return;
-      const currentDynamicItems = section.dynamicItems || [];
-      const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      const existingItems = currentHabitacion.carpentryItems || [];
-      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
-        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
-        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
-      });
-      const updatedItems = currentItems.map(item => {
-        if (item.id === itemId) {
-          const carpentryItem = item as ChecklistCarpentryItem;
-          if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
-            const updatedUnits = carpentryItem.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, photos } : unit
-            );
-            return { ...carpentryItem, units: updatedUnits };
-          } else {
-            return { ...carpentryItem, photos };
-          }
-        }
-        return item;
-      });
-      const updatedDynamicItems = [...currentDynamicItems];
-      updatedDynamicItems[habitacionIndex] = {
-        ...currentHabitacion,
-        carpentryItems: updatedItems,
-      };
-      onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [section.dynamicItems, habitacionIndex, onUpdate]);
-
     const handleCarpentryMediaChange = useCallback((itemId: string, unitIndex: number | null, media: { photos: FileUpload[]; videos: FileUpload[] }) => {
       if (habitacionIndex === undefined) return;
       const currentDynamicItems = section.dynamicItems || [];
@@ -597,7 +566,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       onUpdate({ dynamicItems: updatedDynamicItems });
     }, [section.dynamicItems, habitacionIndex, onUpdate]);
 
-    const handleClimatizationPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
+    const handleClimatizationMediaChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[], videos: FileUpload[]) => {
       if (habitacionIndex === undefined) return;
       const currentDynamicItems = section.dynamicItems || [];
       const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
@@ -611,42 +580,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
           const climatizationItem = item as ChecklistClimatizationItem;
           if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
             const updatedUnits = climatizationItem.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, photos } : unit
+              idx === unitIndex ? { ...unit, photos, videos } : unit
             );
             return { ...climatizationItem, units: updatedUnits };
           } else {
-            return { ...climatizationItem, photos };
-          }
-        }
-        return item;
-      });
-      const updatedDynamicItems = [...currentDynamicItems];
-      updatedDynamicItems[habitacionIndex] = {
-        ...currentHabitacion,
-        climatizationItems: updatedItems,
-      };
-      onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [section.dynamicItems, habitacionIndex, onUpdate]);
-
-    const handleClimatizationVideosChange = useCallback((itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
-      if (habitacionIndex === undefined) return;
-      const currentDynamicItems = section.dynamicItems || [];
-      const currentHabitacion = currentDynamicItems[habitacionIndex] || getDefaultHabitacionStructure(habitacionIndex);
-      const existingItems = currentHabitacion.climatizationItems || [];
-      const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
-        const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
-        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
-      });
-      const updatedItems = currentItems.map(item => {
-        if (item.id === itemId) {
-          const climatizationItem = item as ChecklistClimatizationItem;
-          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
-            const updatedUnits = climatizationItem.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, videos } : unit
-            );
-            return { ...climatizationItem, units: updatedUnits };
-          } else {
-            return { ...climatizationItem, videos };
+            return { ...climatizationItem, photos, videos };
           }
         }
         return item;
@@ -996,7 +934,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         onUpdate({ dynamicItems: updatedDynamicItems });
       };
 
-      const handleSingleClimatizationPhotosChange = (itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
+      const handleSingleClimatizationMediaChange = (itemId: string, unitIndex: number | null, photos: FileUpload[], videos: FileUpload[]) => {
         const currentDynamicItems = section.dynamicItems || dynamicItems;
         const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
         const existingItems = currentHabitacion.climatizationItems || [];
@@ -1009,41 +947,11 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
             const climatizationItem = item as ChecklistClimatizationItem;
             if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
               const updatedUnits = climatizationItem.units.map((unit, idx) =>
-                idx === unitIndex ? { ...unit, photos } : { ...unit }
+                idx === unitIndex ? { ...unit, photos, videos } : unit
               );
               return { ...climatizationItem, units: updatedUnits };
             } else {
-              return { ...climatizationItem, photos };
-            }
-          }
-          return item;
-        });
-        const updatedDynamicItems = [...currentDynamicItems];
-        updatedDynamicItems[0] = {
-          ...currentHabitacion,
-          climatizationItems: updatedItems,
-        };
-        onUpdate({ dynamicItems: updatedDynamicItems });
-      };
-
-      const handleSingleClimatizationVideosChange = (itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
-        const currentDynamicItems = section.dynamicItems || dynamicItems;
-        const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const existingItems = currentHabitacion.climatizationItems || [];
-        const currentItems: ChecklistClimatizationItem[] = CLIMATIZATION_ITEMS.map(def => {
-          const existing = existingItems.find((i: ChecklistClimatizationItem) => i.id === def.id);
-          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
-        });
-        const updatedItems = currentItems.map(item => {
-          if (item.id === itemId) {
-            const climatizationItem = item as ChecklistClimatizationItem;
-            if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
-              const updatedUnits = climatizationItem.units.map((unit, idx) =>
-                idx === unitIndex ? { ...unit, videos } : unit
-              );
-              return { ...climatizationItem, units: updatedUnits };
-            } else {
-              return { ...climatizationItem, videos };
+              return { ...climatizationItem, photos, videos };
             }
           }
           return item;
@@ -1135,36 +1043,6 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
               return { ...carpentryItem, units: updatedUnits };
             } else {
               return { ...carpentryItem, notes };
-            }
-          }
-          return item;
-        });
-        const updatedDynamicItems = [...currentDynamicItems];
-        updatedDynamicItems[0] = {
-          ...currentHabitacion,
-          carpentryItems: updatedItems,
-        };
-        onUpdate({ dynamicItems: updatedDynamicItems });
-      };
-
-      const handleSingleCarpentryPhotosChange = (itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-        const currentDynamicItems = section.dynamicItems || dynamicItems;
-        const currentHabitacion = currentDynamicItems[0] || singleHabitacion;
-        const existingItems = currentHabitacion.carpentryItems || [];
-        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
-          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
-          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
-        });
-        const updatedItems = currentItems.map(item => {
-          if (item.id === itemId) {
-            const carpentryItem = item as ChecklistCarpentryItem;
-            if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
-              const updatedUnits = carpentryItem.units.map((unit, idx) =>
-                idx === unitIndex ? { ...unit, photos } : unit
-              );
-              return { ...carpentryItem, units: updatedUnits };
-            } else {
-              return { ...carpentryItem, photos };
             }
           }
           return item;
@@ -1880,8 +1758,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
                                           uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                           onUpdate={(updates) => {
-                                            if (updates.photos !== undefined) handleSingleClimatizationPhotosChange(item.id, index, updates.photos);
-                                            if (updates.videos !== undefined) handleSingleClimatizationVideosChange(item.id, index, updates.videos);
+                                            handleSingleClimatizationMediaChange(item.id, index, updates.photos ?? [], updates.videos ?? []);
                                           }}
                                           isRequired={unitRequiresDetails}
                                           maxFiles={10}
@@ -1979,8 +1856,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       return (latestItem as ChecklistClimatizationItem).videos || [];
                                     })() }}
                                     onUpdate={(updates) => {
-                                      if (updates.photos !== undefined) handleSingleClimatizationPhotosChange(item.id, null, updates.photos);
-                                      if (updates.videos !== undefined) handleSingleClimatizationVideosChange(item.id, null, updates.videos);
+                                      handleSingleClimatizationMediaChange(item.id, null, updates.photos ?? [], updates.videos ?? []);
                                     }}
                                     isRequired={true}
                                     maxFiles={10}
@@ -2582,8 +2458,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
                                           uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                           onUpdate={(updates) => {
-                                            if (updates.photos !== undefined) handleClimatizationPhotosChange(item.id, index, updates.photos);
-                                            if (updates.videos !== undefined) handleClimatizationVideosChange(item.id, index, updates.videos);
+                                            handleClimatizationMediaChange(item.id, index, updates.photos ?? [], updates.videos ?? []);
                                           }}
                                           isRequired={unitRequiresDetails}
                                           maxFiles={10}
@@ -2695,8 +2570,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       return (latestItem as ChecklistClimatizationItem).videos || [];
                                     })() }}
                                     onUpdate={(updates) => {
-                                      if (updates.photos !== undefined) handleClimatizationPhotosChange(item.id, null, updates.photos);
-                                      if (updates.videos !== undefined) handleClimatizationVideosChange(item.id, null, updates.videos);
+                                      handleClimatizationMediaChange(item.id, null, updates.photos ?? [], updates.videos ?? []);
                                     }}
                                     isRequired={true}
                                     maxFiles={10}

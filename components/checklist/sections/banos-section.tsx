@@ -238,7 +238,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
       onUpdate({ dynamicItems: updatedDynamicItems });
     }, [bano, carpentryItems, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
 
-    const handleCarpentryPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
+    const handleCarpentryMediaChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[], videos: FileUpload[]) => {
       if (banoIndex === undefined) return;
       const latestDynamicItems = section.dynamicItems || dynamicItems;
       const latestBano = latestDynamicItems[banoIndex] || bano;
@@ -251,41 +251,11 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, photos } : unit
+              idx === unitIndex ? { ...unit, photos, videos } : unit
             );
             return { ...item, units: updatedUnits };
           } else {
-            return { ...item, photos };
-          }
-        }
-        return item;
-      });
-      const updatedDynamicItems = [...latestDynamicItems];
-      updatedDynamicItems[banoIndex] = {
-        ...latestBano,
-        carpentryItems: updatedItems,
-      };
-      onUpdate({ dynamicItems: updatedDynamicItems });
-    }, [bano, dynamicItems, banoIndex, onUpdate, section.dynamicItems]);
-
-    const handleCarpentryVideosChange = useCallback((itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
-      if (banoIndex === undefined) return;
-      const latestDynamicItems = section.dynamicItems || dynamicItems;
-      const latestBano = latestDynamicItems[banoIndex] || bano;
-      const existingItems = latestBano?.carpentryItems || [];
-      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
-        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
-        return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
-      });
-      const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
-        if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, videos } : unit
-            );
-            return { ...item, units: updatedUnits };
-          } else {
-            return { ...item, videos };
+            return { ...item, photos, videos };
           }
         }
         return item;
@@ -607,7 +577,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
         onUpdate({ dynamicItems: updatedDynamicItems });
       };
 
-      const handleSingleCarpentryPhotosChange = (itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
+      const handleSingleCarpentryMediaChange = (itemId: string, unitIndex: number | null, photos: FileUpload[], videos: FileUpload[]) => {
         const currentDynamicItems = section.dynamicItems || [];
         const currentBano = currentDynamicItems[0] || effectiveBano;
         const existingItems = currentBano.carpentryItems || [];
@@ -619,40 +589,11 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
           if (item.id === itemId) {
             if (unitIndex !== null && item.units && item.units.length > unitIndex) {
               const updatedUnits = item.units.map((unit, idx) =>
-                idx === unitIndex ? { ...unit, photos } : unit
+                idx === unitIndex ? { ...unit, photos, videos } : unit
               );
               return { ...item, units: updatedUnits };
             } else {
-              return { ...item, photos };
-            }
-          }
-          return item;
-        });
-        const updatedDynamicItems = [...currentDynamicItems];
-        updatedDynamicItems[0] = {
-          ...currentBano,
-          carpentryItems: updatedItems,
-        };
-        onUpdate({ dynamicItems: updatedDynamicItems });
-      };
-
-      const handleSingleCarpentryVideosChange = (itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
-        const currentDynamicItems = section.dynamicItems || [];
-        const currentBano = currentDynamicItems[0] || effectiveBano;
-        const existingItems = currentBano.carpentryItems || [];
-        const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
-          const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
-          return existing ? { ...existing } : { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
-        });
-        const updatedItems = currentItems.map((item: ChecklistCarpentryItem) => {
-          if (item.id === itemId) {
-            if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-              const updatedUnits = item.units.map((unit, idx) =>
-                idx === unitIndex ? { ...unit, videos } : unit
-              );
-              return { ...item, units: updatedUnits };
-            } else {
-              return { ...item, videos };
+              return { ...item, photos, videos };
             }
           }
           return item;
@@ -954,8 +895,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                           description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
                                           uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                           onUpdate={(updates) => {
-                                            if (updates.photos !== undefined) handleSingleCarpentryPhotosChange(item.id, index, updates.photos);
-                                            if (updates.videos !== undefined) handleSingleCarpentryVideosChange(item.id, index, updates.videos);
+                                            handleSingleCarpentryMediaChange(item.id, index, updates.photos ?? [], updates.videos ?? []);
                                           }}
                                           isRequired={unitRequiresDetails}
                                           maxFiles={10}
@@ -1019,8 +959,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                     description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
                                     uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: item.videos || [] }}
                                     onUpdate={(updates) => {
-                                      if (updates.photos !== undefined) handleSingleCarpentryPhotosChange(item.id, null, updates.photos);
-                                      if (updates.videos !== undefined) handleSingleCarpentryVideosChange(item.id, null, updates.videos);
+                                      handleSingleCarpentryMediaChange(item.id, null, updates.photos ?? [], updates.videos ?? []);
                                     }}
                                     isRequired={true}
                                     maxFiles={10}
@@ -1313,8 +1252,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                           description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
                                           uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                           onUpdate={(updates) => {
-                                            if (updates.photos !== undefined) handleCarpentryPhotosChange(item.id, index, updates.photos);
-                                            if (updates.videos !== undefined) handleCarpentryVideosChange(item.id, index, updates.videos);
+                                            handleCarpentryMediaChange(item.id, index, updates.photos ?? [], updates.videos ?? []);
                                           }}
                                           isRequired={unitRequiresDetails}
                                           maxFiles={10}
@@ -1378,8 +1316,7 @@ export const BanosSection = forwardRef<HTMLDivElement, BanosSectionProps>(
                                     description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
                                     uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: item.videos || [] }}
                                     onUpdate={(updates) => {
-                                      if (updates.photos !== undefined) handleCarpentryPhotosChange(item.id, null, updates.photos);
-                                      if (updates.videos !== undefined) handleCarpentryVideosChange(item.id, null, updates.videos);
+                                      handleCarpentryMediaChange(item.id, null, updates.photos ?? [], updates.videos ?? []);
                                     }}
                                     isRequired={true}
                                     maxFiles={10}

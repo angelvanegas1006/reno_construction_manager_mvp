@@ -213,7 +213,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
       onUpdate({ carpentryItems: updatedItems });
     }, [section.carpentryItems, onUpdate]);
 
-    const handleCarpentryPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
+    const handleCarpentryMediaChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[], videos: FileUpload[]) => {
       const existingItems = section.carpentryItems || [];
       const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
         const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
@@ -224,34 +224,11 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
           const carpentryItem = item as ChecklistCarpentryItem;
           if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
             const updatedUnits = carpentryItem.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, photos } : unit
+              idx === unitIndex ? { ...unit, photos, videos } : unit
             );
             return { ...carpentryItem, units: updatedUnits };
           } else {
-            return { ...carpentryItem, photos };
-          }
-        }
-        return item;
-      });
-      onUpdate({ carpentryItems: updatedItems });
-    }, [section.carpentryItems, onUpdate]);
-
-    const handleCarpentryVideosChange = useCallback((itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
-      const existingItems = section.carpentryItems || [];
-      const currentItems: ChecklistCarpentryItem[] = CARPENTRY_ITEMS.map(def => {
-        const existing = existingItems.find((i: ChecklistCarpentryItem) => i.id === def.id);
-        return existing || { id: def.id, cantidad: 0 } as ChecklistCarpentryItem;
-      });
-      const updatedItems = currentItems.map(item => {
-        if (item.id === itemId) {
-          const carpentryItem = item as ChecklistCarpentryItem;
-          if (unitIndex !== null && carpentryItem.units && carpentryItem.units.length > unitIndex) {
-            const updatedUnits = carpentryItem.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, videos } : unit
-            );
-            return { ...carpentryItem, units: updatedUnits };
-          } else {
-            return { ...carpentryItem, videos };
+            return { ...carpentryItem, photos, videos };
           }
         }
         return item;
@@ -349,7 +326,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
       onUpdate({ climatizationItems: updatedItems });
     }, [section.climatizationItems, onUpdate]);
 
-    const handleClimatizationPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
+    const handleClimatizationMediaChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[], videos: FileUpload[]) => {
       const existingClim = section.climatizationItems || [];
       const currentItems = CLIMATIZATION_ITEMS.map(def => {
         const existing = existingClim.find((i: ChecklistClimatizationItem) => i.id === def.id);
@@ -360,36 +337,11 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
           const climatizationItem = item as ChecklistClimatizationItem;
           if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
             const updatedUnits = climatizationItem.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, photos } : unit
+              idx === unitIndex ? { ...unit, photos, videos } : unit
             );
             return { ...climatizationItem, units: updatedUnits };
           } else {
-            return { ...climatizationItem, photos };
-          }
-        }
-        return item;
-      });
-      
-      console.log(`[EntradaPasillos] Calling onUpdate with climatizationItems:`, updatedItems.map(i => ({ id: i.id, cantidad: i.cantidad })));
-      onUpdate({ climatizationItems: updatedItems });
-    }, [section.climatizationItems, onUpdate]);
-
-    const handleClimatizationVideosChange = useCallback((itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
-      const existingClim = section.climatizationItems || [];
-      const currentItems = CLIMATIZATION_ITEMS.map(def => {
-        const existing = existingClim.find((i: ChecklistClimatizationItem) => i.id === def.id);
-        return existing || { id: def.id, cantidad: 0 } as ChecklistClimatizationItem;
-      });
-      const updatedItems = currentItems.map(item => {
-        if (item.id === itemId) {
-          const climatizationItem = item as ChecklistClimatizationItem;
-          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
-            const updatedUnits = climatizationItem.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, videos } : unit
-            );
-            return { ...climatizationItem, units: updatedUnits };
-          } else {
-            return { ...climatizationItem, videos };
+            return { ...climatizationItem, photos, videos };
           }
         }
         return item;
@@ -616,8 +568,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                                       description="Añade fotos o vídeos del problema"
                                       uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                       onUpdate={(updates) => {
-                                        handleCarpentryPhotosChange(item.id, index, updates.photos);
-                                        handleCarpentryVideosChange(item.id, index, updates.videos || []);
+                                        handleCarpentryMediaChange(item.id, index, updates.photos, updates.videos || []);
                                       }}
                                       isRequired={unitRequiresDetails}
                                       maxFiles={10}
@@ -686,8 +637,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                                 description="Añade fotos o vídeos del problema"
                                 uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: (item as ChecklistCarpentryItem).videos || [] }}
                                 onUpdate={(updates) => {
-                                  handleCarpentryPhotosChange(item.id, null, updates.photos);
-                                  handleCarpentryVideosChange(item.id, null, updates.videos || []);
+                                  handleCarpentryMediaChange(item.id, null, updates.photos, updates.videos || []);
                                 }}
                                 isRequired={true}
                                 maxFiles={10}
@@ -846,8 +796,7 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                                       description="Añade fotos o vídeos del problema"
                                       uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                       onUpdate={(updates) => {
-                                        handleClimatizationPhotosChange(item.id, index, updates.photos);
-                                        handleClimatizationVideosChange(item.id, index, updates.videos || []);
+                                        handleClimatizationMediaChange(item.id, index, updates.photos, updates.videos || []);
                                       }}
                                       isRequired={unitRequiresDetails}
                                       maxFiles={10}
@@ -917,10 +866,9 @@ export const EntradaPasillosSection = forwardRef<HTMLDivElement, EntradaPasillos
                               <ChecklistUploadZoneComponent
                                 title="Fotos y vídeos"
                                 description="Añade fotos o vídeos del problema"
-                                uploadZone={{ id: `${item.id}-photos`, photos: (item as ChecklistClimatizationItem).photos || [], videos: [] }}
+                                uploadZone={{ id: `${item.id}-photos`, photos: (item as ChecklistClimatizationItem).photos || [], videos: (item as ChecklistClimatizationItem).videos || [] }}
                                 onUpdate={(updates) => {
-                                  handleClimatizationPhotosChange(item.id, null, updates.photos);
-                                  handleClimatizationVideosChange(item.id, null, updates.videos || []);
+                                  handleClimatizationMediaChange(item.id, null, updates.photos ?? [], updates.videos ?? []);
                                 }}
                                 isRequired={true}
                                 maxFiles={10}

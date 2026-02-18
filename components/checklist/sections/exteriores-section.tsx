@@ -194,40 +194,11 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
       onUpdate({ [itemsKey]: updatedItems });
     }, [section.securityItems, section.systemsItems, onUpdate]);
 
-    // Generic handler for photos changes
-    const handlePhotosChange = useCallback((
+    // Generic handler for photos and videos changes (combined to avoid race condition in onUpdate)
+    const handleMediaChange = useCallback((
       itemId: string,
       unitIndex: number | null,
       photos: FileUpload[],
-      _items: (ChecklistSecurityItem | ChecklistSystemItem)[],
-      itemsKey: "securityItems" | "systemsItems"
-    ) => {
-      const itemsConfig = itemsKey === "securityItems" ? SECURITY_ITEMS : SYSTEMS_ITEMS;
-      const existingItems = (itemsKey === "securityItems" ? section.securityItems : section.systemsItems) || [];
-      const currentItems = itemsConfig.map(def => {
-        const existing = existingItems.find(i => i.id === def.id);
-        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
-      });
-      const updatedItems = currentItems.map(item => {
-        if (item.id === itemId) {
-          if (unitIndex !== null && item.units && item.units.length > unitIndex) {
-            const updatedUnits = item.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, photos } : unit
-            );
-            return { ...item, units: updatedUnits };
-          } else {
-            return { ...item, photos };
-          }
-        }
-        return item;
-      });
-      onUpdate({ [itemsKey]: updatedItems });
-    }, [section.securityItems, section.systemsItems, onUpdate]);
-
-    // Generic handler for videos changes
-    const handleVideosChange = useCallback((
-      itemId: string,
-      unitIndex: number | null,
       videos: FileUpload[],
       _items: (ChecklistSecurityItem | ChecklistSystemItem)[],
       itemsKey: "securityItems" | "systemsItems"
@@ -242,11 +213,11 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
         if (item.id === itemId) {
           if (unitIndex !== null && item.units && item.units.length > unitIndex) {
             const updatedUnits = item.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, videos } : unit
+              idx === unitIndex ? { ...unit, photos, videos } : unit
             );
             return { ...item, units: updatedUnits };
           } else {
-            return { ...item, videos };
+            return { ...item, photos, videos };
           }
         }
         return item;
@@ -384,8 +355,7 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
                                       description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
                                       uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                       onUpdate={(updates) => {
-                                        handlePhotosChange(item.id, index, updates.photos, items, itemsKey);
-                                        handleVideosChange(item.id, index, updates.videos || [], items, itemsKey);
+                                        handleMediaChange(item.id, index, updates.photos, updates.videos || [], items, itemsKey);
                                       }}
                                       isRequired={unitRequiresDetails}
                                       maxFiles={10}
@@ -449,8 +419,7 @@ export const ExterioresSection = forwardRef<HTMLDivElement, ExterioresSectionPro
                                 description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
                                 uploadZone={{ id: `${item.id}-photos`, photos: item.photos || [], videos: item.videos || [] }}
                                 onUpdate={(updates) => {
-                                  handlePhotosChange(item.id, null, updates.photos, items, itemsKey);
-                                  handleVideosChange(item.id, null, updates.videos || [], items, itemsKey);
+                                  handleMediaChange(item.id, null, updates.photos, updates.videos || [], items, itemsKey);
                                 }}
                                 isRequired={true}
                                 maxFiles={10}

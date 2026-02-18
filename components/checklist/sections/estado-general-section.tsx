@@ -184,32 +184,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
       onUpdate({ climatizationItems: updatedItems });
     }, [section.climatizationItems, onUpdate]);
 
-    const handleClimatizationPhotosChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[]) => {
-      const existingItems = section.climatizationItems || [];
-      const currentItems = CLIMATIZATION_ITEMS.map(def => {
-        const existing = existingItems.find(i => i.id === def.id);
-        return existing ? { ...existing } : { id: def.id, cantidad: 0 };
-      });
-      const updatedItems = currentItems.map(item => {
-        if (item.id === itemId) {
-          const climatizationItem = item as ChecklistClimatizationItem;
-          if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
-            // Update specific unit
-            const updatedUnits = climatizationItem.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, photos } : unit
-            );
-            return { ...climatizationItem, units: updatedUnits };
-          } else {
-            // Update single photos
-            return { ...climatizationItem, photos };
-          }
-        }
-        return item;
-      });
-      onUpdate({ climatizationItems: updatedItems });
-    }, [section.climatizationItems, onUpdate]);
-
-    const handleClimatizationVideosChange = useCallback((itemId: string, unitIndex: number | null, videos: FileUpload[]) => {
+    const handleClimatizationMediaChange = useCallback((itemId: string, unitIndex: number | null, photos: FileUpload[], videos: FileUpload[]) => {
       const existingItems = section.climatizationItems || [];
       const currentItems = CLIMATIZATION_ITEMS.map(def => {
         const existing = existingItems.find(i => i.id === def.id);
@@ -220,11 +195,11 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
           const climatizationItem = item as ChecklistClimatizationItem;
           if (unitIndex !== null && climatizationItem.units && climatizationItem.units.length > unitIndex) {
             const updatedUnits = climatizationItem.units.map((unit, idx) =>
-              idx === unitIndex ? { ...unit, videos } : unit
+              idx === unitIndex ? { ...unit, photos, videos } : unit
             );
             return { ...climatizationItem, units: updatedUnits };
           } else {
-            return { ...climatizationItem, videos };
+            return { ...climatizationItem, photos, videos };
           }
         }
         return item;
@@ -429,8 +404,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                                       description="Añade fotos o vídeos del problema o elemento que necesita reparación/reemplazo"
                                       uploadZone={{ id: `${item.id}-${index + 1}-photos`, photos: unit.photos || [], videos: unit.videos || [] }}
                                       onUpdate={(updates) => {
-                                        handleClimatizationPhotosChange(item.id, index, updates.photos);
-                                        handleClimatizationVideosChange(item.id, index, updates.videos || []);
+                                        handleClimatizationMediaChange(item.id, index, updates.photos, updates.videos || []);
                                       }}
                                       isRequired={unitRequiresDetails}
                                       maxFiles={10}
@@ -501,9 +475,9 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                               <ChecklistUploadZoneComponent
                                 title="Fotos"
                                 description="Añade fotos del problema o elemento que necesita reparación/reemplazo"
-                                uploadZone={{ id: `${item.id}-photos`, photos: (item as ChecklistClimatizationItem).photos || [], videos: [] }}
+                                uploadZone={{ id: `${item.id}-photos`, photos: (item as ChecklistClimatizationItem).photos || [], videos: (item as ChecklistClimatizationItem).videos || [] }}
                                 onUpdate={(updates) => {
-                                  handleClimatizationPhotosChange(item.id, null, updates.photos);
+                                  handleClimatizationMediaChange(item.id, null, updates.photos, updates.videos || []);
                                 }}
                                 isRequired={true}
                                 maxFiles={10}

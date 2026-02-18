@@ -69,34 +69,52 @@ export function ChecklistUploadZone({
     window.addEventListener('resize', checkMobileOrTablet);
     return () => window.removeEventListener('resize', checkMobileOrTablet);
   }, []);
+  // Single combined handler: updates both photos and videos in one onUpdate call.
+  // Batches updates when both change in quick succession (e.g. drag-drop of mixed files)
+  // to avoid the second call overwriting the first with stale state.
+  const pendingMediaRef = React.useRef<{ photos?: FileUpload[]; videos?: FileUpload[] }>({});
+  const flushTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushMediaUpdates = useCallback(() => {
+    const pending = pendingMediaRef.current;
+    if (Object.keys(pending).length === 0) return;
+    const current = uploadZoneRef.current;
+    const merged: ChecklistUploadZoneType = {
+      ...current,
+      ...(pending.photos !== undefined && { photos: pending.photos }),
+      ...(pending.videos !== undefined && { videos: pending.videos }),
+    };
+    pendingMediaRef.current = {};
+    flushTimeoutRef.current = null;
+    onUpdate(merged);
+  }, [onUpdate]);
+
+  const handleMediaChange = useCallback((updates: { photos?: FileUpload[]; videos?: FileUpload[] }) => {
+    Object.assign(pendingMediaRef.current, updates);
+    if (flushTimeoutRef.current === null) {
+      flushTimeoutRef.current = setTimeout(flushMediaUpdates, 0);
+    }
+  }, [flushMediaUpdates]);
+
   const handlePhotosChange = useCallback((files: FileUpload[]) => {
-    // Use ref to get latest uploadZone value to avoid stale closure
-    const currentUploadZone = uploadZoneRef.current;
     console.log('[ChecklistUploadZone] 📝 handlePhotosChange called:', {
       filesCount: files.length,
       files: files.map(f => ({ id: f.id, name: f.name, hasData: !!f.data, dataLength: f.data?.length || 0 })),
-      currentUploadZonePhotos: currentUploadZone.photos.length
     });
-    const updatedZone = {
-      ...currentUploadZone,
-      photos: files,
-    };
-    console.log('[ChecklistUploadZone] 📤 Calling onUpdate with:', {
-      zoneId: updatedZone.id,
-      photosCount: updatedZone.photos.length,
-      photos: updatedZone.photos.map(p => ({ id: p.id, name: p.name, hasData: !!p.data }))
-    });
-    onUpdate(updatedZone);
-  }, [onUpdate]);
+    handleMediaChange({ photos: files });
+  }, [handleMediaChange]);
 
   const handleVideosChange = useCallback((files: FileUpload[]) => {
-    // Use ref to get latest uploadZone value to avoid stale closure
-    const currentUploadZone = uploadZoneRef.current;
-    onUpdate({
-      ...currentUploadZone,
-      videos: files,
-    });
-  }, [onUpdate]);
+    handleMediaChange({ videos: files });
+  }, [handleMediaChange]);
+
+  React.useEffect(() => {
+    return () => {
+      if (flushTimeoutRef.current !== null) {
+        clearTimeout(flushTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Refs para inputs de galería separados (sin capture)
   const photoGalleryInputRef = React.useRef<HTMLInputElement>(null);
