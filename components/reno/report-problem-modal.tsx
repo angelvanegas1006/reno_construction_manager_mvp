@@ -12,8 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Ban, Lightbulb } from "lucide-react";
 import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
+import { cn } from "@/lib/utils";
+
+type ReportType = "blocker" | "idea";
 
 interface ReportProblemModalProps {
   open: boolean;
@@ -31,11 +34,16 @@ export function ReportProblemModal({
   onSuccess,
 }: ReportProblemModalProps) {
   const { user } = useSupabaseAuthContext();
+  const [reportType, setReportType] = useState<ReportType | null>(null);
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
+    if (!reportType) {
+      setError("Por favor, selecciona el tipo de reporte");
+      return;
+    }
     if (!message.trim()) {
       setError("Por favor, describe el problema");
       return;
@@ -66,6 +74,7 @@ export function ReportProblemModal({
             message: message.trim(),
             timestamp: timestamp,
             user: userInfo,
+            type: reportType,
           },
         }),
       });
@@ -75,6 +84,7 @@ export function ReportProblemModal({
       }
 
       // Success - reset form and close
+      setReportType(null);
       setMessage("");
       setError(null);
       onOpenChange(false);
@@ -89,6 +99,7 @@ export function ReportProblemModal({
 
   const handleClose = () => {
     if (!isSubmitting) {
+      setReportType(null);
       setMessage("");
       setError(null);
       onOpenChange(false);
@@ -110,6 +121,54 @@ export function ReportProblemModal({
             <Label htmlFor="property-name">Propiedad</Label>
             <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
               {propertyName}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>
+              ¿Qué tipo de reporte es? <span className="text-destructive">*</span>
+            </Label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setReportType("blocker");
+                  setError(null);
+                }}
+                disabled={isSubmitting}
+                className={cn(
+                  "flex flex-1 items-center gap-2 rounded-lg border-2 px-4 py-3 text-left transition-colors",
+                  reportType === "blocker"
+                    ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-600"
+                    : "border-border hover:border-amber-300 dark:hover:border-amber-800"
+                )}
+              >
+                <Ban className="h-5 w-5 text-amber-600 dark:text-amber-500" />
+                <div>
+                  <span className="font-medium">Blocker</span>
+                  <p className="text-xs text-muted-foreground">Bloquea mi trabajo del día de hoy</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setReportType("idea");
+                  setError(null);
+                }}
+                disabled={isSubmitting}
+                className={cn(
+                  "flex flex-1 items-center gap-2 rounded-lg border-2 px-4 py-3 text-left transition-colors",
+                  reportType === "idea"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-600"
+                    : "border-border hover:border-blue-300 dark:hover:border-blue-800"
+                )}
+              >
+                <Lightbulb className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+                <div>
+                  <span className="font-medium">Idea / Propuesta</span>
+                  <p className="text-xs text-muted-foreground">Mejora o sugerencia</p>
+                </div>
+              </button>
             </div>
           </div>
 
@@ -149,7 +208,7 @@ export function ReportProblemModal({
           <Button
             variant="destructive"
             onClick={handleSubmit}
-            disabled={isSubmitting || !message.trim()}
+            disabled={isSubmitting || !reportType || !message.trim()}
           >
             {isSubmitting ? "Enviando..." : "Enviar Reporte"}
           </Button>

@@ -129,15 +129,29 @@ export async function syncBudgetForProperty(
   const record = await base('Transactions').find(transactionsRecordId);
   const fieldKeys = Object.keys(record.fields);
 
+  // Campo "TECH - Budget Attachment (URLs)" (fldVOO4zqx5HUzIjz) - incluir variaciones de nombre
   const budgetFieldNames = fieldKeys.filter(
     (k) =>
       k === 'TECH - Budget Attachment (URLs)' ||
+      k === 'TECH – Budget Attachment (URLs)' || // en-dash
       k === BUDGET_ATTACHMENT_FIELD_ID ||
+      (k.toLowerCase().includes('tech') && k.toLowerCase().includes('budget')) ||
       (k.toLowerCase().includes('budget') && (k.toLowerCase().includes('attachment') || k.toLowerCase().includes('url')))
   );
 
   const allUrls: string[] = [];
-  const checkedFields = [BUDGET_ATTACHMENT_FIELD_ID, ...budgetFieldNames.filter((k) => k !== BUDGET_ATTACHMENT_FIELD_ID)];
+  // Prioridad: field ID, nombre exacto, luego variaciones
+  const checkedFields = [
+    BUDGET_ATTACHMENT_FIELD_ID,
+    'TECH - Budget Attachment (URLs)',
+    'TECH – Budget Attachment (URLs)',
+    ...budgetFieldNames.filter(
+      (k) =>
+        k !== BUDGET_ATTACHMENT_FIELD_ID &&
+        k !== 'TECH - Budget Attachment (URLs)' &&
+        k !== 'TECH – Budget Attachment (URLs)'
+    ),
+  ];
 
   for (const fieldKey of checkedFields) {
     const value = record.fields[fieldKey];
