@@ -1794,9 +1794,11 @@ export function useSupabaseChecklistBase({
           };
           if (el.condition !== undefined) clean.condition = el.condition;
           if (el.notes !== undefined) clean.notes = el.notes;
-          // Enviar siempre array para columnas TEXT[] (evitar null que puede fallar en algunos entornos)
-          clean.image_urls = Array.isArray(el.image_urls) && el.image_urls.length > 0 ? el.image_urls : [];
-          clean.video_urls = Array.isArray(el.video_urls) && el.video_urls.length > 0 ? el.video_urls : [];
+          // Solo URLs HTTP en el payload; base64/blob causa "Failed to fetch" por tamaño excesivo (>6MB)
+          const httpOnly = (urls: string[] | null | undefined) =>
+            (urls || []).filter(u => typeof u === 'string' && u.startsWith('http'));
+          clean.image_urls = httpOnly(el.image_urls);
+          clean.video_urls = httpOnly(el.video_urls);
           if (el.quantity !== undefined) clean.quantity = el.quantity;
           if (el.exists !== undefined) clean.exists = el.exists;
           return clean;

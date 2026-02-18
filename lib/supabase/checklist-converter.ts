@@ -233,13 +233,11 @@ export function convertUploadZonesToElements(
   uploadZones.forEach((uploadZone) => {
     // Crear elemento para fotos (siempre crear el elemento, incluso si está vacío)
     const allPhotos = (uploadZone.photos || []).filter(photo => photo.data && photo.data.length > 0);
-    // Incluir fotos HTTP preferentemente; si la subida falló (base64), preservar como fallback
+    // Solo persistir URLs HTTP; base64/blob en el payload causa "Failed to fetch" por tamaño excesivo
     const httpPhotos = allPhotos.filter(photo => photo.data!.startsWith('http'));
     const imageUrls = httpPhotos.length > 0
       ? httpPhotos.map(photo => photo.data!)
-      : allPhotos.length > 0
-        ? allPhotos.map(photo => photo.data!)
-        : null;
+      : null;
     
     console.log(`[convertUploadZonesToElements] Processing upload zone "${uploadZone.id}":`, {
       zoneId,
@@ -305,23 +303,14 @@ export function convertQuestionsToElements(
   const elements: ElementInsert[] = [];
 
   questions.forEach((question) => {
-    // Incluir fotos HTTP preferentemente; si la subida falló (base64), preservar como fallback
+    // Solo persistir URLs HTTP; base64/blob causa "Failed to fetch" por tamaño excesivo
     const allQPhotos = question.photos?.filter(photo => photo.data && photo.data.length > 0) || [];
     const httpQPhotos = allQPhotos.filter(photo => photo.data!.startsWith('http'));
-    const imageUrls = httpQPhotos.length > 0
-      ? httpQPhotos.map(photo => photo.data!)
-      : allQPhotos.length > 0
-        ? allQPhotos.map(photo => photo.data!)
-        : null;
+    const imageUrls = httpQPhotos.length > 0 ? httpQPhotos.map(photo => photo.data!) : null;
 
-    // Videos: misma lógica que fotos (HTTP preferido, fallback a blob/base64)
     const allQVideos = question.videos?.filter(video => video.data && video.data.length > 0) || [];
     const httpQVideos = allQVideos.filter(video => video.data!.startsWith('http'));
-    const videoUrls = httpQVideos.length > 0
-      ? httpQVideos.map(video => video.data!)
-      : allQVideos.length > 0
-        ? allQVideos.map(video => video.data!)
-        : null;
+    const videoUrls = httpQVideos.length > 0 ? httpQVideos.map(video => video.data!) : null;
 
     // Nota: badElements se puede incluir en notes si es necesario
     const notesWithBadElements = question.badElements && question.badElements.length > 0
@@ -397,14 +386,10 @@ export function convertItemsToElements(
     });
 
     if (item.cantidad === 1) {
-      // Un solo elemento — preservar fotos base64 como fallback si upload falló
+      // Solo persistir URLs HTTP; base64/blob causa "Failed to fetch" por tamaño excesivo
       const allItemPhotos = item.photos?.filter(photo => photo.data && photo.data.length > 0) || [];
       const httpItemPhotos = allItemPhotos.filter(photo => photo.data!.startsWith('http'));
-      const imageUrls = httpItemPhotos.length > 0
-        ? httpItemPhotos.map(photo => photo.data!)
-        : allItemPhotos.length > 0
-          ? allItemPhotos.map(photo => photo.data!)
-          : null;
+      const imageUrls = httpItemPhotos.length > 0 ? httpItemPhotos.map(photo => photo.data!) : null;
 
       // Nota: badElements se puede incluir en notes si es necesario
       const badElements = 'badElements' in item ? item.badElements : undefined;
@@ -440,14 +425,10 @@ export function convertItemsToElements(
     } else if (item.units && item.units.length > 0) {
       // Múltiples unidades - crear un elemento por unidad
       item.units.forEach((unit, index) => {
-        // Preservar fotos base64 como fallback si upload falló
+        // Solo persistir URLs HTTP; base64/blob causa "Failed to fetch" por tamaño excesivo
         const allUnitPhotos = unit.photos?.filter(photo => photo.data && photo.data.length > 0) || [];
         const httpUnitPhotos = allUnitPhotos.filter(photo => photo.data!.startsWith('http'));
-        const imageUrls = httpUnitPhotos.length > 0
-          ? httpUnitPhotos.map(photo => photo.data!)
-          : allUnitPhotos.length > 0
-            ? allUnitPhotos.map(photo => photo.data!)
-            : null;
+        const imageUrls = httpUnitPhotos.length > 0 ? httpUnitPhotos.map(photo => photo.data!) : null;
 
         // Nota: badElements se puede incluir en notes si es necesario
         const badElements = 'badElements' in unit ? unit.badElements : undefined;
@@ -513,22 +494,14 @@ export function convertMobiliarioToElements(
   // Crear mobiliario-detalle cuando hay question (estado + fotos/videos/notas), para que siempre se guarde el contenido multimedia
   if (mobiliario.question) {
     // Incluir fotos HTTP preferentemente; si la subida falló (base64), preservarlas como fallback
+    // Solo persistir URLs HTTP; base64/blob causa "Failed to fetch" por tamaño excesivo
     const allPhotosWithData = mobiliario.question.photos?.filter(photo => photo.data && photo.data.length > 0) || [];
     const httpPhotos = allPhotosWithData.filter(photo => photo.data!.startsWith('http'));
-    const imageUrls = httpPhotos.length > 0
-      ? httpPhotos.map(photo => photo.data!)
-      : allPhotosWithData.length > 0
-        ? allPhotosWithData.map(photo => photo.data!)
-        : null;
+    const imageUrls = httpPhotos.length > 0 ? httpPhotos.map(photo => photo.data!) : null;
 
-    // Videos: misma lógica HTTP-first
     const allVideosWithData = mobiliario.question.videos?.filter(video => video.data && video.data.length > 0) || [];
     const httpVideos = allVideosWithData.filter(video => video.data!.startsWith('http'));
-    const videoUrls = httpVideos.length > 0
-      ? httpVideos.map(video => video.data!)
-      : allVideosWithData.length > 0
-        ? allVideosWithData.map(video => video.data!)
-        : null;
+    const videoUrls = httpVideos.length > 0 ? httpVideos.map(video => video.data!) : null;
 
     // Log siempre visible para diagnosticar pérdida de fotos/videos en producción
     if (allPhotosWithData.length > 0 || allVideosWithData.length > 0) {
