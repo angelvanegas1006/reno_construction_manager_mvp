@@ -150,35 +150,56 @@ export function useFileUpload({
   const IMAGE_COMPRESS_THRESHOLD_BYTES = 1.5 * 1024 * 1024;
 
   const processFile = useCallback(async (file: File): Promise<FileUpload> => {
-    const resolvedType = inferMimeType(file);
-    const isImage = resolvedType.startsWith('image/') || file.type.startsWith('image/');
-    let isVideo = resolvedType.startsWith('video/') || file.type.startsWith('video/');
+    let currentFile = file;
+    const resolvedType = inferMimeType(currentFile);
+
+    // HEIC/HEIF → JPEG: Android y la mayoría de navegadores no soportan HEIC nativo.
+    // Convertir antes de leer como data URL para evitar imágenes corruptas.
+    const ext = currentFile.name.split('.').pop()?.toLowerCase() || '';
+    const isHeic = ext === 'heic' || ext === 'heif' ||
+      resolvedType === 'image/heic' || resolvedType === 'image/heif' ||
+      currentFile.type === 'image/heic' || currentFile.type === 'image/heif';
+    if (isHeic) {
+      try {
+        console.log(`[useFileUpload] 🔄 Converting HEIC to JPEG: ${currentFile.name} (${(currentFile.size / (1024*1024)).toFixed(1)}MB)`);
+        const heic2any = (await import('heic2any')).default;
+        const result = await heic2any({ blob: currentFile, toType: 'image/jpeg', quality: 0.92 });
+        const blob = Array.isArray(result) ? result[0] : result;
+        const jpegName = currentFile.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg');
+        currentFile = new File([blob], jpegName, { type: 'image/jpeg' });
+        console.log(`[useFileUpload] ✅ HEIC converted to JPEG: ${jpegName} (${(currentFile.size / (1024*1024)).toFixed(1)}MB)`);
+      } catch (heicErr) {
+        console.warn(`[useFileUpload] ⚠️ HEIC conversion failed, using original:`, heicErr);
+      }
+    }
+
+    const finalType = inferMimeType(currentFile);
+    const isImage = finalType.startsWith('image/') || currentFile.type.startsWith('image/');
+    let isVideo = finalType.startsWith('video/') || currentFile.type.startsWith('video/');
 
     // Fallback: archivos grandes sin tipo reconocido que no son imágenes → tratar como video.
-    // En móvil, capture="environment" a veces genera archivos sin type ni extensión.
-    if (!isVideo && !isImage && file.size > 5 * 1024 * 1024) {
-      console.log(`[useFileUpload] ⚠️ Large file without recognized type (${(file.size / (1024*1024)).toFixed(1)}MB), treating as video:`, file.name);
+    if (!isVideo && !isImage && currentFile.size > 5 * 1024 * 1024) {
+      console.log(`[useFileUpload] ⚠️ Large file without recognized type (${(currentFile.size / (1024*1024)).toFixed(1)}MB), treating as video:`, currentFile.name);
       isVideo = true;
     }
 
     // Videos: NO usar readAsDataURL (agota la memoria en movil para archivos grandes).
-    // Guardar el File original y usar blob URL para referencia en la UI.
     if (isVideo) {
-      const blobUrl = URL.createObjectURL(file);
+      const blobUrl = URL.createObjectURL(currentFile);
       const fileUpload: FileUpload = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: file.name,
-        type: resolvedType || file.type,
-        size: file.size,
+        name: currentFile.name,
+        type: finalType || currentFile.type,
+        size: currentFile.size,
         data: blobUrl,
         uploadedAt: new Date().toISOString(),
       };
-      videoFileStore.set(fileUpload.id, file);
-      console.log(`[useFileUpload] 🎥 Video stored with blob URL (${(file.size / (1024 * 1024)).toFixed(1)}MB):`, file.name);
+      videoFileStore.set(fileUpload.id, currentFile);
+      console.log(`[useFileUpload] 🎥 Video stored with blob URL (${(currentFile.size / (1024 * 1024)).toFixed(1)}MB):`, currentFile.name);
       return fileUpload;
     }
 
-    // Imagenes: usar readAsDataURL + compresion (archivos pequenos, necesitan preview inline)
+    // Imagenes: usar readAsDataURL + compresion
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = async () => {
@@ -190,16 +211,16 @@ export function useFileUpload({
         }
         const fileUpload: FileUpload = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          name: file.name,
-          type: resolvedType || file.type,
-          size: file.size,
+          name: currentFile.name,
+          type: finalType || currentFile.type,
+          size: currentFile.size,
           data,
           uploadedAt: new Date().toISOString(),
         };
         resolve(fileUpload);
       };
       reader.onerror = () => reject(new Error("Error al procesar el archivo"));
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(currentFile);
     });
   }, []);
 
