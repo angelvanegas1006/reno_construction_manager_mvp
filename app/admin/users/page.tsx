@@ -48,6 +48,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [syncingRoles, setSyncingRoles] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createUserLoading, setCreateUserLoading] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
@@ -163,15 +164,22 @@ export default function AdminUsersPage() {
   // Crear usuario
   const handleCreateUser = async () => {
     try {
+      setCreateUserLoading(true);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
       const response = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create user");
+        const errorData = await response.json().catch(() => ({ error: "Error desconocido" }));
+        throw new Error(errorData.error || "Error al crear usuario");
       }
 
       toast.success("Usuario creado exitosamente");
@@ -179,7 +187,14 @@ export default function AdminUsersPage() {
       setFormData({ email: "", password: "", name: "", role: "user", banned: false });
       loadUsers();
     } catch (error: any) {
-      toast.error("Error creando usuario: " + error.message);
+      const msg = error?.message || "";
+      let userMsg = msg;
+      if (msg.includes("fetch failed") || msg.includes("Failed to fetch") || msg.includes("aborted")) {
+        userMsg = "Error de conexión. Verifica tu internet o que el servidor esté activo.";
+      }
+      toast.error("Error creando usuario: " + userMsg);
+    } finally {
+      setCreateUserLoading(false);
     }
   };
 
@@ -412,8 +427,19 @@ export default function AdminUsersPage() {
                 >
                   Cancelar
                 </Button>
-                <Button onClick={handleCreateUser} className="w-full sm:w-auto order-1 sm:order-2">
-                  Crear
+                <Button
+                  onClick={handleCreateUser}
+                  disabled={createUserLoading}
+                  className="w-full sm:w-auto order-1 sm:order-2"
+                >
+                  {createUserLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Creando...
+                    </>
+                  ) : (
+                    "Crear"
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>

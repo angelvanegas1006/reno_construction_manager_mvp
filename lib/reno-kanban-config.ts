@@ -94,6 +94,42 @@ export const visibleRenoKanbanColumnsFromObraStart: RenoKanbanColumn[] =
       col.key !== "orphaned"
   );
 
+// Obra en curso: 5 fases con asignación a jefe de obra
+export const PHASES_OBRA_EN_CURSO: RenoKanbanPhase[] = [
+  "reno-in-progress",
+  "furnishing",
+  "final-check",
+  "pendiente-suministros",
+  "cleaning",
+];
+
+// Fases iniciales: desde upcoming-settlements hasta reno-budget-start
+export const PHASES_FASES_INICIALES: RenoKanbanPhase[] = [
+  "upcoming-settlements",
+  "initial-check",
+  "reno-budget-renovator",
+  "reno-budget-client",
+  "reno-budget-start",
+];
+
+export const visibleRenoKanbanColumnsObraEnCurso: RenoKanbanColumn[] =
+  renoKanbanColumns.filter(
+    (col) =>
+      PHASES_OBRA_EN_CURSO.includes(col.key) &&
+      col.key !== "reno-fixes" &&
+      col.key !== "done" &&
+      col.key !== "orphaned"
+  );
+
+export const visibleRenoKanbanColumnsFasesIniciales: RenoKanbanColumn[] =
+  renoKanbanColumns.filter(
+    (col) =>
+      PHASES_FASES_INICIALES.includes(col.key) &&
+      col.key !== "reno-fixes" &&
+      col.key !== "done" &&
+      col.key !== "orphaned"
+  );
+
 // Kanban Proyectos/WIP: 8 fases según Set Up Status (view viwz8q4V40BQwSO2N)
 export const PHASES_KANBAN_PROJECTS: RenoKanbanPhase[] = [
   "analisis-supply",

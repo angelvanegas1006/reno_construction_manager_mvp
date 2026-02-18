@@ -386,7 +386,7 @@ export function RenoPropertyCard({
         );
       })()}
 
-      {/* Asignar a jefe de obra (solo segundo kanban, fases obra en proceso → limpieza) */}
+      {/* Asignar a jefe de obra (kanban-projects, fases obra en proceso → limpieza) */}
       {fromParam === "kanban-projects" &&
         isPhaseWithSiteManagerAssignment(stage) &&
         onAssignSiteManager && (

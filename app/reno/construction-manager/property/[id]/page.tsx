@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useCallback, useState, useRef, use } from "react";
 import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -626,6 +627,7 @@ export default function RenoPropertyDetailPage() {
       case "tareas":
         // For furnishing and cleaning phases, show final check CTA
         if (currentPhase === "furnishing" || currentPhase === "cleaning") {
+          const isFinalCheckCompleted = inspectionFinal && (inspectionFinal.inspection_status === "completed" || inspectionFinal.completed_at != null);
           return (
             <div className="space-y-6">
               <PropertyActionTab 
@@ -666,20 +668,32 @@ export default function RenoPropertyDetailPage() {
                     {t.propertyAction.finalCheckDescription}
                   </p>
                   
-                  <Button
-                    onClick={() => {
-                      // Siempre pasar from y viewMode si viene del kanban
-                      const checklistUrl = (sourcePage === 'kanban' || sourcePage === 'kanban-projects')
-                        ? `/reno/construction-manager/property/${propertyId}/checklist?from=${sourcePage}&viewMode=${viewMode}`
-                        : `/reno/construction-manager/property/${propertyId}/checklist`;
-                      console.log("🔗 Property Detail - Navigating to checklist:", checklistUrl, "Source:", sourcePage, "ViewMode:", viewMode);
-                      router.push(checklistUrl);
-                    }}
-                    size="lg"
-                    className="mt-4 min-w-[200px]"
-                  >
-                    {t.propertyAction.openFinalChecklist}
-                  </Button>
+                  {isFinalCheckCompleted ? (
+                    <Button
+                      size="lg"
+                      className="mt-4 min-w-[200px]"
+                      asChild
+                    >
+                      <Link
+                        href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=reno_final${sourcePage ? `&from=${sourcePage}` : ""}${viewMode ? `&viewMode=${viewMode}` : ""}`}
+                      >
+                        {t.propertyAction.viewGeneratedReport}
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        const checklistUrl = (sourcePage === 'kanban' || sourcePage === 'kanban-projects')
+                          ? `/reno/construction-manager/property/${propertyId}/checklist?from=${sourcePage}&viewMode=${viewMode}`
+                          : `/reno/construction-manager/property/${propertyId}/checklist`;
+                        router.push(checklistUrl);
+                      }}
+                      size="lg"
+                      className="mt-4 min-w-[200px]"
+                    >
+                      {t.propertyAction.openFinalChecklist}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="lg"
@@ -703,8 +717,10 @@ export default function RenoPropertyDetailPage() {
         // For initial-check, final-check, or pendiente-suministros phases, show checklist CTA (pendiente-suministros: solo check final)
         if (currentPhase === "initial-check" || currentPhase === "final-check" || currentPhase === "pendiente-suministros") {
           const checklistType = (currentPhase === "final-check" || currentPhase === "pendiente-suministros") ? t.kanban.finalCheck : t.kanban.initialCheck;
+          const inspection = currentPhase === "initial-check" ? inspectionInitial : inspectionFinal;
+          const isChecklistCompleted = inspection && (inspection.inspection_status === "completed" || inspection.completed_at != null);
           // Checklist a medias: ya existe inspección → mostrar "Continuar checklist"
-          const hasChecklistStarted = currentPhase === "initial-check" ? !!inspectionInitial : !!inspectionFinal;
+          const hasChecklistStarted = !!inspection;
           // Check for date in both local state and supabase property
           const estimatedDate = localEstimatedVisitDate || (supabaseProperty as any)?.['Estimated Visit Date'] || property?.estimatedVisitDate;
           const hasEstimatedDate = !!estimatedDate;
@@ -788,24 +804,36 @@ export default function RenoPropertyDetailPage() {
                       : t.propertyAction.finalCheckDescription}
                   </p>
                   
-                  <Button
-                    onClick={() => {
-                      // Siempre pasar from y viewMode si viene del kanban
-                      const checklistUrl = (sourcePage === 'kanban' || sourcePage === 'kanban-projects')
-                        ? `/reno/construction-manager/property/${propertyId}/checklist?from=${sourcePage}&viewMode=${viewMode}`
-                        : `/reno/construction-manager/property/${propertyId}/checklist`;
-                      console.log("🔗 Property Detail - Navigating to checklist:", checklistUrl, "Source:", sourcePage, "ViewMode:", viewMode);
-                      router.push(checklistUrl);
-                    }}
-                    size="lg"
-                    className="mt-4 min-w-[200px]"
-                  >
-                    {hasChecklistStarted
-                      ? (t.propertySidebar.continueChecklist ?? "Continuar checklist")
-                      : currentPhase === "initial-check"
-                        ? t.propertyAction.openInitialChecklist
-                        : t.propertyAction.openFinalChecklist}
-                  </Button>
+                  {isChecklistCompleted ? (
+                    <Button
+                      size="lg"
+                      className="mt-4 min-w-[200px]"
+                      asChild
+                    >
+                      <Link
+                        href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=${currentPhase === "initial-check" ? "reno_initial" : "reno_final"}${sourcePage ? `&from=${sourcePage}` : ""}${viewMode ? `&viewMode=${viewMode}` : ""}`}
+                      >
+                        {t.propertyAction.viewGeneratedReport}
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        const checklistUrl = (sourcePage === 'kanban' || sourcePage === 'kanban-projects')
+                          ? `/reno/construction-manager/property/${propertyId}/checklist?from=${sourcePage}&viewMode=${viewMode}`
+                          : `/reno/construction-manager/property/${propertyId}/checklist`;
+                        router.push(checklistUrl);
+                      }}
+                      size="lg"
+                      className="mt-4 min-w-[200px]"
+                    >
+                      {hasChecklistStarted
+                        ? (t.propertySidebar.continueChecklist ?? "Continuar checklist")
+                        : currentPhase === "initial-check"
+                          ? t.propertyAction.openInitialChecklist
+                          : t.propertyAction.openFinalChecklist}
+                    </Button>
+                  )}
                   {/* Ocultar "Hacer check en Airtable" en revisión final (final-check, furnishing, cleaning, amueblamiento, etc.) */}
                   {currentPhase === "initial-check" && (
                     <Button
