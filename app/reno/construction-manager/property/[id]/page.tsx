@@ -950,6 +950,7 @@ export default function RenoPropertyDetailPage() {
                   onCanFinalizeChange={setCanFinalizeReno}
                   onFinalizeRef={(openModal) => { finalizeRenoRef.current = openModal; }}
                   onPhaseChanged={() => { refetch(); }}
+                  onBudgetSynced={() => refetch()}
                 />
               )}
             </>

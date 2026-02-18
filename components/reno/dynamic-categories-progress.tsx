@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Trash2, Calendar, Clock, Edit2, Download, ChevronDown, ChevronUp, Wrench, Image as ImageIcon, Video as VideoIcon, Camera } from 'lucide-react';
+import { Trash2, Calendar, Clock, Edit2, Download, ChevronDown, ChevronUp, Wrench, Image as ImageIcon, Video as VideoIcon, Camera, CloudDownload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
@@ -42,6 +42,8 @@ interface DynamicCategoriesProgressProps {
   onCanFinalizeChange?: (can: boolean) => void;
   onFinalizeRef?: (openModal: () => void) => void;
   onPhaseChanged?: () => void;
+  /** Llamar cuando se sincroniza budget desde Airtable (para que el padre refetch la propiedad) */
+  onBudgetSynced?: () => void | Promise<void>;
 }
 
 // Componente para mostrar los updates de una categoría
@@ -179,7 +181,7 @@ function extractCategoryOrderNumber(categoryName: string): number {
   return 9999; // Sin número, va al final
 }
 
-export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHasUnsavedChangesChange, onCanFinalizeChange, onFinalizeRef, onPhaseChanged }: DynamicCategoriesProgressProps) {
+export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHasUnsavedChangesChange, onCanFinalizeChange, onFinalizeRef, onPhaseChanged, onBudgetSynced }: DynamicCategoriesProgressProps) {
   const { t } = useI18n();
   const { categories, loading, saveAllProgress, deleteCategory, refetch } = useDynamicCategories(property.id);
   const supabase = createClient();
@@ -196,6 +198,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   // Estado para rastrear qué PDFs necesitan extracción de actividades (corner cases)
   const [pdfsNeedingExtraction, setPdfsNeedingExtraction] = useState<Set<number>>(new Set());
   const [extractingPdfs, setExtractingPdfs] = useState<Set<number>>(new Set()); // PDFs que se están procesando actualmente
+  const [isFetchingBudgetFromAirtable, setIsFetchingBudgetFromAirtable] = useState(false);
   const [isScheduleVisitOpen, setIsScheduleVisitOpen] = useState(false);
   const [visitDate, setVisitDate] = useState<string | undefined>(undefined);
   const [visitNotes, setVisitNotes] = useState("");
@@ -397,6 +400,32 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       });
     }
   }, [property.id, extractingPdfs, refetch]);
+
+  const handleFetchBudgetFromAirtable = useCallback(async () => {
+    if (isFetchingBudgetFromAirtable) return;
+    setIsFetchingBudgetFromAirtable(true);
+    try {
+      const res = await fetch('/api/sync-budget-from-airtable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId: property.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || 'No se encontró presupuesto en Airtable para esta propiedad');
+        return;
+      }
+      toast.success('Presupuesto sincronizado correctamente');
+      await onBudgetSynced?.();
+      await refetch();
+      toast.info('Las categorías se están extrayendo del presupuesto. Puede tardar unos minutos.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al obtener presupuesto';
+      toast.error(msg);
+    } finally {
+      setIsFetchingBudgetFromAirtable(false);
+    }
+  }, [property.id, isFetchingBudgetFromAirtable, onBudgetSynced, refetch, categories.length]);
 
   // Initialize local and saved percentages from categories
   useEffect(() => {
@@ -1295,7 +1324,15 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
         </div>
 
         {/* Lista de Categorías */}
-        <div className="space-y-4">
+        <div className="space-y-4 relative">
+          {isFetchingBudgetFromAirtable && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 rounded-lg">
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Obteniendo presupuesto de Airtable...</p>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <Label className="text-base font-semibold">Categorías</Label>
             {/* NO mostrar botón del header si hay categorías con actividades o si es corner case */}
@@ -1331,19 +1368,50 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                 </div>
               ) : (
                 <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    No hay categorías definidas para esta propiedad.
-                  </p>
-                  {property.budget_pdf_url ? (
-                    <p className="text-xs text-muted-foreground">
-                      {hasCategoriesWithoutActivities 
-                        ? "Las categorías existentes no tienen actividades. Haz clic en 'Re-extraer Información PDF' para procesar los PDFs nuevamente."
-                        : "Tienes un presupuesto PDF disponible. Haz clic en 'Extraer Información PDF' para crear las categorías automáticamente."}
-                    </p>
+                  {property.reno_phase === 'reno-in-progress' && !property.budget_pdf_url ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        No hay categorías definidas para esta propiedad.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Puedes obtener el presupuesto desde Airtable para extraer las categorías automáticamente.
+                      </p>
+                      <Button
+                        onClick={handleFetchBudgetFromAirtable}
+                        disabled={isFetchingBudgetFromAirtable}
+                        variant="default"
+                        className="w-full"
+                      >
+                        {isFetchingBudgetFromAirtable ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Obteniendo presupuesto...
+                          </>
+                        ) : (
+                          <>
+                            <CloudDownload className="mr-2 h-4 w-4" />
+                            Obtener Presupuesto de Airtable
+                          </>
+                        )}
+                      </Button>
+                    </>
                   ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Para crear categorías, necesitas tener un presupuesto PDF configurado en la propiedad (campo budget_pdf_url).
-                    </p>
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        No hay categorías definidas para esta propiedad.
+                      </p>
+                      {property.budget_pdf_url ? (
+                        <p className="text-xs text-muted-foreground">
+                          {hasCategoriesWithoutActivities 
+                            ? "Las categorías existentes no tienen actividades. Haz clic en 'Re-extraer Información PDF' para procesar los PDFs nuevamente."
+                            : "Tienes un presupuesto PDF disponible. Haz clic en 'Extraer Información PDF' para crear las categorías automáticamente."}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Para crear categorías, necesitas tener un presupuesto PDF configurado en la propiedad (campo budget_pdf_url).
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               )}
