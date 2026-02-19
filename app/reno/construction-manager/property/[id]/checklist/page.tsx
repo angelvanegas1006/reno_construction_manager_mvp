@@ -66,6 +66,7 @@ const CLIMATIZATION_ITEMS_SALON = [
 // Fases que usan checklist final (revisión final): ocultar botón "Enviar checklist" / "Hacer check en Airtable"
 const FINAL_CHECKLIST_PHASES: readonly string[] = [
   "final-check",
+  "final-check-post-suministros", // Viviendas asignadas al jefe de obra en Final Check: tarea = hacer check final
   "furnishing",
   "cleaning",
   "pendiente-suministros",
@@ -288,7 +289,7 @@ export default function RenoChecklistPage() {
 
   // Calculate phase and counts before any conditional returns
   const phase = property ? (getPropertyRenoPhase(property) || "initial-check") : null;
-  const isFinalCheck = phase === "final-check" || phase === "furnishing" || phase === "cleaning";
+  const isFinalCheck = phase === "final-check" || phase === "final-check-post-suministros" || phase === "furnishing" || phase === "cleaning";
   const habitacionesCount = checklist?.sections?.["habitaciones"]?.dynamicCount ?? propertyData?.habitaciones ?? 0;
   const banosCount = checklist?.sections?.["banos"]?.dynamicCount ?? propertyData?.banos ?? 0;
   
@@ -785,7 +786,7 @@ export default function RenoChecklistPage() {
     }
 
     const phase = getPropertyRenoPhase(property) || "initial-check";
-    const isFinalCheck = phase === "final-check" || phase === "furnishing" || phase === "cleaning";
+    const isFinalCheck = phase === "final-check" || phase === "final-check-post-suministros" || phase === "furnishing" || phase === "cleaning";
 
     switch (activeSection) {
       case "checklist-entorno-zonas-comunes":
@@ -1339,7 +1340,7 @@ export default function RenoChecklistPage() {
   const getFormTitle = () => {
     if (!property) return t.checklist.title;
     const currentPhase = getPropertyRenoPhase(property);
-    if (currentPhase === "final-check" || currentPhase === "furnishing" || currentPhase === "cleaning") return t.kanban.finalCheck;
+    if (currentPhase === "final-check" || currentPhase === "final-check-post-suministros" || currentPhase === "furnishing" || currentPhase === "cleaning") return t.kanban.finalCheck;
     if (currentPhase === "initial-check") return t.kanban.initialCheck;
     return t.checklist.title;
   };

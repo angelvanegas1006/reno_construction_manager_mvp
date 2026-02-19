@@ -589,7 +589,7 @@ export default function RenoPropertyDetailPage() {
         },
       });
     }
-    if (phase === "final-check" || phase === "pendiente-suministros") {
+    if (phase === "final-check" || phase === "pendiente-suministros" || phase === "final-check-post-suministros") {
       items.push({
         label: t.propertySidebar.completeFinalChecklist,
         onClick: () => {
@@ -719,9 +719,9 @@ export default function RenoPropertyDetailPage() {
           );
         }
         
-        // For initial-check, final-check, or pendiente-suministros phases, show checklist CTA (pendiente-suministros: solo check final)
-        if (currentPhase === "initial-check" || currentPhase === "final-check" || currentPhase === "pendiente-suministros") {
-          const checklistType = (currentPhase === "final-check" || currentPhase === "pendiente-suministros") ? t.kanban.finalCheck : t.kanban.initialCheck;
+        // For initial-check, final-check, pendiente-suministros, or final-check-post-suministros phases, show checklist CTA (final-check-post-suministros: tarea del jefe de obra = hacer check final)
+        if (currentPhase === "initial-check" || currentPhase === "final-check" || currentPhase === "pendiente-suministros" || currentPhase === "final-check-post-suministros") {
+          const checklistType = (currentPhase === "final-check" || currentPhase === "pendiente-suministros" || currentPhase === "final-check-post-suministros") ? t.kanban.finalCheck : t.kanban.initialCheck;
           const inspection = currentPhase === "initial-check" ? inspectionInitial : inspectionFinal;
           const isChecklistCompleted = inspection && (inspection.inspection_status === "completed" || inspection.completed_at != null);
           // Checklist a medias: ya existe inspección → mostrar "Continuar checklist"

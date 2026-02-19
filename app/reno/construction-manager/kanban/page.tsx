@@ -11,6 +11,7 @@ import { useI18n } from "@/lib/i18n";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { useRenoFilters } from "@/hooks/useRenoFilters";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
+import { getForemanEmailFromName } from "@/lib/supabase/user-name-utils";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
@@ -64,6 +65,7 @@ export default function RenoConstructionManagerKanbanPage() {
   
   // Use shared properties context instead of fetching independently
   const { allProperties, propertiesByPhase: rawPropertiesByPhase, refetchProperties, loading: propertiesLoading } = useRenoProperties();
+  const { filters, updateFilters, filterBadgeCount } = useRenoFilters();
 
   // Refetch al montar la página para evitar datos vacíos/antiguos (p. ej. si el primer fetch fue antes de que auth estuviera listo en local)
   useEffect(() => {
@@ -163,11 +165,60 @@ export default function RenoConstructionManagerKanbanPage() {
         (p) => !isProjectOrWip(p) || isAssignedToCurrentForeman(p)
       );
     }
+    // Foreman: show assigned Project/WIP from "final-check-post-suministros" in "final-check" column (that column is visible; final-check-post-suministros is not)
+    if (role === "foreman" && user?.email) {
+      const fromPostSuministros = (rawPropertiesByPhase["final-check-post-suministros"] || []).filter(
+        (p) => isProjectOrWip(p) && isAssignedToCurrentForeman(p)
+      );
+      const seenIds = new Set(empty["final-check"].map((p) => p.id));
+      for (const p of fromPostSuministros) {
+        if (!seenIds.has(p.id)) {
+          seenIds.add(p.id);
+          empty["final-check"].push(p);
+        }
+      }
+    }
+    // When filtering by jefe de obra (technicalConstructors), also include Project/WIP assigned to that jefe so they appear in the Units kanban
+    const selectedJefeEmails =
+      filters.technicalConstructors?.length > 0
+        ? new Set(
+            filters.technicalConstructors
+              .map((name) => getForemanEmailFromName(name))
+              .filter((e): e is string => e != null)
+              .map((e) => e.trim().toLowerCase())
+          )
+        : null;
+    if (selectedJefeEmails && selectedJefeEmails.size > 0) {
+      const isAssignedToSelectedJefe = (p: Property) => {
+        const assigned = (p as any).supabaseProperty?.assigned_site_manager_email;
+        if (!assigned) return false;
+        return selectedJefeEmails.has(String(assigned).trim().toLowerCase());
+      };
+      for (const phase of ALL_PHASES) {
+        const fromPhase = rawPropertiesByPhase[phase] || [];
+        const projectWipAssigned = fromPhase.filter((p) => isProjectOrWip(p) && isAssignedToSelectedJefe(p));
+        const seenInPhase = new Set(empty[phase].map((p) => p.id));
+        for (const p of projectWipAssigned) {
+          if (!seenInPhase.has(p.id)) {
+            seenInPhase.add(p.id);
+            empty[phase].push(p);
+          }
+        }
+      }
+      // Also include Project/WIP in "final-check-post-suministros" (not in ALL_PHASES) and show them in "final-check" column
+      const fromPostSuministros = (rawPropertiesByPhase["final-check-post-suministros"] || []).filter(
+        (p) => isProjectOrWip(p) && isAssignedToSelectedJefe(p)
+      );
+      const seenFinalCheck = new Set(empty["final-check"].map((p) => p.id));
+      for (const p of fromPostSuministros) {
+        if (!seenFinalCheck.has(p.id)) {
+          seenFinalCheck.add(p.id);
+          empty["final-check"].push(p);
+        }
+      }
+    }
     return empty;
-  }, [rawPropertiesByPhase, role, user?.email]);
-  
-  // Use unified filters hook
-  const { filters, updateFilters, filterBadgeCount } = useRenoFilters();
+  }, [rawPropertiesByPhase, role, user?.email, filters.technicalConstructors]);
   
   // Kanban 1: solo Unit, Building, Lot
   const kanbanFilters = {
