@@ -1066,6 +1066,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'furnishing': [],
       'final-check': [],
       'pendiente-suministros': [],
+      'final-check-post-suministros': [],
       'cleaning': [],
       'furnishing-cleaning': [], // Legacy
       'reno-fixes': [],

@@ -553,6 +553,7 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       'furnishing': 0,
       'final-check': 0,
       'pendiente-suministros': 0,
+      'final-check-post-suministros': 0,
       'cleaning': 0,
       'furnishing-cleaning': 0, // Legacy
       'reno-fixes': 0,
@@ -775,6 +776,7 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         'furnishing': 0,
         'final-check': 0,
         'pendiente-suministros': 0,
+        'final-check-post-suministros': 0,
         'cleaning': 0,
         'furnishing-cleaning': 0, // Legacy
         'reno-fixes': 0,

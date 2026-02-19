@@ -73,6 +73,7 @@ export function getSetUpStatusForPhase(phase: RenoKanbanPhase): string {
     'furnishing': 'Furnishing',
     'final-check': 'Final Check',
     'pendiente-suministros': 'Utilities activation',
+    'final-check-post-suministros': 'Final Check Post Suministros',
     'cleaning': 'Cleaning',
     'furnishing-cleaning': 'Cleaning & Furnishing', // Legacy
     'reno-fixes': 'Reno Fixes',

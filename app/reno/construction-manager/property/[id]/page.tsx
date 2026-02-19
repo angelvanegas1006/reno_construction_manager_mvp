@@ -1386,6 +1386,7 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "furnishing": t.kanban.furnishing,
     "final-check": t.kanban.finalCheck,
     "pendiente-suministros": t.kanban.pendienteSuministros,
+    "final-check-post-suministros": t.kanban.finalCheckPostSuministros,
     "cleaning": t.kanban.cleaning,
     "furnishing-cleaning": t.kanban.furnishingCleaning, // Legacy
     "reno-fixes": t.kanban.renoFixes,
