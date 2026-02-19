@@ -133,6 +133,7 @@ export default function RenoConstructionManagerKanbanPage() {
       "furnishing": [],
       "final-check": [],
       "pendiente-suministros": [],
+      "final-check-post-suministros": [],
       "cleaning": [],
       "furnishing-cleaning": [],
       "reno-fixes": [],

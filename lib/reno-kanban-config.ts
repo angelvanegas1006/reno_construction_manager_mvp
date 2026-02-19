@@ -13,6 +13,7 @@ export type RenoKanbanPhase =
   | "furnishing"
   | "final-check"
   | "pendiente-suministros" // Después de Revisión Final; Set Up Status = Utilities activation
+  | "final-check-post-suministros" // Solo en Kanban Proyectos/WIP; vista viw4S8L4DT1sSFbtO
   | "cleaning"
   | "furnishing-cleaning" // Legacy - kept for compatibility
   | "reno-fixes"
@@ -43,6 +44,7 @@ export interface RenoKanbanColumn {
     furnishing: string;
     finalCheck: string;
     pendienteSuministros: string;
+    finalCheckPostSuministros: string;
     cleaning: string;
     furnishingCleaning: string; // Legacy
     renoFixes: string;
@@ -64,15 +66,24 @@ export const renoKanbanColumns: RenoKanbanColumn[] = [
   { key: "furnishing", stage: "furnishing", translationKey: "furnishing" },
   { key: "final-check", stage: "final-check", translationKey: "finalCheck" },
   { key: "pendiente-suministros", stage: "pendiente-suministros", translationKey: "pendienteSuministros" },
+  { key: "final-check-post-suministros", stage: "final-check-post-suministros", translationKey: "finalCheckPostSuministros" },
   { key: "cleaning", stage: "cleaning", translationKey: "cleaning" },
   { key: "furnishing-cleaning", stage: "furnishing-cleaning", translationKey: "furnishingCleaning" }, // Legacy - hidden
   { key: "reno-fixes", stage: "reno-fixes", translationKey: "renoFixes" },
   { key: "done", stage: "done", translationKey: "done" },
 ];
 
-// Visible columns (excluding hidden phases)
+// Visible columns for Kanban Units/Buildings/Lots (excluding hidden phases and Final Check Post Suministros)
+// Final Check Post Suministros solo se muestra en Kanban Proyectos/WIP (visibleRenoKanbanColumnsObraEnCurso)
 export const visibleRenoKanbanColumns: RenoKanbanColumn[] = renoKanbanColumns.filter(
-  (column) => column.key !== "reno-fixes" && column.key !== "done" && column.key !== "orphaned" && column.key !== "reno-budget" && column.key !== "upcoming" && column.key !== "furnishing-cleaning" // Hide legacy phases
+  (column) =>
+    column.key !== "reno-fixes" &&
+    column.key !== "done" &&
+    column.key !== "orphaned" &&
+    column.key !== "reno-budget" &&
+    column.key !== "upcoming" &&
+    column.key !== "furnishing-cleaning" &&
+    column.key !== "final-check-post-suministros" // Solo en Kanban Proyectos/WIP
 );
 
 // Columns for "Kanban Proyectos / WIP": desde presupuesto (reno-budget) hasta cleaning (legacy, para otros usos)
@@ -94,12 +105,13 @@ export const visibleRenoKanbanColumnsFromObraStart: RenoKanbanColumn[] =
       col.key !== "orphaned"
   );
 
-// Obra en curso: 5 fases con asignación a jefe de obra
+// Obra en curso: 6 fases con asignación a jefe de obra (incl. Final Check Post Suministros)
 export const PHASES_OBRA_EN_CURSO: RenoKanbanPhase[] = [
   "reno-in-progress",
   "furnishing",
   "final-check",
   "pendiente-suministros",
+  "final-check-post-suministros",
   "cleaning",
 ];
 

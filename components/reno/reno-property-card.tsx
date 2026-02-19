@@ -26,8 +26,8 @@ interface RenoPropertyCardProps {
   showRenoDetails?: boolean; // Show reno-specific info (renovador, fechas, etc.)
   /** When "kanban-projects", show assign site manager in reno-in-progress, furnishing, final-check, cleaning */
   fromParam?: string;
-  /** Callback when assigning a jefe de obra (second kanban only); (propertyId, email | null) */
-  onAssignSiteManager?: (propertyId: string, email: string | null) => void;
+  /** Callback when assigning a jefe de obra (second kanban only); (propertyId, email | null, currentPhase?) */
+  onAssignSiteManager?: (propertyId: string, email: string | null, currentPhase?: RenoKanbanPhase) => void;
 }
 
 export function RenoPropertyCard({
@@ -50,13 +50,17 @@ export function RenoPropertyCard({
     stage === "reno-in-progress" ? property.id : null
   );
   
-  // Calculate average progress from dynamic categories
+  // Progreso = mismo criterio que la bola del header y "Progreso general" en la ficha: solo categorías con actividades
   const renoProgress = useMemo(() => {
     if (stage !== "reno-in-progress" || dynamicCategories.length === 0) {
       return null;
     }
-    const total = dynamicCategories.reduce((sum, cat) => sum + (cat.percentage || 0), 0);
-    return Math.round(total / dynamicCategories.length);
+    const withActivities = dynamicCategories.filter(
+      (cat) => cat.activities_text && String(cat.activities_text).trim().length > 0
+    );
+    if (withActivities.length === 0) return 100; // Sin categorías visibles → 100% (igual que bola y barra)
+    const total = withActivities.reduce((sum, cat) => sum + (cat.percentage || 0), 0);
+    return Math.round(total / withActivities.length);
   }, [stage, dynamicCategories]);
 
   // Calculate proximaActualizacion for reno-in-progress phase
@@ -392,7 +396,7 @@ export function RenoPropertyCard({
         onAssignSiteManager && (
           <AssignedSiteManagerSelect
             property={property}
-            onAssign={onAssignSiteManager}
+            onAssign={(id, email) => onAssignSiteManager(id, email, stage)}
             disabled={disabled}
           />
         )}
@@ -494,7 +498,7 @@ export function RenoPropertyCard({
             </div>
           )}
         </div>
-      ) : stage === "furnishing" || stage === "cleaning" || stage === "pendiente-suministros" ? (
+      ) : stage === "furnishing" || stage === "cleaning" || stage === "pendiente-suministros" || stage === "final-check-post-suministros" ? (
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">

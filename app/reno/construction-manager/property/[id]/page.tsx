@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useCallback, useState, useRef, use } from "react";
+import { useEffect, useCallback, useState, useRef, use, useMemo } from "react";
 import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -98,12 +98,17 @@ export default function RenoPropertyDetailPage() {
   const { inspection: inspectionInitial } = useSupabaseInspection(propertyId, "initial", !!propertyId);
   const { inspection: inspectionFinal } = useSupabaseInspection(propertyId, "final", !!propertyId);
   
-  // Calculate average progress from dynamic categories (for reno-in-progress phase)
-  const averageCategoriesProgress = dynamicCategories.length > 0
-    ? Math.round(
-        dynamicCategories.reduce((sum, cat) => sum + (cat.percentage || 0), 0) / dynamicCategories.length
-      )
-    : undefined;
+  // Progreso para la bola del header (y debe coincidir con la card y con "Progreso general" dentro de la ficha)
+  // Solo categorías con actividades_text (las que ve el usuario). Si hay categorías pero ninguna con actividades → 100%.
+  const averageCategoriesProgress = useMemo(() => {
+    if (dynamicCategories.length === 0) return undefined;
+    const withActivities = dynamicCategories.filter(
+      (cat) => cat.activities_text && String(cat.activities_text).trim().length > 0
+    );
+    if (withActivities.length === 0) return 100;
+    const total = withActivities.reduce((sum, cat) => sum + (cat.percentage || 0), 0);
+    return Math.round(total / withActivities.length);
+  }, [dynamicCategories]);
   
   // Convert Supabase property to Property format
   const property: Property | null = supabaseProperty ? convertSupabasePropertyToProperty(supabaseProperty) : null;

@@ -516,7 +516,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   }, [categories]);
 
   // Sort categories by their order number (extracted from category_name) - mantener para compatibilidad
-  // IMPORTANTE: Solo incluir categorías que tienen actividades_text
+  // IMPORTANTE: Solo incluir categorías que tienen actividades_text (las que ve el usuario)
   const sortedCategories = useMemo(() => {
     return [...categories]
       .filter(cat => cat.activities_text && cat.activities_text.trim().length > 0)
@@ -527,23 +527,30 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       });
   }, [categories]);
 
-  // Calculate global progress (average of all categories)
+  // Progreso general: solo categorías que el usuario VE (con actividades_text). Las categorías sin actividades no se muestran ni cuentan.
+  // Si todas las categorías visibles están al 100%, se muestra 100%. Si hay categorías en BD pero ninguna con actividades, 100% para poder avanzar.
   const globalProgress = useMemo(() => {
-    if (sortedCategories.length === 0) return 0;
+    if (sortedCategories.length === 0) {
+      return categories.length > 0 ? 100 : 0;
+    }
     const total = sortedCategories.reduce((sum, cat) => {
       const percentage = localPercentages[cat.id] ?? cat.percentage ?? 0;
       return sum + percentage;
     }, 0);
     return Math.round(total / sortedCategories.length);
-  }, [sortedCategories, localPercentages]);
+  }, [sortedCategories, localPercentages, categories.length]);
 
-  // Todas las categorías al 100% para mostrar "Dar obra por finalizada"
+  // Todas las categorías con actividades al 100% para mostrar "Dar obra por finalizada"
+  // Solo contar categorías que tienen activities_text (misma lógica que globalProgress y la barra arriba)
+  // Si no hay categorías visibles pero sí hay categorías en BD (todas sin actividades), permitir avanzar
   const allCategoriesAt100 = useMemo(() => {
-    if (categories.length === 0) return false;
-    return categories.every(
+    if (sortedCategories.length === 0) {
+      return categories.length > 0;
+    }
+    return sortedCategories.every(
       (cat) => (localPercentages[cat.id] ?? cat.percentage ?? 0) >= 100
     );
-  }, [categories, localPercentages]);
+  }, [sortedCategories, localPercentages, categories.length]);
 
   // Get minimum allowed value for a category (last saved value or 0)
   const getMinAllowedValue = useCallback((categoryId: string): number => {

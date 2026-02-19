@@ -55,6 +55,7 @@ function convertSupabasePropertyToKanbanProperty(
         'furnishing',
         'final-check',
         'pendiente-suministros',
+        'final-check-post-suministros',
         'cleaning',
         'furnishing-cleaning', // Legacy
         'reno-fixes',
@@ -370,6 +371,7 @@ export function useSupabaseKanbanProperties() {
         'furnishing': [],
         'final-check': [],
         'pendiente-suministros': [],
+        'final-check-post-suministros': [],
         'cleaning': [],
         'furnishing-cleaning': [],
         'reno-fixes': [],
@@ -402,6 +404,7 @@ export function useSupabaseKanbanProperties() {
       'furnishing': [],
       'final-check': [],
       'pendiente-suministros': [],
+      'final-check-post-suministros': [],
       'cleaning': [],
       'furnishing-cleaning': [], // Legacy
       'reno-fixes': [],
