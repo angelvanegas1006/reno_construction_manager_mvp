@@ -24,6 +24,7 @@ const PHASES_WITH_ASSIGNMENT: string[] = [
   "furnishing",
   "final-check",
   "pendiente-suministros",
+  "final-check-post-suministros",
   "cleaning",
 ];
 

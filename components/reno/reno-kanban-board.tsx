@@ -173,14 +173,19 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     });
   }, [router, viewMode, fromParam]);
 
-  const handleAssignSiteManager = useCallback(async (propertyId: string, email: string | null) => {
+  const handleAssignSiteManager = useCallback(async (propertyId: string, email: string | null, currentPhase?: RenoKanbanPhase) => {
     try {
+      const updates: { assigned_site_manager_email: string | null; updated_at: string; reno_phase?: string } = {
+        assigned_site_manager_email: email,
+        updated_at: new Date().toISOString(),
+      };
+      // When assigning from Final Check Post Suministros, move property to Units kanban in Final Check phase
+      if (currentPhase === "final-check-post-suministros") {
+        updates.reno_phase = "final-check";
+      }
       const { error } = await supabase
         .from("properties")
-        .update({
-          assigned_site_manager_email: email,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updates)
         .eq("id", propertyId);
       if (error) throw error;
       await refetchProperties();
@@ -214,6 +219,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "furnishing": [],
       "final-check": [],
       "pendiente-suministros": [],
+      "final-check-post-suministros": [],
       "cleaning": [],
       "furnishing-cleaning": [], // Legacy
       "reno-fixes": [],
@@ -383,6 +389,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "furnishing": sortFurnishingCleaningPhase("furnishing"),
       "final-check": sortFinalCheckPhase("final-check"),
       "pendiente-suministros": sortFinalCheckPhase("pendiente-suministros"),
+      "final-check-post-suministros": sortFinalCheckPhase("final-check-post-suministros"),
       "cleaning": sortFurnishingCleaningPhase("cleaning"),
       "furnishing-cleaning": sortFurnishingCleaningPhase("furnishing-cleaning"), // Legacy
       "reno-fixes": sortPropertiesByExpired(transformProperties["reno-fixes"] || []),
@@ -609,6 +616,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "furnishing": allProperties["furnishing"].filter(matchesAll),
       "final-check": allProperties["final-check"].filter(matchesAll),
       "pendiente-suministros": allProperties["pendiente-suministros"].filter(matchesAll),
+      "final-check-post-suministros": allProperties["final-check-post-suministros"].filter(matchesAll),
       "cleaning": allProperties["cleaning"].filter(matchesAll),
       "furnishing-cleaning": allProperties["furnishing-cleaning"].filter(matchesAll), // Legacy
       "reno-fixes": allProperties["reno-fixes"].filter(matchesAll),
@@ -741,6 +749,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       })(),
       "pendiente-suministros": (() => {
         const expiredFirst = sortPropertiesByExpired(filtered["pendiente-suministros"]);
+        return expiredFirst.sort((a, b) => {
+          const aDays = a.daysToPropertyReady ?? -Infinity;
+          const bDays = b.daysToPropertyReady ?? -Infinity;
+          return bDays - aDays;
+        });
+      })(),
+      "final-check-post-suministros": (() => {
+        const expiredFirst = sortPropertiesByExpired(filtered["final-check-post-suministros"]);
         return expiredFirst.sort((a, b) => {
           const aDays = a.daysToPropertyReady ?? -Infinity;
           const bDays = b.daysToPropertyReady ?? -Infinity;
@@ -895,6 +911,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "furnishing": [],
       "final-check": [],
       "pendiente-suministros": [],
+      "final-check-post-suministros": [],
       "cleaning": [],
       "furnishing-cleaning": [],
       "reno-fixes": [],
@@ -1049,6 +1066,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'furnishing': [],
       'final-check': [],
       'pendiente-suministros': [],
+      'final-check-post-suministros': [],
       'cleaning': [],
       'furnishing-cleaning': [], // Legacy
       'reno-fixes': [],

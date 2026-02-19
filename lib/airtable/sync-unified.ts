@@ -37,7 +37,13 @@ const PHASE_VIEWS: Array<{
     phase: 'pendiente-suministros',
     viewId: 'viwCFzKrVQSCc23zc',
     description: 'Pendiente de Suministros',
-    priority: 5.5, // Entre final-check (5) y cleaning (6)
+    priority: 5.5, // Entre final-check-post-suministros (5.25) y cleaning (6)
+  },
+  {
+    phase: 'final-check-post-suministros',
+    viewId: 'viw4S8L4DT1sSFbtO',
+    description: 'Final Check Post Suministros',
+    priority: 5.25, // Solo Kanban Proyectos/WIP; entre final-check (5) y pendiente-suministros (5.5)
   },
   {
     phase: 'final-check',
@@ -547,6 +553,7 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       'furnishing': 0,
       'final-check': 0,
       'pendiente-suministros': 0,
+      'final-check-post-suministros': 0,
       'cleaning': 0,
       'furnishing-cleaning': 0, // Legacy
       'reno-fixes': 0,
@@ -769,6 +776,7 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         'furnishing': 0,
         'final-check': 0,
         'pendiente-suministros': 0,
+        'final-check-post-suministros': 0,
         'cleaning': 0,
         'furnishing-cleaning': 0, // Legacy
         'reno-fixes': 0,

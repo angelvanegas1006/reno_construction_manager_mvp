@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { use } from "react";
@@ -41,8 +41,31 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
   }, [unwrappedSearchParams]);
 
   const { t } = useI18n();
-  const { propertiesByPhase: rawPropertiesByPhase } = useRenoProperties();
+  const { propertiesByPhase: rawPropertiesByPhase, refetchProperties } = useRenoProperties();
   const { filters, updateFilters, filterBadgeCount } = useRenoFilters();
+  const [syncAirtableLoading, setSyncAirtableLoading] = useState(false);
+
+  const handleSyncAirtable = useCallback(async () => {
+    setSyncAirtableLoading(true);
+    try {
+      const res = await fetch("/api/cron/sync-airtable", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Error al sincronizar");
+      }
+      toast.success(
+        data.success
+          ? `Sincronizado: ${data.totalUpdated ?? 0} actualizadas, ${data.totalCreated ?? 0} creadas`
+          : "Sincronización completada con errores"
+      );
+      await refetchProperties();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al sincronizar con Airtable";
+      toast.error(message);
+    } finally {
+      setSyncAirtableLoading(false);
+    }
+  }, [refetchProperties]);
 
   // Proteger ruta: solo admin y construction_manager. Foreman no tiene acceso.
   useEffect(() => {
@@ -79,6 +102,7 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
       "furnishing": [],
       "final-check": [],
       "pendiente-suministros": [],
+      "final-check-post-suministros": [],
       "cleaning": [],
       "furnishing-cleaning": [],
       "reno-fixes": [],
@@ -151,6 +175,11 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
           classNameTitle={t.nav.kanbanProjects}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          syncAirtableButton={{
+            label: "Sync con Airtable",
+            onClick: handleSyncAirtable,
+            loading: syncAirtableLoading,
+          }}
           onFilterClick={() => setIsFiltersOpen(true)}
           filterBadgeCount={filterBadgeCount}
           viewMode={viewMode}
