@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { Property } from "@/lib/property-storage";
+import { getSiteManagersList } from "@/lib/supabase/user-name-utils";
 import { useI18n } from "@/lib/i18n";
 
 export interface KanbanFilters {
@@ -47,6 +48,7 @@ export function RenoKanbanFilters({
     const renovatorNames = new Set<string>();
     const technicalConstructors = new Set<string>();
     const areaClusters = new Set<string>();
+    const siteManagers = getSiteManagersList();
 
     properties.forEach((property) => {
       // Renovator name - buscar en renovador o en supabaseProperty
@@ -69,6 +71,18 @@ export function RenoKanbanFilters({
       if (areaCluster && typeof areaCluster === 'string' && areaCluster.trim()) {
         areaClusters.add(areaCluster.trim());
       }
+
+      // Jefe de obra por asignación (assigned_site_manager_email) - para que aparezcan en el filtro aunque no tengan Technical construction
+      const assignedEmail = (property as any).supabaseProperty?.assigned_site_manager_email;
+      if (assignedEmail && typeof assignedEmail === 'string' && assignedEmail.trim()) {
+        const sm = siteManagers.find((s) => s.email.toLowerCase() === assignedEmail.trim().toLowerCase());
+        if (sm && sm.name?.trim()) technicalConstructors.add(sm.name.trim());
+      }
+    });
+
+    // Incluir todos los jefes de obra de la lista para que se puedan filtrar aunque no tengan propiedades con Technical construction
+    siteManagers.forEach((sm) => {
+      if (sm.name?.trim()) technicalConstructors.add(sm.name.trim());
     });
 
     return {

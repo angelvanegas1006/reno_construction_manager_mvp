@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { use } from 'react';
 import { getTechnicalConstructionNamesFromForemanEmail } from '@/lib/supabase/user-name-utils';
 import { logger } from '@/lib/utils/logger';
@@ -22,8 +22,26 @@ const log = logger.tagged('useRenoFilters');
  * Unified hook for managing filters in Reno Construction Manager
  * Handles URL synchronization, localStorage persistence, and filter conversion
  */
+const KANBAN_PATH = '/reno/construction-manager/kanban';
+const KANBAN_PROJECTS_PATH = '/reno/construction-manager/kanban-projects';
+const LAST_KANBAN_PATH_KEY = 'reno-last-kanban-path';
+
+const EMPTY_FILTERS: RenoFilters = {
+  renovatorNames: [],
+  technicalConstructors: [],
+  areaClusters: [],
+  delayedWorks: false,
+  propertyTypes: [],
+  foremanEmails: [],
+};
+
+function isKanbanPath(path: string) {
+  return path === KANBAN_PATH || path === KANBAN_PROJECTS_PATH;
+}
+
 export function useRenoFilters() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const unwrappedSearchParams = searchParams instanceof Promise ? use(searchParams) : searchParams;
 
@@ -49,16 +67,24 @@ export function useRenoFilters() {
       }
     }
 
-    // Default empty filters
-    return {
-      renovatorNames: [],
-      technicalConstructors: [],
-      areaClusters: [],
-      delayedWorks: false,
-      propertyTypes: [],
-      foremanEmails: [],
-    };
+    return { ...EMPTY_FILTERS };
   });
+
+  // Clear filters when switching between the two kanbans (Units vs Proyectos/WIP)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const current = typeof pathname === 'string' ? pathname : '';
+    if (!isKanbanPath(current)) return;
+    const lastPath = sessionStorage.getItem(LAST_KANBAN_PATH_KEY);
+    const switchedFromOtherKanban =
+      lastPath !== null &&
+      lastPath !== current &&
+      isKanbanPath(lastPath);
+    if (switchedFromOtherKanban) {
+      setFilters(() => ({ ...EMPTY_FILTERS }));
+    }
+    sessionStorage.setItem(LAST_KANBAN_PATH_KEY, current);
+  }, [pathname]);
 
   // Read foreman filter from URL params on mount
   useEffect(() => {
@@ -139,14 +165,7 @@ export function useRenoFilters() {
 
   // Reset filters
   const resetFilters = useCallback(() => {
-    setFilters({
-      renovatorNames: [],
-      technicalConstructors: [],
-      areaClusters: [],
-      delayedWorks: false,
-      propertyTypes: [],
-      foremanEmails: [],
-    });
+    setFilters({ ...EMPTY_FILTERS });
   }, []);
 
   // Get filter badge count (for UI display)

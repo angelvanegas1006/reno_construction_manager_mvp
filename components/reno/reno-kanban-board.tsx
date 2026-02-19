@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { getForemanEmailFromName } from "@/lib/supabase/user-name-utils";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { toast } from "sonner";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
@@ -179,8 +180,9 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
         assigned_site_manager_email: email,
         updated_at: new Date().toISOString(),
       };
-      // When assigning from Final Check Post Suministros, move property to Units kanban in Final Check phase
-      if (currentPhase === "final-check-post-suministros") {
+      // From vista de proyectos (kanban-projects): do NOT change reno_phase so the card stays in its column.
+      // From other views: when assigning from Final Check Post Suministros, move property to Final Check in Units kanban.
+      if (fromParam !== "kanban-projects" && currentPhase === "final-check-post-suministros") {
         updates.reno_phase = "final-check";
       }
       const { error } = await supabase
@@ -194,7 +196,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       const msg = err instanceof Error ? err.message : "Error al asignar";
       toast.error(msg);
     }
-  }, [supabase, refetchProperties, language]);
+  }, [supabase, refetchProperties, language, fromParam]);
 
   // Use properties from Supabase or override (e.g. kanban-projects)
   const transformProperties = useMemo(() => {
@@ -537,7 +539,8 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
         }
       }
 
-      // Si hay filtros de technical constructor, verificar si coincide con alguno
+      // Si hay filtros de technical constructor (jefe de obra), verificar si coincide con alguno.
+      // Incluir también Project/WIP asignados a ese jefe por assigned_site_manager_email.
       if (activeFilters.technicalConstructors.length > 0) {
         if (technicalConstructor) {
           const normalizedTechnical = normalizeString(technicalConstructor);
@@ -546,6 +549,17 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
             normalizedTechnical.includes(normalizeString(constructor)) ||
             normalizeString(constructor).includes(normalizedTechnical)
           );
+        }
+        if (!matchesTechnical && (propertyTypeNormalized === "project" || propertyTypeNormalized === "wip")) {
+          const assignedEmail = (property as any).supabaseProperty?.assigned_site_manager_email;
+          if (assignedEmail) {
+            const assignedNorm = String(assignedEmail).trim().toLowerCase();
+            const selectedEmails = activeFilters.technicalConstructors
+              .map((name) => getForemanEmailFromName(name))
+              .filter((e): e is string => e != null)
+              .map((e) => e.trim().toLowerCase());
+            if (selectedEmails.includes(assignedNorm)) matchesTechnical = true;
+          }
         }
       }
 
