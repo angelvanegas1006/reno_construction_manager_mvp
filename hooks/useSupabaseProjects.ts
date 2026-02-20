@@ -103,11 +103,10 @@ export function useSupabaseProjects(): UseSupabaseProjectsReturn {
   const fetchProjects = useCallback(async () => {
     setLoading(true);
     setError(null);
-    // Traer solo proyectos que NO están orphaned (no se muestran en el Kanban)
+    // Incluir también proyectos orphaned para que se cuenten en el Kanban
     const { data, error: e } = await supabase
       .from("projects")
-      .select("id, name, airtable_project_id, reno_phase, project_status, created_at, updated_at, investment_type, area_cluster, drive_folder, project_address, project_unique_id, type, renovator")
-      .neq("reno_phase", "orphaned");
+      .select("id, name, airtable_project_id, reno_phase, project_status, created_at, updated_at, investment_type, area_cluster, drive_folder, project_address, project_unique_id, type, renovator");
 
     if (e) {
       setError(e.message);

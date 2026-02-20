@@ -100,11 +100,9 @@ async function main() {
     const base = new Airtable({ apiKey: airtableKey }).base(airtableBaseId);
 
     try {
+      // No especificar fields para evitar "Unknown field name" (Projects usa "Project Name", no "Name")
       const records = await base(projectsTableId)
-        .select({
-          maxRecords: 5,
-          fields: ["Name", "Properties linked", "Linked properties", "Properties", "Transactions"],
-        })
+        .select({ maxRecords: 5 })
         .all();
 
       console.log(`   Proyectos leídos (primeros 5): ${records.length}`);
@@ -112,7 +110,7 @@ async function main() {
       for (let i = 0; i < records.length; i++) {
         const rec = records[i] as any;
         const f = rec.fields ?? {};
-        const name = f["Name"] ?? rec.id;
+        const name = f["Project Name"] ?? f["Name"] ?? f["name"] ?? rec.id;
         const linkedByPropLink =
           Array.isArray(f["Properties linked"]) && f["Properties linked"].length > 0
             ? f["Properties linked"]
@@ -170,25 +168,18 @@ async function main() {
   console.log("───────────────────────────");
   console.log(`
   Flujo actual:
-  a) Sync propiedades (sync unificado): lee tabla Transactions (tblmX19OTsj3cTHmA).
+  a) Sync proyectos: lee tabla Projects; marca orphaned los que no están en la vista.
+  b) Sync propiedades (sync unificado): lee tabla Transactions (tblmX19OTsj3cTHmA).
      - Guarda airtable_property_id = record.id (Transaction ID).
      - Guarda airtable_properties_record_id = primer ID del link "Properties" (Property ID).
-  b) Sync proyectos: lee tabla Projects con la vista configurada; marca orphaned los que no están.
-  c) Enlace: lee Projects (campo "Properties linked" / "Properties" / "Transactions").
-     - Para cada proyecto, toma los IDs enlazados.
-     - Actualiza properties: project_id = supabase_project_id donde
-       airtable_properties_record_id IN (ids) O airtable_property_id IN (ids).
+     - project_id: se asigna vía "Project name" (fldYKVjNcqyR6ZSvN) lookup de Transactions.
+       Se busca el nombre en projects.name (normalizado) y se asigna el id del proyecto.
+  c) Ya NO se usa linkPropertiesToProjectsFromAirtable (eliminado para evitar lentitud).
 
-  Si el enlace no cuadra:
-  - En Airtable, el campo que enlaza proyectos a registros puede llamarse "Properties linked",
-    "Properties", "Transactions", etc. El script de enlace prueba varios nombres.
-  - Si el link en Projects es a la tabla TRANSACTIONS, los IDs son de Transaction → deben
-    coincidir con airtable_property_id en Supabase.
-  - Si el link en Projects es a la tabla PROPERTIES, los IDs son de Property → deben
-    coincidir con airtable_properties_record_id en Supabase.
-  - Las propiedades deben haberse sincronizado antes (sync unificado) para tener
-    airtable_property_id y/o airtable_properties_record_id.
-  - Solo se enlaza a proyectos NO orphaned (getAirtableProjectIdToSupabaseIdMap excluye reno_phase = 'orphaned').
+  Si project_id no se asigna:
+  - Verificar que Transactions tenga "Project name" rellenado en los registros.
+  - El nombre debe coincidir con projects.name en Supabase (insensible a mayúsculas).
+  - Solo proyectos NO orphaned están en el mapa project_name → id.
 `);
 
   console.log("\n--- Fin del diagnóstico ---\n");
