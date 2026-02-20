@@ -1,7 +1,8 @@
 /**
  * Sincronización de proyectos desde Airtable a Supabase.
  * Requiere AIRTABLE_PROJECTS_TABLE_ID en env (ID de la tabla de proyectos en Airtable).
- * Transactions tiene "Project Name" (fldYKVjNcqyR6ZSvN) lookup → Properties → Projects.
+ * Transactions: "Project name" (fldYKVjNcqyR6ZSvN) lookup → Properties → Projects.
+ * Projects: "Project Name" (fldivXm0vlDYdNHpC).
  * Projects tiene "Properties linked" (linked a Properties). Relación en Supabase: properties.project_id.
  *
  * Campos Airtable Projects (por nombre en API; IDs de referencia):
@@ -150,7 +151,7 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
       const name =
         getField<string>(f, 'Name', 'name', 'Project Name', 'Title') ?? null;
       const phaseRaw =
-        getField<string>(f, 'Set Up Status', 'Project status', 'Phase', 'Status', 'Stage') ?? null;
+        getField<string>(f, 'Project status', 'Set Up Status', 'Phase', 'Status', 'Stage') ?? null;
       let reno_phase = mapSetUpStatusToProjectPhase(phaseRaw);
       if (!reno_phase) reno_phase = 'obra-en-progreso';
       records.push({
@@ -295,19 +296,49 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
 
 /**
  * Devuelve un Map airtable_project_id -> supabase project id para usar al mapear propiedades.
- * Excluye proyectos orphaned (no están en la vista de Airtable) para no enlazar a ellos.
+ * Incluye proyectos orphaned para que las propiedades puedan enlazarse a ellos.
  */
 export async function getAirtableProjectIdToSupabaseIdMap(): Promise<Map<string, string>> {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from('projects')
-    .select('id, airtable_project_id, reno_phase')
-    .not('airtable_project_id', 'is', null)
-    .neq('reno_phase', 'orphaned');
+    .select('id, airtable_project_id')
+    .not('airtable_project_id', 'is', null);
   const map = new Map<string, string>();
-  data?.forEach((row: { id: string; airtable_project_id: string | null; reno_phase?: string | null }) => {
-    if (row.airtable_project_id && row.reno_phase !== 'orphaned') {
+  data?.forEach((row: { id: string; airtable_project_id: string | null }) => {
+    if (row.airtable_project_id) {
       map.set(row.airtable_project_id, row.id);
+    }
+  });
+  return map;
+}
+
+/**
+ * Normaliza un nombre de proyecto para búsqueda insensible a mayúsculas/espacios.
+ * Exportado para uso en sync-unified al resolver project_id por nombre.
+ */
+export function normalizeProjectName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/**
+ * Devuelve un Map project_name (normalizado) -> supabase project id.
+ * Usado para enlazar properties.project_id desde el lookup "Project Name" de Transactions.
+ * Incluye proyectos orphaned para que las propiedades puedan enlazarse a ellos.
+ */
+export async function getProjectNameToSupabaseIdMap(): Promise<Map<string, string>> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from('projects')
+    .select('id, name')
+    .not('name', 'is', null);
+  const map = new Map<string, string>();
+  data?.forEach((row: { id: string; name: string | null }) => {
+    if (row.name && row.name.trim()) {
+      const normalized = normalizeProjectName(row.name);
+      if (!map.has(normalized)) {
+        map.set(normalized, row.id);
+      }
     }
   });
   return map;

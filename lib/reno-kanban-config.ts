@@ -142,28 +142,24 @@ export const visibleRenoKanbanColumnsFasesIniciales: RenoKanbanColumn[] =
       col.key !== "orphaned"
   );
 
-// Kanban Proyectos/WIP: 8 fases según Set Up Status (view viwz8q4V40BQwSO2N)
+// Kanban Proyectos L1: 5 fases según Project status (Airtable) + orphaned (fuera de vista)
 export const PHASES_KANBAN_PROJECTS: RenoKanbanPhase[] = [
-  "analisis-supply",
-  "analisis-reno",
-  "administracion-reno",
   "pendiente-presupuestos-renovador",
   "obra-a-empezar",
   "obra-en-progreso",
   "amueblamiento",
   "check-final",
+  "orphaned",
 ];
 
-/** Etiquetas de columnas del Kanban Proyectos (izq. del ; en la especificación) */
+/** Etiquetas de columnas del Kanban Proyectos L1 */
 export const PROJECT_KANBAN_PHASE_LABELS: Record<string, string> = {
-  "analisis-supply": "Analísis de Supply",
-  "analisis-reno": "Analísis Reno",
-  "administracion-reno": "Administración de Reno",
-  "pendiente-presupuestos-renovador": "Pendiente Presupuestos Renovador",
+  "pendiente-presupuestos-renovador": "Pendiente Presupuestos (Renovador)",
   "obra-a-empezar": "Obra a Empezar",
   "obra-en-progreso": "Obra en Progreso",
   "amueblamiento": "Amueblamiento",
-  "check-final": "Check Final",
+  "check-final": "Revisión Final",
+  orphaned: "Fuera de vista (Orphaned)",
 };
 
 export const visibleRenoKanbanColumnsProjects: RenoKanbanColumn[] = PHASES_KANBAN_PROJECTS.map(
@@ -178,15 +174,9 @@ export const visibleRenoKanbanColumnsProjects: RenoKanbanColumn[] = PHASES_KANBA
 /** View ID de Airtable para sincronizar proyectos (única fuente) */
 export const AIRTABLE_PROJECTS_VIEW_ID = "viwz8q4V40BQwSO2N";
 
-/** Mapeo Set Up Status / Project status (Airtable) → reno_phase (Supabase) */
+/** Mapeo Project status (Airtable) → reno_phase (Supabase) para Kanban Proyectos L1 */
 export const SET_UP_STATUS_TO_PROJECT_PHASE: Record<string, RenoKanbanPhase> = {
-  "Get Project Draft": "analisis-supply",
-  "Pending to reserve (arras)": "analisis-supply",
-  "Pending to validate": "analisis-reno",
-  "Technical project in progress": "administracion-reno",
-  "Ecu first validation": "administracion-reno",
-  "Technical project fine-tuning": "administracion-reno",
-  "Ecu final validation": "administracion-reno",
+  "Pending to budget (from renovator)": "pendiente-presupuestos-renovador",
   "Pending to budget from renovator": "pendiente-presupuestos-renovador",
   "Pending to start reno": "obra-a-empezar",
   "Reno in progress": "obra-en-progreso",

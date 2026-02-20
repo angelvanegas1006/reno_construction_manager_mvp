@@ -11,17 +11,22 @@ import { RenoKanbanFilters } from "@/components/reno/reno-kanban-filters";
 import { useI18n } from "@/lib/i18n";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { useRenoFilters } from "@/hooks/useRenoFilters";
+import { useSupabaseProjects } from "@/hooks/useSupabaseProjects";
+import { usePropertiesByProjectId } from "@/hooks/usePropertiesByProjectId";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import {
   visibleRenoKanbanColumnsObraEnCurso,
+  visibleRenoKanbanColumnsProjects,
   PHASES_OBRA_EN_CURSO,
+  PHASES_KANBAN_PROJECTS,
 } from "@/lib/reno-kanban-config";
 import type { Property } from "@/lib/property-storage";
 
 type ViewMode = "kanban" | "list";
+type ViewLevel = "project" | "property"; // L1 = project, L2 = property
 
 export default function RenoConstructionManagerKanbanProjectsPage() {
   const searchParams = useSearchParams();
@@ -31,6 +36,7 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
+  const [viewLevel, setViewLevel] = useState<ViewLevel>("project");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   useEffect(() => {
@@ -42,6 +48,8 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
 
   const { t } = useI18n();
   const { propertiesByPhase: rawPropertiesByPhase, refetchProperties } = useRenoProperties();
+  const { projectsByPhase: projectsByPhaseRaw, refetch: refetchProjects } = useSupabaseProjects();
+  const { propertiesByProjectId, refetch: refetchPropertiesByProjectId } = usePropertiesByProjectId();
   const { filters, updateFilters, filterBadgeCount } = useRenoFilters();
   const [syncAirtableLoading, setSyncAirtableLoading] = useState(false);
 
@@ -59,13 +67,15 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
           : "Sincronización completada con errores"
       );
       await refetchProperties();
+      await refetchProjects();
+      await refetchPropertiesByProjectId();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error al sincronizar con Airtable";
       toast.error(message);
     } finally {
       setSyncAirtableLoading(false);
     }
-  }, [refetchProperties]);
+  }, [refetchProperties, refetchProjects, refetchPropertiesByProjectId]);
 
   // Proteger ruta: solo admin y construction_manager. Foreman no tiene acceso.
   useEffect(() => {
@@ -147,6 +157,9 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
     return list;
   }, [rawPropertiesByPhase]);
 
+  // L1: proyectos agrupados por fase (useSupabaseProjects ya filtra por PHASES_KANBAN_PROJECTS)
+  const projectsByPhaseOverride = projectsByPhaseRaw;
+
   const kanbanFilters = useMemo(
     () => ({
       renovatorNames: filters.renovatorNames,
@@ -186,6 +199,37 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
           onViewModeChange={setViewMode}
         />
 
+        {/* Toggle Proyectos L1 / Unidades L2 */}
+        <div className="flex items-center gap-2 px-4 md:px-3 lg:px-4 py-2 border-b bg-card/50">
+          <span className="text-sm text-muted-foreground">Vista:</span>
+          <div className="flex items-center gap-1 bg-accent dark:bg-[var(--prophero-gray-800)] rounded-lg p-1">
+            <button
+              onClick={() => setViewLevel("project")}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                viewLevel === "project"
+                  ? "bg-[var(--prophero-blue-500)] text-white"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-label="Proyectos L1"
+            >
+              Proyectos L1
+            </button>
+            <button
+              onClick={() => setViewLevel("property")}
+              className={cn(
+                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                viewLevel === "property"
+                  ? "bg-[var(--prophero-blue-500)] text-white"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              aria-label="Unidades L2"
+            >
+              Unidades L2
+            </button>
+          </div>
+        </div>
+
         <div
           className={cn(
             "flex-1 p-2 md:p-3 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]",
@@ -198,8 +242,13 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
             filters={kanbanFilters}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            propertiesByPhaseOverride={propertiesByPhaseOverride}
-            visibleColumnsOverride={visibleRenoKanbanColumnsObraEnCurso}
+            viewLevel={viewLevel}
+            propertiesByPhaseOverride={viewLevel === "property" ? propertiesByPhaseOverride : undefined}
+            projectsByPhaseOverride={viewLevel === "project" ? projectsByPhaseOverride : undefined}
+            propertiesByProjectId={viewLevel === "project" ? propertiesByProjectId : undefined}
+            visibleColumnsOverride={
+              viewLevel === "project" ? visibleRenoKanbanColumnsProjects : visibleRenoKanbanColumnsObraEnCurso
+            }
             fromParam="kanban-projects"
           />
         </div>

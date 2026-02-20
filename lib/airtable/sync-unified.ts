@@ -11,7 +11,7 @@
 import { fetchPropertiesFromAirtable } from './sync-from-airtable';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { RenoKanbanPhase } from '@/lib/reno-kanban-config';
-import { syncProjectsFromAirtable, getAirtableProjectIdToSupabaseIdMap, linkPropertiesToProjectsFromAirtable } from './sync-projects';
+import { syncProjectsFromAirtable, getAirtableProjectIdToSupabaseIdMap, getProjectNameToSupabaseIdMap, normalizeProjectName } from './sync-projects';
 
 // Importar función de mapeo desde sync-from-airtable
 // Necesitamos acceder a la función interna, así que la copiamos aquí temporalmente
@@ -183,14 +183,17 @@ async function fetchAllPropertiesFromAllViews(): Promise<PropertyPhaseMapping[]>
   return allMappings;
 }
 
-const PROPERTY_TYPES_WITH_PROJECT = ['Project', 'WIP', 'New Build'];
-
 /**
  * Mapea propiedades de Airtable a formato Supabase
  * Usa la misma lógica que sync-from-airtable.ts para mantener consistencia
- * projectMap: airtable_project_id -> supabase project id (solo para type Project/WIP/New Build)
+ * projectMap: airtable_project_id -> supabase project id (para record IDs)
+ * projectNameMap: project_name (normalizado) -> supabase project id (para lookup "Project name" de Transactions)
  */
-function mapAirtablePropertyToSupabase(airtableProperty: any, projectMap?: Map<string, string>): any {
+function mapAirtablePropertyToSupabase(
+  airtableProperty: any,
+  projectMap?: Map<string, string>,
+  projectNameMap?: Map<string, string>
+): any {
   const fields = airtableProperty.fields;
   
   const uniqueIdValue = 
@@ -230,17 +233,26 @@ function mapAirtablePropertyToSupabase(airtableProperty: any, projectMap?: Map<s
   const address = addressValue || '';
   const type = getFieldValue('Type') || null;
 
+  // project_id: asignar a CUALQUIER propiedad que tenga "Project name" en Transactions
+  // (Units, Buildings, etc. pertenecen a un proyecto y deben tener project_id)
   let project_id: string | null = null;
   const projectField = process.env.AIRTABLE_PROPERTY_PROJECT_FIELD || 'Project';
-  if (type && PROPERTY_TYPES_WITH_PROJECT.includes(String(type).trim()) && projectMap) {
-    const airtableProjectLink =
+  if (projectMap || projectNameMap) {
+    // Transactions: "Project name" (fldYKVjNcqyR6ZSvN) - lookup a Properties → Projects
+    // Projects: "Project Name" (fldivXm0vlDYdNHpC)
+    const projectNameOrId =
+      getFieldValue('Project name', ['Project name', 'fldYKVjNcqyR6ZSvN']) ??
       getFieldValue(projectField) ??
-      getFieldValue('Project Name') ??
+      getFieldValue('Project Name', ['Project Name', 'fldivXm0vlDYdNHpC']) ??
       getFieldValue('Projects') ??
       getFieldValue('Parent Project');
-    const airtableProjectId = Array.isArray(airtableProjectLink) ? airtableProjectLink[0] : airtableProjectLink;
-    if (airtableProjectId && typeof airtableProjectId === 'string') {
-      project_id = projectMap.get(airtableProjectId) ?? null;
+    const raw = Array.isArray(projectNameOrId) ? projectNameOrId[0] : projectNameOrId;
+    if (raw && typeof raw === 'string') {
+      if (raw.startsWith('rec')) {
+        project_id = projectMap?.get(raw) ?? null;
+      } else if (projectNameMap) {
+        project_id = projectNameMap.get(normalizeProjectName(raw)) ?? null;
+      }
     }
   }
 
@@ -578,6 +590,7 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       console.log('[Unified Sync] Projects:', projectSyncResult);
     }
     const projectMap = await getAirtableProjectIdToSupabaseIdMap();
+    const projectNameMap = await getProjectNameToSupabaseIdMap();
 
     // Paso 1: Obtener todas las propiedades de todas las vistas
     const propertyMappings = await fetchAllPropertiesFromAllViews();
@@ -634,7 +647,7 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
     
     for (const mapping of propertyMappings) {
       try {
-        const supabaseData = mapAirtablePropertyToSupabase(mapping.propertyData, projectMap);
+        const supabaseData = mapAirtablePropertyToSupabase(mapping.propertyData, projectMap, projectNameMap);
         const exists = existingPropertyIds.has(mapping.propertyId);
 
         // La fase viene de la vista con mayor prioridad donde aparece la propiedad.
@@ -745,17 +758,8 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       console.log('[Unified Sync] ✅ No properties to move to orphaned');
     }
 
-    // Paso 6: Vincular propiedades a proyectos desde Airtable Projects."Properties linked"
-    try {
-      const linkResult = await linkPropertiesToProjectsFromAirtable();
-      if (linkResult.linked > 0 || linkResult.errors > 0) {
-        console.log('[Unified Sync] Project links:', linkResult);
-        result.details.push(`Project links: ${linkResult.linked} properties linked, ${linkResult.errors} errors`);
-      }
-    } catch (linkErr: unknown) {
-      console.error('[Unified Sync] Error linking properties to projects:', linkErr);
-      result.details.push('Error linking properties to projects');
-    }
+    // project_id se asigna durante mapAirtablePropertyToSupabase vía Project name (lookup Transactions)
+    // linkPropertiesToProjectsFromAirtable ya no se usa para evitar lentitud del sync
 
     // Contar propiedades finales por fase
     const { data: finalCounts, error: countError } = await supabase
