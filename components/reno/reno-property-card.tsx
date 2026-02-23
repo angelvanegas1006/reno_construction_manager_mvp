@@ -51,6 +51,7 @@ export function RenoPropertyCard({
   );
   
   // Progreso = mismo criterio que la bola del header y "Progreso general" en la ficha: solo categorías con actividades
+  // Truncar (floor) para evitar mostrar 100% cuando es 99.8% (ej: 99.8 → 99)
   const renoProgress = useMemo(() => {
     if (stage !== "reno-in-progress" || dynamicCategories.length === 0) {
       return null;
@@ -60,7 +61,7 @@ export function RenoPropertyCard({
     );
     if (withActivities.length === 0) return 100; // Sin categorías visibles → 100% (igual que bola y barra)
     const total = withActivities.reduce((sum, cat) => sum + (cat.percentage || 0), 0);
-    return Math.round(total / withActivities.length);
+    return Math.floor(total / withActivities.length);
   }, [stage, dynamicCategories]);
 
   // Calculate proximaActualizacion for reno-in-progress phase

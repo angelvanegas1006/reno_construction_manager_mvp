@@ -529,6 +529,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
 
   // Progreso general: solo categorías que el usuario VE (con actividades_text). Las categorías sin actividades no se muestran ni cuentan.
   // Si todas las categorías visibles están al 100%, se muestra 100%. Si hay categorías en BD pero ninguna con actividades, 100% para poder avanzar.
+  // Truncar (floor) para evitar mostrar 100% cuando es 99.8% (ej: 99.8 → 99)
   const globalProgress = useMemo(() => {
     if (sortedCategories.length === 0) {
       return categories.length > 0 ? 100 : 0;
@@ -537,7 +538,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
       const percentage = localPercentages[cat.id] ?? cat.percentage ?? 0;
       return sum + percentage;
     }, 0);
-    return Math.round(total / sortedCategories.length);
+    return Math.floor(total / sortedCategories.length);
   }, [sortedCategories, localPercentages, categories.length]);
 
   // Todas las categorías con actividades al 100% para mostrar "Dar obra por finalizada"

@@ -729,11 +729,11 @@ export const translations: Record<Language, Translations> = {
     roles: {
       admin: "Administrador",
       construction_manager: "Manager Units",
-      foreman: "Technical Constructor Units",
+      foreman: "Jefe de obra Units",
       user: "Usuario",
       manager_projects: "Manager Projects",
-      technical_constructor_projects: "Technical Constructor Projects",
-      maduration_analyst: "Maduration Analyst",
+      technical_constructor_projects: "Jefe de obra Projects",
+      maduration_analyst: "Analista de Maduración",
     },
     login: {
       title: "Inicia sesión o crea una cuenta",
