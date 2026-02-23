@@ -18,13 +18,14 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!supabaseLoading && !appLoading && user && role) {
-      if (role === 'foreman') {
+      if (role === "foreman" || role === "construction_manager") {
         router.push("/reno/construction-manager");
-      } else if (role === 'admin') {
+      } else if (role === "admin") {
         router.push("/reno/construction-manager/kanban");
+      } else if (["rent_manager", "rent_agent", "tenant"].includes(role)) {
+        router.push("/rent");
       }
-      // Note: settlements_analyst is handled via localStorage in login-form.tsx
-      // and doesn't come from Supabase AppRole enum
+      // manager_projects, technical_constructor_projects, maduration_analyst: stay on login (vista en desarrollo)
     }
   }, [user, role, supabaseLoading, appLoading, router]);
 

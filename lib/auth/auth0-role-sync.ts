@@ -24,6 +24,9 @@ export async function syncAuth0RoleToSupabase(
       'construction_manager': 'construction_manager',
       'foreman': 'foreman',
       'user': 'user',
+      'manager_projects': 'manager_projects',
+      'technical_constructor_projects': 'technical_constructor_projects',
+      'maduration_analyst': 'maduration_analyst',
       // Aliases comunes
       'jefe_de_obra': 'foreman',
       'administrator': 'admin',
@@ -98,6 +101,9 @@ export async function syncRoleToSupabaseAdmin(
       'construction_manager': 'construction_manager',
       'foreman': 'foreman',
       'user': 'user',
+      'manager_projects': 'manager_projects',
+      'technical_constructor_projects': 'technical_constructor_projects',
+      'maduration_analyst': 'maduration_analyst',
       // Aliases comunes
       'jefe_de_obra': 'foreman',
       'administrator': 'admin',

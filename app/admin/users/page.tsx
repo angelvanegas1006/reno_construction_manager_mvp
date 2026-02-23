@@ -39,6 +39,23 @@ interface User {
   banned?: boolean;
 }
 
+function getRoleBadgeClassName(role: string): string {
+  const base = "px-2 py-1 rounded text-xs font-medium ";
+  switch (role) {
+    case "admin":
+      return base + "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+    case "construction_manager":
+    case "foreman":
+      return base + "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+    case "manager_projects":
+    case "technical_constructor_projects":
+    case "maduration_analyst":
+      return base + "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
+    default:
+      return base + "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+  }
+}
+
 export default function AdminUsersPage() {
   const { user: currentUser, role, isLoading: authLoading } = useAppAuth();
   const { t } = useI18n();
@@ -411,10 +428,13 @@ export default function AdminUsersPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="construction_manager">Construction Manager</SelectItem>
-                      <SelectItem value="foreman">Foreman</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="admin">{t.roles.admin}</SelectItem>
+                      <SelectItem value="construction_manager">{t.roles.construction_manager}</SelectItem>
+                      <SelectItem value="foreman">{t.roles.foreman}</SelectItem>
+                      <SelectItem value="manager_projects">{t.roles.manager_projects}</SelectItem>
+                      <SelectItem value="technical_constructor_projects">{t.roles.technical_constructor_projects}</SelectItem>
+                      <SelectItem value="maduration_analyst">{t.roles.maduration_analyst}</SelectItem>
+                      <SelectItem value="user">{t.roles.user}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -465,10 +485,13 @@ export default function AdminUsersPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los roles</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="construction_manager">Construction Manager</SelectItem>
-              <SelectItem value="foreman">Foreman</SelectItem>
-              <SelectItem value="user">User</SelectItem>
+              <SelectItem value="admin">{t.roles.admin}</SelectItem>
+              <SelectItem value="construction_manager">{t.roles.construction_manager}</SelectItem>
+              <SelectItem value="foreman">{t.roles.foreman}</SelectItem>
+              <SelectItem value="manager_projects">{t.roles.manager_projects}</SelectItem>
+              <SelectItem value="technical_constructor_projects">{t.roles.technical_constructor_projects}</SelectItem>
+              <SelectItem value="maduration_analyst">{t.roles.maduration_analyst}</SelectItem>
+              <SelectItem value="user">{t.roles.user}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -516,15 +539,7 @@ export default function AdminUsersPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          user.role === "admin"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                            : user.role === "foreman"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                            : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-                        }`}
-                      >
+                      <span className={getRoleBadgeClassName(user.role)}>
                         {t.roles[user.role as keyof typeof t.roles] || user.role}
                       </span>
                     </td>
@@ -652,15 +667,7 @@ export default function AdminUsersPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 items-center">
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${
-                      user.role === "admin"
-                        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                        : user.role === "foreman"
-                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                        : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-                    }`}
-                  >
+                  <span className={getRoleBadgeClassName(user.role)}>
                     {t.roles[user.role as keyof typeof t.roles] || user.role}
                   </span>
                   {user.google_calendar_connected ? (
@@ -760,10 +767,13 @@ export default function AdminUsersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="construction_manager">Construction Manager</SelectItem>
-                  <SelectItem value="foreman">Foreman</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">{t.roles.admin}</SelectItem>
+                  <SelectItem value="construction_manager">{t.roles.construction_manager}</SelectItem>
+                  <SelectItem value="foreman">{t.roles.foreman}</SelectItem>
+                  <SelectItem value="manager_projects">{t.roles.manager_projects}</SelectItem>
+                  <SelectItem value="technical_constructor_projects">{t.roles.technical_constructor_projects}</SelectItem>
+                  <SelectItem value="maduration_analyst">{t.roles.maduration_analyst}</SelectItem>
+                  <SelectItem value="user">{t.roles.user}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

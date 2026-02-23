@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = createAdminClient();
 
     // Validar que el rol sea válido
-    const validRoles = ["admin", "foreman", "construction_manager", "user"];
+    const validRoles = ["admin", "foreman", "construction_manager", "user", "manager_projects", "technical_constructor_projects", "maduration_analyst"];
     if (!validRoles.includes(role)) {
       return NextResponse.json(
         { error: `Invalid role. Must be one of: ${validRoles.join(", ")}` },
