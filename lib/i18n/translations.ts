@@ -77,6 +77,9 @@ export interface Translations {
     construction_manager: string;
     foreman: string;
     user: string;
+    manager_projects: string;
+    technical_constructor_projects: string;
+    maduration_analyst: string;
   };
   
   // Login
@@ -725,9 +728,12 @@ export const translations: Record<Language, Translations> = {
     },
     roles: {
       admin: "Administrador",
-      construction_manager: "Gerente de Construcción",
-      foreman: "Jefe de Obra",
+      construction_manager: "Manager Units",
+      foreman: "Technical Constructor Units",
       user: "Usuario",
+      manager_projects: "Manager Projects",
+      technical_constructor_projects: "Technical Constructor Projects",
+      maduration_analyst: "Maduration Analyst",
     },
     login: {
       title: "Inicia sesión o crea una cuenta",
@@ -1780,9 +1786,12 @@ export const translations: Record<Language, Translations> = {
     },
     roles: {
       admin: "Admin",
-      construction_manager: "Construction Manager",
-      foreman: "Site Manager",
+      construction_manager: "Manager Units",
+      foreman: "Technical Constructor Units",
       user: "User",
+      manager_projects: "Manager Projects",
+      technical_constructor_projects: "Technical Constructor Projects",
+      maduration_analyst: "Maduration Analyst",
     },
     login: {
       title: "Log in or create an account",

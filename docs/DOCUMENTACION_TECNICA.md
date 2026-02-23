@@ -114,16 +114,21 @@ curl -X GET "https://TU_DOMINIO/api/cron/sync-airtable" \
 **Tabla de roles:** `user_roles` (user_id, role)
 
 **Roles (`app_role` enum):**
-- `admin`
-- `construction_manager`
-- `foreman` (jefe de obra)
-- `user`
+- `admin` – Administrador
+- `construction_manager` – Manager Units (acceso completo a Reno)
+- `foreman` – Technical Constructor Units (Kanban Units con propiedades asignadas)
+- `user` – Usuario básico (acceso limitado)
+- `manager_projects` – Manager Projects (vista en desarrollo)
+- `technical_constructor_projects` – Technical Constructor Projects (vista en desarrollo)
+- `maduration_analyst` – Maduration Analyst (vista en desarrollo)
+- `rent_manager`, `rent_agent`, `tenant` – Roles del módulo Rent
 
 **Contexto:** `lib/auth/app-auth-context.tsx` → `AppAuthProvider` usa `useSupabaseAuthContext` y consulta `user_roles` para obtener el rol.
 
 **Permisos por rol:**
 - **admin / construction_manager:** Acceso completo a kanbans, sync Airtable, filtros, asignación de jefe de obra
 - **foreman:** Kanban Units con propiedades asignadas a él (`assigned_site_manager_email`), sin acceso a Kanban Proyectos
+- **manager_projects / technical_constructor_projects / maduration_analyst:** Vista en desarrollo; redirección a login con mensaje informativo
 - **user:** Acceso limitado según lógica de negocio
 
 ---

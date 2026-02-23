@@ -21,6 +21,9 @@ interface AppAuthContextType {
   isAdmin: boolean;
   isForeman: boolean;
   isUser: boolean;
+  isManagerProjects: boolean;
+  isTechnicalConstructorProjects: boolean;
+  isMadurationAnalyst: boolean;
   hasRole: (role: AppRole) => boolean;
   hasAnyRole: (roles: AppRole[]) => boolean;
 }
@@ -148,6 +151,9 @@ export function AppAuthProvider({ children }: { children: ReactNode }) {
     isAdmin: appUser?.role === 'admin',
     isForeman: appUser?.role === 'foreman',
     isUser: appUser?.role === 'user',
+    isManagerProjects: appUser?.role === 'manager_projects',
+    isTechnicalConstructorProjects: appUser?.role === 'technical_constructor_projects',
+    isMadurationAnalyst: appUser?.role === 'maduration_analyst',
     hasRole,
     hasAnyRole,
   };

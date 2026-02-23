@@ -6,7 +6,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
-type AppRole = "admin" | "foreman" | "construction_manager" | "user";
+type AppRole = "admin" | "foreman" | "construction_manager" | "user" | "manager_projects" | "technical_constructor_projects" | "maduration_analyst";
 
 /**
  * Mapea rol de Auth0 a rol de la app
@@ -17,6 +17,9 @@ function mapAuth0RoleToAppRole(auth0Role: string): AppRole | null {
     "construction_manager": "construction_manager",
     "foreman": "foreman",
     "user": "user",
+    "manager_projects": "manager_projects",
+    "technical_constructor_projects": "technical_constructor_projects",
+    "maduration_analyst": "maduration_analyst",
     // Aliases comunes
     "jefe_de_obra": "foreman",
     "administrator": "admin",
