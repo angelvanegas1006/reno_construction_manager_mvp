@@ -159,60 +159,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    // Verificar que Auth0 esté configurado
     const auth0Domain = process.env.AUTH0_DOMAIN || process.env.NEXT_PUBLIC_AUTH0_DOMAIN;
     const auth0ClientId = process.env.AUTH0_MANAGEMENT_CLIENT_ID;
     const auth0ClientSecret = process.env.AUTH0_MANAGEMENT_CLIENT_SECRET;
-    if (!auth0Domain || !auth0ClientId || !auth0ClientSecret) {
-      console.error('[POST /api/admin/users] Auth0 not configured. Missing: AUTH0_DOMAIN, AUTH0_MANAGEMENT_CLIENT_ID, AUTH0_MANAGEMENT_CLIENT_SECRET');
-      return NextResponse.json({
-        error: 'Auth0 no está configurado. Contacta al administrador para configurar AUTH0_DOMAIN, AUTH0_MANAGEMENT_CLIENT_ID y AUTH0_MANAGEMENT_CLIENT_SECRET.',
-      }, { status: 503 });
-    }
+    const auth0Configured = !!(auth0Domain && auth0ClientId && auth0ClientSecret);
 
-    // Crear usuario en Auth0
-    const auth0Client = getAuth0ManagementClient();
-    let auth0User;
-    
-    try {
-      // Primero verificar si el usuario ya existe en Auth0
-      const existingAuth0User = await auth0Client.getUserByEmail(email);
-      
-      if (existingAuth0User) {
-        // Usuario ya existe en Auth0, actualizar rol si es necesario
-        console.log(`[POST /api/admin/users] User ${email} already exists in Auth0, updating role...`);
-        if (role) {
-          await auth0Client.assignRoleToUser(existingAuth0User.user_id, role);
+    let auth0User: { user_id: string } | undefined;
+
+    if (auth0Configured) {
+      // Crear usuario en Auth0 (si está configurado)
+      try {
+        const auth0Client = getAuth0ManagementClient();
+        const existingAuth0User = await auth0Client.getUserByEmail(email);
+
+        if (existingAuth0User) {
+          console.log(`[POST /api/admin/users] User ${email} already exists in Auth0, updating role...`);
+          if (role) {
+            await auth0Client.assignRoleToUser(existingAuth0User.user_id, role);
+          }
+          auth0User = existingAuth0User;
+        } else {
+          auth0User = await auth0Client.createUser({
+            email,
+            password,
+            name,
+            role,
+          });
+          console.log(`[POST /api/admin/users] User ${email} created in Auth0`);
         }
-        auth0User = existingAuth0User;
-      } else {
-        // Crear nuevo usuario en Auth0
-        auth0User = await auth0Client.createUser({
-          email,
-          password,
-          name,
-          role,
-        });
-        console.log(`[POST /api/admin/users] User ${email} created in Auth0`);
+      } catch (auth0Error: any) {
+        if (auth0Error.message?.includes('already exists')) {
+          const existing = await getAuth0ManagementClient().getUserByEmail(email);
+          auth0User = existing ?? undefined;
+          if (auth0User && role) {
+            await getAuth0ManagementClient().assignRoleToUser(auth0User.user_id, role);
+          }
+        } else {
+          console.error('[POST /api/admin/users] Auth0 error:', auth0Error);
+          const msg = auth0Error?.message || '';
+          if (msg.includes('fetch failed') || msg.includes('Failed to fetch') || msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND') || msg.includes('ETIMEDOUT')) {
+            return NextResponse.json({
+              error: 'No se pudo conectar con Auth0. Verifica tu conexión a internet y que las variables de entorno de Auth0 estén correctas.',
+            }, { status: 503 });
+          }
+          throw auth0Error;
+        }
       }
-    } catch (auth0Error: any) {
-      // Si hay otro error, intentar obtener el usuario de todas formas
-      if (auth0Error.message?.includes('already exists')) {
-        auth0User = await auth0Client.getUserByEmail(email);
-        if (auth0User && role) {
-          await auth0Client.assignRoleToUser(auth0User.user_id, role);
-        }
-      } else {
-        console.error('[POST /api/admin/users] Auth0 error:', auth0Error);
-        // Traducir errores de red a mensajes más claros
-        const msg = auth0Error?.message || '';
-        if (msg.includes('fetch failed') || msg.includes('Failed to fetch') || msg.includes('ECONNREFUSED') || msg.includes('ENOTFOUND') || msg.includes('ETIMEDOUT')) {
-          return NextResponse.json({
-            error: 'No se pudo conectar con Auth0. Verifica tu conexión a internet y que las variables de entorno de Auth0 estén correctas.',
-          }, { status: 503 });
-        }
-        throw auth0Error;
-      }
+    } else {
+      console.log('[POST /api/admin/users] Auth0 not configured, creating user in Supabase only');
     }
 
     // Crear usuario en Supabase (si no existe)
@@ -256,9 +250,9 @@ export async function POST(request: NextRequest) {
       }
     } catch (supabaseError: any) {
       console.error('[POST /api/admin/users] Supabase error:', supabaseError);
-      // Continuar aunque falle Supabase, el usuario ya está en Auth0
+      const auth0Msg = auth0User ? ' Usuario creado en Auth0.' : '';
       return NextResponse.json({
-        error: 'User created in Auth0 but failed to sync to Supabase',
+        error: `Error al crear usuario en Supabase.${auth0Msg}`,
         auth0_user_id: auth0User?.user_id,
       }, { status: 500 });
     }

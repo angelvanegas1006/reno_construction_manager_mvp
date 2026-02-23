@@ -304,12 +304,12 @@ export default function RenoChecklistPage() {
   }, [phase, firstSectionId]);
   
   // Calculate overall progress
-  // For reno-in-progress phase, use average of dynamic categories
+  // For reno-in-progress phase, use average of dynamic categories (truncar para evitar 100% cuando es 99.8%)
   // For other phases, use checklist progress (incluye entorno-zonas-comunes en initial y final)
   const overallProgress = useMemo(() => {
     if (phase === "reno-in-progress" && dynamicCategories.length > 0) {
       const total = dynamicCategories.reduce((sum, cat) => sum + (cat.percentage || 0), 0);
-      return Math.round(total / dynamicCategories.length);
+      return Math.floor(total / dynamicCategories.length);
     }
     return calculateOverallChecklistProgress(checklist || null, false);
   }, [phase, dynamicCategories, checklist]);

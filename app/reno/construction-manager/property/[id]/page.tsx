@@ -100,6 +100,7 @@ export default function RenoPropertyDetailPage() {
   
   // Progreso para la bola del header (y debe coincidir con la card y con "Progreso general" dentro de la ficha)
   // Solo categorías con actividades_text (las que ve el usuario). Si hay categorías pero ninguna con actividades → 100%.
+  // Truncar (floor) para evitar mostrar 100% cuando es 99.8% (ej: 99.8 → 99)
   const averageCategoriesProgress = useMemo(() => {
     if (dynamicCategories.length === 0) return undefined;
     const withActivities = dynamicCategories.filter(
@@ -107,7 +108,7 @@ export default function RenoPropertyDetailPage() {
     );
     if (withActivities.length === 0) return 100;
     const total = withActivities.reduce((sum, cat) => sum + (cat.percentage || 0), 0);
-    return Math.round(total / withActivities.length);
+    return Math.floor(total / withActivities.length);
   }, [dynamicCategories]);
   
   // Convert Supabase property to Property format
