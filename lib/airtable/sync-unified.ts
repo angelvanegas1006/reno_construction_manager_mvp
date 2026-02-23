@@ -517,6 +517,34 @@ function mapAirtablePropertyToSupabase(
       }
       return null;
     })(),
+    // Renovator contract doc - Campo fldghjw7a7VhMYXaS de Transactions (attachment/document)
+    renovator_contract_doc_url: (() => {
+      const docField = getFieldValue('fldghjw7a7VhMYXaS', [
+        'fldghjw7a7VhMYXaS',
+        'Renovator contract doc',
+      ]);
+      if (!docField || docField === null || docField === '') return null;
+      if (typeof docField === 'string') {
+        const urls = docField
+          .split(',')
+          .map((u: string) => u.trim())
+          .filter((u: string) => u.length > 0 && (u.startsWith('http://') || u.startsWith('https://')));
+        return urls.length > 0 ? urls.join(',') : null;
+      }
+      if (Array.isArray(docField)) {
+        const urls = docField
+          .map((item: unknown) => {
+            if (typeof item === 'string' && (item.startsWith('http://') || item.startsWith('https://'))) return item.trim();
+            if (item && typeof item === 'object' && item !== null && 'url' in item && typeof (item as { url: string }).url === 'string') {
+              return (item as { url: string }).url.trim();
+            }
+            return null;
+          })
+          .filter((u): u is string => u !== null && u.length > 0);
+        return urls.length > 0 ? urls.join(',') : null;
+      }
+      return null;
+    })(),
     airtable_property_id: airtableProperty.id,
     airtable_properties_record_id: (() => {
       const propsLink = getFieldValue('Properties', [

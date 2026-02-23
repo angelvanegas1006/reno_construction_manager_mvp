@@ -1024,43 +1024,70 @@ export default function RenoPropertyDetailPage() {
         return <PropertySummaryTab property={property} supabaseProperty={supabaseProperty} />;
       case "estado-propiedad":
         return propertyId ? <PropertyStatusTab propertyId={propertyId} /> : null;
-      case "presupuesto-reforma":
+      case "presupuesto-reforma": {
         // Validar que budget_pdf_url sea un string válido
         const budgetPdfUrl = supabaseProperty?.budget_pdf_url && typeof supabaseProperty.budget_pdf_url === 'string' && supabaseProperty.budget_pdf_url.trim().length > 0
           ? supabaseProperty.budget_pdf_url.trim()
           : null;
-        
-        // Separar múltiples URLs por comas
+
         const budgetUrls = budgetPdfUrl
           ? budgetPdfUrl
               .split(',')
               .map(url => url.trim())
               .filter(url => url.length > 0 && url.startsWith('http'))
           : [];
-        
+
+        // Renovator contract doc
+        const contractDocUrl = supabaseProperty?.renovator_contract_doc_url && typeof supabaseProperty.renovator_contract_doc_url === 'string' && supabaseProperty.renovator_contract_doc_url.trim().length > 0
+          ? supabaseProperty.renovator_contract_doc_url.trim()
+          : null;
+
+        const contractUrls = contractDocUrl
+          ? contractDocUrl
+              .split(',')
+              .map(url => url.trim())
+              .filter(url => url.length > 0 && url.startsWith('http'))
+          : [];
+
         return (
-          <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
-            {budgetUrls.length > 0 ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">{t.propertyPage.renovationBudget}</h2>
+          <div className="space-y-6">
+            {/* Tarjeta Presupuestos */}
+            <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+              <h2 className="text-lg font-semibold mb-4">{t.propertyPage.renovationBudget}</h2>
+              {budgetUrls.length > 0 ? (
+                <div className="space-y-4">
                   {budgetUrls.length > 1 && (
                     <p className="text-sm text-muted-foreground">
                       {budgetUrls.length} presupuestos
                     </p>
                   )}
+                  <MultiBudgetViewer
+                    budgetUrls={budgetUrls}
+                    pdfErrors={pdfErrors}
+                    onRetry={handleRetryPdf}
+                  />
                 </div>
-                <MultiBudgetViewer 
-                  budgetUrls={budgetUrls}
-                  pdfErrors={pdfErrors}
-                  onRetry={handleRetryPdf}
+              ) : (
+                <p className="text-muted-foreground">{t.propertyPage.comingSoon}</p>
+              )}
+            </div>
+
+            {/* Tarjeta Contrato Reformista */}
+            <div className="bg-card rounded-lg border p-4 md:p-6 shadow-sm">
+              <h2 className="text-lg font-semibold mb-4">{t.propertyTabs.renovatorContract}</h2>
+              {contractUrls.length > 0 ? (
+                <MultiBudgetViewer
+                  budgetUrls={contractUrls}
+                  pdfErrors={{}}
+                  hideDocumentLabel
                 />
-              </div>
-            ) : (
-              <p className="text-muted-foreground">{t.propertyPage.renovationBudget} - {t.propertyPage.comingSoon}</p>
-            )}
+              ) : (
+                <p className="text-muted-foreground">{t.propertyPage.comingSoon}</p>
+              )}
+            </div>
           </div>
         );
+      }
       case "comentarios":
         return (
           <div className="space-y-6">

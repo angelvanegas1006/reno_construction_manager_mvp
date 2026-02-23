@@ -54,15 +54,23 @@ if (typeof window !== 'undefined' && !errorInterceptorsInstalled) {
   };
   
   // Interceptar console.error con mejor detección
+  // Deferir la llamada a originalError para evitar "Can't perform React state update on unmounted component"
+  // cuando el error se dispara durante el render (ej. desde error overlay de React)
+  const deferOriginalError = (...args: any[]) => {
+    setTimeout(() => originalError(...args), 0);
+  };
+  const deferOriginalWarn = (...args: any[]) => {
+    setTimeout(() => originalWarn(...args), 0);
+  };
   console.error = (...args: any[]) => {
     const hasAuthSessionError = args.some(arg => isAuthSessionMissingError(arg));
     if (hasAuthSessionError) return;
     const hasNetworkError = args.some(arg => isNetworkFetchError(arg));
     if (hasNetworkError) {
-      originalWarn(...args);
+      deferOriginalWarn(...args);
       return;
     }
-    originalError(...args);
+    deferOriginalError(...args);
   };
   
   // También interceptar console.warn

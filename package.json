@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "next dev --webpack",
     "dev:clean": "rm -rf .next && next dev --webpack",
+    "dev:rescue": "rm -rf .next && npm run kill:port && npm run kill:port:3001 && sleep 2 && next dev --webpack",
     "kill:port": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
-    "dev:force": "npm run kill:port && sleep 1 && npm run dev",
+    "kill:port:3001": "lsof -ti:3001 | xargs kill -9 2>/dev/null || true",
+    "dev:force": "npm run kill:port && npm run kill:port:3001 && sleep 1 && npm run dev",
     "dev:staging": "next dev --env-file=.env.staging",
     "build": "next build --webpack",
     "build:staging": "next build --webpack --env-file=.env.staging",

@@ -37,26 +37,20 @@ if (typeof window !== 'undefined') {
     };
     
     // Interceptar console.error con mejor detección
+    // Deferir la llamada para evitar "Can't perform React state update on unmounted component"
+    const deferOriginalError = (...a: any[]) => setTimeout(() => originalError(...a), 0);
     console.error = (...args: any[]) => {
-      // Verificar si alguno de los argumentos es un error de sesión faltante
       const hasAuthSessionError = args.some(arg => isAuthSessionMissingError(arg));
-      
-      if (hasAuthSessionError) {
-        // No mostrar el error en consola, es esperado cuando no hay sesión de Supabase
-        return;
-      }
-      // Para otros errores, mostrarlos normalmente
-      originalError(...args);
+      if (hasAuthSessionError) return;
+      deferOriginalError(...args);
     };
     
-    // También interceptar console.warn
+    // También interceptar console.warn (deferir para consistencia)
+    const deferOriginalWarn = (...a: any[]) => setTimeout(() => originalWarn(...a), 0);
     console.warn = (...args: any[]) => {
       const hasAuthSessionError = args.some(arg => isAuthSessionMissingError(arg));
-      
-      if (hasAuthSessionError) {
-        return;
-      }
-      originalWarn(...args);
+      if (hasAuthSessionError) return;
+      deferOriginalWarn(...args);
     };
     
     // Interceptar console.trace si existe
