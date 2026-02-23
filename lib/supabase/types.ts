@@ -163,6 +163,7 @@ export type Database = {
           bathrooms: number | null
           bedrooms: number | null
           budget_pdf_url: string | null
+          renovator_contract_doc_url: string | null
           "Client email": string | null
           "Client Name": string | null
           created_at: string | null
@@ -236,6 +237,7 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           budget_pdf_url?: string | null
+          renovator_contract_doc_url?: string | null
           "Client email"?: string | null
           "Client Name"?: string | null
           created_at?: string | null
@@ -286,6 +288,7 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           budget_pdf_url?: string | null
+          renovator_contract_doc_url?: string | null
           "Client email"?: string | null
           "Client Name"?: string | null
           created_at?: string | null

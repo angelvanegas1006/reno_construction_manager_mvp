@@ -142,14 +142,13 @@ export const visibleRenoKanbanColumnsFasesIniciales: RenoKanbanColumn[] =
       col.key !== "orphaned"
   );
 
-// Kanban Proyectos L1: 5 fases según Project status (Airtable) + orphaned (fuera de vista)
+// Kanban Proyectos L1: 5 fases según Project status (Airtable). Orphaned no se muestra.
 export const PHASES_KANBAN_PROJECTS: RenoKanbanPhase[] = [
   "pendiente-presupuestos-renovador",
   "obra-a-empezar",
   "obra-en-progreso",
   "amueblamiento",
   "check-final",
-  "orphaned",
 ];
 
 /** Etiquetas de columnas del Kanban Proyectos L1 */
@@ -159,7 +158,6 @@ export const PROJECT_KANBAN_PHASE_LABELS: Record<string, string> = {
   "obra-en-progreso": "Obra en Progreso",
   "amueblamiento": "Amueblamiento",
   "check-final": "Revisión Final",
-  orphaned: "Fuera de vista (Orphaned)",
 };
 
 export const visibleRenoKanbanColumnsProjects: RenoKanbanColumn[] = PHASES_KANBAN_PROJECTS.map(

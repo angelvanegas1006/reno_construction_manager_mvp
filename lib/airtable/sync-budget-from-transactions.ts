@@ -9,6 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { findTransactionsRecordIdByUniqueId, findTransactionsRecordIdByPropertiesId } from './client';
 
 const BUDGET_ATTACHMENT_FIELD_ID = 'fldVOO4zqx5HUzIjz';
+const RENOVATOR_CONTRACT_DOC_FIELD_ID = 'fldghjw7a7VhMYXaS';
 
 function getAirtableBase(): Airtable.Base | null {
   const apiKey = process.env.NEXT_PUBLIC_AIRTABLE_API_KEY;
@@ -38,6 +39,11 @@ function extractBudgetUrls(budgetField: unknown): string[] {
     });
   }
   return urls.filter((u) => u.length > 0);
+}
+
+/** Extrae URLs de un campo attachment/document de Airtable (reutiliza lógica de extractBudgetUrls) */
+function extractDocumentUrls(field: unknown): string[] {
+  return extractBudgetUrls(field);
 }
 
 const WEBHOOK_CATEGORIES_URL = 'https://n8n.prod.prophero.com/webhook/send_categories_cursor';
@@ -161,14 +167,33 @@ export async function syncBudgetForProperty(
   }
 
   const uniqueUrls = [...new Set(allUrls)];
-  if (uniqueUrls.length === 0) {
+  const budgetPdfUrlValue = uniqueUrls.length > 0 ? uniqueUrls.join(',') : null;
+
+  // Renovator contract doc (fldghjw7a7VhMYXaS)
+  const renovatorContractField =
+    record.fields[RENOVATOR_CONTRACT_DOC_FIELD_ID] ??
+    record.fields['Renovator contract doc'];
+  const renovatorContractUrls = extractDocumentUrls(renovatorContractField);
+  const renovatorContractDocUrlValue =
+    renovatorContractUrls.length > 0 ? renovatorContractUrls.join(',') : null;
+
+  const hasBudgetUrls = uniqueUrls.length > 0;
+  const hasContractUrls = renovatorContractUrls.length > 0;
+  if (!hasBudgetUrls && !hasContractUrls) {
     return { updated: false, urlCount: 0 };
   }
 
-  const budgetPdfUrlValue = uniqueUrls.join(',');
+  const updatePayload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (hasBudgetUrls) {
+    updatePayload.budget_pdf_url = budgetPdfUrlValue;
+  }
+  updatePayload.renovator_contract_doc_url = hasContractUrls ? renovatorContractDocUrlValue : null;
+
   const { error: updateError } = await supabase
     .from('properties')
-    .update({ budget_pdf_url: budgetPdfUrlValue, updated_at: new Date().toISOString() })
+    .update(updatePayload)
     .eq('id', propertyId);
 
   if (updateError) {

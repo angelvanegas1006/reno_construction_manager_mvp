@@ -458,6 +458,7 @@ export interface Translations {
     summary: string;
     propertyStatus: string;
     renovationBudget: string;
+    renovatorContract: string;
     comments: string;
   };
   
@@ -1562,7 +1563,8 @@ export const translations: Record<Language, Translations> = {
       tasks: "Tareas",
       summary: "Resumen",
       propertyStatus: "Estado de la propiedad",
-      renovationBudget: "Presupuesto de reforma",
+      renovationBudget: "Documentos",
+      renovatorContract: "Contrato Reformista",
       comments: "Comentarios y Recordatorios",
     },
     propertySidebar: {
@@ -2615,7 +2617,8 @@ export const translations: Record<Language, Translations> = {
       tasks: "Tasks",
       summary: "Summary",
       propertyStatus: "Property Status",
-      renovationBudget: "Renovation Budget",
+      renovationBudget: "Documents",
+      renovatorContract: "Renovator Contract",
       comments: "Comments & Reminders",
     },
     propertySidebar: {

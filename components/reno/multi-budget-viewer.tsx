@@ -14,12 +14,15 @@ interface MultiBudgetViewerProps {
   budgetUrls: string[];
   pdfErrors?: Record<number, string | null>;
   onRetry?: (index: number) => void;
+  /** Si true, oculta el título "Presupuesto 1", "Presupuesto 2", etc. (ej. para Contrato Reformista) */
+  hideDocumentLabel?: boolean;
 }
 
 export function MultiBudgetViewer({ 
   budgetUrls, 
   pdfErrors = {},
-  onRetry 
+  onRetry,
+  hideDocumentLabel = false,
 }: MultiBudgetViewerProps) {
   const [openIndices, setOpenIndices] = useState<Set<number>>(new Set());
 
@@ -57,7 +60,7 @@ export function MultiBudgetViewer({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {!isSinglePdf && (
+                {!isSinglePdf && !hideDocumentLabel && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -71,9 +74,11 @@ export function MultiBudgetViewer({
                     )}
                   </Button>
                 )}
-                <h3 className="text-lg font-semibold">
-                  Presupuesto {budgetNumber}
-                </h3>
+                {!hideDocumentLabel && (
+                  <h3 className="text-lg font-semibold">
+                    Presupuesto {budgetNumber}
+                  </h3>
+                )}
               </div>
               {proxyPdfUrl && (
                 <Button
@@ -145,14 +150,18 @@ export function MultiBudgetViewer({
               <CollapsibleTrigger asChild>
                 <div className="flex items-center justify-between cursor-pointer">
                   <div className="flex items-center gap-2">
-                    {isOpen ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    {!hideDocumentLabel && (
+                      <>
+                        {isOpen ? (
+                          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        <h3 className="text-lg font-semibold">
+                          Presupuesto {budgetNumber}
+                        </h3>
+                      </>
                     )}
-                    <h3 className="text-lg font-semibold">
-                      Presupuesto {budgetNumber}
-                    </h3>
                   </div>
                   {proxyPdfUrl && (
                     <Button
