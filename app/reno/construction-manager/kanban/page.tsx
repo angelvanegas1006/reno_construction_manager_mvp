@@ -3,13 +3,17 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { use } from "react";
+import { Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { NavbarL1 } from "@/components/layout/navbar-l1";
 import { RenoKanbanBoard } from "@/components/reno/reno-kanban-board";
 import { RenoKanbanFilters } from "@/components/reno/reno-kanban-filters";
+import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-modal";
 import { useI18n } from "@/lib/i18n";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { useRenoFilters } from "@/hooks/useRenoFilters";
+import { useAssignedProjectsForForeman } from "@/hooks/useAssignedProjectsForForeman";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { getForemanEmailFromName } from "@/lib/supabase/user-name-utils";
 import { cn } from "@/lib/utils";
@@ -120,6 +124,10 @@ export default function RenoConstructionManagerKanbanPage() {
   }, [refetchProperties]);
 
   const { user, role } = useAppAuth();
+  const { projects: assignedProjects, loading: assignedProjectsLoading } = useAssignedProjectsForForeman(
+    role === "foreman" ? user?.email ?? null : null
+  );
+  const [myProjectsModalOpen, setMyProjectsModalOpen] = useState(false);
 
   // Primer kanban: solo Unit, Building y Lot. Si es foreman, además Project/WIP asignados a él (assigned_site_manager_email).
   const propertiesByPhaseExcludingProjectWip = useMemo((): Record<RenoKanbanPhase, Property[]> => {
@@ -242,6 +250,21 @@ export default function RenoConstructionManagerKanbanPage() {
         {/* Navbar L1: Navegación secundaria con buscador, filtros */}
         <NavbarL1
           classNameTitle={t.property.management}
+          titleActions={
+            role === "foreman" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMyProjectsModalOpen(true)}
+                className="rounded-full gap-2 h-9"
+              >
+                <Building2 className="h-4 w-4" />
+                <span className="hidden sm:inline">
+                  {assignedProjects.length > 0 ? `Mis proyectos (${assignedProjects.length})` : "Mis proyectos"}
+                </span>
+              </Button>
+            ) : undefined
+          }
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           syncAirtableButton={{
@@ -291,6 +314,15 @@ export default function RenoConstructionManagerKanbanPage() {
             });
           }}
         />
+
+        {role === "foreman" && (
+          <MyAssignedProjectsModal
+            open={myProjectsModalOpen}
+            onOpenChange={setMyProjectsModalOpen}
+            projects={assignedProjects}
+            loading={assignedProjectsLoading}
+          />
+        )}
       </div>
     </div>
   );

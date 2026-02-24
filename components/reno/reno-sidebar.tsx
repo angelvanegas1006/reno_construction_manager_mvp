@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock } from "lucide-react";
+import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -24,6 +24,8 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { HelpModal } from "@/components/reno/help-modal";
 import { extractNameFromEmail } from "@/lib/supabase/user-name-utils";
 import { useHelpConversations } from "@/hooks/useHelpConversations";
+import { useAssignedProjectsForForeman } from "@/hooks/useAssignedProjectsForForeman";
+import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-modal";
 
 // Navigation items for Reno Construction Manager. Kanban Proyectos solo para admin y construction_manager.
 const getNavigationItems = (t: any, role?: string) => {
@@ -91,8 +93,11 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
   const { isAuthenticated: isAuth0Authenticated, logout: auth0Logout } = useAuth0();
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [myProjectsModalOpen, setMyProjectsModalOpen] = useState(false);
   const { unreadCount } = useHelpConversations();
   const searchParams = useSearchParams();
+  const userEmail = appUser?.email ?? supabaseUser?.email ?? null;
+  const { projects: assignedProjects, loading: assignedProjectsLoading } = useAssignedProjectsForForeman(userEmail);
   
   // Unified logout: handle both Auth0 and Supabase
   const handleLogout = async () => {
@@ -230,6 +235,24 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                       </Link>
                     );
                   })}
+                  {role === "foreman" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMyProjectsModalOpen(true);
+                        onMobileToggle?.();
+                      }}
+                      className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors w-full text-foreground hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Building2 className="h-5 w-5 flex-shrink-0 text-current" />
+                        <span className="whitespace-nowrap truncate">{t.nav.kanbanProjects ?? "Mis proyectos"}</span>
+                      </div>
+                      <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
                 </nav>
               </div>
 
@@ -305,6 +328,14 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
             </div>
           </div>
         </aside>
+        {role === "foreman" && (
+          <MyAssignedProjectsModal
+            open={myProjectsModalOpen}
+            onOpenChange={setMyProjectsModalOpen}
+            projects={assignedProjects}
+            loading={assignedProjectsLoading}
+          />
+        )}
       </>
     );
   }
@@ -388,6 +419,16 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   </Link>
                 );
               })}
+              {role === "foreman" && (
+                <button
+                  type="button"
+                  onClick={() => setMyProjectsModalOpen(true)}
+                  title={t.nav.kanbanProjects ?? "Mis proyectos"}
+                  className="flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full text-foreground hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Building2 className="h-5 w-5 flex-shrink-0 text-current" />
+                </button>
+              )}
             </nav>
           </div>
         )}
@@ -413,6 +454,16 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                 </Link>
               );
             })}
+            {role === "foreman" && (
+              <button
+                type="button"
+                onClick={() => setMyProjectsModalOpen(true)}
+                title={t.nav.kanbanProjects ?? "Mis proyectos"}
+                className="flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full text-foreground hover:bg-accent hover:text-accent-foreground"
+              >
+                <Building2 className="h-5 w-5 flex-shrink-0 text-current" />
+              </button>
+            )}
           </nav>
         )}
 
@@ -605,6 +656,16 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
         open={isChangePasswordModalOpen}
         onOpenChange={setIsChangePasswordModalOpen}
       />
+
+      {/* Mis proyectos (solo jefes de obra) */}
+      {role === "foreman" && (
+        <MyAssignedProjectsModal
+          open={myProjectsModalOpen}
+          onOpenChange={setMyProjectsModalOpen}
+          projects={assignedProjects}
+          loading={assignedProjectsLoading}
+        />
+      )}
     </aside>
   );
 }

@@ -678,9 +678,13 @@ export function useSupabaseChecklistBase({
           });
           
           // Memoizar conversión usando cache key basada en los datos
-          // Crear una key única basada en los datos de entrada para cachear
+          // Incluir fingerprint de image_urls/video_urls para que al borrar o subir fotos se invalide la caché
           const zonesKey = zones.map(z => `${z.id}-${z.zone_type}`).join(',');
-          const elementsKey = elements.map(e => `${e.id}-${e.element_name}-${e.zone_id}`).join(',');
+          const elementsKey = elements.map(e => {
+            const imgs = e.image_urls || [];
+            const vids = e.video_urls || [];
+            return `${e.id}-${e.element_name}-${e.zone_id}-img${imgs.length}-vid${vids.length}-${imgs.join('').length}-${vids.join('').length}`;
+          }).join(',');
           const bedroomsKey = supabaseProperty.bedrooms || 'null';
           const bathroomsKey = supabaseProperty.bathrooms || 'null';
           const conversionCacheKey = `${zonesKey}|${elementsKey}|${bedroomsKey}|${bathroomsKey}`;
@@ -934,9 +938,13 @@ export function useSupabaseChecklistBase({
       lastProcessedElementsLengthRef.current = elements.length;
       
       // Memoizar conversión para evitar recálculos innecesarios
-      // Crear cache key basada en los datos de entrada (incl. has_elevator para ascensor en entorno-zonas-comunes)
+      // Incluir fingerprint de image_urls/video_urls para que al borrar o subir fotos se invalide la caché
       const zonesKey = zones.map(z => `${z.id}-${z.zone_type}`).join(',');
-      const elementsKey = elements.map(e => `${e.id}-${e.element_name}-${e.zone_id}`).join(',');
+      const elementsKey = elements.map(e => {
+        const imgs = e.image_urls || [];
+        const vids = e.video_urls || [];
+        return `${e.id}-${e.element_name}-${e.zone_id}-img${imgs.length}-vid${vids.length}-${imgs.join('').length}-${vids.join('').length}`;
+      }).join(',');
       const inspectionHasElevator = (inspection as { has_elevator?: boolean } | null)?.has_elevator;
       const conversionCacheKey = `${zonesKey}|${elementsKey}|${bedroomsCount}|${bathroomsCount}|${inspectionHasElevator}`;
       
@@ -1878,15 +1886,18 @@ export function useSupabaseChecklistBase({
             e.image_urls.some((url: string) => url.startsWith('data:') || !url.startsWith('http'))
           );
           const hasElementsWithPhotos = elementsToSave.some(e => e.image_urls && e.image_urls.length > 0);
+          const hasUploadZoneElements = elementsToSave.some(e =>
+            e.element_name?.startsWith('fotos-') || e.element_name?.startsWith('videos-')
+          );
           
           // No refetch durante saveAllSections: cada refetch reemplaza el checklist con lo que hay en BD
           // (solo la sección guardada hasta ese momento), borrando el resto de secciones en memoria
           if (savingAllSectionsRef.current) {
             debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping refetch during saveAllSections (evita perder otras secciones)`);
-          } else if (hasPhotosToUpdate || hasElementsWithPhotos) {
-            // Refetch para actualizar URLs o sincronizar checklist con BD
+          } else if (hasPhotosToUpdate || hasElementsWithPhotos || hasUploadZoneElements) {
+            // Refetch para actualizar URLs, sincronizar con BD o reflejar borrado de fotos (image_urls vacío)
             lastSavedSectionIdRef.current = sectionId; // Solo actualizar esta sección al recargar (evita borrar mobiliario de entrada/salon)
-            debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Refetching (photosToUpdate=${hasPhotosToUpdate}, elementsWithPhotos=${hasElementsWithPhotos})...`);
+            debugLog(`[useSupabaseChecklistBase:${inspectionType}] 🔄 Refetching (photosToUpdate=${hasPhotosToUpdate}, elementsWithPhotos=${hasElementsWithPhotos}, uploadZoneElements=${hasUploadZoneElements})...`);
             await refetchInspection();
           } else {
             debugLog(`[useSupabaseChecklistBase:${inspectionType}] ⏭️ Skipping refetch - no photos to update`);

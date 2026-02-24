@@ -75,9 +75,13 @@
     "sync:projects": "tsx scripts/sync-projects.ts",
     "diagnose:projects-properties": "tsx scripts/diagnose-projects-properties-sync.ts",
     "verify:projects-properties-link": "tsx scripts/verify-projects-and-properties-link.ts",
-    "delete:inspections": "tsx scripts/delete-inspections-for-property.ts"
+    "delete:inspections": "tsx scripts/delete-inspections-for-property.ts",
+    "regenerate-final-check": "tsx scripts/regenerate-final-check-html.ts",
+    "delete-final-check": "tsx scripts/delete-final-check-for-property.ts"
   },
+  "preinstall": "rm -rf node_modules/.baseline-browser-mapping-* 2>/dev/null || true",
   "dependencies": {
+    "@babel/runtime": "^7.26.0",
     "@auth0/auth0-react": "^2.10.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-collapsible": "^1.1.12",

@@ -1,40 +1,76 @@
 #!/usr/bin/env tsx
 /**
- * Script para regenerar el HTML del final check de una propiedad
- * Uso: npx tsx scripts/regenerate-final-check-html.ts SP-V4P-KDH-005658
+ * Script para regenerar el HTML del final check de una propiedad y opcionalmente enviar a Airtable.
+ * Uso:
+ *   Por ID:    npx tsx scripts/regenerate-final-check-html.ts SP-V4P-KDH-005658
+ *   Por dirección: npx tsx scripts/regenerate-final-check-html.ts "Tr. Toledo 4 Es:1 Pl:02 Pt:E, Camarena, Toledo"
+ *   Con sync:  npx tsx scripts/regenerate-final-check-html.ts "dirección o id" --sync-airtable
+ *
+ * IMPORTANTE: Cargar .env antes de cualquier import que use Supabase/Airtable.
+ * No importar desde lib/airtable/initial-check-sync porque arrastra "use client" y lib/supabase/client.ts,
+ * que exige variables del navegador y falla al ejecutar el script con tsx.
  */
-
 import { loadEnvConfig } from '@next/env';
-import { createAdminClient } from '../lib/supabase/admin';
-
 loadEnvConfig(process.cwd());
+
+import { createAdminClient } from '../lib/supabase/admin';
+import Airtable from 'airtable';
 import { generateChecklistHTML } from '../lib/html/checklist-html-generator';
 import { translations } from '../lib/i18n/translations';
 import { convertSupabaseToChecklist } from '../lib/supabase/checklist-converter';
+import { findTransactionsRecordIdByUniqueId } from '../lib/airtable/transactions-lookup';
+
+/** URL pública del selector Initial/Final (misma lógica que initial-check-sync, sin importar ese módulo). */
+function getChecklistPublicSelectorUrl(propertyId: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://dev.vistral.io';
+  const publicBaseUrl = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
+  return `${publicBaseUrl.replace(/\/$/, '')}/checklist-public/${propertyId}`;
+}
 
 async function main() {
-  const propertyId = process.argv[2] || 'SP-V4P-KDH-005658';
+  const rawArg = process.argv[2] || 'SP-V4P-KDH-005658';
+  const syncAirtable = process.argv.includes('--sync-airtable');
   const checklistType = 'reno_final';
   const inspectionType = 'final';
 
-  console.log(`🔍 Regenerando HTML del final check para propiedad ${propertyId}...\n`);
-
   const supabase = createAdminClient();
 
-  try {
-    // 1. Obtener la propiedad
-    const { data: property, error: propError } = await supabase
+  // Resolver propiedad por ID o por dirección (si el argumento parece una dirección: contiene coma o no es UUID)
+  const looksLikeAddress = rawArg.includes(',') || rawArg.includes('Tr.') || !/^[a-zA-Z0-9-]{20,}$/.test(rawArg);
+  let property: any;
+
+  if (looksLikeAddress) {
+    console.log(`🔍 Buscando propiedad por dirección: "${rawArg}"...\n`);
+    const { data: list, error } = await supabase
       .from('properties')
       .select('*')
-      .eq('id', propertyId)
+      .ilike('address', `%${rawArg.trim()}%`)
+      .limit(2);
+    if (error || !list?.length) {
+      console.error('❌ No se encontró propiedad con esa dirección.');
+      process.exit(1);
+    }
+    if (list.length > 1) {
+      console.warn('⚠️ Varias propiedades coinciden; usando la primera.');
+    }
+    property = list[0];
+  } else {
+    const { data: p, error: propError } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('id', rawArg)
       .single();
-
-    if (propError || !property) {
+    if (propError || !p) {
       console.error('❌ Error obteniendo propiedad:', propError?.message);
       process.exit(1);
     }
+    property = p;
+  }
 
-    console.log(`✅ Propiedad encontrada: ${property.address || propertyId}`);
+  const propertyId = property.id;
+  console.log(`🔍 Regenerando HTML del final check para: ${property.address || propertyId}\n`);
+
+  try {
 
     // 2. Obtener la inspección del tipo correcto
     const { data: inspection, error: inspectionError } = await supabase
@@ -236,6 +272,30 @@ async function main() {
       console.error('⚠️ Error actualizando inspección:', updateError.message);
     } else {
       console.log('✅ URL del HTML guardada en inspección');
+    }
+
+    // 9. Opcional: enviar a Airtable (Reno checklist form + Final check date)
+    if (syncAirtable) {
+      const uniqueId = property['Unique ID From Engagements'] || property.id;
+      const recordId = await findTransactionsRecordIdByUniqueId(uniqueId);
+      if (!recordId) {
+        console.warn('⚠️ No se encontró registro en Airtable Transactions para esta propiedad. No se actualiza Airtable.');
+      } else {
+        const apiKey = process.env.NEXT_PUBLIC_AIRTABLE_API_KEY;
+        const baseId = process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID;
+        if (!apiKey || !baseId) {
+          console.warn('⚠️ Airtable no configurado (NEXT_PUBLIC_AIRTABLE_*). No se actualiza Airtable.');
+        } else {
+          const base = new Airtable({ apiKey }).base(baseId);
+          const checklistPublicUrl = getChecklistPublicSelectorUrl(propertyId);
+          const todayDate = new Date().toISOString().split('T')[0];
+          await base('Transactions').update(recordId, {
+            'fldBOpKEktOI2GnZK': checklistPublicUrl,
+            'fldZzAfXzfURkdGZI': todayDate,
+          });
+          console.log('✅ Airtable actualizado (Reno checklist form + Final check date)');
+        }
+      }
     }
 
     console.log('\n✅ HTML del final check regenerado exitosamente!');

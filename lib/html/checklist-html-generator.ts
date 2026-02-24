@@ -1251,7 +1251,8 @@ body {
 
   .modal-content {
     padding: 16px;
-    max-height: 85vh;
+    max-height: 88vh;
+    width: 98vw;
   }
 
   .modal-title {
@@ -1259,7 +1260,8 @@ body {
   }
 
   .modal-main-image {
-    height: 200px;
+    min-height: 240px;
+    height: 45vh;
   }
 
   .modal-thumbnail {
@@ -1297,6 +1299,11 @@ body {
   padding: 8px;
 }
 
+/* Cuando hay 2+ fotos: dar altura mínima al “cuadrado” para que el layout horizontal se vea bien */
+.carousel-container--multi .carousel-images-wrapper {
+  min-height: 220px;
+}
+
 .carousel-images-wrapper {
   flex: 1;
   min-height: 0;
@@ -1306,8 +1313,6 @@ body {
 
 .carousel-images-group {
   display: none;
-  flex-direction: column;
-  gap: 6px;
   width: 100%;
   height: 100%;
   position: absolute;
@@ -1315,22 +1320,67 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
+  gap: 8px;
 }
 
 .carousel-images-group.active {
   display: flex;
 }
 
-/* Layout compacto: pocas imágenes (1-3) - no dividir en partes iguales */
-.carousel-images-group--few {
+/* Una sola imagen: ocupar todo el ancho, sin forzar horizontal (no aplicar layout de “varias fotos”) */
+.carousel-images-group--few.carousel-images-group--one {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+.carousel-images-group--few.carousel-images-group--one .carousel-image {
+  width: 100%;
+  flex: 1;
+  min-height: 80px;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Dos o más imágenes: horizontal (lado a lado). Solo cuando hay más de una foto. */
+.carousel-images-group--few:not(.carousel-images-group--one) {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+.carousel-images-group--few:not(.carousel-images-group--one) .carousel-image {
+  flex: 0 0 calc((100% - 8px * (var(--img-count, 2) - 1)) / var(--img-count, 2));
+  width: 0;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  min-height: 80px;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* En viewport muy estrecho: 2+ imágenes en vertical para que no queden minúsculas */
+@media (max-width: 480px) {
+  .carousel-images-group--few:not(.carousel-images-group--one) {
+    flex-direction: column;
+    flex-wrap: wrap;
+  }
+  .carousel-images-group--few:not(.carousel-images-group--one) .carousel-image {
+    flex: 0 0 auto;
+    width: 100%;
+    max-height: 50vh;
+  }
+}
+
+/* Fallback para grupos con muchas imágenes (carrusel): una por slide */
+.carousel-images-group:not(.carousel-images-group--few) {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
 }
-
-.carousel-images-group--few .carousel-image {
+.carousel-images-group:not(.carousel-images-group--few) .carousel-image {
   flex: none;
   width: auto;
   max-width: calc(100% / var(--img-count, 1) - 6px);
@@ -1344,7 +1394,7 @@ body {
   width: 100%;
   flex: 1;
   min-height: 1px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 4px;
 }
 
@@ -1493,12 +1543,12 @@ body {
 .modal-content {
   background: white;
   border-radius: 8px;
-  max-width: 720px;
-  width: 100%;
-  max-height: 90vh;
+  max-width: 1000px;
+  width: 95vw;
+  max-height: 92vh;
   overflow-y: auto;
   position: relative;
-  padding: 20px;
+  padding: 24px;
 }
 
 .modal-header {
@@ -1538,10 +1588,12 @@ body {
 
 .modal-main-image {
   width: 100%;
-  height: 280px;
-  object-fit: cover;
-  border-radius: 6px;
-  margin-bottom: 14px;
+  min-height: 360px;
+  height: 60vh;
+  max-height: 560px;
+  object-fit: contain;
+  border-radius: 8px;
+  margin-bottom: 16px;
   background: #F1F5F9;
 }
 
@@ -1633,7 +1685,7 @@ body {
 </div>
 <div class="container">`;
 
-  // Generar secciones
+  // Generar secciones (solo las que tienen fotos; no generar reporte de zona sin fotos)
   for (const sectionId of sectionOrder) {
     const section = checklist.sections[sectionId];
     if (!section) continue;
@@ -1643,14 +1695,6 @@ body {
     // Para secciones dinámicas (habitaciones, baños), crear una sección por cada item
     if (section.dynamicItems && section.dynamicItems.length > 0) {
       for (const dynamicItem of section.dynamicItems) {
-        const itemNumber = dynamicItem.id.match(/\d+/)?.[0] || '';
-        const itemLabel = sectionId === 'habitaciones'
-          ? `Habitación ${itemNumber}`
-          : sectionId === 'banos'
-          ? `Baño ${itemNumber}`
-          : dynamicItem.id;
-
-        // Crear sección para este dynamic item
         const dynamicSection: ChecklistSection = {
           id: dynamicItem.id,
           uploadZones: dynamicItem.uploadZone ? [dynamicItem.uploadZone] : undefined,
@@ -1659,6 +1703,15 @@ body {
           climatizationItems: dynamicItem.climatizationItems,
           mobiliario: dynamicItem.mobiliario,
         };
+        const dynamicImages = collectSectionImages(dynamicSection, `dynamic-${dynamicItem.id}`, translations);
+        if (dynamicImages.length === 0) continue;
+
+        const itemNumber = dynamicItem.id.match(/\d+/)?.[0] || '';
+        const itemLabel = sectionId === 'habitaciones'
+          ? `Habitación ${itemNumber}`
+          : sectionId === 'banos'
+          ? `Baño ${itemNumber}`
+          : dynamicItem.id;
 
         html += generateSectionHTML(
           dynamicSection,
@@ -1668,7 +1721,8 @@ body {
         );
       }
     } else {
-      // Sección normal
+      const sectionImages = collectSectionImages(section, sectionId, translations);
+      if (sectionImages.length === 0) continue;
       html += generateSectionHTML(section, sectionTitle, sectionId, translations);
     }
   }
@@ -1816,21 +1870,23 @@ function generateSectionHTML(
   // Carrusel de imágenes (izquierda)
   html += `<div class="image-carousel">`;
   if (images.length > 0) {
-    // Pocas imágenes (1-3): layout compacto sin dividir. Muchas (4+): carrusel con grupos
-    const useCompactLayout = images.length <= 3;
-    const imagesPerGroup = images.length >= 4 ? 1 : images.length;
+    // Siempre mostrar UNA única foto en el informe: 1 imagen = una sola; 2+ = carrusel de 1 por slide (evita fotos verticales rotas lado a lado)
+    const useCompactLayout = images.length === 1;
+    const imagesPerGroup = 1;
     html += `<div class="carousel-container" id="carousel-${sectionId}" data-total-images="${images.length}" data-images-per-group="${imagesPerGroup}">`;
-    const totalGroups = Math.ceil(images.length / imagesPerGroup);
+    const totalGroups = images.length;
 
     html += `<div class="carousel-images-wrapper">`;
     for (let groupIndex = 0; groupIndex < totalGroups; groupIndex++) {
       const startIndex = groupIndex * imagesPerGroup;
       const endIndex = Math.min(startIndex + imagesPerGroup, images.length);
+      const countInGroup = endIndex - startIndex;
       const fewClass = useCompactLayout ? ' carousel-images-group--few' : '';
+      const oneImageClass = useCompactLayout && countInGroup === 1 ? ' carousel-images-group--one' : '';
       const activeClass = groupIndex === 0 ? ' active' : '';
-      const imgCountStyle = useCompactLayout ? ` style="--img-count: ${endIndex - startIndex}"` : '';
+      const imgCountStyle = ` style="--img-count: ${countInGroup}"`;
 
-      html += `<div class="carousel-images-group${fewClass}${activeClass}"${imgCountStyle}>`;
+      html += `<div class="carousel-images-group${fewClass}${oneImageClass}${activeClass}"${imgCountStyle}>`;
       for (let i = startIndex; i < endIndex; i++) {
         html += `<img src="${escapeHtml(images[i].url)}" alt="${escapeHtml(images[i].label || '')}" class="carousel-image" />`;
       }

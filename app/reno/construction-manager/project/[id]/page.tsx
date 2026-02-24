@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Building2, Calendar, ExternalLink, FolderKanban, FolderOpen, MapPin } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, ExternalLink, FolderKanban, FolderOpen, MapPin, Info, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PropertyTabs } from "@/components/layout/property-tabs";
 import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
+import { ProjectStatusSidebar } from "@/components/reno/project-status-sidebar";
 import { useI18n } from "@/lib/i18n";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { PROJECT_KANBAN_PHASE_LABELS } from "@/lib/reno-kanban-config";
@@ -14,7 +15,12 @@ import type { PropertyRow } from "@/hooks/useSupabaseProject";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PropertyMap } from "@/components/reno/property-map";
+import { createClient } from "@/lib/supabase/client";
+import { useAppAuth } from "@/lib/auth/app-auth-context";
+import { useProjectFinalCheck } from "@/hooks/useProjectFinalCheck";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 function parseAreaClusterDisplay(raw: string | null | undefined): string | null {
   const s = (raw ?? "").toString().trim();
@@ -48,11 +54,58 @@ export default function RenoProjectDetailPage() {
   })();
 
   const { t } = useI18n();
-  const { project, properties, loading, error } = useSupabaseProject(projectId);
+  const { user, role, isLoading: authLoading } = useAppAuth();
+  const { project, properties, loading, error, refetch } = useSupabaseProject(projectId);
+  const { finalCheck, loading: finalCheckLoading, startFinalCheck } = useProjectFinalCheck(projectId);
   const [activeTab, setActiveTab] = useState("propiedades");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [startingCheck, setStartingCheck] = useState(false);
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (authLoading || loading || !project || !user || role !== "foreman") return;
+    const assigned = project.assigned_site_manager_email?.trim().toLowerCase();
+    const userEmail = user.email?.trim().toLowerCase();
+    if (assigned && userEmail && assigned !== userEmail) {
+      router.push("/reno/construction-manager/kanban");
+      toast.error("No tienes acceso a este proyecto");
+    }
+  }, [authLoading, loading, project, user, role, router]);
+
+  const handleAssignSiteManagerProject = useCallback(
+    async (projId: string, email: string | null) => {
+      try {
+        const { error: projectError } = await supabase
+          .from("projects")
+          .update({
+            assigned_site_manager_email: email,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", projId);
+        if (projectError) throw projectError;
+
+        const { error: propsError } = await supabase
+          .from("properties")
+          .update({
+            assigned_site_manager_email: email,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("project_id", projId);
+        if (propsError) throw propsError;
+
+        await refetch();
+        toast.success("Jefe de obra asignado");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Error al asignar";
+        toast.error(msg);
+      }
+    },
+    [supabase, refetch]
+  );
 
   const tabs = [
     { id: "propiedades", label: "Propiedades del proyecto" },
+    { id: "tareas", label: "Tareas" },
     { id: "resumen", label: "Resumen" },
     { id: "estado", label: "Estado del proyecto" },
   ];
@@ -185,6 +238,64 @@ export default function RenoProjectDetailPage() {
             </div>
           </div>
         );
+      case "tareas":
+        return (
+          <div className="bg-card rounded-lg border p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-4">Tareas</h2>
+            {finalCheckLoading ? (
+              <p className="text-muted-foreground">Cargando...</p>
+            ) : finalCheck ? (
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  Final Check {finalCheck.status === "completed" ? "completado" : "en curso"}.
+                </p>
+                <Button
+                  onClick={() =>
+                    router.push(
+                      `/reno/construction-manager/project/${projectId}/final-check?from=project`
+                    )
+                  }
+                >
+                  {finalCheck.status === "completed"
+                    ? "Ver informe Final Check"
+                    : "Continuar Final Check"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  Inicia el Final Check del proyecto para reportar el estado de cada vivienda y mobiliario.
+                </p>
+                <Button
+                  disabled={startingCheck || properties.length === 0}
+                  onClick={async () => {
+                    setStartingCheck(true);
+                    try {
+                      const checkId = await startFinalCheck(project.assigned_site_manager_email ?? null);
+                      if (checkId) {
+                        toast.success("Final Check iniciado");
+                        router.push(
+                          `/reno/construction-manager/project/${projectId}/final-check?from=project`
+                        );
+                      } else {
+                        toast.error("Error al iniciar Final Check");
+                      }
+                    } finally {
+                      setStartingCheck(false);
+                    }
+                  }}
+                >
+                  {startingCheck ? "Iniciando..." : "Iniciar Final Check del proyecto"}
+                </Button>
+                {properties.length === 0 && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                    Añade al menos una propiedad al proyecto para poder iniciar el Final Check.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        );
       case "estado":
         return (
           <div className="bg-card rounded-lg border p-6 shadow-sm">
@@ -272,17 +383,62 @@ export default function RenoProjectDetailPage() {
                 </div>
               </div>
             </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden"
+                aria-label="Abrir panel"
+              >
+                <Info className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </header>
 
         <PropertyTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
         <div className="flex flex-1 overflow-hidden pt-2">
-          <div className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24">
             <div className="max-w-4xl mx-auto">{renderTabContent()}</div>
+          </div>
+          <div className="hidden lg:block h-full min-h-0 w-[320px] flex-shrink-0 border-l bg-card dark:bg-[var(--prophero-gray-900)]">
+            <ProjectStatusSidebar
+              project={project}
+              onAssign={handleAssignSiteManagerProject}
+            />
           </div>
         </div>
       </div>
+
+      {isSidebarOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+          <div className="fixed right-0 top-0 h-full w-[85vw] max-w-sm bg-card dark:bg-[var(--prophero-gray-900)] border-l z-50 lg:hidden shadow-xl overflow-y-auto">
+            <div className="sticky top-0 bg-card dark:bg-[var(--prophero-gray-900)] border-b p-4 flex items-center justify-between z-10">
+              <h2 className="text-lg font-semibold">Proyecto</h2>
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-2 rounded-md hover:bg-accent"
+                aria-label="Cerrar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <ProjectStatusSidebar
+              project={project}
+              onAssign={(id, email) => {
+                void handleAssignSiteManagerProject(id, email);
+                setIsSidebarOpen(false);
+              }}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
