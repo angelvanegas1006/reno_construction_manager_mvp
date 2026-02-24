@@ -153,17 +153,6 @@ export function useSupabaseChecklistBase({
     checklistRef.current = checklist;
   }, [checklist]);
 
-  // Emit "Checklist Started" once when inspection is first available
-  useEffect(() => {
-    if (!inspection?.id || checklistStartedEmittedRef.current.has(inspection.id)) return;
-    checklistStartedEmittedRef.current.add(inspection.id);
-    trackEventWithDevice("Checklist Started", {
-      checklist_type: checklistType,
-      property_id: propertyId,
-      inspection_id: inspection.id,
-    });
-  }, [inspection?.id, checklistType, propertyId]);
-
   // Log initialization only once per mount (using ref to track)
   const hasLoggedRef = useRef(false);
   if (!hasLoggedRef.current) {
@@ -187,6 +176,17 @@ export function useSupabaseChecklistBase({
     upsertElement,
     refetch: refetchInspection,
   } = useSupabaseInspection(propertyId, inspectionType, enabled);
+
+  // Emit "Checklist Started" once when inspection is first available
+  useEffect(() => {
+    if (!inspection?.id || checklistStartedEmittedRef.current.has(inspection.id)) return;
+    checklistStartedEmittedRef.current.add(inspection.id);
+    trackEventWithDevice("Checklist Started", {
+      checklist_type: checklistType,
+      property_id: propertyId,
+      inspection_id: inspection.id,
+    });
+  }, [inspection?.id, checklistType, propertyId]);
 
   // Hook para obtener datos de la propiedad (bedrooms, bathrooms)
   const { property: supabaseProperty } = useSupabaseProperty(propertyId);
@@ -2438,7 +2438,7 @@ export function useSupabaseChecklistBase({
             }
           : null;
         const isDelayed = propertyForDelayed
-          ? isDelayedWork(propertyForDelayed as any, propertyForDelayed.reno_phase)
+          ? isDelayedWork(propertyForDelayed as any, propertyForDelayed.renoPhase)
           : false;
 
         if (checklistType === "reno_initial") {
