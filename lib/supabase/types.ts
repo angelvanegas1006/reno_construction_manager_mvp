@@ -361,6 +361,7 @@ export type Database = {
           reno_phase: string | null
           created_at: string | null
           updated_at: string | null
+          assigned_site_manager_email: string | null
           investment_type: string | null
           properties_to_convert: string | null
           project_start_date: string | null
@@ -394,6 +395,7 @@ export type Database = {
           reno_phase?: string | null
           created_at?: string | null
           updated_at?: string | null
+          assigned_site_manager_email?: string | null
           investment_type?: string | null
           properties_to_convert?: string | null
           project_start_date?: string | null
@@ -427,6 +429,7 @@ export type Database = {
           reno_phase?: string | null
           created_at?: string | null
           updated_at?: string | null
+          assigned_site_manager_email?: string | null
           investment_type?: string | null
           properties_to_convert?: string | null
           project_start_date?: string | null
@@ -454,6 +457,86 @@ export type Database = {
           lead?: string | null
         }
         Relationships: []
+      }
+      project_final_checks: {
+        Row: {
+          id: string
+          project_id: string
+          assigned_site_manager_email: string | null
+          status: string
+          completed_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          assigned_site_manager_email?: string | null
+          status?: string
+          completed_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          assigned_site_manager_email?: string | null
+          status?: string
+          completed_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_final_checks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_final_check_dwellings: {
+        Row: {
+          id: string
+          project_final_check_id: string
+          property_id: string
+          estado_vivienda: string | null
+          estado_mobiliario: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_final_check_id: string
+          property_id: string
+          estado_vivienda?: string | null
+          estado_mobiliario?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_final_check_id?: string
+          property_id?: string
+          estado_vivienda?: string | null
+          estado_mobiliario?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_final_check_dwellings_project_final_check_id_fkey"
+            columns: ["project_final_check_id"]
+            isOneToOne: false
+            referencedRelation: "project_final_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_final_check_dwellings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       property_activities: {
         Row: {

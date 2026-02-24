@@ -6,7 +6,7 @@
 
 import Airtable from 'airtable';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { findTransactionsRecordIdByUniqueId, findTransactionsRecordIdByPropertiesId } from './client';
+import { findTransactionsRecordIdByUniqueId, findTransactionsRecordIdByPropertiesId } from './transactions-lookup';
 
 const BUDGET_ATTACHMENT_FIELD_ID = 'fldVOO4zqx5HUzIjz';
 const RENOVATOR_CONTRACT_DOC_FIELD_ID = 'fldghjw7a7VhMYXaS';

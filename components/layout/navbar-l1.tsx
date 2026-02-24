@@ -13,6 +13,8 @@ type ViewMode = "kanban" | "list";
 interface NavbarL1Props {
   /** Zona B: Nombre corto de la Clase (opcional) */
   classNameTitle?: string;
+  /** Zona B: Acciones justo al lado del título (ej: "Mis proyectos" para jefes de obra) */
+  titleActions?: React.ReactNode;
   /** Zona C: Buscador */
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -56,6 +58,7 @@ interface NavbarL1Props {
  */
 export function NavbarL1({
   classNameTitle,
+  titleActions,
   searchQuery,
   setSearchQuery,
   syncAirtableButton,
@@ -77,11 +80,16 @@ export function NavbarL1({
     <nav className="border-b bg-card px-4 md:px-3 lg:px-4 py-3 md:py-3 relative">
       {/* Mobile Layout */}
       <div className="flex flex-col md:hidden gap-3">
-        {/* Title */}
-        {classNameTitle && (
-          <h1 className="text-lg font-semibold text-foreground truncate pl-14 min-w-0">
-            {classNameTitle}
-          </h1>
+        {/* Title + acciones junto al título (móvil) */}
+        {(classNameTitle || titleActions) && (
+          <div className="flex items-center gap-2 pl-14 min-w-0">
+            {classNameTitle && (
+              <h1 className="text-lg font-semibold text-foreground truncate min-w-0">
+                {classNameTitle}
+              </h1>
+            )}
+            {titleActions}
+          </div>
         )}
         
         {/* Search and Filter Row - móvil: buscador primero (grande), luego Sync AT compacto */}
@@ -165,11 +173,16 @@ export function NavbarL1({
 
       {/* Desktop Layout */}
       <div className="hidden md:flex items-center justify-between gap-4">
-        {/* Zona B: Nombre corto de la Clase (opcional) */}
-        {classNameTitle && (
-          <h1 className="text-xl lg:text-2xl font-semibold text-foreground whitespace-nowrap min-w-0">
-            {classNameTitle}
-          </h1>
+        {/* Zona B: Nombre corto de la Clase + acciones junto al título (ej: Mis proyectos) */}
+        {(classNameTitle || titleActions) && (
+          <div className="flex items-center gap-3 min-w-0">
+            {classNameTitle && (
+              <h1 className="text-xl lg:text-2xl font-semibold text-foreground whitespace-nowrap min-w-0">
+                {classNameTitle}
+              </h1>
+            )}
+            {titleActions}
+          </div>
         )}
 
         {/* Zona C: Buscador, Filtros y Acciones */}

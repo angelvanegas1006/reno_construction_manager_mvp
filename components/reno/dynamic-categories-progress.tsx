@@ -240,9 +240,13 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
   // Corner case: múltiples PDFs (2+) Y categorías sin actividades
   const isCornerCase = hasMultiplePdfs && hasCategoriesWithoutActivities && categories.length > 0;
   
-  // Show extract button SOLO cuando NO hay categorías (caso inicial)
+  // Show extract button SOLO cuando NO hay categorías (caso inicial) y NO en reno-in-progress.
+  // En reno-in-progress el flujo "Obtener Presupuesto de Airtable" ya dispara la extracción; no permitir doble llamada.
   // NO mostrar si ya hay categorías (incluso sin actividades) - eso se maneja con los botones por PDF
-  const showExtractButton = property.budget_pdf_url && categories.length === 0;
+  const showExtractButton =
+    property.budget_pdf_url &&
+    categories.length === 0 &&
+    property.reno_phase !== 'reno-in-progress';
   
   // Debug logs
   useEffect(() => {
@@ -415,17 +419,17 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
         toast.error(data.error || 'No se encontró presupuesto en Airtable para esta propiedad');
         return;
       }
-      toast.success('Presupuesto sincronizado correctamente');
-      await onBudgetSynced?.();
-      await refetch();
+      toast.success('Presupuesto sincronizado. La página se recargará.');
       toast.info('Las categorías se están extrayendo del presupuesto. Puede tardar unos minutos.');
+      onBudgetSynced?.();
+      window.location.reload();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al obtener presupuesto';
       toast.error(msg);
     } finally {
       setIsFetchingBudgetFromAirtable(false);
     }
-  }, [property.id, isFetchingBudgetFromAirtable, onBudgetSynced, refetch, categories.length]);
+  }, [property.id, isFetchingBudgetFromAirtable, onBudgetSynced]);
 
   // Initialize local and saved percentages from categories
   useEffect(() => {
@@ -1410,9 +1414,11 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                       </p>
                       {property.budget_pdf_url ? (
                         <p className="text-xs text-muted-foreground">
-                          {hasCategoriesWithoutActivities 
-                            ? "Las categorías existentes no tienen actividades. Haz clic en 'Re-extraer Información PDF' para procesar los PDFs nuevamente."
-                            : "Tienes un presupuesto PDF disponible. Haz clic en 'Extraer Información PDF' para crear las categorías automáticamente."}
+                          {property.reno_phase === 'reno-in-progress'
+                            ? "Las categorías se extraen automáticamente al obtener el presupuesto de Airtable. Si acabas de sincronizar, puede tardar unos minutos."
+                            : hasCategoriesWithoutActivities
+                              ? "Las categorías existentes no tienen actividades. Haz clic en 'Re-extraer Información PDF' para procesar los PDFs nuevamente."
+                              : "Tienes un presupuesto PDF disponible. Haz clic en 'Extraer Información PDF' para crear las categorías automáticamente."}
                         </p>
                       ) : (
                         <p className="text-xs text-muted-foreground">
