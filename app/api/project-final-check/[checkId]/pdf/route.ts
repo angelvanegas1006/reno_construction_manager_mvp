@@ -49,7 +49,7 @@ export async function GET(
 
   const projectName = project?.name ?? "Proyecto";
   const doc = new jsPDF({ format: "a4", unit: "mm" });
-  const pageW = doc.getPageWidth();
+  const pageW = doc.internal.pageSize.getWidth();
   const margin = 20;
   let y = 20;
 
