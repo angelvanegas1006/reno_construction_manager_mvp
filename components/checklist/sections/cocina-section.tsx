@@ -414,10 +414,10 @@ export const CocinaSection = forwardRef<HTMLDivElement, CocinaSectionProps>(
             const currentItem = latestItems.find(i => i.id === itemConfig.id) || item;
 
             return (
-              <div key={`${item.id}-${cantidad}`} className="space-y-4 w-full overflow-hidden">
-                {/* Quantity Stepper */}
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words">
+              <div key={`${item.id}-${cantidad}`} className="space-y-4 w-full min-w-0">
+                {/* Quantity Stepper: label con min-w-0 para que en móvil el texto wrap y no se trunque (ej. "Nevera" completo) */}
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <Label className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words min-w-0">
                     {(() => {
                       if (translationPath === "carpinteria") {
                         return t.checklist.sections.cocina.carpinteria.items[itemConfig.translationKey as keyof typeof t.checklist.sections.cocina.carpinteria.items] || itemConfig.id;
