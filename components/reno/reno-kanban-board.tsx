@@ -12,6 +12,7 @@ import { calculateOverallProgress } from "@/lib/property-validation";
 import { useI18n } from "@/lib/i18n";
 import { visibleRenoKanbanColumns, RenoKanbanPhase, PROJECT_KANBAN_PHASE_LABELS, type RenoKanbanColumn as RenoKanbanColumnConfig } from "@/lib/reno-kanban-config";
 import { sortPropertiesByExpired, isPropertyExpired, isDelayedWork, shouldShowExpiredBadge } from "@/lib/property-sorting";
+import { trackEventWithDevice } from "@/lib/mixpanel";
 import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -411,6 +412,21 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     
     return sorted;
   }, [isMounted, supabaseLoading, transformProperties]);
+
+  const kanbanViewedEmittedRef = useRef(false);
+  useEffect(() => {
+    if (!isMounted || supabaseLoading || kanbanViewedEmittedRef.current) return;
+    const flat = Object.values(transformProperties).flat();
+    if (flat.length === 0) return;
+    kanbanViewedEmittedRef.current = true;
+    const delayedCount = flat.filter((p) => isDelayedWork(p, p.renoPhase)).length;
+    trackEventWithDevice("Kanban Viewed", {
+      from_param: fromParam,
+      view_level: viewLevel,
+      total_properties: flat.length,
+      delayed_works_count: delayedCount,
+    });
+  }, [isMounted, supabaseLoading, transformProperties, fromParam, viewLevel]);
 
   // Filter properties based on search query and filters
   const filteredProperties = useMemo(() => {

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle, Ban, Lightbulb } from "lucide-react";
 import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
 import { cn } from "@/lib/utils";
+import { trackEventWithDevice } from "@/lib/mixpanel";
 
 type ReportType = "blocker" | "idea";
 
@@ -82,6 +83,11 @@ export function ReportProblemModal({
       if (!response.ok) {
         throw new Error(`Error al enviar el reporte: ${response.statusText}`);
       }
+
+      trackEventWithDevice("Problem Reported", {
+        report_type: reportType,
+        property_name: propertyName,
+      });
 
       // Success - reset form and close
       setReportType(null);

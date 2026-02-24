@@ -72,6 +72,13 @@ export class SupabasePropertiesService {
     position?: number
   ): Promise<Property> {
     try {
+      const { data: currentRow } = await supabase
+        .from('properties')
+        .select('reno_phase')
+        .eq('id', propertyId)
+        .single();
+      const fromPhase = (currentRow as { reno_phase?: string } | null)?.reno_phase ?? null;
+
       // Import helper function
       const { getSetUpStatusForPhase } = await import('@/lib/supabase/phase-update-helper');
       const setUpStatus = getSetUpStatusForPhase(phase);
@@ -97,6 +104,27 @@ export class SupabasePropertiesService {
       }
 
       const updatedProperty = this.mapToProperty(data);
+
+      if (typeof window !== 'undefined') {
+        const { trackEventWithDevice } = await import('@/lib/mixpanel');
+        const { isDelayedWork } = await import('@/lib/property-sorting');
+        const row = data as Record<string, unknown>;
+        const propertyForDelayed = {
+          renoPhase: row.reno_phase,
+          renoDuration: row.reno_duration,
+          renoType: row.reno_type,
+          daysToStartRenoSinceRSD: row.days_to_start_reno_since_rsd,
+          daysToVisit: row.days_to_visit,
+          daysToPropertyReady: row.days_to_property_ready,
+        };
+        const isDelayed = isDelayedWork(propertyForDelayed as any, String(phase));
+        trackEventWithDevice('Kanban Phase Changed', {
+          property_id: propertyId,
+          from_phase: fromPhase,
+          to_phase: phase,
+          is_delayed: isDelayed,
+        });
+      }
 
       // Sync to Airtable (fire and forget - don't block the update)
       if (typeof window !== 'undefined') {

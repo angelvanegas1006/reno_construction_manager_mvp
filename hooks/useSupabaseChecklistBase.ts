@@ -75,6 +75,8 @@ import type { FileUpload } from "@/lib/checklist-storage";
 import { toast } from "sonner";
 import { finalizeInitialCheckInAirtable } from "@/lib/airtable/initial-check-sync";
 import { createDriveFolderForProperty, uploadPhotosToDrive } from "@/lib/n8n/webhook-caller";
+import { trackEventWithDevice } from "@/lib/mixpanel";
+import { isDelayedWork } from "@/lib/property-sorting";
 
 interface UseSupabaseChecklistBaseProps {
   propertyId: string;
@@ -143,6 +145,8 @@ export function useSupabaseChecklistBase({
   const pendingSectionUpdatesRef = useRef<Record<string, Partial<ChecklistSection>>>({});
   /** Sección que acabamos de guardar; al refetch solo actualizamos esta sección para no sobrescribir mobiliario de otras (entrada, salon, etc.). */
   const lastSavedSectionIdRef = useRef<string | null>(null);
+  /** Inspecciones para las que ya se emitió "Checklist Started" (evitar duplicados). */
+  const checklistStartedEmittedRef = useRef<Set<string>>(new Set());
   
   // Keep checklistRef in sync with checklist state
   useEffect(() => {
@@ -172,6 +176,17 @@ export function useSupabaseChecklistBase({
     upsertElement,
     refetch: refetchInspection,
   } = useSupabaseInspection(propertyId, inspectionType, enabled);
+
+  // Emit "Checklist Started" once when inspection is first available
+  useEffect(() => {
+    if (!inspection?.id || checklistStartedEmittedRef.current.has(inspection.id)) return;
+    checklistStartedEmittedRef.current.add(inspection.id);
+    trackEventWithDevice("Checklist Started", {
+      checklist_type: checklistType,
+      property_id: propertyId,
+      inspection_id: inspection.id,
+    });
+  }, [inspection?.id, checklistType, propertyId]);
 
   // Hook para obtener datos de la propiedad (bedrooms, bathrooms)
   const { property: supabaseProperty } = useSupabaseProperty(propertyId);
@@ -2407,7 +2422,42 @@ export function useSupabaseChecklistBase({
 
       if (success) {
         toast.success("Checklist finalizado correctamente");
-        
+
+        const durationSeconds =
+          inspection?.created_at
+            ? Math.round(Date.now() / 1000 - new Date(inspection.created_at).getTime() / 1000)
+            : undefined;
+        const propertyForDelayed = propData
+          ? {
+              renoPhase: propData.reno_phase,
+              renoDuration: propData.reno_duration,
+              renoType: propData.reno_type,
+              daysToStartRenoSinceRSD: propData.days_to_start_reno_since_rsd,
+              daysToVisit: propData.days_to_visit,
+              daysToPropertyReady: propData.days_to_property_ready,
+            }
+          : null;
+        const isDelayed = propertyForDelayed
+          ? isDelayedWork(propertyForDelayed as any, propertyForDelayed.renoPhase)
+          : false;
+
+        if (checklistType === "reno_initial") {
+          trackEventWithDevice("Initial Check Completed", {
+            property_id: propertyId,
+            progress,
+            duration_seconds: durationSeconds,
+            is_delayed: isDelayed,
+          });
+        } else if (checklistType === "reno_final") {
+          trackEventWithDevice("Final Check Completed", {
+            property_id: propertyId,
+            progress,
+            ready_for_commercialization: data?.readyForCommercialization ?? undefined,
+            duration_seconds: durationSeconds,
+            is_delayed: isDelayed,
+          });
+        }
+
         // Si es checklist inicial, llamar al webhook para crear carpeta Drive
         // Se ejecuta de forma asíncrona y silenciosa
         if (checklistType === 'reno_initial') {

@@ -16,6 +16,13 @@ export async function updatePropertyPhaseConsistent(
   const supabase = createClient();
   
   try {
+    const { data: currentRow } = await supabase
+      .from('properties')
+      .select('reno_phase')
+      .eq('id', propertyId)
+      .single();
+    const fromPhase = (currentRow as { reno_phase?: string } | null)?.reno_phase ?? null;
+
     const dbUpdates: Record<string, any> = {
       updated_at: new Date().toISOString(),
     };
@@ -38,6 +45,8 @@ export async function updatePropertyPhaseConsistent(
       dbUpdates['reno_phase'] = updates.renoPhase;
     }
 
+    const toPhase = (updates.renoPhase ?? dbUpdates['reno_phase']) as RenoKanbanPhase | undefined;
+
     const { error } = await supabase
       .from('properties')
       .update(dbUpdates)
@@ -46,6 +55,15 @@ export async function updatePropertyPhaseConsistent(
     if (error) {
       console.error(`[updatePropertyPhaseConsistent] Error updating property ${propertyId}:`, error);
       return { success: false, error: error.message };
+    }
+
+    if (typeof globalThis.window !== 'undefined' && fromPhase !== undefined && toPhase) {
+      const { trackEventWithDevice } = await import('@/lib/mixpanel');
+      trackEventWithDevice('Kanban Phase Changed', {
+        property_id: propertyId,
+        from_phase: fromPhase,
+        to_phase: toPhase,
+      });
     }
 
     console.log(`[updatePropertyPhaseConsistent] ✅ Updated property ${propertyId}:`, dbUpdates);

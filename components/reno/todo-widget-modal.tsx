@@ -16,6 +16,7 @@ import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { RenovatorCombobox } from "@/components/reno/renovator-combobox";
 import { PropertyCombobox } from "@/components/reno/property-combobox";
 import { FileSignature } from "lucide-react";
+import { useRenoProperties } from "@/contexts/reno-properties-context";
 
 interface TodoWidgetModalProps {
   open: boolean;
@@ -31,6 +32,7 @@ interface TodoWidgetModalProps {
 export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allProperties = [], propertiesForCurrentWidget = [], onPropertyChange }: TodoWidgetModalProps) {
   const router = useRouter();
   const supabase = createClient();
+  const { refetchProperties } = useRenoProperties();
   const [isSaving, setIsSaving] = useState(false);
   const [estimatedVisitDate, setEstimatedVisitDate] = useState<string>("");
   const [renovatorName, setRenovatorName] = useState<string>("");
@@ -137,6 +139,9 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
       
       console.log(`[Todo Widget] ✅ Successfully updated Supabase for property ${propertyId}`);
 
+      // Actualizar calendario y widgets de la home al momento (sin recargar la página)
+      await refetchProperties();
+
       // IMPORTANTE: El Record ID siempre está en "Transactions", no en "Properties"
       // Actualizar en Airtable usando airtable_property_id (Record_ID)
       const AIRTABLE_TABLE_NAME = 'Transactions';
@@ -172,7 +177,6 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
             : "La fecha de visita estimada se ha guardado correctamente. No se pudo sincronizar con Airtable.",
         });
         onOpenChange(false);
-        window.location.reload();
         return;
       }
       
@@ -185,7 +189,6 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
           description: "La fecha de visita estimada se ha guardado correctamente. No se pudo sincronizar con Airtable.",
         });
         onOpenChange(false);
-        window.location.reload();
         return;
       }
 
@@ -203,7 +206,6 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
             : "La fecha de visita estimada se ha guardado correctamente. No se pudo sincronizar con Airtable.",
         });
         onOpenChange(false);
-        window.location.reload();
         return;
       }
       
@@ -258,8 +260,6 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
             : "La fecha de visita estimada se ha guardado correctamente en Supabase y Airtable.",
         });
         onOpenChange(false);
-        // Recargar la página para reflejar los cambios
-        window.location.reload();
       } else {
         console.error(`[Todo Widget] Failed to update Airtable (Transactions) for property ${propertyId}`, {
           tableName: AIRTABLE_TABLE_NAME,
