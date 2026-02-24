@@ -33,3 +33,8 @@ export function useSupabaseAuthContext() {
   return context;
 }
 
+/** Para uso en componentes que pueden estar fuera del provider (ej. MixpanelProvider en layout). */
+export function useOptionalSupabaseAuthContext() {
+  return useContext(SupabaseAuthContext);
+}
+

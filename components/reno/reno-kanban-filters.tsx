@@ -9,6 +9,8 @@ import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { Property } from "@/lib/property-storage";
 import { getSiteManagersList } from "@/lib/supabase/user-name-utils";
 import { useI18n } from "@/lib/i18n";
+import { trackEventWithDevice } from "@/lib/mixpanel";
+import { isDelayedWork } from "@/lib/property-sorting";
 
 export interface KanbanFilters {
   renovatorNames: string[];
@@ -241,7 +243,14 @@ export function RenoKanbanFilters({
                 id="delayed-works"
                 checked={filters.delayedWorks || false}
                 onCheckedChange={(checked) => {
-                  onFiltersChange({ ...filters, delayedWorks: checked === true });
+                  const newDelayedWorks = checked === true;
+                  if (newDelayedWorks) {
+                    const delayedCount = properties.filter((p) => isDelayedWork(p, p.renoPhase)).length;
+                    trackEventWithDevice("Delayed Works Filter Used", {
+                      delayed_works_count: delayedCount,
+                    });
+                  }
+                  onFiltersChange({ ...filters, delayedWorks: newDelayedWorks });
                 }}
               />
               <label

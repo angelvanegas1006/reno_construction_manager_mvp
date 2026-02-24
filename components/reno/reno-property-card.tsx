@@ -215,7 +215,8 @@ export function RenoPropertyCard({
       onClick={disabled ? undefined : () => {
         track("Property Card Clicked", {
           property_id: property.id,
-          property_phase: stage,
+          phase: stage,
+          from_view: fromParam,
           property_type: property.propertyType,
           renovation_type: property.renoType,
           is_expired: isExpired,
