@@ -416,11 +416,12 @@ export default function RenoChecklistPage() {
 
   // Handle section click - Guardar la sección que SALIMOS antes de cambiar (crítico para no perder fotos en móvil)
   // Si el guardado falla, NO cambiamos de sección para no perder el avance; mostramos Reintentar.
-  const handleSectionClick = useCallback(async (sectionId: string) => {
+  // skipSave: cuando se llama desde handleContinue que ya guardó, evita un doble-save que causa race conditions
+  const handleSectionClick = useCallback(async (sectionId: string, { skipSave = false }: { skipSave?: boolean } = {}) => {
     const currentSectionIdForSave = getSectionIdForSave(activeSection);
     const isChangingSection = currentSectionIdForSave !== getSectionIdForSave(sectionId);
 
-    if (isChangingSection && checklist?.sections[currentSectionIdForSave]) {
+    if (!skipSave && isChangingSection && checklist?.sections[currentSectionIdForSave]) {
       try {
         await saveCurrentSection(currentSectionIdForSave);
         setHasUnsavedChanges(false);
@@ -502,7 +503,7 @@ export default function RenoChecklistPage() {
         await saveCurrentSection(currentSectionIdForSave);
       }
       setHasUnsavedChanges(false);
-      handleSectionClick(nextSectionId);
+      handleSectionClick(nextSectionId, { skipSave: true });
       toast.success(t.messages.saveSuccess || "Cambios guardados");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Error desconocido";
@@ -518,7 +519,7 @@ export default function RenoChecklistPage() {
                 await saveCurrentSection(currentSectionIdForSave);
               }
               setHasUnsavedChanges(false);
-              handleSectionClick(nextSectionId);
+              handleSectionClick(nextSectionId, { skipSave: true });
               toast.success(t.messages.saveSuccess || "Cambios guardados");
             } catch (retryErr: unknown) {
               const retryMsg = retryErr instanceof Error ? retryErr.message : "Error desconocido";

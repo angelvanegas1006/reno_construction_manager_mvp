@@ -1464,23 +1464,9 @@ export function convertSupabaseToChecklist(
             systemItem.cantidad = 1;
           }
         }
-        // Mobiliario
-        if (element.element_name === 'mobiliario') {
-          section.mobiliario = {
-            existeMobiliario: element.exists ?? false,
-          };
-        } else if (element.element_name === 'mobiliario-detalle') {
-          if (section.mobiliario) {
-            section.mobiliario.question = {
-              id: 'mobiliario',
-              status: mapConditionToStatus(element.condition),
-              notes: element.notes || undefined,
-              photos: element.image_urls?.map(url => urlToFileUpload(url)) || undefined,
-              // badElements se extraen de notes si están presentes
-              badElements: extractBadElementsFromNotes(element.notes),
-            };
-          }
-        }
+        // Mobiliario already handled in the main else-if chain above (lines ~1193-1221).
+        // Do NOT re-process here; a standalone `if` would overwrite section.mobiliario
+        // and destroy the question (status/photos/notes) when element order varies per property.
       });
       
       // Inicializar pregunta ascensor en entorno-zonas-comunes desde inspection.has_elevator si no existe elemento
