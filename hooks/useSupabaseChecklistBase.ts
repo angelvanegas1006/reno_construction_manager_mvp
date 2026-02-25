@@ -1105,6 +1105,7 @@ export function useSupabaseChecklistBase({
 
       let zone: typeof zones[0] | null = null;
       let zonesOfTypeForSave: typeof zones = [];
+      let requestedCount = 0;
 
       if (sectionId === "habitaciones" || sectionId === "banos") {
         // Secciones dinámicas: consultar zonas DIRECTAMENTE desde Supabase para evitar
@@ -1127,15 +1128,16 @@ export function useSupabaseChecklistBase({
         lastSavedSectionIdRef.current = sectionId;
 
         // Capear requestedCount al número real de habitaciones/baños de la propiedad.
-        // Sin este cap, dynamicItems.length puede ser mayor que el conteo real si hubo zonas
-        // huérfanas/duplicadas, generando una habitación/baño fantasma al crear zonas de más.
-        const rawCount = section.dynamicItems?.length ?? 0;
+        // dynamicCount (lo que el usuario fijó en el stepper) es la fuente de verdad,
+        // NO dynamicItems.length que puede estar inflado por zonas huérfanas.
+        const rawCount = section.dynamicCount ?? section.dynamicItems?.length ?? 0;
+        const dynamicCountForSection = section.dynamicCount ?? rawCount;
         const propMax = sectionId === 'habitaciones'
-          ? (supabaseProperty?.bedrooms ?? rawCount)
+          ? (supabaseProperty?.bedrooms ?? dynamicCountForSection)
           : sectionId === 'banos'
-            ? (supabaseProperty?.bathrooms ?? rawCount)
+            ? (supabaseProperty?.bathrooms ?? dynamicCountForSection)
             : rawCount;
-        const requestedCount = Math.min(rawCount, propMax > 0 ? propMax : rawCount);
+        requestedCount = Math.min(rawCount, propMax > 0 ? propMax : dynamicCountForSection);
         const needed = requestedCount;
         if (needed > 0) {
           console.log(`[useSupabaseChecklistBase:${inspectionType}] 📦 ${sectionId}: requested=${requestedCount}, existingZones=${initialZonesOfType.length}, needed=${needed}`);
@@ -1745,10 +1747,14 @@ export function useSupabaseChecklistBase({
         // Usar la lista de zonas ya obtenida/creada (zonesOfTypeForSave) para que habitación 2 y 3 tengan zona
         const zonesOfType = zonesOfTypeForSave.length > 0 ? zonesOfTypeForSave : zones.filter(z => z.zone_type === expectedZoneType).sort((a, b) => (a.zone_name || '').localeCompare(b.zone_name || ''));
         
-        console.log(`[useSupabaseChecklistBase:${inspectionType}] Processing ${sectionToSave.dynamicItems.length} dynamic items with ${zonesOfType.length} zones`);
+        // Capear dynamicItems al requestedCount para no guardar elementos en zonas huérfanas.
+        // Sin esto, si dynamicItems.length > requestedCount y existen zonas orphan en DB,
+        // el forEach guarda datos en ellas, perpetuando el fantasma.
+        const dynamicItemsToSave = sectionToSave.dynamicItems.slice(0, requestedCount);
+        console.log(`[useSupabaseChecklistBase:${inspectionType}] Processing ${dynamicItemsToSave.length} dynamic items (capped from ${sectionToSave.dynamicItems.length}) with ${zonesOfType.length} zones`);
         
         // Procesar cada dynamic item con su zona correspondiente
-        sectionToSave.dynamicItems.forEach((dynamicItem, index) => {
+        dynamicItemsToSave.forEach((dynamicItem, index) => {
           const correspondingZone = zonesOfType[index];
           if (correspondingZone) {
             // Log mobiliario antes de convertir

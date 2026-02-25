@@ -866,10 +866,17 @@ export function convertSupabaseToChecklist(
     if (sectionId === 'habitaciones' || sectionId === 'banos') {
       // Capear zonas procesadas al número de habitaciones/baños de la propiedad.
       // Evita habitaciones/baños fantasma causados por zonas huérfanas duplicadas en la DB.
+      // Cuando propCount es null/0, usamos section.dynamicCount (valor del stepper) como fallback;
+      // sin esto, todas las zonas (incluidas huérfanas) se procesan y generan fantasmas.
       const propCount = sectionId === 'habitaciones' ? propertyBedrooms
         : sectionId === 'banos' ? propertyBathrooms : null;
-      const zonesToProcess = (propCount != null && propCount > 0)
-        ? zonesOfType.slice(0, propCount) : zonesOfType;
+      const effectiveCap = (propCount != null && propCount > 0)
+        ? propCount
+        : (section.dynamicCount != null && section.dynamicCount > 0)
+          ? section.dynamicCount
+          : null;
+      const zonesToProcess = effectiveCap != null
+        ? zonesOfType.slice(0, effectiveCap) : zonesOfType;
       zonesToProcess.forEach((zone, index) => {
         const zoneElements = elementsByZone.get(zone.id) || [];
         const dynamicItem: ChecklistDynamicItem = {
@@ -1057,8 +1064,8 @@ export function convertSupabaseToChecklist(
       
       // Capear dynamicItems Y dynamicCount al número de habitaciones/baños de la propiedad.
       // Sin este cap, zonas huérfanas duplicadas causan habitaciones fantasma en blanco.
-      const cappedCount = (propCount != null && propCount > 0)
-        ? Math.min(zonesOfType.length, propCount) : zonesOfType.length;
+      const cappedCount = effectiveCap != null
+        ? Math.min(zonesOfType.length, effectiveCap) : zonesOfType.length;
       if (section.dynamicItems && section.dynamicItems.length > cappedCount) {
         section.dynamicItems = section.dynamicItems.slice(0, cappedCount);
       }
