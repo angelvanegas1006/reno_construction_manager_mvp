@@ -173,9 +173,9 @@ export function Auth0LoginButton() {
   if (!isLoading && isAuthenticated && auth0User && !supabaseUser) {
     return (
       <Button
-        className="w-full"
+        className="w-full text-base h-12 font-medium"
+        size="lg"
         disabled={true}
-        variant="outline"
         type="button"
       >
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -197,9 +197,9 @@ export function Auth0LoginButton() {
       onMouseDown={(e) => {
         console.log("[Auth0LoginButton] 🟢 onMouseDown event fired!");
       }}
-      className="w-full"
+      className="w-full text-base h-12 font-medium"
+      size="lg"
       disabled={isLoading || (isAuthenticated && !supabaseUser)}
-      variant="outline"
       type="button"
     >
       {isLoading ? (
@@ -208,7 +208,7 @@ export function Auth0LoginButton() {
           Conectando...
         </>
       ) : (
-        "Continuar con Auth0"
+        "Iniciar sesión"
       )}
     </Button>
   );

@@ -14,17 +14,17 @@ export function LoginForm() {
         <VistralLogo className="h-12" />
       </div>
 
-      {/* Title */}
+      {/* Título y subtítulo */}
       <div className="text-center space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground dark:text-foreground">
           {t.login.title}
         </h1>
-        <p className="text-base text-muted-foreground">
+        <p className="text-base text-muted-foreground dark:text-muted-foreground">
           {t.login.subtitle}
         </p>
       </div>
 
-      {/* Auth0 login */}
+      {/* Botón Auth0 — mismo tamaño y estilo que el botón original */}
       <div className="pt-2">
         <Auth0LoginButton />
       </div>
