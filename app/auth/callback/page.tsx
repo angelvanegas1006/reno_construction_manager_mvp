@@ -311,6 +311,25 @@ export default function Auth0CallbackPage() {
           }
         }
 
+        // Si el rol sigue siendo "user" (Auth0 no tenía rol), intentar leer el rol real de Supabase
+        // como último recurso antes de denegar acceso
+        if (role === "user" && supabaseUserId) {
+          console.log("[Auth0 Callback] 🔍 Role is 'user', attempting to read Supabase role as fallback...");
+          try {
+            const { data: supabaseRoleRow } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", supabaseUserId)
+              .maybeSingle();
+            if (supabaseRoleRow?.role && supabaseRoleRow.role !== "user") {
+              role = supabaseRoleRow.role as AppRole;
+              console.log("[Auth0 Callback] ✅ Found real role in Supabase:", role);
+            }
+          } catch (e) {
+            console.warn("[Auth0 Callback] Could not read Supabase role fallback:", e);
+          }
+        }
+
         // Redirigir según el rol
         let redirectUrl = "/login";
         if (role === "foreman") {
@@ -319,43 +338,30 @@ export default function Auth0CallbackPage() {
           redirectUrl = "/reno/setup-analyst";
         } else if (role === "admin" || role === "construction_manager") {
           redirectUrl = "/reno/construction-manager/kanban";
+        } else if (role === "manager_projects" || role === "technical_constructor_projects" || role === "maduration_analyst") {
+          redirectUrl = "/reno/construction-manager/kanban";
+        } else if (role === "rent_manager" || role === "rent_agent" || role === "tenant") {
+          redirectUrl = "/rent";
         } else {
-          // Usuario sin permisos - pero para angel.vanegas@prophero.com debería ser construction_manager
-          console.warn("[Auth0 Callback] ⚠️ User has role 'user', but email is:", user.email);
+          // Caso especial: angel.vanegas@prophero.com siempre es construction_manager
           if (user.email === "angel.vanegas@prophero.com" && supabaseUserId) {
             console.log("[Auth0 Callback] 🔧 Fixing role for angel.vanegas@prophero.com to construction_manager");
-            // Actualizar el rol usando una API route con cliente admin
             try {
               const updateRoleResponse = await fetch("/api/auth/update-user-role", {
                 method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  user_id: supabaseUserId,
-                  role: "construction_manager",
-                }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: supabaseUserId, role: "construction_manager" }),
               });
-
-              if (updateRoleResponse.ok) {
-                const updateData = await updateRoleResponse.json();
-                role = updateData.role || "construction_manager";
-                redirectUrl = "/reno/construction-manager/kanban";
-                console.log("[Auth0 Callback] ✅ Role updated to construction_manager");
-              } else {
-                const errorData = await updateRoleResponse.json();
-                console.error("[Auth0 Callback] ❌ Error updating role:", errorData);
-                // Continuar con el rol user pero redirigir al kanban de todas formas
-                role = "construction_manager";
-                redirectUrl = "/reno/construction-manager/kanban";
-              }
-            } catch (updateError: any) {
-              console.error("[Auth0 Callback] ❌ Error updating role:", updateError);
-              // Continuar con el rol user pero redirigir al kanban de todas formas
+              role = updateRoleResponse.ok
+                ? (await updateRoleResponse.json()).role || "construction_manager"
+                : "construction_manager";
+              redirectUrl = "/reno/construction-manager/kanban";
+            } catch {
               role = "construction_manager";
               redirectUrl = "/reno/construction-manager/kanban";
             }
           } else {
+            console.warn("[Auth0 Callback] ⚠️ No valid role found for:", user.email, "role:", role);
             router.push("/login?error=no_permission&message=" + encodeURIComponent("No tienes permisos para acceder a esta aplicación"));
             return;
           }
