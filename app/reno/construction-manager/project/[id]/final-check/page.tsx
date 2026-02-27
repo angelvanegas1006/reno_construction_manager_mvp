@@ -2,7 +2,7 @@
 
 import { use, useCallback, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Building2, FileDown } from "lucide-react";
+import { ArrowLeft, Building2, FileDown, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,9 +25,10 @@ export default function ProjectFinalCheckPage() {
   const router = useRouter();
   const supabase = createClient();
   const { project, properties, loading: projectLoading } = useSupabaseProject(projectId);
-  const { finalCheck, loading: checkLoading, saveDwelling, refetch } = useProjectFinalCheck(projectId);
+  const { finalCheck, loading: checkLoading, saveDwelling, refetch, startFinalCheck } = useProjectFinalCheck(projectId);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
+  const [startingCheck, setStartingCheck] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const propertyById = useCallback(
@@ -83,18 +84,67 @@ export default function ProjectFinalCheckPage() {
     );
   }
 
-  if (!projectId || !project || !finalCheck) {
+  if (!projectId || !project) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 p-4">
-        <p className="text-lg font-semibold text-foreground">
-          Proyecto o Final Check no encontrado
-        </p>
+        <p className="text-lg font-semibold text-foreground">Proyecto no encontrado</p>
         <Button
           variant="outline"
-          onClick={() => router.push(`/reno/construction-manager/project/${projectId}`)}
+          onClick={() => router.push("/reno/construction-manager")}
         >
-          Volver al proyecto
+          Volver al inicio
         </Button>
+      </div>
+    );
+  }
+
+  if (!finalCheck) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 p-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+          <ClipboardCheck className="h-8 w-8 text-primary" />
+        </div>
+        <div>
+          <p className="text-lg font-semibold text-foreground">
+            Final Check: {project.name ?? "Proyecto"}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            No hay ningún Final Check iniciado para este proyecto.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            disabled={startingCheck || properties.length === 0}
+            onClick={async () => {
+              setStartingCheck(true);
+              try {
+                const checkId = await startFinalCheck(project.assigned_site_manager_email ?? null);
+                if (checkId) {
+                  toast.success("Final Check iniciado");
+                  await refetch();
+                } else {
+                  toast.error("Error al iniciar Final Check");
+                }
+              } finally {
+                setStartingCheck(false);
+              }
+            }}
+          >
+            {startingCheck ? "Iniciando..." : "Iniciar Final Check"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push(`/reno/construction-manager/project/${projectId}`)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Volver al proyecto
+          </Button>
+        </div>
+        {properties.length === 0 && (
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            El proyecto no tiene propiedades asociadas todavía.
+          </p>
+        )}
       </div>
     );
   }

@@ -122,6 +122,7 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
         </span>
       </div>
 
+
     </button>
   );
 }

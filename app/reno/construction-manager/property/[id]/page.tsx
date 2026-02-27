@@ -535,6 +535,22 @@ export default function RenoPropertyDetailPage() {
     setHasUnsavedChanges(true);
   }, []);
 
+  // Asignar jefe de obra desde el sidebar (solo kanban-projects)
+  const handleAssignSiteManager = useCallback(async (propId: string, email: string | null) => {
+    try {
+      const { error } = await supabase
+        .from("properties")
+        .update({ assigned_site_manager_email: email, updated_at: new Date().toISOString() })
+        .eq("id", propId);
+      if (error) throw error;
+      await refetch();
+      toast.success("Jefe de obra asignado");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al asignar";
+      toast.error(msg);
+    }
+  }, [supabase, refetch]);
+
   // Manual save handler
   const handleManualSave = useCallback(async () => {
     await saveToSupabase(true);
@@ -1291,6 +1307,8 @@ export default function RenoPropertyDetailPage() {
               supabaseProperty={supabaseProperty}
               propertyId={propertyId}
               pendingItems={getPendingItems()}
+              fromParam={sourcePage}
+              onAssignSiteManager={sourcePage === "kanban-projects" ? handleAssignSiteManager : undefined}
             />
           </div>
         </div>
@@ -1376,6 +1394,8 @@ export default function RenoPropertyDetailPage() {
                 supabaseProperty={supabaseProperty}
                 propertyId={propertyId}
                 pendingItems={getPendingItems()}
+                fromParam={sourcePage}
+                onAssignSiteManager={sourcePage === "kanban-projects" ? handleAssignSiteManager : undefined}
               />
             </div>
           </div>

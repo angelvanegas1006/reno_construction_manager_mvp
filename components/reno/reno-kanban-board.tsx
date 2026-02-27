@@ -2026,7 +2026,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               highlightedPropertyId={highlightedPropertyId}
               onColumnRef={(el) => setColumnRef(column.key, el)}
               fromParam={fromParam}
-              onAssignSiteManager={fromParam === "kanban-projects" ? handleAssignSiteManager : undefined}
+              onAssignSiteManager={undefined}
               projects={projects}
               onProjectClick={handleProjectClick}
               propertiesByProjectId={propertiesByProjectId}
@@ -2054,7 +2054,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               highlightedPropertyId={highlightedPropertyId}
               onColumnRef={(el) => setColumnRef(column.key, el)}
               fromParam={fromParam}
-              onAssignSiteManager={fromParam === "kanban-projects" ? handleAssignSiteManager : undefined}
+              onAssignSiteManager={undefined}
               projects={projects}
               onProjectClick={handleProjectClick}
               propertiesByProjectId={propertiesByProjectId}
