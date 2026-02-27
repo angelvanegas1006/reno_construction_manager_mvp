@@ -52,8 +52,8 @@ export function RenoHomeUpdateRequests({
     },
   });
 
-  // Solo mostrar para construction_manager o admin
-  if (role !== "construction_manager" && role !== "admin") {
+  // Solo mostrar para construction_manager, admin o set_up_analyst
+  if (role !== "construction_manager" && role !== "admin" && role !== "set_up_analyst") {
     return null;
   }
 
