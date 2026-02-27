@@ -266,7 +266,7 @@ export function UpdateEmailInbox() {
       {/* Modal preview */}
       {previewEmail && (
         <Dialog open={!!previewEmail} onOpenChange={(open) => { if (!open) setPreviewEmail(null); }}>
-          <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Mail className="h-5 w-5" />
@@ -277,11 +277,12 @@ export function UpdateEmailInbox() {
                 {previewEmail.property_address ?? previewEmail.property_unique_id ?? previewEmail.property_id}
               </div>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto border rounded-md bg-white dark:bg-zinc-900 min-h-0">
+            <div className="flex-1 overflow-y-auto border rounded-md bg-white min-h-0">
               <iframe
                 srcDoc={previewEmail.html_content}
-                className="w-full h-[500px] border-0"
-                sandbox="allow-same-origin"
+                className="w-full border-0"
+                style={{ height: "600px", minHeight: "600px" }}
+                sandbox="allow-same-origin allow-scripts allow-popups"
                 title="Email preview"
               />
             </div>
