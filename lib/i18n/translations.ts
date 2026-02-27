@@ -80,6 +80,7 @@ export interface Translations {
     manager_projects: string;
     technical_constructor_projects: string;
     maduration_analyst: string;
+    set_up_analyst: string;
   };
   
   // Login
@@ -734,6 +735,7 @@ export const translations: Record<Language, Translations> = {
       manager_projects: "Manager Projects",
       technical_constructor_projects: "Jefe de obra Projects",
       maduration_analyst: "Analista de Maduración",
+      set_up_analyst: "Set Up Analyst",
     },
     login: {
       title: "Inicia sesión o crea una cuenta",
@@ -1792,6 +1794,7 @@ export const translations: Record<Language, Translations> = {
       manager_projects: "Manager Projects",
       technical_constructor_projects: "Technical Constructor Projects",
       maduration_analyst: "Maduration Analyst",
+      set_up_analyst: "Set Up Analyst",
     },
     login: {
       title: "Log in or create an account",

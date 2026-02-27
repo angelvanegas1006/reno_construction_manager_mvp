@@ -51,6 +51,8 @@ function getRoleBadgeClassName(role: string): string {
     case "technical_constructor_projects":
     case "maduration_analyst":
       return base + "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
+    case "set_up_analyst":
+      return base + "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
     default:
       return base + "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
   }
@@ -434,6 +436,7 @@ export default function AdminUsersPage() {
                       <SelectItem value="manager_projects">{t.roles.manager_projects}</SelectItem>
                       <SelectItem value="technical_constructor_projects">{t.roles.technical_constructor_projects}</SelectItem>
                       <SelectItem value="maduration_analyst">{t.roles.maduration_analyst}</SelectItem>
+                      <SelectItem value="set_up_analyst">{t.roles.set_up_analyst}</SelectItem>
                       <SelectItem value="user">{t.roles.user}</SelectItem>
                     </SelectContent>
                   </Select>
@@ -491,6 +494,7 @@ export default function AdminUsersPage() {
               <SelectItem value="manager_projects">{t.roles.manager_projects}</SelectItem>
               <SelectItem value="technical_constructor_projects">{t.roles.technical_constructor_projects}</SelectItem>
               <SelectItem value="maduration_analyst">{t.roles.maduration_analyst}</SelectItem>
+              <SelectItem value="set_up_analyst">{t.roles.set_up_analyst}</SelectItem>
               <SelectItem value="user">{t.roles.user}</SelectItem>
             </SelectContent>
           </Select>
