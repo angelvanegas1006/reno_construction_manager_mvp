@@ -22,13 +22,19 @@ import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { createClient } from "@/lib/supabase/client";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { getTechnicalConstructionNamesFromForemanEmail } from "@/lib/supabase/user-name-utils";
+import { useAssignedProjectsForForeman } from "@/hooks/useAssignedProjectsForForeman";
+import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-modal";
 
 export default function RenoConstructionManagerHomePage() {
   const { t } = useI18n();
   const router = useRouter();
   const { user, role, isLoading } = useAppAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
   const supabase = createClient();
+
+  const { projects: assignedProjects, loading: assignedProjectsLoading } =
+    useAssignedProjectsForForeman(role === "foreman" ? (user?.email ?? null) : null);
 
   // Use shared properties context instead of fetching independently
   const { propertiesByPhase: rawPropertiesByPhase, loading: supabaseLoading, error: supabaseError } = useRenoProperties();
@@ -238,7 +244,10 @@ export default function RenoConstructionManagerHomePage() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden w-full md:w-auto">
         {/* Header */}
-        <RenoHomeHeader />
+        <RenoHomeHeader
+          assignedProjectsCount={role === "foreman" ? assignedProjects.length : 0}
+          onProjectsBadgeClick={role === "foreman" ? () => setIsProjectsModalOpen(true) : undefined}
+        />
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
@@ -301,6 +310,15 @@ export default function RenoConstructionManagerHomePage() {
           )}
         </div>
       </div>
+
+      {role === "foreman" && (
+        <MyAssignedProjectsModal
+          open={isProjectsModalOpen}
+          onOpenChange={setIsProjectsModalOpen}
+          projects={assignedProjects}
+          loading={assignedProjectsLoading}
+        />
+      )}
     </div>
   );
 }

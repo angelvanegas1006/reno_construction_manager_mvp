@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CheckCircle2, Clock, User, Building2, MessageSquare, ClipboardList, ChevronDown, ChevronUp, Bell, Flag, Wrench, Folder, Key, Droplets, Flame, Zap } from "lucide-react";
 import { Property } from "@/lib/property-storage";
 import { useI18n } from "@/lib/i18n";
@@ -12,6 +12,14 @@ import { usePropertyComments } from "@/hooks/usePropertyComments";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect } from "react";
 import { isDelayedWork } from "@/lib/property-sorting";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getSiteManagersList, getSiteManagerNameFromEmail } from "@/lib/supabase/user-name-utils";
 
 interface PropertyStatusSidebarProps {
   property: Property;
@@ -21,6 +29,10 @@ interface PropertyStatusSidebarProps {
     label: string;
     onClick?: () => void;
   }>;
+  /** Si viene de kanban-projects, mostrar selector de jefe de obra */
+  fromParam?: string | null;
+  /** Callback para asignar jefe de obra */
+  onAssignSiteManager?: (propertyId: string, email: string | null) => void;
 }
 
 /**
@@ -39,6 +51,8 @@ export function PropertyStatusSidebar({
   supabaseProperty,
   propertyId,
   pendingItems = [],
+  fromParam,
+  onAssignSiteManager,
 }: PropertyStatusSidebarProps) {
   const { t, language } = useI18n();
   const [commentsExpanded, setCommentsExpanded] = useState(true);
@@ -51,6 +65,14 @@ export function PropertyStatusSidebar({
   const technicalConstructor = supabaseProperty?.['Technical construction'] || supabaseProperty?.technical_construction;
   const responsibleOwner = supabaseProperty?.responsible_owner;
   const renovatorName = supabaseProperty?.['Renovator name'] || property.renovador;
+
+  // Selector de jefe de obra (solo cuando fromParam === "kanban-projects")
+  const showSiteManagerSelector = fromParam === "kanban-projects" && !!onAssignSiteManager;
+  const siteManagers = useMemo(() => getSiteManagersList(), []);
+  const currentSiteManagerEmail = supabaseProperty?.assigned_site_manager_email ?? null;
+  const currentSiteManagerLabel = currentSiteManagerEmail
+    ? getSiteManagerNameFromEmail(currentSiteManagerEmail) ?? currentSiteManagerEmail
+    : null;
   const renoType = property.renoType || supabaseProperty?.reno_type;
   const keysLocation = supabaseProperty?.keys_location;
   const createdAt = supabaseProperty?.created_at || property.createdAt;
@@ -215,6 +237,46 @@ export function PropertyStatusSidebar({
             <p className="text-sm text-foreground">{responsibleOwner}</p>
           </div>
         )}
+
+        {/* Asignar jefe de obra (solo desde kanban-projects) */}
+        {showSiteManagerSelector ? (
+          <div>
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              Jefe de obra
+            </h4>
+            <Select
+              value={currentSiteManagerEmail ?? "__none__"}
+              onValueChange={(value) => {
+                if (propertyId) {
+                  onAssignSiteManager!(propertyId, value === "__none__" ? null : value);
+                }
+              }}
+            >
+              <SelectTrigger className="h-9 border-muted bg-muted/50 w-full">
+                <SelectValue placeholder="Sin asignar">
+                  {currentSiteManagerLabel ?? "Sin asignar"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Sin asignar</SelectItem>
+                {siteManagers.map(({ name, email }) => (
+                  <SelectItem key={email} value={email}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : currentSiteManagerEmail ? (
+          <div>
+            <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              Jefe de obra
+            </h4>
+            <p className="text-sm text-foreground">{currentSiteManagerLabel ?? currentSiteManagerEmail}</p>
+          </div>
+        ) : null}
 
         {/* Tipo de Reforma */}
         {renoType && (
