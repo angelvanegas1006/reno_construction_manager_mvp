@@ -7,6 +7,7 @@ import { RenoHomeHeader } from "@/components/reno/reno-home-header";
 import { RenoHomeIndicators } from "@/components/reno/reno-home-indicators";
 import { RenoHomeUpdateRequests } from "@/components/reno/reno-home-update-requests";
 import { RenoHomePortfolio } from "@/components/reno/reno-home-portfolio";
+import { RenoHomeRecentProperties } from "@/components/reno/reno-home-recent-properties";
 import { VisitsCalendar } from "@/components/reno/visits-calendar";
 import { UpdateEmailInbox } from "@/components/reno/update-email-inbox";
 import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
@@ -137,10 +138,13 @@ export default function SetUpAnalystHomePage() {
             {/* Solicitar actualizaciones de obra */}
             <RenoHomeUpdateRequests propertiesByPhase={propertiesByPhase ?? undefined} />
 
-            {/* Portfolio */}
-            <RenoHomePortfolio properties={properties} propertiesByPhase={propertiesByPhase ?? undefined} />
+            {/* Portfolio + Ranking reformistas en la misma fila */}
+            <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
+              <RenoHomeRecentProperties properties={properties} propertiesByPhase={propertiesByPhase ?? undefined} />
+              <RenoHomePortfolio properties={properties} propertiesByPhase={propertiesByPhase ?? undefined} />
+            </div>
 
-            {/* Calendario de visitas */}
+            {/* Calendario de visitas — al fondo del todo */}
             <VisitsCalendar
               propertiesByPhase={propertiesByPhase ?? undefined}
               onPropertyClick={(p) => router.push(`/reno/construction-manager/property/${p.id}?from=home`)}
