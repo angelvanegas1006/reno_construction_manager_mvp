@@ -24,6 +24,7 @@ import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { getTechnicalConstructionNamesFromForemanEmail } from "@/lib/supabase/user-name-utils";
 import { useAssignedProjectsForForeman } from "@/hooks/useAssignedProjectsForForeman";
 import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-modal";
+import { RenoHomeAdminDashboard } from "@/components/reno/reno-home-admin-dashboard";
 
 export default function RenoConstructionManagerHomePage() {
   const { t } = useI18n();
@@ -285,6 +286,11 @@ export default function RenoConstructionManagerHomePage() {
 
               {/* Todo List Widgets */}
               <RenoHomeTodoWidgets propertiesByPhase={propertiesByPhase} />
+
+              {/* Admin Dashboard - solo admin/construction_manager */}
+              {(role === 'admin' || role === 'construction_manager') && (
+                <RenoHomeAdminDashboard propertiesByPhase={propertiesByPhase} />
+              )}
 
               {/* Calendar Row */}
               <VisitsCalendar
