@@ -6,7 +6,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
-type AppRole = "admin" | "foreman" | "construction_manager" | "user" | "manager_projects" | "technical_constructor_projects" | "maduration_analyst";
+type AppRole = "admin" | "foreman" | "construction_manager" | "user" | "manager_projects" | "technical_constructor_projects" | "maduration_analyst" | "set_up_analyst";
 
 /**
  * Mapea rol de Auth0 a rol de la app
@@ -20,10 +20,12 @@ function mapAuth0RoleToAppRole(auth0Role: string): AppRole | null {
     "manager_projects": "manager_projects",
     "technical_constructor_projects": "technical_constructor_projects",
     "maduration_analyst": "maduration_analyst",
+    "set_up_analyst": "set_up_analyst",
     // Aliases comunes
     "jefe_de_obra": "foreman",
     "administrator": "admin",
     "usuario": "user",
+    "setup_analyst": "set_up_analyst",
   };
 
   const normalizedRole = auth0Role.toLowerCase().trim();
@@ -288,10 +290,29 @@ export default function Auth0CallbackPage() {
           }
         }
 
+        // Si Auth0 no asignó rol (role === "user"), intentar leer el rol real de Supabase
+        if (role === "user" && supabaseUserId) {
+          try {
+            const { data: supabaseRoleRow } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", supabaseUserId)
+              .maybeSingle();
+            if (supabaseRoleRow?.role && supabaseRoleRow.role !== "user") {
+              role = supabaseRoleRow.role as AppRole;
+              console.log("[Auth0 Callback] ✅ Role read from Supabase fallback:", role);
+            }
+          } catch (e) {
+            console.warn("[Auth0 Callback] Could not read Supabase role fallback:", e);
+          }
+        }
+
         // Redirigir según el rol
         let redirectUrl = "/login";
         if (role === "foreman") {
           redirectUrl = "/reno/construction-manager";
+        } else if (role === "set_up_analyst") {
+          redirectUrl = "/reno/setup-analyst";
         } else if (role === "admin" || role === "construction_manager") {
           redirectUrl = "/reno/construction-manager/kanban";
         } else {

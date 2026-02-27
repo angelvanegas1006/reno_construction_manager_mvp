@@ -89,7 +89,10 @@ export function LoginForm() {
       }
 
       // Redirect based on role
-      if (role === 'foreman' || role === 'admin' || role === 'construction_manager') {
+      if (role === 'set_up_analyst') {
+        router.push("/reno/setup-analyst");
+        toast.success("¡Bienvenido!");
+      } else if (role === 'foreman' || role === 'admin' || role === 'construction_manager') {
         router.push("/reno/construction-manager");
         toast.success(role === 'admin' ? "¡Bienvenido Admin!" : "¡Bienvenido!");
       } else if (email === 'santiago.figueiredo@prophero.com' || email === 'santiagofigueiredo@prophero.com') {

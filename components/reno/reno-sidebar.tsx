@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2 } from "lucide-react";
+import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -26,9 +26,26 @@ import { extractNameFromEmail } from "@/lib/supabase/user-name-utils";
 import { useHelpConversations } from "@/hooks/useHelpConversations";
 import { useAssignedProjectsForForeman } from "@/hooks/useAssignedProjectsForForeman";
 import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-modal";
+import { createClient } from "@/lib/supabase/client";
 
 // Navigation items for Reno Construction Manager. Kanban Proyectos solo para admin y construction_manager.
 const getNavigationItems = (t: any, role?: string) => {
+  // set_up_analyst tiene su propia home y acceso solo al kanban de propiedades
+  if (role === "set_up_analyst") {
+    return [
+      {
+        label: "Inicio",
+        href: "/reno/setup-analyst",
+        icon: Home,
+      },
+      {
+        label: t.nav.renoManagement,
+        href: "/reno/construction-manager/kanban",
+        icon: Grid,
+      },
+    ] as Array<{ label: string; href: string; icon: typeof Home }>;
+  }
+
   const items: Array<{ label: string; href: string; icon: typeof Home }> = [
     {
       label: t.nav.home,
@@ -98,6 +115,18 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
   const searchParams = useSearchParams();
   const userEmail = appUser?.email ?? supabaseUser?.email ?? null;
   const { projects: assignedProjects, loading: assignedProjectsLoading } = useAssignedProjectsForForeman(userEmail);
+
+  // Contar emails en borrador para set_up_analyst
+  const [draftEmailCount, setDraftEmailCount] = useState(0);
+  useEffect(() => {
+    if (role !== "set_up_analyst" && role !== "admin") return;
+    const supabase = createClient();
+    supabase
+      .from("client_update_emails")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "draft")
+      .then(({ count }) => setDraftEmailCount(count ?? 0));
+  }, [role]);
   
   // Unified logout: handle both Auth0 and Supabase
   const handleLogout = async () => {
@@ -252,6 +281,28 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
+                  )}
+                  {(role === "set_up_analyst" || role === "admin") && (
+                    <Link
+                      href="/reno/setup-analyst"
+                      onClick={onMobileToggle}
+                      className={cn(
+                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors relative",
+                        pathname === "/reno/setup-analyst"
+                          ? "bg-primary/20 text-primary dark:text-white"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Mail className="h-5 w-5 flex-shrink-0 text-current" />
+                        <span className="whitespace-nowrap truncate">Bandeja de correos</span>
+                      </div>
+                      {draftEmailCount > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold text-white px-1">
+                          {draftEmailCount > 9 ? "9+" : draftEmailCount}
+                        </span>
+                      )}
+                    </Link>
                   )}
                 </nav>
               </div>
@@ -429,6 +480,27 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   <Building2 className="h-5 w-5 flex-shrink-0 text-current" />
                 </button>
               )}
+              {(role === "set_up_analyst" || role === "admin") && (
+                <Link
+                  href="/reno/setup-analyst"
+                  className={cn(
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors relative",
+                    pathname === "/reno/setup-analyst"
+                      ? "bg-primary/20 text-primary dark:text-white"
+                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Mail className="h-5 w-5 flex-shrink-0 text-current" />
+                    <span className="whitespace-nowrap truncate">Bandeja de correos</span>
+                  </div>
+                  {draftEmailCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold text-white px-1">
+                      {draftEmailCount > 9 ? "9+" : draftEmailCount}
+                    </span>
+                  )}
+                </Link>
+              )}
             </nav>
           </div>
         )}
@@ -463,6 +535,25 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
               >
                 <Building2 className="h-5 w-5 flex-shrink-0 text-current" />
               </button>
+            )}
+            {(role === "set_up_analyst" || role === "admin") && (
+              <Link
+                href="/reno/setup-analyst"
+                title="Bandeja de correos"
+                className={cn(
+                  "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
+                  pathname === "/reno/setup-analyst"
+                    ? "bg-primary/20 text-primary dark:text-white"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                <Mail className="h-5 w-5 flex-shrink-0 text-current" />
+                {draftEmailCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold text-white">
+                    {draftEmailCount > 9 ? "9+" : draftEmailCount}
+                  </span>
+                )}
+              </Link>
             )}
           </nav>
         )}
