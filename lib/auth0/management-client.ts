@@ -131,7 +131,7 @@ export class Auth0ManagementClient {
    * Crear roles en Auth0 desde los roles de Supabase
    */
   async syncRolesFromSupabase(): Promise<Auth0Role[]> {
-    const roles = ['admin', 'construction_manager', 'foreman', 'user', 'manager_projects', 'technical_constructor_projects', 'maduration_analyst'];
+    const roles = ['admin', 'construction_manager', 'foreman', 'user', 'manager_projects', 'technical_constructor_projects', 'maduration_analyst', 'set_up_analyst'];
     const createdRoles: Auth0Role[] = [];
 
     for (const roleName of roles) {
@@ -181,6 +181,7 @@ export class Auth0ManagementClient {
       manager_projects: 'Manager Projects (vista en desarrollo)',
       technical_constructor_projects: 'Technical Constructor Projects (vista en desarrollo)',
       maduration_analyst: 'Maduration Analyst (vista en desarrollo)',
+      set_up_analyst: 'Set Up Analyst - Revisión y envío de emails a clientes',
     };
     return descriptions[role] || `Role: ${role}`;
   }
