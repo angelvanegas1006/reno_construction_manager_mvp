@@ -607,6 +607,14 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       'obra-en-progreso': 0,
       'amueblamiento': 0,
       'check-final': 0,
+      'get-project-draft': 0,
+      'pending-to-validate': 0,
+      'pending-to-reserve-arras': 0,
+      'technical-project-in-progress': 0,
+      'ecuv-first-validation': 0,
+      'technical-project-fine-tuning': 0,
+      'ecuv-final-validation': 0,
+      'pending-budget-from-renovator': 0,
     },
     details: [],
   };
@@ -822,8 +830,16 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         'obra-en-progreso': 0,
         'amueblamiento': 0,
         'check-final': 0,
+        'get-project-draft': 0,
+        'pending-to-validate': 0,
+        'pending-to-reserve-arras': 0,
+        'technical-project-in-progress': 0,
+        'ecuv-first-validation': 0,
+        'technical-project-fine-tuning': 0,
+        'ecuv-final-validation': 0,
+        'pending-budget-from-renovator': 0,
       };
-      
+
       finalCounts.forEach(p => {
         const phase = p.reno_phase as RenoKanbanPhase;
         if (phase in result.phaseCounts) {

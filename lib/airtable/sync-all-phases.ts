@@ -9,7 +9,7 @@
 
 import { syncAllPhasesUnified, type UnifiedSyncResult } from './sync-unified';
 import { syncBudgetsForAllProperties, type SyncBudgetsResult } from './sync-budget-from-transactions';
-import { syncProjectsFromAirtable } from './sync-projects';
+import { syncProjectsFromAirtable, syncMaturationProjectsFromAirtable } from './sync-projects';
 
 export interface SyncResult {
   phase: string;
@@ -53,6 +53,17 @@ export async function syncAllPhasesFromAirtable(): Promise<AllPhasesSyncResult> 
   } catch (projectsErr: unknown) {
     const message = projectsErr instanceof Error ? projectsErr.message : String(projectsErr);
     console.error('[Airtable Sync] Projects/link sync failed:', message);
+  }
+
+  // 2b. Sincronizar proyectos de maduración (view viwGr62VwUAlFCvcH)
+  try {
+    const maturationResult = await syncMaturationProjectsFromAirtable();
+    if (!maturationResult.skipped && (maturationResult.created > 0 || maturationResult.updated > 0)) {
+      console.log('[Airtable Sync] Maturation Projects:', { created: maturationResult.created, updated: maturationResult.updated });
+    }
+  } catch (matErr: unknown) {
+    const message = matErr instanceof Error ? matErr.message : String(matErr);
+    console.error('[Airtable Sync] Maturation Projects sync failed:', message);
   }
 
   // 3. Sincronizar budget_pdf_url desde Airtable Transactions para TODAS las propiedades del kanban

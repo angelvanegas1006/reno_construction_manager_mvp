@@ -1448,6 +1448,14 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "obra-en-progreso": PROJECT_KANBAN_PHASE_LABELS["obra-en-progreso"] ?? "Obra en Progreso",
     "amueblamiento": PROJECT_KANBAN_PHASE_LABELS["amueblamiento"] ?? "Amueblamiento",
     "check-final": PROJECT_KANBAN_PHASE_LABELS["check-final"] ?? "Check Final",
+    "get-project-draft": "Borrador de Proyecto",
+    "pending-to-validate": "Pendiente de Validación",
+    "pending-to-reserve-arras": "Pendiente de Reserva / Arras",
+    "technical-project-in-progress": "Proyecto Técnico en Progreso",
+    "ecuv-first-validation": "ECUV Primera Validación",
+    "technical-project-fine-tuning": "Ajuste Proyecto Técnico",
+    "ecuv-final-validation": "ECUV Validación Final",
+    "pending-budget-from-renovator": "Pendiente Presupuesto Renovador",
   };
   
   return phaseLabels[phase] || phase;

@@ -22,7 +22,13 @@
 import Airtable from 'airtable';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { RenoKanbanPhase } from '@/lib/reno-kanban-config';
-import { AIRTABLE_PROJECTS_VIEW_ID, SET_UP_STATUS_TO_PROJECT_PHASE } from '@/lib/reno-kanban-config';
+import {
+  AIRTABLE_PROJECTS_VIEW_ID,
+  SET_UP_STATUS_TO_PROJECT_PHASE,
+  AIRTABLE_MATURATION_PROJECTS_VIEW_ID,
+  MATURATION_PROJECT_STATUS_TO_PHASE,
+  PHASES_KANBAN_MATURATION,
+} from '@/lib/reno-kanban-config';
 
 function getAirtableBase(): Airtable.Base | null {
   const apiKey = process.env.NEXT_PUBLIC_AIRTABLE_API_KEY;
@@ -44,6 +50,111 @@ function parseDate(value: unknown): string | null {
   if (typeof value === 'string') {
     const d = new Date(value);
     return isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  return null;
+}
+
+interface AttachmentMeta {
+  url: string;
+  filename: string;
+  type: string;
+  size?: number;
+}
+
+function parseAttachments(value: unknown): AttachmentMeta[] | null {
+  if (value == null) return null;
+  if (Array.isArray(value) && value.length > 0) {
+    const result: AttachmentMeta[] = [];
+    for (const item of value) {
+      if (typeof item === 'object' && item !== null && 'url' in item) {
+        const a = item as any;
+        result.push({
+          url: String(a.url),
+          filename: String(a.filename ?? 'attachment'),
+          type: String(a.type ?? 'application/octet-stream'),
+          size: typeof a.size === 'number' ? a.size : undefined,
+        });
+      }
+    }
+    return result.length > 0 ? result : null;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return [{ url: value.trim(), filename: 'attachment', type: 'unknown' }];
+  }
+  return null;
+}
+
+function extractLinkedRecordIds(value: unknown): string[] {
+  if (value == null) return [];
+  if (Array.isArray(value)) {
+    return value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+  }
+  if (typeof value === 'string' && value.trim()) return [value.trim()];
+  return [];
+}
+
+/**
+ * Resuelve record IDs de Airtable a sus nombres (campo primario).
+ * Usa la API REST directamente porque el SDK de Airtable no soporta fetch por ID en batch fácilmente.
+ */
+async function resolveLinkedRecordNames(
+  recordIds: string[],
+  tableId: string,
+): Promise<Map<string, string>> {
+  const apiKey = process.env.NEXT_PUBLIC_AIRTABLE_API_KEY;
+  const baseId = process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID;
+  const nameMap = new Map<string, string>();
+
+  if (!apiKey || !baseId || recordIds.length === 0) return nameMap;
+
+  const uniqueIds = [...new Set(recordIds)];
+
+  // Airtable permite fetch de un registro individual por ID
+  // Procesamos en paralelo con un límite de concurrencia
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < uniqueIds.length; i += BATCH_SIZE) {
+    const batch = uniqueIds.slice(i, i + BATCH_SIZE);
+    const promises = batch.map(async (recId) => {
+      try {
+        const resp = await fetch(
+          `https://api.airtable.com/v0/${baseId}/${tableId}/${recId}`,
+          { headers: { Authorization: `Bearer ${apiKey}` } }
+        );
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const fields = data.fields ?? {};
+        // El campo primario suele ser "Name" o el primer campo
+        const name = fields['Name'] ?? fields['name'] ?? fields['Full Name'] ??
+          fields['Nombre'] ?? Object.values(fields)[0];
+        if (name && typeof name === 'string' && name.trim()) {
+          nameMap.set(recId, name.trim());
+        }
+      } catch {
+        // Silently skip unresolvable records
+      }
+    });
+    await Promise.all(promises);
+  }
+
+  console.log(`[Resolve Linked Records] Resolved ${nameMap.size}/${uniqueIds.length} records from table ${tableId}`);
+  return nameMap;
+}
+
+function linkedIdsToNames(value: unknown, nameMap: Map<string, string>): string | null {
+  const ids = extractLinkedRecordIds(value);
+  if (ids.length === 0) return null;
+  const names = ids.map((id) => nameMap.get(id) ?? id).filter(Boolean);
+  return names.length > 0 ? names.join(', ') : null;
+}
+
+function parseBool(value: unknown): boolean | null {
+  if (value == null) return null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const l = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'sí', 'si'].includes(l)) return true;
+    if (['false', '0', 'no'].includes(l)) return false;
   }
   return null;
 }
@@ -72,6 +183,25 @@ function mapSetUpStatusToProjectPhase(value: unknown): RenoKanbanPhase | null {
   }
   // Coincidencia parcial: si el valor de Airtable contiene la clave (p. ej. "Reno in progress" en "Reno in progress (delayed)")
   const sortedEntries = Object.entries(SET_UP_STATUS_TO_PROJECT_PHASE).sort((a, b) => b[0].length - a[0].length);
+  for (const [k, v] of sortedEntries) {
+    const keyNorm = k.toLowerCase().replace(/\s+/g, ' ');
+    if (normalized.includes(keyNorm)) return v;
+  }
+  return null;
+}
+
+function mapMaturationStatusToPhase(value: unknown): RenoKanbanPhase | null {
+  if (value == null || value === '') return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const mapped = MATURATION_PROJECT_STATUS_TO_PHASE[raw];
+  if (mapped) return mapped;
+  const normalized = raw.toLowerCase().replace(/\s+/g, ' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  for (const [k, v] of Object.entries(MATURATION_PROJECT_STATUS_TO_PHASE)) {
+    const keyNorm = k.toLowerCase().replace(/\s+/g, ' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (keyNorm === normalized) return v;
+  }
+  const sortedEntries = Object.entries(MATURATION_PROJECT_STATUS_TO_PHASE).sort((a, b) => b[0].length - a[0].length);
   for (const [k, v] of sortedEntries) {
     const keyNorm = k.toLowerCase().replace(/\s+/g, ' ');
     if (normalized.includes(keyNorm)) return v;
@@ -269,14 +399,18 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
   }
 
   // Proyectos que están en Supabase pero NO en la vista actual de Airtable → reno_phase = 'orphaned'
+  // Excluir proyectos con fases de maduración (se gestionan en syncMaturationProjectsFromAirtable)
   const airtableIdsInView = new Set(records.map((r) => r.id));
   const { data: allSupabase } = await supabase
     .from('projects')
-    .select('id, airtable_project_id')
+    .select('id, airtable_project_id, reno_phase')
     .not('airtable_project_id', 'is', null);
+  const maturationPhases = new Set(PHASES_KANBAN_MATURATION as readonly string[]);
   const toOrphan = (allSupabase ?? []).filter(
-    (row: { id: string; airtable_project_id: string | null }) =>
-      row.airtable_project_id && !airtableIdsInView.has(row.airtable_project_id)
+    (row: { id: string; airtable_project_id: string | null; reno_phase: string | null }) =>
+      row.airtable_project_id &&
+      !airtableIdsInView.has(row.airtable_project_id) &&
+      !maturationPhases.has(row.reno_phase ?? '')
   );
   if (toOrphan.length > 0) {
     const ids = toOrphan.map((r: { id: string }) => r.id);
@@ -470,5 +604,282 @@ export async function linkPropertiesToProjectsFromAirtable(): Promise<{ linked: 
 
   result.linked = linkedIds.size;
   console.log('[Sync Projects] linkPropertiesToProjectsFromAirtable: updated=', result.linked, 'errors=', result.errors);
+  return result;
+}
+
+/**
+ * Sincroniza proyectos de maduración desde la view de Airtable viwGr62VwUAlFCvcH.
+ * Usa el mismo AIRTABLE_PROJECTS_TABLE_ID pero con la view y mapeo de fases de maduración.
+ * No marca orphaned: la detección de orphaned se hace solo en el sync principal.
+ */
+export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjectsResult> {
+  const tableId = process.env.AIRTABLE_PROJECTS_TABLE_ID;
+  const result: SyncProjectsResult = { created: 0, updated: 0, errors: 0, skipped: false };
+
+  if (!tableId || tableId.trim() === '') {
+    result.skipped = true;
+    return result;
+  }
+
+  const base = getAirtableBase();
+  const supabase = createAdminClient();
+  if (!base) {
+    result.skipped = true;
+    return result;
+  }
+
+  type ProjectRecord = {
+    id: string;
+    name: string | null;
+    reno_phase: RenoKanbanPhase | null;
+    investment_type: string | null;
+    properties_to_convert: string | null;
+    project_start_date: string | null;
+    renovation_spend: number | null;
+    project_unique_id: string | null;
+    estimated_settlement_date: string | null;
+    project_status: string | null;
+    drive_folder: string | null;
+    area_cluster: string | null;
+    project_set_up_team_notes: string | null;
+    project_keys_location: string | null;
+    renovator: string | null;
+    est_reno_start_date: string | null;
+    reno_start_date: string | null;
+    reno_end_date: string | null;
+    est_reno_end_date: string | null;
+    type: string | null;
+    reno_duration: number | null;
+    project_address: string | null;
+    settlement_date: string | null;
+    already_tenanted: string | null;
+    operation_name: string | null;
+    opportunity_stage: string | null;
+    scouter: string | null;
+    lead: string | null;
+    est_properties: string | null;
+    architect: string | null;
+    excluded_from_ecu: boolean | null;
+    draft_order_date: string | null;
+    measurement_date: string | null;
+    project_draft_date: string | null;
+    draft_plan: AttachmentMeta[] | null;
+    project_validation_notes: string | null;
+    offer_status: string | null;
+    ecu_contact: string | null;
+    estimated_project_end_date: string | null;
+    project_end_date: string | null;
+    arras_deadline: string | null;
+    ecu_delivery_date: string | null;
+    estimated_first_correction_date: string | null;
+    first_correction_date: string | null;
+    first_validation_duration: number | null;
+    definitive_validation_date: string | null;
+    technical_project_doc: AttachmentMeta[] | null;
+    final_plan: AttachmentMeta[] | null;
+    license_attachment: AttachmentMeta[] | null;
+  };
+
+  const records: ProjectRecord[] = [];
+  const viewId = AIRTABLE_MATURATION_PROJECTS_VIEW_ID;
+
+  try {
+    const pageRecords = await base(tableId)
+      .select({ maxRecords: 500, view: viewId })
+      .all();
+
+    if (pageRecords.length > 0) {
+      const firstFields = (pageRecords[0] as any).fields ?? {};
+      console.log('[Sync Maturation Projects] First record field keys:', Object.keys(firstFields));
+      console.log('[Sync Maturation Projects] First record Project status:', firstFields['Project status']);
+    }
+
+    // Phase 1: Collect linked record IDs grouped by source table
+    const LINKED_TABLE_SCOUTER = 'tblBbuRrxZQEavbML';   // Team Profiles
+    const LINKED_TABLE_B2B = 'tbljB4pROJtXPOdpt';       // B2B Partners (Architect + ECU Contact)
+
+    const scouterIds: string[] = [];
+    const b2bIds: string[] = [];
+
+    pageRecords.forEach((rec: any) => {
+      const f = rec.fields ?? {};
+      for (const key of ['Scouter', 'fld0kTfLFaCMqGDzG']) {
+        scouterIds.push(...extractLinkedRecordIds(f[key]).filter((id) => id.startsWith('rec')));
+      }
+      for (const key of ['Architect', 'fldsAsdiGeOaQvlHe', 'ECU contact', 'Ecu Contact', 'fld4Xgn8xt2OD7iF4']) {
+        b2bIds.push(...extractLinkedRecordIds(f[key]).filter((id) => id.startsWith('rec')));
+      }
+    });
+
+    // Phase 2: Resolve linked record IDs to names (in parallel, one call per table)
+    const [scouterNameMap, b2bNameMap] = await Promise.all([
+      resolveLinkedRecordNames([...new Set(scouterIds)], LINKED_TABLE_SCOUTER),
+      resolveLinkedRecordNames([...new Set(b2bIds)], LINKED_TABLE_B2B),
+    ]);
+    // Merge both maps into one for easy lookup
+    const linkedNameMap = new Map<string, string>([...scouterNameMap, ...b2bNameMap]);
+
+    // Phase 3: Build project records with resolved names
+    pageRecords.forEach((rec: any) => {
+      const f = rec.fields ?? {};
+      const name = getField<string>(f, 'Name', 'name', 'Project Name', 'Title', 'fldivXm0vlDYdNHpC') ?? null;
+      const phaseRaw = getField<string>(f, 'Project status', 'Set Up Status', 'Phase', 'Status', 'Stage') ?? null;
+      let reno_phase = mapMaturationStatusToPhase(phaseRaw);
+      if (!reno_phase) reno_phase = 'get-project-draft';
+
+      const rawScouter = getField(f, 'Scouter', 'fld0kTfLFaCMqGDzG');
+      const rawArchitect = getField(f, 'Architect', 'fldsAsdiGeOaQvlHe');
+      const rawEcuContact = getField(f, 'ECU contact', 'Ecu Contact', 'fld4Xgn8xt2OD7iF4');
+
+      records.push({
+        id: rec.id,
+        name: name != null ? String(name) : null,
+        reno_phase,
+        investment_type: getField<string>(f, 'Investment type') ?? null,
+        properties_to_convert: getField<string>(f, 'Properties to convert') ?? null,
+        project_start_date: parseDate(getField(f, 'Project start date', 'fldm2GkittZedjjgo')),
+        renovation_spend: parseNumber(getField(f, 'Renovation spend')),
+        project_unique_id: getField<string>(f, 'Project Unique ID') ?? null,
+        estimated_settlement_date: parseDate(getField(f, 'Estimated settlement date')),
+        project_status: getField<string>(f, 'Project status') ?? null,
+        drive_folder: getField<string>(f, 'Drive folder', 'Drive Folder', 'fldK6cfta4u4fJiSq') ?? null,
+        area_cluster: getField<string>(f, 'Area cluster') ?? null,
+        project_set_up_team_notes: getField<string>(f, 'Project Set up team notes', 'Project Setup Team Notes', 'fldlwg6qwfEMFJ4qA') ?? null,
+        project_keys_location: getField<string>(f, 'Project keys location', 'Project Key Location', 'fldYFSjn9dRTzqpS0') ?? null,
+        renovator: getField<string>(f, 'Renovator') ?? null,
+        est_reno_start_date: parseDate(getField(f, 'Est. reno start date')),
+        reno_start_date: parseDate(getField(f, 'Reno start date')),
+        reno_end_date: parseDate(getField(f, 'Reno end date')),
+        est_reno_end_date: parseDate(getField(f, 'Est. reno end date')),
+        type: getField<string>(f, 'Type') ?? null,
+        reno_duration: parseNumber(getField(f, 'Reno duration')),
+        project_address: getField<string>(f, 'Project address') ?? null,
+        settlement_date: parseDate(getField(f, 'Settlement date')),
+        already_tenanted: (() => { const v = getField(f, 'Already tenanted'); return v != null && v !== '' ? String(v) : null; })(),
+        operation_name: getField<string>(f, 'Operation name') ?? null,
+        opportunity_stage: getField<string>(f, 'Opportunity stage') ?? null,
+        scouter: linkedIdsToNames(rawScouter, linkedNameMap) ?? (typeof rawScouter === 'string' ? rawScouter : null),
+        lead: getField<string>(f, 'Lead') ?? null,
+        est_properties: getField<string>(f, 'Est. Properties', 'fldHyN7COZgThuPsL') ?? null,
+        architect: linkedIdsToNames(rawArchitect, linkedNameMap) ?? (typeof rawArchitect === 'string' ? rawArchitect : null),
+        excluded_from_ecu: parseBool(getField(f, 'Excluded from ECU', 'fldbOhkaWOFxgEF9N')),
+        draft_order_date: parseDate(getField(f, 'Draft Order Date', 'fldolJBkc8xg4zX4u')),
+        measurement_date: parseDate(getField(f, 'Measurement Date', 'flduoq2AThXWINa12')),
+        project_draft_date: parseDate(getField(f, 'Project Draft Date', 'fld1MRXYInkTA5zfY')),
+        draft_plan: parseAttachments(getField(f, 'Draft plan', 'Draft Plan', 'fldb2MtV66Z7lOknJ')),
+        project_validation_notes: getField<string>(f, 'Project Validation Notes', 'fldSv6DaHv0JiVnAI') ?? null,
+        offer_status: getField<string>(f, 'Offer Status', 'fldhwWGWazLA4hcWU') ?? null,
+        ecu_contact: linkedIdsToNames(rawEcuContact, linkedNameMap) ?? (typeof rawEcuContact === 'string' ? rawEcuContact : null),
+        estimated_project_end_date: parseDate(getField(f, 'Estimated Project End Date', 'fldBd9H8MzeIB7FLE')),
+        project_end_date: parseDate(getField(f, 'Project End Date', 'Project end date', 'fldU09hsxbuciKWLi')),
+        arras_deadline: parseDate(getField(f, 'ARRAS Deadline', 'fld7WWN0ZwhTsUKfJ')),
+        ecu_delivery_date: parseDate(getField(f, 'ECU Delivery Date', 'fldZw1fCoB7P4uec9')),
+        estimated_first_correction_date: parseDate(getField(f, 'Estimated First Correction Date', 'fld48U9r5NgQIOkyY')),
+        first_correction_date: parseDate(getField(f, 'First Correction Date', 'fldobn5jZpdWBJyn3')),
+        first_validation_duration: parseNumber(getField(f, 'First Validation Duration', 'fldiBaYTDuEqcAuw4')),
+        definitive_validation_date: parseDate(getField(f, 'Definitive Validation Date', 'fldSPVWoaocQwpx0S')),
+        technical_project_doc: parseAttachments(getField(f, 'Technical Project Doc', 'fldqmIliUeNEjIQUO')),
+        final_plan: parseAttachments(getField(f, 'Final plan', 'Final Plan', 'fldz5e4HkJWDByrtj')),
+        license_attachment: parseAttachments(getField(f, 'License Attachment', 'fldpOMBUKylokMJ0E')),
+      });
+    });
+
+    console.log(`[Sync Maturation Projects] Fetched ${records.length} records from view ${viewId}`);
+    if (records.length > 0) {
+      const phaseCounts: Record<string, number> = {};
+      records.forEach((r) => { phaseCounts[r.reno_phase ?? 'null'] = (phaseCounts[r.reno_phase ?? 'null'] || 0) + 1; });
+      console.log('[Sync Maturation Projects] Phase distribution:', phaseCounts);
+      console.log('[Sync Maturation Projects] Sample:', records.slice(0, 3).map((r) => ({ name: r.name, status: r.project_status, phase: r.reno_phase, scouter: r.scouter, architect: r.architect })));
+    }
+  } catch (e: unknown) {
+    console.error('[Sync Maturation Projects] Error fetching from Airtable:', e);
+    result.errors++;
+    return result;
+  }
+
+  const { data: existing } = await supabase
+    .from('projects')
+    .select('id, airtable_project_id')
+    .in('airtable_project_id', records.map((r) => r.id));
+
+  const byAirtableId = new Map<string | null, { id: string }>();
+  existing?.forEach((row: { id: string; airtable_project_id: string | null }) => {
+    if (row.airtable_project_id) byAirtableId.set(row.airtable_project_id, { id: row.id });
+  });
+
+  const now = new Date().toISOString();
+
+  const toPayload = (rec: ProjectRecord) => ({
+    name: rec.name,
+    reno_phase: rec.reno_phase,
+    investment_type: rec.investment_type,
+    properties_to_convert: rec.properties_to_convert,
+    project_start_date: rec.project_start_date,
+    renovation_spend: rec.renovation_spend,
+    project_unique_id: rec.project_unique_id,
+    estimated_settlement_date: rec.estimated_settlement_date,
+    project_status: rec.project_status,
+    drive_folder: rec.drive_folder,
+    area_cluster: rec.area_cluster,
+    project_set_up_team_notes: rec.project_set_up_team_notes,
+    project_keys_location: rec.project_keys_location,
+    renovator: rec.renovator,
+    est_reno_start_date: rec.est_reno_start_date,
+    reno_start_date: rec.reno_start_date,
+    reno_end_date: rec.reno_end_date,
+    est_reno_end_date: rec.est_reno_end_date,
+    type: rec.type,
+    reno_duration: rec.reno_duration,
+    project_address: rec.project_address,
+    settlement_date: rec.settlement_date,
+    already_tenanted: rec.already_tenanted,
+    operation_name: rec.operation_name,
+    opportunity_stage: rec.opportunity_stage,
+    scouter: rec.scouter,
+    lead: rec.lead,
+    est_properties: rec.est_properties,
+    architect: rec.architect,
+    excluded_from_ecu: rec.excluded_from_ecu,
+    draft_order_date: rec.draft_order_date,
+    measurement_date: rec.measurement_date,
+    project_draft_date: rec.project_draft_date,
+    draft_plan: rec.draft_plan,
+    project_validation_notes: rec.project_validation_notes,
+    offer_status: rec.offer_status,
+    ecu_contact: rec.ecu_contact,
+    estimated_project_end_date: rec.estimated_project_end_date,
+    project_end_date: rec.project_end_date,
+    arras_deadline: rec.arras_deadline,
+    ecu_delivery_date: rec.ecu_delivery_date,
+    estimated_first_correction_date: rec.estimated_first_correction_date,
+    first_correction_date: rec.first_correction_date,
+    first_validation_duration: rec.first_validation_duration,
+    definitive_validation_date: rec.definitive_validation_date,
+    technical_project_doc: rec.technical_project_doc,
+    final_plan: rec.final_plan,
+    license_attachment: rec.license_attachment,
+    updated_at: now,
+  });
+
+  for (const rec of records) {
+    const existingRow = byAirtableId.get(rec.id);
+    if (existingRow) {
+      const { error } = await supabase
+        .from('projects')
+        .update(toPayload(rec))
+        .eq('id', existingRow.id);
+      if (error) { console.error(`[Sync Maturation] Update error for ${rec.name}:`, error.message); result.errors++; } else { result.updated++; }
+    } else {
+      const payload = {
+        airtable_project_id: rec.id,
+        ...toPayload(rec),
+        created_at: now,
+      };
+      const { error } = await supabase.from('projects').insert(payload);
+      if (error) { console.error(`[Sync Maturation] Insert error for ${rec.name}:`, error.message, JSON.stringify(payload).slice(0, 300)); result.errors++; } else { result.created++; }
+    }
+  }
+
+  console.log('[Sync Maturation Projects] Done:', { created: result.created, updated: result.updated, errors: result.errors });
   return result;
 }

@@ -126,6 +126,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [selectedPhaseFilter, setSelectedPhaseFilter] = useState<RenoKanbanPhase | "all">("all");
 
+  type ProjectSortCol = "name" | "projectId" | "type" | "investmentType" | "area" | "renovator" | "status" | "propertiesCount" | "projectStartDate" | "settlementDate" | "scouter" | "architect" | "excludedEcu";
+  const [projectSortCol, setProjectSortCol] = useState<ProjectSortCol | null>(null);
+  const [projectSortDir, setProjectSortDir] = useState<"asc" | "desc" | null>(null);
+
   const visibleColumns = visibleColumnsOverride ?? visibleRenoKanbanColumns;
   
   // Column visibility state per phase - Map<phase, Set<columns>>
@@ -171,7 +175,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
 
   const handleProjectClick = useCallback((project: ProjectRow) => {
     startTransition(() => {
-      router.push(`/reno/construction-manager/project/${project.id}?viewMode=${viewMode}&from=${fromParam}`);
+      const basePath = fromParam === "maturation-kanban"
+        ? `/reno/maturation-analyst/project/${project.id}`
+        : `/reno/construction-manager/project/${project.id}`;
+      router.push(`${basePath}?viewMode=${viewMode}&from=${fromParam}`);
     });
   }, [router, viewMode, fromParam]);
 
@@ -236,6 +243,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "obra-en-progreso": [],
       "amueblamiento": [],
       "check-final": [],
+      "get-project-draft": [],
+      "pending-to-validate": [],
+      "pending-to-reserve-arras": [],
+      "technical-project-in-progress": [],
+      "ecuv-first-validation": [],
+      "technical-project-fine-tuning": [],
+      "ecuv-final-validation": [],
+      "pending-budget-from-renovator": [],
     };
     }
 
@@ -406,6 +421,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "obra-en-progreso": sortPropertiesByExpired(transformProperties["obra-en-progreso"] || []),
       "amueblamiento": sortPropertiesByExpired(transformProperties["amueblamiento"] || []),
       "check-final": sortPropertiesByExpired(transformProperties["check-final"] || []),
+      "get-project-draft": [],
+      "pending-to-validate": [],
+      "pending-to-reserve-arras": [],
+      "technical-project-in-progress": [],
+      "ecuv-first-validation": [],
+      "technical-project-fine-tuning": [],
+      "ecuv-final-validation": [],
+      "pending-budget-from-renovator": [],
     };
     
     // Debug log removed for production
@@ -660,6 +683,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "obra-en-progreso": allProperties["obra-en-progreso"].filter(matchesAll),
       "amueblamiento": allProperties["amueblamiento"].filter(matchesAll),
       "check-final": allProperties["check-final"].filter(matchesAll),
+      "get-project-draft": allProperties["get-project-draft"].filter(matchesAll),
+      "pending-to-validate": allProperties["pending-to-validate"].filter(matchesAll),
+      "pending-to-reserve-arras": allProperties["pending-to-reserve-arras"].filter(matchesAll),
+      "technical-project-in-progress": allProperties["technical-project-in-progress"].filter(matchesAll),
+      "ecuv-first-validation": allProperties["ecuv-first-validation"].filter(matchesAll),
+      "technical-project-fine-tuning": allProperties["technical-project-fine-tuning"].filter(matchesAll),
+      "ecuv-final-validation": allProperties["ecuv-final-validation"].filter(matchesAll),
+      "pending-budget-from-renovator": allProperties["pending-budget-from-renovator"].filter(matchesAll),
     };
     
     // Debug: Check filtered results (only in development and when filters are active)
@@ -828,6 +859,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "obra-en-progreso": sortPropertiesByExpired(filtered["obra-en-progreso"]),
       "amueblamiento": sortPropertiesByExpired(filtered["amueblamiento"]),
       "check-final": sortPropertiesByExpired(filtered["check-final"]),
+      "get-project-draft": filtered["get-project-draft"] || [],
+      "pending-to-validate": filtered["pending-to-validate"] || [],
+      "pending-to-reserve-arras": filtered["pending-to-reserve-arras"] || [],
+      "technical-project-in-progress": filtered["technical-project-in-progress"] || [],
+      "ecuv-first-validation": filtered["ecuv-first-validation"] || [],
+      "technical-project-fine-tuning": filtered["technical-project-fine-tuning"] || [],
+      "ecuv-final-validation": filtered["ecuv-final-validation"] || [],
+      "pending-budget-from-renovator": filtered["pending-budget-from-renovator"] || [],
     };
 
     return sorted;
@@ -955,6 +994,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "obra-en-progreso": [],
       "amueblamiento": [],
       "check-final": [],
+      "get-project-draft": [],
+      "pending-to-validate": [],
+      "pending-to-reserve-arras": [],
+      "technical-project-in-progress": [],
+      "ecuv-first-validation": [],
+      "technical-project-fine-tuning": [],
+      "ecuv-final-validation": [],
+      "pending-budget-from-renovator": [],
     };
 
     for (const col of visibleColumns) {
@@ -1110,6 +1157,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'obra-en-progreso': [],
       'amueblamiento': [],
       'check-final': [],
+      'get-project-draft': [],
+      'pending-to-validate': [],
+      'pending-to-reserve-arras': [],
+      'technical-project-in-progress': [],
+      'ecuv-first-validation': [],
+      'technical-project-fine-tuning': [],
+      'ecuv-final-validation': [],
+      'pending-budget-from-renovator': [],
     };
 
     visibleColumns.forEach((column) => {
@@ -1991,6 +2046,360 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     );
   };
 
+  // Render Project List View (for viewLevel === "project")
+  const renderProjectListView = () => {
+    if (!filteredProjectsByPhase) return null;
+
+    const hasAny = visibleColumns.some(
+      (col) => (filteredProjectsByPhase[col.key] || []).length > 0
+    );
+
+    if (!hasAny) {
+      return (
+        <div className="flex items-center justify-center h-full p-6">
+          <div className="text-center space-y-2">
+            <p className="text-muted-foreground">No se encontraron proyectos</p>
+          </div>
+        </div>
+      );
+    }
+
+    const projectTotalCount = visibleColumns.reduce(
+      (sum, col) => sum + (filteredProjectsByPhase[col.key] || []).length,
+      0
+    );
+
+    const handleProjectSort = (col: ProjectSortCol) => {
+      if (projectSortCol === col) {
+        if (projectSortDir === "asc") setProjectSortDir("desc");
+        else if (projectSortDir === "desc") { setProjectSortCol(null); setProjectSortDir(null); }
+        else setProjectSortDir("asc");
+      } else {
+        setProjectSortCol(col);
+        setProjectSortDir("asc");
+      }
+    };
+
+    const renderProjectSortIcon = (col: ProjectSortCol) => {
+      if (projectSortCol !== col) return <ArrowUpDown className="h-3 w-3 text-muted-foreground opacity-50" />;
+      if (projectSortDir === "asc") return <ChevronUp className="h-3 w-3 text-[var(--prophero-blue-500)]" />;
+      return <ChevronDown className="h-3 w-3 text-[var(--prophero-blue-500)]" />;
+    };
+
+    const sortProjectRows = (rows: ProjectRow[]) => {
+      if (!projectSortCol || !projectSortDir) return rows;
+      return [...rows].sort((a, b) => {
+        let aVal: string | number = "";
+        let bVal: string | number = "";
+        switch (projectSortCol) {
+          case "name": aVal = (a.name ?? "").toLowerCase(); bVal = (b.name ?? "").toLowerCase(); break;
+          case "projectId": aVal = (a.project_unique_id ?? a.id ?? "").toLowerCase(); bVal = (b.project_unique_id ?? b.id ?? "").toLowerCase(); break;
+          case "type": aVal = ((a as any).type ?? "").toLowerCase(); bVal = ((b as any).type ?? "").toLowerCase(); break;
+          case "investmentType": aVal = ((a as any).investment_type ?? "").toLowerCase(); bVal = ((b as any).investment_type ?? "").toLowerCase(); break;
+          case "area": aVal = ((a as any).area_cluster ?? "").toLowerCase(); bVal = ((b as any).area_cluster ?? "").toLowerCase(); break;
+          case "propertiesCount": {
+            const ptcA = (a as any).properties_to_convert; const ptcAStr = ptcA != null ? String(ptcA).trim() : "";
+            const ptcB = (b as any).properties_to_convert; const ptcBStr = ptcB != null ? String(ptcB).trim() : "";
+            aVal = ptcAStr && ptcAStr !== "0" ? Number(ptcAStr) || 0 : Number((a as any).est_properties) || 0;
+            bVal = ptcBStr && ptcBStr !== "0" ? Number(ptcBStr) || 0 : Number((b as any).est_properties) || 0;
+            break;
+          }
+          case "renovator": aVal = ((a as any).renovator ?? "").toLowerCase(); bVal = ((b as any).renovator ?? "").toLowerCase(); break;
+          case "scouter": aVal = ((a as any).scouter ?? "").toLowerCase(); bVal = ((b as any).scouter ?? "").toLowerCase(); break;
+          case "architect": aVal = ((a as any).architect ?? "").toLowerCase(); bVal = ((b as any).architect ?? "").toLowerCase(); break;
+          case "excludedEcu": aVal = (a as any).excluded_from_ecu === true ? 1 : 0; bVal = (b as any).excluded_from_ecu === true ? 1 : 0; break;
+          case "status": aVal = ((a as any).project_status ?? "").toLowerCase(); bVal = ((b as any).project_status ?? "").toLowerCase(); break;
+          case "projectStartDate": {
+            const da = (a as any).project_start_date; const db = (b as any).project_start_date;
+            aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break;
+          }
+          case "settlementDate": {
+            const sa = (a as any).settlement_date; const sb = (b as any).settlement_date;
+            aVal = sa ? new Date(sa).getTime() : 0; bVal = sb ? new Date(sb).getTime() : 0; break;
+          }
+          default: break;
+        }
+        if (aVal < bVal) return projectSortDir === "asc" ? -1 : 1;
+        if (aVal > bVal) return projectSortDir === "asc" ? 1 : -1;
+        return 0;
+      });
+    };
+
+    const parseArea = (raw: string | null | undefined): string => {
+      if (!raw) return "";
+      const trimmed = raw.trim();
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed.filter((x: unknown) => x != null && String(x).trim()).map(String).join(", ");
+      } catch { /* not JSON */ }
+      return trimmed;
+    };
+
+    const projectFilteredPhases = selectedPhaseFilter === "all"
+      ? visibleColumns.filter((col) => (filteredProjectsByPhase[col.key] || []).length > 0)
+      : visibleColumns.filter((col) => col.key === selectedPhaseFilter);
+
+    const isMaturationList = fromParam === "maturation-kanban";
+
+    return (
+      <div className="flex flex-col h-full">
+        {/* Phase filter pills */}
+        <div className="sticky top-0 z-10 bg-background border-b border-border pb-3 mb-4 pt-2">
+          <div className="flex flex-wrap gap-2 overflow-x-auto">
+            <button
+              onClick={() => setSelectedPhaseFilter("all")}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0",
+                selectedPhaseFilter === "all"
+                  ? "bg-[var(--prophero-blue-500)] text-white"
+                  : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-muted/50 dark:hover:bg-[var(--prophero-gray-800)]"
+              )}
+            >
+              Todos ({projectTotalCount})
+            </button>
+            {visibleColumns.map((col) => {
+              const count = (filteredProjectsByPhase[col.key] || []).length;
+              const phaseLabel = (col as RenoKanbanColumnConfig & { label?: string }).label ?? PROJECT_KANBAN_PHASE_LABELS[col.key] ?? t.kanban[col.translationKey];
+              return (
+                <button
+                  key={col.key}
+                  onClick={() => setSelectedPhaseFilter(col.key)}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0",
+                    selectedPhaseFilter === col.key
+                      ? "bg-[var(--prophero-blue-500)] text-white"
+                      : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-muted/50 dark:hover:bg-[var(--prophero-gray-800)]"
+                  )}
+                >
+                  {phaseLabel} ({count})
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Project tables grouped by phase */}
+        <div className="space-y-6 pb-4 overflow-y-auto flex-1">
+          {projectFilteredPhases.map((column) => {
+            const projects = sortProjectRows(filteredProjectsByPhase[column.key] || []);
+            if (projects.length === 0) return null;
+            const phaseLabel = (column as RenoKanbanColumnConfig & { label?: string }).label ?? PROJECT_KANBAN_PHASE_LABELS[column.key] ?? t.kanban[column.translationKey];
+            const isCollapsed = collapsedPhases.has(column.key);
+
+            return (
+              <div key={column.key} className="bg-card rounded-lg border border-border overflow-hidden">
+                {/* Phase header */}
+                <div className="bg-muted/50 dark:bg-[var(--prophero-gray-900)] px-4 py-3 border-b border-border">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => togglePhaseCollapse(column.key)}
+                      className="flex items-center gap-2 hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors rounded px-2 py-1 -ml-2 flex-1 min-w-0"
+                    >
+                      {isCollapsed ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform rotate-[-90deg] flex-shrink-0" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform flex-shrink-0" />
+                      )}
+                      <h3 className="font-semibold text-foreground text-lg truncate">{phaseLabel}</h3>
+                      <Badge variant="secondary" className="text-sm">{projects.length}</Badge>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Table */}
+                {!isCollapsed && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-muted/50 dark:bg-[var(--prophero-gray-900)] border-b border-border">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("projectId")}>
+                            <div className="flex items-center gap-2">ID {renderProjectSortIcon("projectId")}</div>
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("name")}>
+                            <div className="flex items-center gap-2">Nombre {renderProjectSortIcon("name")}</div>
+                          </th>
+                          {isMaturationList ? (
+                            <>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("propertiesCount")}>
+                                <div className="flex items-center gap-2">Propiedades {renderProjectSortIcon("propertiesCount")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("scouter")}>
+                                <div className="flex items-center gap-2">Scouter {renderProjectSortIcon("scouter")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("architect")}>
+                                <div className="flex items-center gap-2">Arquitecto {renderProjectSortIcon("architect")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("excludedEcu")}>
+                                <div className="flex items-center gap-2">ECU {renderProjectSortIcon("excludedEcu")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("type")}>
+                                <div className="flex items-center gap-2">Tipo {renderProjectSortIcon("type")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("investmentType")}>
+                                <div className="flex items-center gap-2">Inversi\u00f3n {renderProjectSortIcon("investmentType")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("area")}>
+                                <div className="flex items-center gap-2">Zona {renderProjectSortIcon("area")}</div>
+                              </th>
+                            </>
+                          ) : (
+                            <>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("area")}>
+                                <div className="flex items-center gap-2">Zona {renderProjectSortIcon("area")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("type")}>
+                                <div className="flex items-center gap-2">Tipo {renderProjectSortIcon("type")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("investmentType")}>
+                                <div className="flex items-center gap-2">Inversi\u00f3n {renderProjectSortIcon("investmentType")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("renovator")}>
+                                <div className="flex items-center gap-2">Renovador {renderProjectSortIcon("renovator")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("projectStartDate")}>
+                                <div className="flex items-center gap-2">Inicio Proyecto {renderProjectSortIcon("projectStartDate")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("settlementDate")}>
+                                <div className="flex items-center gap-2">Fecha Liquidaci\u00f3n {renderProjectSortIcon("settlementDate")}</div>
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("status")}>
+                                <div className="flex items-center gap-2">Estado {renderProjectSortIcon("status")}</div>
+                              </th>
+                            </>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {projects.map((proj) => {
+                          const investType = ((proj as any).investment_type ?? "").toString().trim().toLowerCase();
+                          const isFlip = investType.includes("flip");
+                          const isYield = investType.includes("yield");
+                          const typeRaw = ((proj as any).type ?? "").toString().trim();
+                          const typeLower = typeRaw.toLowerCase();
+                          const area = parseArea((proj as any).area_cluster);
+
+                          return (
+                            <tr
+                              key={proj.id}
+                              onClick={() => handleProjectClick(proj)}
+                              className="cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors"
+                            >
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <span className="text-sm font-medium text-foreground">
+                                  {proj.project_unique_id || proj.id?.slice(0, 8)}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="text-sm text-foreground font-medium break-words max-w-xs inline-block">
+                                  {proj.name || "Sin nombre"}
+                                </span>
+                              </td>
+                              {isMaturationList ? (
+                                <>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className="text-sm text-foreground">{(() => { const ptc = (proj as any).properties_to_convert; const ptcS = ptc != null ? String(ptc).trim() : ""; return ptcS && ptcS !== "0" ? ptcS : ((proj as any).est_properties ?? "\u2014"); })()}</span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className="text-sm text-foreground">{(proj as any).scouter || "\u2014"}</span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className="text-sm text-foreground">{(proj as any).architect || "\u2014"}</span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {(proj as any).excluded_from_ecu === true ? (
+                                      <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">Sin ECU</Badge>
+                                    ) : (
+                                      <span className="text-sm text-muted-foreground">Con ECU</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {typeRaw ? (
+                                      <span className={cn(
+                                        "inline-flex items-center rounded-full text-xs font-medium px-2 py-1",
+                                        typeLower === "project" && "bg-blue-600 text-white",
+                                        typeLower === "wip" && "bg-sky-200 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200 border border-sky-300 dark:border-sky-700/50",
+                                        typeLower === "new build" && "bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/50",
+                                        !["project", "wip", "new build"].includes(typeLower) && "bg-muted text-muted-foreground border border-border"
+                                      )}>
+                                        {typeRaw}
+                                      </span>
+                                    ) : <span className="text-sm text-muted-foreground">\u2014</span>}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {isFlip ? (
+                                      <Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">Flip</Badge>
+                                    ) : isYield ? (
+                                      <Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">Yield</Badge>
+                                    ) : (proj as any).investment_type ? (
+                                      <Badge variant="secondary" className="text-xs">{(proj as any).investment_type}</Badge>
+                                    ) : <span className="text-sm text-muted-foreground">\u2014</span>}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className="text-sm text-muted-foreground">{area || "\u2014"}</span>
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className="text-sm text-muted-foreground">{area || "\u2014"}</span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {typeRaw ? (
+                                      <span className={cn(
+                                        "inline-flex items-center rounded-full text-xs font-medium px-2 py-1",
+                                        typeLower === "project" && "bg-blue-600 text-white",
+                                        typeLower === "wip" && "bg-sky-200 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200 border border-sky-300 dark:border-sky-700/50",
+                                        typeLower === "new build" && "bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/50",
+                                        !["project", "wip", "new build"].includes(typeLower) && "bg-muted text-muted-foreground border border-border"
+                                      )}>
+                                        {typeRaw}
+                                      </span>
+                                    ) : <span className="text-sm text-muted-foreground">\u2014</span>}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    {isFlip ? (
+                                      <Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">Flip</Badge>
+                                    ) : isYield ? (
+                                      <Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">Yield</Badge>
+                                    ) : (proj as any).investment_type ? (
+                                      <Badge variant="secondary" className="text-xs">{(proj as any).investment_type}</Badge>
+                                    ) : <span className="text-sm text-muted-foreground">\u2014</span>}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className="text-sm text-foreground">{(proj as any).renovator || "\u2014"}</span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className="text-sm text-foreground">
+                                      {(proj as any).project_start_date ? formatDate((proj as any).project_start_date) : "\u2014"}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className="text-sm text-foreground">
+                                      {(proj as any).settlement_date ? formatDate((proj as any).settlement_date) : "\u2014"}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <Badge variant="outline" className="text-xs">
+                                      {(proj as any).project_status || "\u2014"}
+                                    </Badge>
+                                  </td>
+                                </>
+                              )}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   // Render Kanban View
   const renderKanbanView = () => (
     <div
@@ -2067,7 +2476,9 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
 
   return (
     <>
-      {viewMode === "list" ? renderListView() : renderKanbanView()}
+      {viewMode === "list"
+        ? (viewLevel === "project" && filteredProjectsByPhase ? renderProjectListView() : renderListView())
+        : renderKanbanView()}
       
       {/* Column Selector Dialog */}
       {columnSelectorOpen.phase && (

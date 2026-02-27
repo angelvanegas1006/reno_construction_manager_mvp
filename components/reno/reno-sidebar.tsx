@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Mail } from "lucide-react";
+import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Mail, Landmark, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -41,7 +41,23 @@ const getNavigationItems = (t: any, role?: string) => {
       {
         label: t.nav.renoManagement,
         href: "/reno/construction-manager/kanban",
-        icon: Grid,
+        icon: LayoutGrid,
+      },
+    ] as Array<{ label: string; href: string; icon: typeof Home }>;
+  }
+
+  // maduration_analyst tiene su propia home y kanban de maduración
+  if (role === "maduration_analyst") {
+    return [
+      {
+        label: "Inicio",
+        href: "/reno/maturation-analyst",
+        icon: Home,
+      },
+      {
+        label: "Maduración de Proyectos",
+        href: "/reno/maturation-analyst/kanban",
+        icon: Landmark,
       },
     ] as Array<{ label: string; href: string; icon: typeof Home }>;
   }
@@ -55,7 +71,7 @@ const getNavigationItems = (t: any, role?: string) => {
     {
       label: t.nav.renoManagement,
       href: "/reno/construction-manager/kanban",
-      icon: Grid,
+      icon: LayoutGrid,
     },
   ];
   if (role === "admin" || role === "construction_manager") {
@@ -63,6 +79,11 @@ const getNavigationItems = (t: any, role?: string) => {
       label: t.nav.kanbanProjects,
       href: "/reno/construction-manager/kanban-projects",
       icon: Building2,
+    });
+    items.push({
+      label: "Maduración de Proyectos",
+      href: "/reno/maturation-analyst/kanban",
+      icon: Landmark,
     });
   }
   return items;

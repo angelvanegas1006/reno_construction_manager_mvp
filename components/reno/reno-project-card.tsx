@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { ShieldOff } from "lucide-react";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import type { Property } from "@/lib/property-storage";
 
@@ -9,7 +10,6 @@ interface RenoProjectCardProps {
   project: ProjectRow;
   onClick?: () => void;
   isHighlighted?: boolean;
-  /** Propiedades vinculadas a este proyecto (properties.project_id) */
   linkedProperties?: Property[];
 }
 
@@ -34,7 +34,7 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
         return parts.map((x) => String(x).trim()).join(", ");
       }
     } catch {
-      // no es JSON, usar rawArea si no es vacío "falso"
+      // plain string
     }
     return rawArea;
   })();
@@ -54,6 +54,15 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
     return "";
   };
 
+  const p = project as any;
+  const propertiesToConvert = p.properties_to_convert;
+  const estProperties = p.est_properties;
+  const ptcStr = propertiesToConvert != null ? String(propertiesToConvert).trim() : "";
+  const propertiesDisplay = ptcStr && ptcStr !== "0" ? ptcStr : (estProperties ?? "—");
+  const scouter = p.scouter as string | null;
+  const architect = p.architect as string | null;
+  const excludedFromEcu = p.excluded_from_ecu === true;
+
   return (
     <button
       type="button"
@@ -65,37 +74,35 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
           "ring-2 ring-[var(--prophero-blue-500)] border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30"
       )}
     >
-      {/* ID y tag investment type arriba (como en propiedades) */}
+      {/* ID + investment type badges */}
       <div className="flex items-center justify-between mb-2 gap-2 min-w-0">
         <div className="text-xs font-semibold text-muted-foreground truncate min-w-0">
           ID {projectIdDisplay}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
+          {excludedFromEcu && (
+            <span title="Excluido de ECU" className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 text-[10px] font-semibold">
+              <ShieldOff className="h-3 w-3" />
+              Sin ECU
+            </span>
+          )}
           {isFlip && (
-            <Badge
-              variant="outline"
-              className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30"
-            >
+            <Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">
               Flip
             </Badge>
           )}
           {isYield && (
-            <Badge
-              variant="outline"
-              className="text-xs border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30"
-            >
+            <Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">
               Yield
             </Badge>
           )}
           {!isFlip && !isYield && investmentType && (
-            <Badge variant="secondary" className="text-xs">
-              {project.investment_type}
-            </Badge>
+            <Badge variant="secondary" className="text-xs">{project.investment_type}</Badge>
           )}
         </div>
       </div>
 
-      {/* Nombre del proyecto + area cluster */}
+      {/* Project name + area cluster */}
       <div className="min-w-0 flex-1">
         <p className="font-medium text-sm text-foreground break-words line-clamp-2">
           {name}
@@ -105,24 +112,33 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
         </p>
       </div>
 
-      {/* Tag type (Project / WIP) + Nº Propiedades a la derecha */}
+      {/* Type tag + Est. Properties */}
       <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
         {showTypeTag && (
-          <span
-            className={cn(
-              getTypeTagStyles(),
-              "inline-flex items-center rounded-full text-xs font-medium px-2 py-1"
-            )}
-          >
+          <span className={cn(getTypeTagStyles(), "inline-flex items-center rounded-full text-xs font-medium px-2 py-1")}>
             {typeRaw || "Project"}
           </span>
         )}
         <span className="text-xs text-muted-foreground ml-auto">
-          Nº Propiedades: {linkedProperties.length}
+          Propiedades: {propertiesDisplay}
         </span>
       </div>
 
-
+      {/* Scouter + Architect */}
+      {(scouter || architect) && (
+        <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
+          {scouter && (
+            <p className="text-xs text-muted-foreground truncate">
+              <span className="font-medium text-foreground">Scouter:</span> {scouter}
+            </p>
+          )}
+          {architect && (
+            <p className="text-xs text-muted-foreground truncate">
+              <span className="font-medium text-foreground">Arquitecto:</span> {architect}
+            </p>
+          )}
+        </div>
+      )}
     </button>
   );
 }

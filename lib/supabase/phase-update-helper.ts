@@ -105,6 +105,14 @@ export function getSetUpStatusForPhase(phase: RenoKanbanPhase): string {
     'obra-en-progreso': 'Reno in progress',
     'amueblamiento': 'Furnishing',
     'check-final': 'Final check',
+    'get-project-draft': 'Get Project Draft',
+    'pending-to-validate': 'Pending to Validate',
+    'pending-to-reserve-arras': 'Pending to Reserve / Arras',
+    'technical-project-in-progress': 'Technical Project in Progress',
+    'ecuv-first-validation': 'ECUV First Validation',
+    'technical-project-fine-tuning': 'Technical Project Fine Tuning',
+    'ecuv-final-validation': 'ECUV Final Validation',
+    'pending-budget-from-renovator': 'Pending to Budget from Renovator',
   };
 
   return phaseToStatusMap[phase] || phase;

@@ -58,6 +58,14 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "obra-en-progreso": 0,
       "amueblamiento": 0,
       "check-final": 0,
+      "get-project-draft": 0,
+      "pending-to-validate": 0,
+      "pending-to-reserve-arras": 0,
+      "technical-project-in-progress": 0,
+      "ecuv-first-validation": 0,
+      "technical-project-fine-tuning": 0,
+      "ecuv-final-validation": 0,
+      "pending-budget-from-renovator": 0,
     };
 
     // Use propertiesByPhase directly from Supabase hook
@@ -117,6 +125,14 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "obra-en-progreso": PROJECT_KANBAN_PHASE_LABELS["obra-en-progreso"] ?? "Obra en Progreso",
       "amueblamiento": PROJECT_KANBAN_PHASE_LABELS["amueblamiento"] ?? "Amueblamiento",
       "check-final": PROJECT_KANBAN_PHASE_LABELS["check-final"] ?? "Check Final",
+      "get-project-draft": "Borrador de Proyecto",
+      "pending-to-validate": "Pendiente de Validación",
+      "pending-to-reserve-arras": "Pendiente de Reserva / Arras",
+      "technical-project-in-progress": "Proyecto Técnico en Progreso",
+      "ecuv-first-validation": "ECUV Primera Validación",
+      "technical-project-fine-tuning": "Ajuste Proyecto Técnico",
+      "ecuv-final-validation": "ECUV Validación Final",
+      "pending-budget-from-renovator": "Pendiente Presupuesto Renovador",
     };
     return stageMap[stage];
   };
