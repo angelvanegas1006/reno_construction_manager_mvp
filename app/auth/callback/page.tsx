@@ -6,7 +6,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
-type AppRole = "admin" | "foreman" | "construction_manager" | "user" | "manager_projects" | "technical_constructor_projects" | "maduration_analyst";
+type AppRole = "admin" | "foreman" | "construction_manager" | "user" | "manager_projects" | "technical_constructor_projects" | "maduration_analyst" | "set_up_analyst";
 
 /**
  * Mapea rol de Auth0 a rol de la app
@@ -20,10 +20,13 @@ function mapAuth0RoleToAppRole(auth0Role: string): AppRole | null {
     "manager_projects": "manager_projects",
     "technical_constructor_projects": "technical_constructor_projects",
     "maduration_analyst": "maduration_analyst",
+    "set_up_analyst": "set_up_analyst",
     // Aliases comunes
     "jefe_de_obra": "foreman",
     "administrator": "admin",
     "usuario": "user",
+    "setup_analyst": "set_up_analyst",
+    "setupanalyst": "set_up_analyst",
   };
 
   const normalizedRole = auth0Role.toLowerCase().trim();
@@ -59,34 +62,54 @@ async function syncAuth0RoleToSupabaseClient(
     auth0Role = mapAuth0RoleToAppRole(auth0Metadata.role);
   }
 
-  // Si no hay rol de Auth0, usar default
-  const finalRole: AppRole = auth0Role || "user";
-
-  // Sincronizar a Supabase
+  // Si Auth0 tiene un rol explícito, sincronizarlo a Supabase
+  // Si Auth0 NO tiene rol, leer el que ya hay en Supabase y conservarlo
   try {
-    const { error: upsertError } = await supabase
-      .from("user_roles")
-      .upsert(
-        {
-          user_id: supabaseUserId,
-          role: finalRole,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "user_id",
-        }
-      );
+    if (auth0Role) {
+      // Auth0 tiene rol → actualizar Supabase con ese rol
+      const { error: upsertError } = await supabase
+        .from("user_roles")
+        .upsert(
+          {
+            user_id: supabaseUserId,
+            role: auth0Role,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
 
-    if (upsertError) {
-      console.error("[syncAuth0RoleToSupabaseClient] ❌ Error syncing role:", upsertError);
+      if (upsertError) {
+        console.error("[syncAuth0RoleToSupabaseClient] ❌ Error syncing role from Auth0:", upsertError);
+      } else {
+        console.log("[syncAuth0RoleToSupabaseClient] ✅ Role synced from Auth0:", auth0Role);
+      }
+      return auth0Role;
     } else {
-      console.log("[syncAuth0RoleToSupabaseClient] ✅ Role synced:", finalRole);
+      // Auth0 no tiene rol → leer el rol actual de Supabase y conservarlo
+      const { data: existingRole, error: fetchError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", supabaseUserId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("[syncAuth0RoleToSupabaseClient] ❌ Error reading existing role:", fetchError);
+        return "user";
+      }
+
+      if (existingRole?.role) {
+        console.log("[syncAuth0RoleToSupabaseClient] ✅ No Auth0 role, using existing Supabase role:", existingRole.role);
+        return (existingRole.role as AppRole) || "user";
+      }
+
+      // Sin rol en ningún lado, asignar user por defecto
+      console.warn("[syncAuth0RoleToSupabaseClient] ⚠️ No role found anywhere, defaulting to user");
+      return "user";
     }
   } catch (err) {
     console.error("[syncAuth0RoleToSupabaseClient] ❌ Unexpected error:", err);
+    return "user";
   }
-
-  return finalRole;
 }
 
 export default function Auth0CallbackPage() {
@@ -292,6 +315,8 @@ export default function Auth0CallbackPage() {
         let redirectUrl = "/login";
         if (role === "foreman") {
           redirectUrl = "/reno/construction-manager";
+        } else if (role === "set_up_analyst") {
+          redirectUrl = "/reno/setup-analyst";
         } else if (role === "admin" || role === "construction_manager") {
           redirectUrl = "/reno/construction-manager/kanban";
         } else {

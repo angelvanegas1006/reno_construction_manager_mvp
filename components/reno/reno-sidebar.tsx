@@ -29,6 +29,22 @@ import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-
 
 // Navigation items for Reno Construction Manager. Kanban Proyectos solo para admin y construction_manager.
 const getNavigationItems = (t: any, role?: string) => {
+  // set_up_analyst tiene su propia home y acceso solo al kanban de propiedades
+  if (role === "set_up_analyst") {
+    return [
+      {
+        label: "Inicio",
+        href: "/reno/setup-analyst",
+        icon: Home,
+      },
+      {
+        label: t.nav.renoManagement,
+        href: "/reno/construction-manager/kanban",
+        icon: Grid,
+      },
+    ] as Array<{ label: string; href: string; icon: typeof Home }>;
+  }
+
   const items: Array<{ label: string; href: string; icon: typeof Home }> = [
     {
       label: t.nav.home,

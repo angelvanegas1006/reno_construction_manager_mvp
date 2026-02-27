@@ -25,6 +25,8 @@ export default function RentLayout({
         // Usuario no tiene permisos para rent, redirigir según su rol
         if (role === "foreman") {
           router.push("/reno/construction-manager");
+        } else if (role === "set_up_analyst") {
+          router.push("/reno/setup-analyst");
         } else if (role === "construction_manager") {
           router.push("/reno/construction-manager/kanban");
         } else {

@@ -514,30 +514,10 @@ export function SendUpdateEmailPreview({
         hubspotId: property['Hubspot ID'] || null,
       };
       
-      console.log('[Send Update Email] Enviando payload al webhook:', {
-        to: clientEmail,
-        uniqueIdAirtable,
-        htmlLength: emailHTML.length,
-        hasImages: emailHTML.includes('<img'),
-      });
-      
-      // Llamar a n8n webhook (placeholder por ahora)
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error al enviar el correo: ${response.statusText}`);
-      }
-      
-      // Guardar HTML en client_update_emails
+      // Guardar como borrador en client_update_emails (el set_up_analyst revisará y enviará)
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       const { error: saveError } = await supabase
         .from('client_update_emails')
         .insert({
@@ -546,14 +526,14 @@ export function SendUpdateEmailPreview({
           client_email: clientEmail,
           subject: `Update de Progreso - ${uniqueIdAirtable}`,
           created_by: user?.id || null,
+          status: 'draft',
         });
-      
+
       if (saveError) {
-        console.error('[Send Update Email] Error guardando HTML en historial:', saveError);
-        // No fallar el envío si solo falla el guardado del historial
-      } else {
-        console.log('[Send Update Email] ✅ HTML guardado en historial');
+        console.error('[Send Update Email] Error guardando borrador:', saveError);
+        throw new Error('Error al guardar el borrador del email');
       }
+      console.log('[Send Update Email] ✅ Borrador guardado, pendiente de revisión por set_up_analyst');
       
       // Actualizar category_updates más recientes con los textos generados
       // Buscar los updates más recientes de cada categoría que tiene texto generado (excluyendo las eliminadas)
@@ -602,7 +582,7 @@ export function SendUpdateEmailPreview({
         console.log('[Send Update Email] ✅ Textos de categorías actualizados en historial');
       }
       
-      toast.success('Update enviado correctamente al cliente');
+      toast.success('Email enviado a revisión. El responsable lo aprobará antes de enviarlo al cliente.');
       handleClose();
     } catch (error) {
       console.error('Error sending email:', error);
@@ -804,7 +784,7 @@ export function SendUpdateEmailPreview({
                 disabled={isSending || isGeneratingTexts}
                 className="w-full h-12 text-base font-medium bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)]"
               >
-                {isSending ? 'Enviando...' : isGeneratingTexts ? 'Generando textos...' : 'Enviar'}
+                {isSending ? 'Enviando a revisión...' : isGeneratingTexts ? 'Generando textos...' : 'Enviar para revisión'}
               </Button>
               <Button
                 variant="outline"
@@ -976,7 +956,7 @@ export function SendUpdateEmailPreview({
             disabled={isSending || isGeneratingTexts}
             className="bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)]"
           >
-            {isSending ? 'Enviando...' : isGeneratingTexts ? 'Generando textos...' : 'Enviar'}
+            {isSending ? 'Enviando a revisión...' : isGeneratingTexts ? 'Generando textos...' : 'Enviar para revisión'}
           </Button>
         </div>
       </DialogContent>

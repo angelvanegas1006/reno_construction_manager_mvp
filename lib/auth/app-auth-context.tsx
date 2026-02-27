@@ -24,6 +24,7 @@ interface AppAuthContextType {
   isManagerProjects: boolean;
   isTechnicalConstructorProjects: boolean;
   isMadurationAnalyst: boolean;
+  isSetUpAnalyst: boolean;
   hasRole: (role: AppRole) => boolean;
   hasAnyRole: (roles: AppRole[]) => boolean;
 }
@@ -154,6 +155,7 @@ export function AppAuthProvider({ children }: { children: ReactNode }) {
     isManagerProjects: appUser?.role === 'manager_projects',
     isTechnicalConstructorProjects: appUser?.role === 'technical_constructor_projects',
     isMadurationAnalyst: appUser?.role === 'maduration_analyst',
+    isSetUpAnalyst: appUser?.role === 'set_up_analyst',
     hasRole,
     hasAnyRole,
   };
