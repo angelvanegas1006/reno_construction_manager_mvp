@@ -282,7 +282,6 @@ export function UpdateEmailInbox() {
                 srcDoc={previewEmail.html_content}
                 className="w-full border-0"
                 style={{ height: "600px", minHeight: "600px" }}
-                sandbox="allow-same-origin allow-scripts allow-popups"
                 title="Email preview"
               />
             </div>
