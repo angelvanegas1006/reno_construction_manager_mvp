@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -278,12 +278,7 @@ export function UpdateEmailInbox() {
               </div>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto border rounded-md bg-white min-h-0">
-              <iframe
-                srcDoc={previewEmail.html_content}
-                className="w-full border-0"
-                style={{ height: "600px", minHeight: "600px" }}
-                title="Email preview"
-              />
+              <EmailHtmlPreview html={previewEmail.html_content} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setPreviewEmail(null)}>
@@ -304,5 +299,32 @@ export function UpdateEmailInbox() {
         </Dialog>
       )}
     </div>
+  );
+}
+
+/**
+ * Renderiza HTML del email usando un blob: URL para que el iframe tenga
+ * un origen real y pueda cargar imágenes externas (logo de Google Drive).
+ * srcDoc crea un origen "null" que bloquea peticiones de red externas.
+ */
+function EmailHtmlPreview({ html }: { html: string }) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    setBlobUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [html]);
+
+  if (!blobUrl) return null;
+
+  return (
+    <iframe
+      src={blobUrl}
+      className="w-full border-0"
+      style={{ height: "600px", minHeight: "600px" }}
+      title="Email preview"
+    />
   );
 }
