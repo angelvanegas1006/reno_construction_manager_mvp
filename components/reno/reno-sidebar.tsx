@@ -62,7 +62,7 @@ const getNavigationItems = (t: any, role?: string) => {
     items.push({
       label: t.nav.kanbanProjects,
       href: "/reno/construction-manager/kanban-projects",
-      icon: Grid,
+      icon: Building2,
     });
   }
   return items;
@@ -284,11 +284,11 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   )}
                   {(role === "set_up_analyst" || role === "admin") && (
                     <Link
-                      href="/reno/setup-analyst"
+                      href="/reno/setup-analyst/emails"
                       onClick={onMobileToggle}
                       className={cn(
                         "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors relative",
-                        pathname === "/reno/setup-analyst"
+                        pathname === "/reno/setup-analyst/emails"
                           ? "bg-primary/20 text-primary dark:text-white"
                           : "text-foreground hover:bg-accent hover:text-accent-foreground"
                       )}
@@ -482,10 +482,10 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
               )}
               {(role === "set_up_analyst" || role === "admin") && (
                 <Link
-                  href="/reno/setup-analyst"
+                  href="/reno/setup-analyst/emails"
                   className={cn(
                     "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors relative",
-                    pathname === "/reno/setup-analyst"
+                    pathname === "/reno/setup-analyst/emails"
                       ? "bg-primary/20 text-primary dark:text-white"
                       : "text-foreground hover:bg-accent hover:text-accent-foreground"
                   )}
@@ -538,11 +538,11 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
             )}
             {(role === "set_up_analyst" || role === "admin") && (
               <Link
-                href="/reno/setup-analyst"
+                href="/reno/setup-analyst/emails"
                 title="Bandeja de correos"
                 className={cn(
                   "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
-                  pathname === "/reno/setup-analyst"
+                  pathname === "/reno/setup-analyst/emails"
                     ? "bg-primary/20 text-primary dark:text-white"
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
                 )}

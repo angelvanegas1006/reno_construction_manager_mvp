@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useSupabaseAuthContext } from './supabase-auth-context';
 import { createClient } from '@/lib/supabase/client';
+import { useSessionTracker } from '@/hooks/useSessionTracker';
 import type { Database } from '@/lib/supabase/types';
 import type { User } from '@supabase/supabase-js';
 
@@ -144,6 +145,8 @@ export function AppAuthProvider({ children }: { children: ReactNode }) {
   const hasAnyRole = (roles: AppRole[]): boolean => {
     return appUser ? roles.includes(appUser.role) : false;
   };
+
+  useSessionTracker(appUser?.id);
 
   const value: AppAuthContextType = {
     user: appUser,

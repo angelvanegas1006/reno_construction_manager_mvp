@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Plus, CheckCircle2, Wrench, Bell, Edit, Trash2, RefreshCw, CalendarCheck, X, FileSignature, Hammer, Filter } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, MessageSquare, Plus, CheckCircle2, Wrench, Bell, Edit, Trash2, RefreshCw, CalendarCheck, X, FileSignature, Hammer, Filter, Maximize2, Minimize2 } from "lucide-react";
 import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { useI18n } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
@@ -87,6 +87,7 @@ export function VisitsCalendar({
   const [isEditingVisit, setIsEditingVisit] = useState(false);
   const [editVisitDate, setEditVisitDate] = useState<string | undefined>(undefined);
   const [editNotes, setEditNotes] = useState("");
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   
   // Filtros para tipos de eventos
   const [filters, setFilters] = useState({
@@ -1171,29 +1172,28 @@ export function VisitsCalendar({
           </div>
         ) : (
           // Vista semanal por días - Mejorada para móvil (sin sábados ni domingos)
+          <>
           <div className={cn(
             "flex md:grid gap-2 overflow-x-auto pb-2",
             "scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
             isMobile 
-              ? "flex-row snap-x snap-mandatory" // En móvil, scroll horizontal con snap
-              : "grid-cols-2 md:grid-cols-3 lg:grid-cols-5" // En desktop, mostrar 5 días (lunes a viernes)
+              ? "flex-row snap-x snap-mandatory"
+              : "grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
           )}>
             {weekDays.map((day, dayIndex) => {
-              // Mapear el índice del día filtrado al índice original para groupedVisits
-              // Necesitamos encontrar el índice original del día en la semana completa
-              const { start } = getDateRange();
               const dayOfWeek = day.getDay();
-              // Calcular el índice original en la semana (0-6, donde 0 es lunes)
               const originalIndex = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
               const dayVisits = groupedVisits[originalIndex] || [];
               const isToday = day.toDateString() === new Date().toDateString();
               
-              // Ordenar visitas por hora
               const sortedVisits = [...dayVisits].sort((a, b) => {
                 const timeA = new Date(a.visit_date).getTime();
                 const timeB = new Date(b.visit_date).getTime();
                 return timeA - timeB;
               });
+
+              const MAX_VISIBLE = 5;
+              const hasOverflow = sortedVisits.length > MAX_VISIBLE;
               
               return (
                 <div
@@ -1201,9 +1201,8 @@ export function VisitsCalendar({
                   className={cn(
                     "border rounded-lg p-3 md:p-4 flex flex-col",
                     isMobile 
-                      ? "min-w-[calc(100vw-2rem)] snap-start" // Ancho completo menos padding en móvil
-                      : "min-w-0", // En desktop, sin ancho mínimo
-                    isMobile ? "min-h-[450px]" : "min-h-[200px] md:min-h-[300px]",
+                      ? "min-w-[calc(100vw-2rem)] snap-start"
+                      : "min-w-0",
                     isToday && "border-primary bg-primary/5 ring-2 ring-primary/20"
                   )}
                 >
@@ -1218,7 +1217,13 @@ export function VisitsCalendar({
                       {day.toLocaleDateString(language === "es" ? "es-ES" : "en-US", { day: "numeric" })}
                     </div>
                   </div>
-                  <div className="space-y-2 flex-1 overflow-y-auto">
+                  <div
+                    className={cn(
+                      "space-y-2 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
+                      !isCalendarExpanded && !isMobile && "max-h-[310px]",
+                      isMobile && "min-h-[350px]",
+                    )}
+                  >
                     {sortedVisits.length === 0 ? (
                       <span className="text-xs text-muted-foreground block py-2">{t.calendar.noVisits}</span>
                     ) : (
@@ -1262,10 +1267,38 @@ export function VisitsCalendar({
                       })
                     )}
                   </div>
+                  {!isCalendarExpanded && hasOverflow && !isMobile && (
+                    <div className="pt-1 text-center">
+                      <span className="text-[10px] text-muted-foreground">
+                        +{sortedVisits.length - MAX_VISIBLE} más
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
+          {!isMobile && (
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-muted"
+              >
+                {isCalendarExpanded ? (
+                  <>
+                    <Minimize2 className="h-3.5 w-3.5" />
+                    Contraer calendario
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    Expandir calendario completo
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+          </>
         )}
 
         {/* Modal de detalles */}
