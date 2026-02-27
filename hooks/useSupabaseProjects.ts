@@ -20,6 +20,45 @@ export interface ProjectRow {
   project_unique_id?: string | null;
   type?: string | null;
   renovator?: string | null;
+  project_start_date?: string | null;
+  settlement_date?: string | null;
+  scouter?: string | null;
+  lead?: string | null;
+  opportunity_stage?: string | null;
+  operation_name?: string | null;
+  properties_to_convert?: string | null;
+  renovation_spend?: number | null;
+  est_reno_start_date?: string | null;
+  reno_start_date?: string | null;
+  reno_end_date?: string | null;
+  est_reno_end_date?: string | null;
+  reno_duration?: number | null;
+  estimated_settlement_date?: string | null;
+  project_set_up_team_notes?: string | null;
+  project_keys_location?: string | null;
+  already_tenanted?: string | null;
+  // Maturation-specific fields
+  est_properties?: string | null;
+  architect?: string | null;
+  excluded_from_ecu?: boolean | null;
+  draft_order_date?: string | null;
+  measurement_date?: string | null;
+  project_draft_date?: string | null;
+  draft_plan?: string | null;
+  project_validation_notes?: string | null;
+  offer_status?: string | null;
+  ecu_contact?: string | null;
+  estimated_project_end_date?: string | null;
+  project_end_date?: string | null;
+  arras_deadline?: string | null;
+  ecu_delivery_date?: string | null;
+  estimated_first_correction_date?: string | null;
+  first_correction_date?: string | null;
+  first_validation_duration?: number | null;
+  definitive_validation_date?: string | null;
+  technical_project_doc?: string | null;
+  final_plan?: string | null;
+  license_attachment?: string | null;
 }
 
 /** Mapea Project status (Airtable) → fase Kanban; prioridad sobre reno_phase */
@@ -76,6 +115,14 @@ const EMPTY_BY_PHASE: Record<RenoKanbanPhase, ProjectRow[]> = {
   "obra-en-progreso": [],
   "amueblamiento": [],
   "check-final": [],
+  "get-project-draft": [],
+  "pending-to-validate": [],
+  "pending-to-reserve-arras": [],
+  "technical-project-in-progress": [],
+  "ecuv-first-validation": [],
+  "technical-project-fine-tuning": [],
+  "ecuv-final-validation": [],
+  "pending-budget-from-renovator": [],
 };
 
 function mapProjectPhaseForKanban(reno_phase: string | null): RenoKanbanPhase {

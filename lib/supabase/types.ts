@@ -387,6 +387,27 @@ export type Database = {
           opportunity_stage: string | null
           scouter: string | null
           lead: string | null
+          est_properties: string | null
+          architect: string | null
+          excluded_from_ecu: boolean | null
+          draft_order_date: string | null
+          measurement_date: string | null
+          project_draft_date: string | null
+          draft_plan: unknown | null
+          project_validation_notes: string | null
+          offer_status: string | null
+          ecu_contact: string | null
+          estimated_project_end_date: string | null
+          project_end_date: string | null
+          arras_deadline: string | null
+          ecu_delivery_date: string | null
+          estimated_first_correction_date: string | null
+          first_correction_date: string | null
+          first_validation_duration: number | null
+          definitive_validation_date: string | null
+          technical_project_doc: unknown | null
+          final_plan: unknown | null
+          license_attachment: unknown | null
         }
         Insert: {
           id?: string
@@ -421,6 +442,27 @@ export type Database = {
           opportunity_stage?: string | null
           scouter?: string | null
           lead?: string | null
+          est_properties?: string | null
+          architect?: string | null
+          excluded_from_ecu?: boolean | null
+          draft_order_date?: string | null
+          measurement_date?: string | null
+          project_draft_date?: string | null
+          draft_plan?: unknown | null
+          project_validation_notes?: string | null
+          offer_status?: string | null
+          ecu_contact?: string | null
+          estimated_project_end_date?: string | null
+          project_end_date?: string | null
+          arras_deadline?: string | null
+          ecu_delivery_date?: string | null
+          estimated_first_correction_date?: string | null
+          first_correction_date?: string | null
+          first_validation_duration?: number | null
+          definitive_validation_date?: string | null
+          technical_project_doc?: unknown | null
+          final_plan?: unknown | null
+          license_attachment?: unknown | null
         }
         Update: {
           id?: string
@@ -455,6 +497,27 @@ export type Database = {
           opportunity_stage?: string | null
           scouter?: string | null
           lead?: string | null
+          est_properties?: string | null
+          architect?: string | null
+          excluded_from_ecu?: boolean | null
+          draft_order_date?: string | null
+          measurement_date?: string | null
+          project_draft_date?: string | null
+          draft_plan?: unknown | null
+          project_validation_notes?: string | null
+          offer_status?: string | null
+          ecu_contact?: string | null
+          estimated_project_end_date?: string | null
+          project_end_date?: string | null
+          arras_deadline?: string | null
+          ecu_delivery_date?: string | null
+          estimated_first_correction_date?: string | null
+          first_correction_date?: string | null
+          first_validation_duration?: number | null
+          definitive_validation_date?: string | null
+          technical_project_doc?: unknown | null
+          final_plan?: unknown | null
+          license_attachment?: unknown | null
         }
         Relationships: []
       }

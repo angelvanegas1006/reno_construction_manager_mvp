@@ -157,6 +157,14 @@ export default function RenoConstructionManagerKanbanPage() {
       "obra-en-progreso": [],
       "amueblamiento": [],
       "check-final": [],
+      "get-project-draft": [],
+      "pending-to-validate": [],
+      "pending-to-reserve-arras": [],
+      "technical-project-in-progress": [],
+      "ecuv-first-validation": [],
+      "technical-project-fine-tuning": [],
+      "ecuv-final-validation": [],
+      "pending-budget-from-renovator": [],
     };
     if (!rawPropertiesByPhase) return empty;
     const isProjectOrWip = (p: Property) =>

@@ -27,7 +27,16 @@ export type RenoKanbanPhase =
   | "obra-a-empezar"
   | "obra-en-progreso"
   | "amueblamiento"
-  | "check-final";
+  | "check-final"
+  // Fases Kanban Maduración (Maturation Analyst)
+  | "get-project-draft"
+  | "pending-to-validate"
+  | "pending-to-reserve-arras"
+  | "technical-project-in-progress"
+  | "ecuv-first-validation"
+  | "technical-project-fine-tuning"
+  | "ecuv-final-validation"
+  | "pending-budget-from-renovator";
 
 export interface RenoKanbanColumn {
   key: RenoKanbanPhase;
@@ -181,6 +190,73 @@ export const SET_UP_STATUS_TO_PROJECT_PHASE: Record<string, RenoKanbanPhase> = {
   "Furnishing": "amueblamiento",
   "Final check": "check-final",
 };
+
+// ---------------------------------------------------------------------------
+// Kanban Maduración (Maturation Analyst)
+// ---------------------------------------------------------------------------
+
+/** View ID de Airtable para la vista de maduración de proyectos */
+export const AIRTABLE_MATURATION_PROJECTS_VIEW_ID = "viwGr62VwUAlFCvcH";
+
+/** Fases del Kanban de Maduración (orden de columnas) */
+export const PHASES_KANBAN_MATURATION: RenoKanbanPhase[] = [
+  "get-project-draft",
+  "pending-to-validate",
+  "pending-to-reserve-arras",
+  "technical-project-in-progress",
+  "ecuv-first-validation",
+  "technical-project-fine-tuning",
+  "ecuv-final-validation",
+  "pending-budget-from-renovator",
+];
+
+/** Etiquetas en español para las columnas del Kanban de Maduración */
+export const MATURATION_PHASE_LABELS: Record<string, string> = {
+  "get-project-draft": "Borrador de Proyecto",
+  "pending-to-validate": "Pendiente de Validación",
+  "pending-to-reserve-arras": "Pendiente de Reserva / Arras",
+  "technical-project-in-progress": "Proyecto Técnico en Progreso",
+  "ecuv-first-validation": "ECUV Primera Validación",
+  "technical-project-fine-tuning": "Ajuste Proyecto Técnico",
+  "ecuv-final-validation": "ECUV Validación Final",
+  "pending-budget-from-renovator": "Pendiente Presupuesto Renovador",
+};
+
+/** Mapeo Project status (Airtable) → reno_phase para Kanban Maduración */
+export const MATURATION_PROJECT_STATUS_TO_PHASE: Record<string, RenoKanbanPhase> = {
+  "Get Project Draft": "get-project-draft",
+  "Get project draft": "get-project-draft",
+  "Pending to Validate": "pending-to-validate",
+  "Pending to validate": "pending-to-validate",
+  "Pending to Reserve / Arras": "pending-to-reserve-arras",
+  "Pending to Reserve Arras": "pending-to-reserve-arras",
+  "Pending to reserve arras": "pending-to-reserve-arras",
+  "Pending to reserve (arras)": "pending-to-reserve-arras",
+  "Technical Project in Progress": "technical-project-in-progress",
+  "Technical project in progress": "technical-project-in-progress",
+  "ECUV First Validation": "ecuv-first-validation",
+  "Ecu first validation": "ecuv-first-validation",
+  "ECU First Validation": "ecuv-first-validation",
+  "Technical Project Fine Tuning": "technical-project-fine-tuning",
+  "Technical project fine-tuning": "technical-project-fine-tuning",
+  "Technical Project Fine-Tuning": "technical-project-fine-tuning",
+  "ECUV Final Validation": "ecuv-final-validation",
+  "Ecu final validation": "ecuv-final-validation",
+  "ECU Final Validation": "ecuv-final-validation",
+  "Pending to Budget from Renovator": "pending-budget-from-renovator",
+  "Pending to budget from renovator": "pending-budget-from-renovator",
+  "Pending to budget (from renovator)": "pending-budget-from-renovator",
+};
+
+/** Columnas visibles del Kanban de Maduración */
+export const visibleRenoKanbanColumnsMaturation: RenoKanbanColumn[] = PHASES_KANBAN_MATURATION.map(
+  (key) => ({
+    key,
+    stage: key,
+    translationKey: "renoInProgress" as const,
+    label: MATURATION_PHASE_LABELS[key] ?? key,
+  })
+);
 
 
 

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 
-const ROLES_WITH_VIEW_IN_DEVELOPMENT = ["manager_projects", "technical_constructor_projects", "maduration_analyst"] as const;
+const ROLES_WITH_VIEW_IN_DEVELOPMENT = ["manager_projects", "technical_constructor_projects"] as const;
 
 export default function HomePage() {
   const router = useRouter();
@@ -28,6 +28,8 @@ export default function HomePage() {
     // If user is authenticated, redirect based on role
     if (role === "foreman" || role === "admin" || role === "construction_manager") {
       router.push("/reno/construction-manager");
+    } else if (role === "maduration_analyst") {
+      router.push("/reno/maturation-analyst");
     } else if (role && ["rent_manager", "rent_agent", "tenant"].includes(role)) {
       router.push("/rent");
     } else if (role && ROLES_WITH_VIEW_IN_DEVELOPMENT.includes(role as (typeof ROLES_WITH_VIEW_IN_DEVELOPMENT)[number])) {

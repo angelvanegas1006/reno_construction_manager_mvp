@@ -19,13 +19,10 @@ interface RenoKanbanColumnProps {
   onCardClick?: (property: Property) => void;
   highlightedPropertyId?: string | null;
   onColumnRef?: (element: HTMLDivElement | null) => void;
-  /** When "kanban-projects", show assign site manager on cards in reno-in-progress, furnishing, final-check, cleaning */
   fromParam?: string;
   onAssignSiteManager?: (propertyId: string, email: string | null) => void;
-  /** When view is "by project", show project cards instead of property cards */
   projects?: ProjectRow[];
   onProjectClick?: (project: ProjectRow) => void;
-  /** Map project id → linked properties (for project cards) */
   propertiesByProjectId?: Record<string, Property[]>;
 }
 
@@ -51,6 +48,9 @@ export function RenoKanbanColumn({
   const hasHighlightedProperty = highlightedPropertyId && properties.some(p => p.id === highlightedPropertyId);
   const [isCollapsed, setIsCollapsed] = useState(!hasHighlightedProperty);
 
+  const isEmpty = count === 0;
+  const [emptyExpanded, setEmptyExpanded] = useState(false);
+
   useEffect(() => {
     const checkScroll = () => {
       if (scrollContainerRef.current) {
@@ -63,17 +63,45 @@ export function RenoKanbanColumn({
     return () => window.removeEventListener("resize", checkScroll);
   }, [properties, projects]);
 
-  // Expand column if highlighted property is here
   useEffect(() => {
     if (hasHighlightedProperty && isCollapsed) {
       setIsCollapsed(false);
     }
   }, [hasHighlightedProperty, isCollapsed]);
 
-  // Count properties in alert (delayed or expired) - only in property mode
   const alertCount = isProjectMode ? 0 : properties.filter(p => {
     return isDelayedWork(p, stage) || isPropertyExpired(p);
   }).length;
+
+  // Desktop: empty column renders as a thin collapsed strip with vertical title (clickable to expand)
+  if (isEmpty && !emptyExpanded) {
+    return (
+      <div
+        ref={onColumnRef}
+        className={cn(
+          "flex flex-col items-center",
+          "hidden md:flex",
+          "md:min-w-[44px] md:w-[44px]",
+          "h-full"
+        )}
+      >
+        <button
+          onClick={() => setEmptyExpanded(true)}
+          className="flex flex-col items-center gap-2 py-3 px-1 bg-muted/30 dark:bg-muted/10 border border-border/50 rounded-lg h-full w-full hover:bg-muted/50 dark:hover:bg-muted/20 transition-colors cursor-pointer"
+        >
+          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full flex-shrink-0">
+            0
+          </span>
+          <span
+            className="text-base font-semibold text-foreground whitespace-nowrap"
+            style={{ writingMode: "vertical-lr", textOrientation: "mixed" }}
+          >
+            {title}
+          </span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -82,12 +110,20 @@ export function RenoKanbanColumn({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Column Header - Clean mobile design */}
+      {/* Column Header */}
       <div className="mb-1 md:mb-4 flex-shrink-0">
-        {/* Mobile: Clean card-style header */}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="md:pointer-events-none flex w-full md:w-auto items-center justify-between md:justify-start gap-3 bg-card dark:bg-[#000000] border border-border rounded-lg px-4 py-3 md:border-0 md:bg-transparent md:px-2 md:py-1 md:hover:bg-[var(--prophero-gray-100)] dark:md:hover:bg-[#1a1a1a] md:rounded-md md:-mx-2 md:mx-0 transition-colors min-w-0 shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] md:shadow-none"
+          onClick={() => {
+            if (isEmpty && emptyExpanded) {
+              setEmptyExpanded(false);
+            } else {
+              setIsCollapsed(!isCollapsed);
+            }
+          }}
+          className={cn(
+            "flex w-full md:w-auto items-center justify-between md:justify-start gap-3 bg-card dark:bg-[#000000] border border-border rounded-lg px-4 py-3 md:border-0 md:bg-transparent md:px-2 md:py-1 md:hover:bg-[var(--prophero-gray-100)] dark:md:hover:bg-[#1a1a1a] md:rounded-md md:-mx-2 md:mx-0 transition-colors min-w-0 shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] md:shadow-none",
+            isEmpty && emptyExpanded ? "md:pointer-events-auto md:cursor-pointer" : "md:pointer-events-none"
+          )}
         >
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold text-foreground whitespace-nowrap">{title}</h2>
@@ -105,7 +141,7 @@ export function RenoKanbanColumn({
         </button>
       </div>
 
-      {/* Column Content Wrapper - Fixed width prevents card movement, collapsable on mobile */}
+      {/* Column Content */}
       <div className={cn(
         "flex-1 min-h-0",
         "md:block",
@@ -150,6 +186,3 @@ export function RenoKanbanColumn({
     </div>
   );
 }
-
-
-

@@ -307,12 +307,48 @@ export default function Auth0CallbackPage() {
           }
         }
 
+        // Si aún role === "user" y no hay sesión Supabase, buscar usuario por email vía API admin
+        if (role === "user" && !supabaseUserId && user.email) {
+          try {
+            const getUserRes = await fetch(`/api/auth/get-user-by-email?email=${encodeURIComponent(user.email)}`);
+            const getUserData = await getUserRes.json();
+            if (getUserData.user?.id) {
+              supabaseUserId = getUserData.user.id;
+              console.log("[Auth0 Callback] 🔍 Found Supabase user by email:", supabaseUserId);
+              const roleRes = await fetch(`/api/auth/get-user-role?user_id=${encodeURIComponent(supabaseUserId!)}`);
+              const roleData = await roleRes.json();
+              if (roleData.role && roleData.role !== "user") {
+                role = roleData.role as AppRole;
+                console.log("[Auth0 Callback] ✅ Role from admin API:", role);
+              }
+            }
+          } catch (e) {
+            console.warn("[Auth0 Callback] Could not fetch user/role by email:", e);
+          }
+        }
+
+        // Último intento: si tenemos supabaseUserId pero role sigue "user", buscar rol vía API admin
+        if (role === "user" && supabaseUserId) {
+          try {
+            const roleRes = await fetch(`/api/auth/get-user-role?user_id=${encodeURIComponent(supabaseUserId!)}`);
+            const roleData = await roleRes.json();
+            if (roleData.role && roleData.role !== "user") {
+              role = roleData.role as AppRole;
+              console.log("[Auth0 Callback] ✅ Role from admin API (final):", role);
+            }
+          } catch (e) {
+            console.warn("[Auth0 Callback] Could not fetch role via admin API:", e);
+          }
+        }
+
         // Redirigir según el rol
         let redirectUrl = "/login";
         if (role === "foreman") {
           redirectUrl = "/reno/construction-manager";
         } else if (role === "set_up_analyst") {
           redirectUrl = "/reno/setup-analyst";
+        } else if (role === "maduration_analyst") {
+          redirectUrl = "/reno/maturation-analyst";
         } else if (role === "admin" || role === "construction_manager") {
           redirectUrl = "/reno/construction-manager/kanban";
         } else {
