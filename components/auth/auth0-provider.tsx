@@ -35,10 +35,16 @@ export function Auth0ProviderWrapper({ children }: Auth0ProviderWrapperProps) {
     );
   }
 
-  // Construir redirect_uri — siempre usar la origin actual para evitar nueva pestaña
-  const redirectUri = typeof window !== "undefined"
+  // Construir redirect_uri de forma explícita
+  const redirectUri = typeof window !== "undefined" 
     ? `${window.location.origin}/auth/callback`
-    : `${process.env.NEXT_PUBLIC_APP_URL ?? "https://app.vistral.io"}/auth/callback`;
+    : "";
+
+  console.log("[Auth0Provider] Config:", {
+    domain,
+    clientId: clientId?.substring(0, 10) + "...",
+    redirectUri,
+  });
 
   return (
     <Auth0Provider

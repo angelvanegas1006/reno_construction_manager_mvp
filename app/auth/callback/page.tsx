@@ -26,7 +26,6 @@ function mapAuth0RoleToAppRole(auth0Role: string): AppRole | null {
     "administrator": "admin",
     "usuario": "user",
     "setup_analyst": "set_up_analyst",
-    "setupanalyst": "set_up_analyst",
   };
 
   const normalizedRole = auth0Role.toLowerCase().trim();
@@ -62,54 +61,34 @@ async function syncAuth0RoleToSupabaseClient(
     auth0Role = mapAuth0RoleToAppRole(auth0Metadata.role);
   }
 
-  // Si Auth0 tiene un rol explícito, sincronizarlo a Supabase
-  // Si Auth0 NO tiene rol, leer el que ya hay en Supabase y conservarlo
+  // Si no hay rol de Auth0, usar default
+  const finalRole: AppRole = auth0Role || "user";
+
+  // Sincronizar a Supabase
   try {
-    if (auth0Role) {
-      // Auth0 tiene rol → actualizar Supabase con ese rol
-      const { error: upsertError } = await supabase
-        .from("user_roles")
-        .upsert(
-          {
-            user_id: supabaseUserId,
-            role: auth0Role,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id" }
-        );
+    const { error: upsertError } = await supabase
+      .from("user_roles")
+      .upsert(
+        {
+          user_id: supabaseUserId,
+          role: finalRole,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "user_id",
+        }
+      );
 
-      if (upsertError) {
-        console.error("[syncAuth0RoleToSupabaseClient] ❌ Error syncing role from Auth0:", upsertError);
-      } else {
-        console.log("[syncAuth0RoleToSupabaseClient] ✅ Role synced from Auth0:", auth0Role);
-      }
-      return auth0Role;
+    if (upsertError) {
+      console.error("[syncAuth0RoleToSupabaseClient] ❌ Error syncing role:", upsertError);
     } else {
-      // Auth0 no tiene rol → leer el rol actual de Supabase y conservarlo
-      const { data: existingRole, error: fetchError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", supabaseUserId)
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error("[syncAuth0RoleToSupabaseClient] ❌ Error reading existing role:", fetchError);
-        return "user";
-      }
-
-      if (existingRole?.role) {
-        console.log("[syncAuth0RoleToSupabaseClient] ✅ No Auth0 role, using existing Supabase role:", existingRole.role);
-        return (existingRole.role as AppRole) || "user";
-      }
-
-      // Sin rol en ningún lado, asignar user por defecto
-      console.warn("[syncAuth0RoleToSupabaseClient] ⚠️ No role found anywhere, defaulting to user");
-      return "user";
+      console.log("[syncAuth0RoleToSupabaseClient] ✅ Role synced:", finalRole);
     }
   } catch (err) {
     console.error("[syncAuth0RoleToSupabaseClient] ❌ Unexpected error:", err);
-    return "user";
   }
+
+  return finalRole;
 }
 
 export default function Auth0CallbackPage() {
@@ -311,10 +290,8 @@ export default function Auth0CallbackPage() {
           }
         }
 
-        // Si el rol sigue siendo "user" (Auth0 no tenía rol), intentar leer el rol real de Supabase
-        // como último recurso antes de denegar acceso
+        // Si Auth0 no asignó rol (role === "user"), intentar leer el rol real de Supabase
         if (role === "user" && supabaseUserId) {
-          console.log("[Auth0 Callback] 🔍 Role is 'user', attempting to read Supabase role as fallback...");
           try {
             const { data: supabaseRoleRow } = await supabase
               .from("user_roles")
@@ -323,7 +300,7 @@ export default function Auth0CallbackPage() {
               .maybeSingle();
             if (supabaseRoleRow?.role && supabaseRoleRow.role !== "user") {
               role = supabaseRoleRow.role as AppRole;
-              console.log("[Auth0 Callback] ✅ Found real role in Supabase:", role);
+              console.log("[Auth0 Callback] ✅ Role read from Supabase fallback:", role);
             }
           } catch (e) {
             console.warn("[Auth0 Callback] Could not read Supabase role fallback:", e);
@@ -338,30 +315,43 @@ export default function Auth0CallbackPage() {
           redirectUrl = "/reno/setup-analyst";
         } else if (role === "admin" || role === "construction_manager") {
           redirectUrl = "/reno/construction-manager/kanban";
-        } else if (role === "manager_projects" || role === "technical_constructor_projects" || role === "maduration_analyst") {
-          redirectUrl = "/reno/construction-manager/kanban";
-        } else if (role === "rent_manager" || role === "rent_agent" || role === "tenant") {
-          redirectUrl = "/rent";
         } else {
-          // Caso especial: angel.vanegas@prophero.com siempre es construction_manager
+          // Usuario sin permisos - pero para angel.vanegas@prophero.com debería ser construction_manager
+          console.warn("[Auth0 Callback] ⚠️ User has role 'user', but email is:", user.email);
           if (user.email === "angel.vanegas@prophero.com" && supabaseUserId) {
             console.log("[Auth0 Callback] 🔧 Fixing role for angel.vanegas@prophero.com to construction_manager");
+            // Actualizar el rol usando una API route con cliente admin
             try {
               const updateRoleResponse = await fetch("/api/auth/update-user-role", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: supabaseUserId, role: "construction_manager" }),
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  user_id: supabaseUserId,
+                  role: "construction_manager",
+                }),
               });
-              role = updateRoleResponse.ok
-                ? (await updateRoleResponse.json()).role || "construction_manager"
-                : "construction_manager";
-              redirectUrl = "/reno/construction-manager/kanban";
-            } catch {
+
+              if (updateRoleResponse.ok) {
+                const updateData = await updateRoleResponse.json();
+                role = updateData.role || "construction_manager";
+                redirectUrl = "/reno/construction-manager/kanban";
+                console.log("[Auth0 Callback] ✅ Role updated to construction_manager");
+              } else {
+                const errorData = await updateRoleResponse.json();
+                console.error("[Auth0 Callback] ❌ Error updating role:", errorData);
+                // Continuar con el rol user pero redirigir al kanban de todas formas
+                role = "construction_manager";
+                redirectUrl = "/reno/construction-manager/kanban";
+              }
+            } catch (updateError: any) {
+              console.error("[Auth0 Callback] ❌ Error updating role:", updateError);
+              // Continuar con el rol user pero redirigir al kanban de todas formas
               role = "construction_manager";
               redirectUrl = "/reno/construction-manager/kanban";
             }
           } else {
-            console.warn("[Auth0 Callback] ⚠️ No valid role found for:", user.email, "role:", role);
             router.push("/login?error=no_permission&message=" + encodeURIComponent("No tienes permisos para acceder a esta aplicación"));
             return;
           }

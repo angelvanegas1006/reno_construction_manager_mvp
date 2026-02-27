@@ -18,9 +18,9 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (!supabaseLoading && !appLoading && user && role) {
-      if (role === "foreman") {
+      if (role === "foreman" || role === "construction_manager") {
         router.push("/reno/construction-manager");
-      } else if (role === "admin" || role === "construction_manager") {
+      } else if (role === "admin") {
         router.push("/reno/construction-manager/kanban");
       } else if (role === "set_up_analyst") {
         router.push("/reno/setup-analyst");
