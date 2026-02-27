@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { VistralLogo } from "@/components/vistral-logo";
 import { useI18n } from "@/lib/i18n";
-// import { Auth0LoginButton } from "@/components/auth/auth0-login-button"; // Ocultado temporalmente
+import { Auth0LoginButton } from "@/components/auth/auth0-login-button";
 
 export function LoginForm() {
   const { t } = useI18n();
@@ -34,12 +34,10 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      // Verify Supabase client is properly configured
       if (!supabase) {
         throw new Error("Error de configuración: el cliente de Supabase no está disponible. Verifica las variables de entorno.");
       }
 
-      // Sign in with Supabase
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -53,8 +51,8 @@ export function LoginForm() {
         throw new Error("No se pudo obtener la información del usuario");
       }
 
-      // Get user role from user_roles table
-      let role = 'user'; // Default role
+      // Obtener rol desde user_roles
+      let role = 'user';
       try {
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
@@ -63,19 +61,14 @@ export function LoginForm() {
           .single();
 
         if (roleError) {
-          // PGRST116 = no rows returned (user has no role assigned yet - this is OK)
-          // 42P01 = relation does not exist (table doesn't exist - need to run migration)
           if (roleError.code === 'PGRST116') {
-            // User has no role assigned, use default 'user'
             role = 'user';
           } else if (roleError.code === '42P01') {
-            // Table doesn't exist - show helpful error
             console.warn('Table user_roles does not exist. Please run migration 002_user_roles.sql');
             toast.error("Configuración incompleta: ejecuta la migración de user_roles");
             await supabase.auth.signOut();
             return;
           } else {
-            // Other error - log but continue with default role
             console.warn('Error fetching user role:', roleError);
             role = 'user';
           }
@@ -83,23 +76,25 @@ export function LoginForm() {
           role = roleData?.role || 'user';
         }
       } catch (err) {
-        // Catch any unexpected errors
         console.warn('Unexpected error fetching user role:', err);
         role = 'user';
       }
 
-      // Redirect based on role
-      if (role === 'foreman' || role === 'admin' || role === 'construction_manager') {
+      // Redirigir según rol
+      if (role === 'foreman') {
         router.push("/reno/construction-manager");
+        toast.success("¡Bienvenido!");
+      } else if (role === 'admin' || role === 'construction_manager') {
+        router.push("/reno/construction-manager/kanban");
         toast.success(role === 'admin' ? "¡Bienvenido Admin!" : "¡Bienvenido!");
+      } else if (role === 'set_up_analyst') {
+        router.push("/reno/setup-analyst");
+        toast.success("¡Bienvenido!");
       } else if (email === 'santiago.figueiredo@prophero.com' || email === 'santiagofigueiredo@prophero.com') {
-        // Special handling for Santiago - settlements_analyst
         localStorage.setItem("userRole", "settlements_analyst");
         router.push("/settlements/kanban");
         toast.success("¡Bienvenido Analista de Escrituración!");
       } else if (role === 'settlements_analyst') {
-        // For settlements_analyst, use the old auth system temporarily
-        // Set role in localStorage for the old auth context
         localStorage.setItem("userRole", "settlements_analyst");
         router.push("/settlements/kanban");
         toast.success("¡Bienvenido Analista de Escrituración!");
@@ -109,25 +104,22 @@ export function LoginForm() {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      
-      // Handle specific error types
+
       let errorMessage = "Error al iniciar sesión. Verifica tus credenciales.";
-      
-      // Verificar si el error es de credenciales inválidas
-      if (err.message?.includes('Invalid login credentials') || 
+
+      if (err.message?.includes('Invalid login credentials') ||
           err.message?.includes('invalid_credentials') ||
           err.status === 400 ||
           err.code === 'invalid_credentials') {
-        // Mensaje más útil que sugiere usar Auth0 si la cuenta fue creada con ese método
-        errorMessage = "Credenciales incorrectas. Si tu cuenta fue creada con Auth0, usa el botón 'Continuar con Auth0' para iniciar sesión. De lo contrario, verifica tu email y contraseña.";
+        errorMessage = "Credenciales incorrectas. Si tu cuenta fue creada con Auth0, usa el botón 'Continuar con Auth0' para iniciar sesión.";
       } else if (err.message?.includes('Failed to fetch') || err.message?.includes('fetch')) {
-        errorMessage = "Error de conexión: No se pudo conectar con el servidor. Verifica tu conexión a internet y la configuración de Supabase.";
+        errorMessage = "Error de conexión: No se pudo conectar con el servidor.";
       } else if (err.message?.includes('Missing Supabase') || err.message?.includes('environment variables')) {
         errorMessage = "Error de configuración: Las variables de entorno de Supabase no están configuradas correctamente.";
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -135,7 +127,7 @@ export function LoginForm() {
     }
   };
 
-  // Initial state: Show logo, title, description and button
+  // Pantalla inicial: logo + botones
   if (!showForm) {
     return (
       <div className="w-full max-w-md space-y-8">
@@ -154,20 +146,30 @@ export function LoginForm() {
           </p>
         </div>
 
-        {/* Primary Button */}
+        {/* Botones de acceso */}
         <div className="pt-2 space-y-3">
-          <Button 
+          {/* Auth0 (SSO corporativo) */}
+          <Auth0LoginButton />
+
+          {/* Separador */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">o</span>
+            </div>
+          </div>
+
+          {/* Email / password */}
+          <Button
             onClick={handleShowForm}
             className="w-full text-base h-12 font-medium"
             size="lg"
+            variant="outline"
           >
             {t.login.secureLoginButton}
           </Button>
-          
-          {/* Auth0 Login Button (SDK) - Ocultado temporalmente */}
-          {/* <div className="w-full">
-            <Auth0LoginButton />
-          </div> */}
         </div>
 
         {/* Secondary Link */}
@@ -186,7 +188,7 @@ export function LoginForm() {
     );
   }
 
-  // Form state: Show login form
+  // Formulario email/password
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
@@ -232,16 +234,16 @@ export function LoginForm() {
             <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 p-3 rounded-md space-y-2">
               <div>{error}</div>
               {error.includes('Auth0') && (
-                <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-red-200 dark:border-red-800">
-                  💡 Tip: Si tu cuenta fue creada con Auth0, no puedes usar email/password. Usa el botón "Continuar con Auth0" debajo.
+                <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-800">
+                  <Auth0LoginButton />
                 </div>
               )}
             </div>
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full" 
+          <Button
+            type="submit"
+            className="w-full"
             disabled={loading || !email || !password}
           >
             {loading ? (
@@ -254,25 +256,24 @@ export function LoginForm() {
             )}
           </Button>
 
-          {/* Divider - Ocultado temporalmente */}
-          {/* <div className="relative">
+          {/* Separador */}
+          <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">O</span>
+              <span className="bg-card px-2 text-muted-foreground">o</span>
             </div>
-          </div> */}
+          </div>
 
-          {/* Auth0 Login Button (SDK) - Ocultado temporalmente */}
-          {/* <Auth0LoginButton /> */}
+          {/* Auth0 también disponible en el formulario */}
+          <Auth0LoginButton />
 
           <div className="text-center text-sm text-muted-foreground">
             <button
               type="button"
               className="underline-offset-4 hover:underline"
               onClick={() => {
-                // TODO: Implement password reset
                 toast.info("Funcionalidad de recuperación de contraseña próximamente");
               }}
             >
@@ -284,4 +285,3 @@ export function LoginForm() {
     </Card>
   );
 }
-
