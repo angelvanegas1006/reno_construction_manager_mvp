@@ -57,15 +57,6 @@ export async function updatePropertyPhaseConsistent(
       return { success: false, error: error.message };
     }
 
-    if (typeof globalThis.window !== 'undefined' && fromPhase !== undefined && toPhase) {
-      const { trackEventWithDevice } = await import('@/lib/mixpanel');
-      trackEventWithDevice('Kanban Phase Changed', {
-        property_id: propertyId,
-        from_phase: fromPhase,
-        to_phase: toPhase,
-      });
-    }
-
     console.log(`[updatePropertyPhaseConsistent] ✅ Updated property ${propertyId}:`, dbUpdates);
     return { success: true };
   } catch (error: any) {

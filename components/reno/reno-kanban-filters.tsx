@@ -101,10 +101,12 @@ export function RenoKanbanFilters({
     } else {
       newFilters.technicalConstructors = [...newFilters.technicalConstructors, technicalConstructor];
     }
+    trackEventWithDevice("Filter Applied", { filter_type: "technical_constructor", count: newFilters.technicalConstructors.length });
     onFiltersChange(newFilters);
   };
 
   const handleClearAll = () => {
+    trackEventWithDevice("Filters Cleared");
     onFiltersChange({
       renovatorNames: [],
       technicalConstructors: [],
@@ -122,6 +124,7 @@ export function RenoKanbanFilters({
     } else {
       newFilters.propertyTypes = [...current, type];
     }
+    trackEventWithDevice("Filter Applied", { filter_type: "property_type", count: newFilters.propertyTypes?.length ?? 0 });
     onFiltersChange(newFilters);
   };
 
@@ -156,6 +159,7 @@ export function RenoKanbanFilters({
                 options={uniqueValues.renovatorNames}
                 selectedValues={filters.renovatorNames}
                 onSelectionChange={(values) => {
+                  trackEventWithDevice("Filter Applied", { filter_type: "renovator", count: values.length });
                   onFiltersChange({ ...filters, renovatorNames: values });
                 }}
                 placeholder={t.kanban.searchRenovator || "Buscar renovador..."}
@@ -203,6 +207,7 @@ export function RenoKanbanFilters({
                 options={uniqueValues.areaClusters}
                 selectedValues={filters.areaClusters}
                 onSelectionChange={(values) => {
+                  trackEventWithDevice("Filter Applied", { filter_type: "area_cluster", count: values.length });
                   onFiltersChange({ ...filters, areaClusters: values });
                 }}
                 placeholder={t.kanban.searchAreaCluster || "Buscar área..."}

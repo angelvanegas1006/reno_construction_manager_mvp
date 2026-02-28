@@ -16,6 +16,7 @@ import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Property } from "@/lib/property-storage";
+import { trackEventWithDevice } from "@/lib/mixpanel";
 
 export default function SetUpAnalystHomePage() {
   const router = useRouter();
@@ -28,7 +29,12 @@ export default function SetUpAnalystHomePage() {
   const [updatesForThisWeek, setUpdatesForThisWeek] = useState(0);
   const [loadingUpdates, setLoadingUpdates] = useState(true);
 
-  // Proteger ruta
+  useEffect(() => {
+    if (!propertiesLoading) {
+      trackEventWithDevice("Setup Analyst Home Viewed");
+    }
+  }, [propertiesLoading]);
+
   useEffect(() => {
     if (isLoading) return;
     if (!user || !role) {

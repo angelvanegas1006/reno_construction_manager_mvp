@@ -41,6 +41,7 @@ import {
 import {
   MATURATION_PHASE_LABELS,
 } from "@/lib/reno-kanban-config";
+import { trackEventWithDevice } from "@/lib/mixpanel";
 
 type DashboardView = "units" | "projects";
 
@@ -51,6 +52,10 @@ export default function RenoConstructionManagerHomePage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProjectsModalOpen, setIsProjectsModalOpen] = useState(false);
   const [dashboardView, setDashboardView] = useState<DashboardView>("units");
+  const handleDashboardToggle = (view: DashboardView) => {
+    setDashboardView(view);
+    trackEventWithDevice("Dashboard View Toggled", { view });
+  };
   const supabase = createClient();
 
   const { projects: assignedProjects, loading: assignedProjectsLoading } =
@@ -326,7 +331,7 @@ export default function RenoConstructionManagerHomePage() {
             {showViewToggle && (
               <div className="flex items-center gap-1 bg-muted p-1 rounded-lg w-fit">
                 <button
-                  onClick={() => setDashboardView("units")}
+                  onClick={() => handleDashboardToggle("units")}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     dashboardView === "units"
                       ? "bg-card text-foreground shadow-sm"
@@ -336,7 +341,7 @@ export default function RenoConstructionManagerHomePage() {
                   Datos Reno Units
                 </button>
                 <button
-                  onClick={() => setDashboardView("projects")}
+                  onClick={() => handleDashboardToggle("projects")}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     dashboardView === "projects"
                       ? "bg-card text-foreground shadow-sm"

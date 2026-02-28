@@ -18,6 +18,7 @@ import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { getForemanEmailFromName } from "@/lib/supabase/user-name-utils";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { trackEventWithDevice } from "@/lib/mixpanel";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import type { Property } from "@/lib/property-storage";
 
@@ -51,7 +52,11 @@ export default function RenoConstructionManagerKanbanPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
-  
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    trackEventWithDevice("View Mode Changed", { from: viewMode, to: mode });
+    setViewMode(mode);
+  }, [viewMode]);
+
   // Unwrap searchParams if it's a Promise (Next.js 16+)
   const unwrappedSearchParams = searchParams instanceof Promise ? use(searchParams) : searchParams;
   
@@ -285,9 +290,9 @@ export default function RenoConstructionManagerKanbanPage() {
           }}
           filterBadgeCount={filterBadgeCount}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onViewModeChange={handleViewModeChange}
         />
-        
+
         {/* Kanban Board - Units, Building, Lot (+ Project/WIP asignados si foreman) */}
         <div 
           className={cn(
@@ -300,7 +305,7 @@ export default function RenoConstructionManagerKanbanPage() {
             searchQuery={searchQuery} 
             filters={kanbanFilters}
             viewMode={viewMode}
-            onViewModeChange={setViewMode}
+            onViewModeChange={handleViewModeChange}
             propertiesByPhaseOverride={propertiesByPhaseExcludingProjectWip}
           />
         </div>

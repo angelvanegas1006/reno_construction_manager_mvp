@@ -4,21 +4,26 @@ import mixpanel from "mixpanel-browser";
 
 let isInitialized = false;
 let initializationWarningShown = false;
+let storedToken: string | null = null;
 
 /**
  * Inicializa Mixpanel solo en el cliente.
  * Usa NEXT_PUBLIC_MIXPANEL_TOKEN y la configuración indicada.
+ * Safe to call multiple times — re-initialises after a reset.
  */
 export function initMixpanel(): void {
   if (typeof window === "undefined") return;
+  if (isInitialized) return;
 
-  const token = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
+  const token = storedToken ?? process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
   if (!token) {
     if (process.env.NODE_ENV === "development") {
       console.warn("[Mixpanel] Token no configurado. Analytics deshabilitado.");
     }
     return;
   }
+
+  storedToken = token;
 
   mixpanel.init(token, {
     autocapture: true,
@@ -31,11 +36,6 @@ export function initMixpanel(): void {
   if (process.env.NODE_ENV === "development") {
     console.log("[Mixpanel] Inicializado correctamente");
   }
-  // Evento de prueba para verificar que los datos llegan a Mixpanel
-  mixpanel.track("Mixpanel Ready", {
-    source: "lib/mixpanel",
-    env: process.env.NODE_ENV,
-  });
 }
 
 function checkInitialized(): boolean {
@@ -106,11 +106,12 @@ export function trackPageView(pageName?: string, properties?: Record<string, unk
 
 /**
  * Resetea la identidad del usuario (logout).
+ * Keeps the SDK initialised so it can track anonymous events and
+ * be re-identified on next login without a page reload.
  */
 export function resetMixpanel(): void {
   if (typeof window === "undefined" || !checkInitialized()) return;
   mixpanel.reset();
-  isInitialized = false;
 }
 
 /**
