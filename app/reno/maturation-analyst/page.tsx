@@ -18,6 +18,7 @@ import { DonutChart } from "@/components/reno/donut-chart";
 import { ArchitectRanking } from "@/components/reno/architect-ranking";
 import { MaturationCalendar } from "@/components/reno/maturation-calendar";
 import { MaturationTodoWidgets } from "@/components/reno/maturation-todo-widgets";
+import { trackEventWithDevice } from "@/lib/mixpanel";
 
 export default function MaturationAnalystHomePage() {
   const router = useRouter();
@@ -41,6 +42,14 @@ export default function MaturationAnalystHomePage() {
       toast.error("No tienes permisos para acceder a esta página");
     }
   }, [user, role, isLoading, router]);
+
+  useEffect(() => {
+    if (!projectsLoading && allProjects.length >= 0) {
+      trackEventWithDevice("Maturation Home Viewed", {
+        total_projects: allProjects.length,
+      });
+    }
+  }, [projectsLoading]);
 
   const totalProjects = allProjects.length;
 

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { trackEventWithDevice } from "@/lib/mixpanel";
 import type { ProjectRow } from "@/hooks/useSupabaseProject";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { AttachmentViewer } from "@/components/reno/attachment-viewer";
@@ -138,6 +139,12 @@ function AttachmentUploadField({
 
       await onRefetch();
       toast.success("Documento subido");
+      trackEventWithDevice("Maturation Attachment Uploaded", {
+        project_id: projectId,
+        field,
+        file_type: file.type,
+        file_size: file.size,
+      });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Error al subir");
     } finally {
@@ -194,6 +201,11 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
         if (error) throw new Error(error.message);
         await onRefetch();
         toast.success("Guardado");
+        trackEventWithDevice("Maturation Task Saved", {
+          project_id: project.id,
+          field,
+          phase: project.reno_phase,
+        });
       } catch (err: unknown) {
         toast.error(err instanceof Error ? err.message : "Error al guardar");
       } finally {

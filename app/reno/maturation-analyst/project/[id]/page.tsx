@@ -29,7 +29,8 @@ import { PropertyMap } from "@/components/reno/property-map";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
+import { trackEventWithDevice } from "@/lib/mixpanel";
 
 function parseAreaClusterDisplay(raw: string | null | undefined): string | null {
   const s = (raw ?? "").toString().trim();
@@ -72,6 +73,24 @@ export default function MaturationProjectDetailPage() {
     useSupabaseProject(projectId);
   const [activeTab, setActiveTab] = useState("tareas");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (project && !loading) {
+      trackEventWithDevice("Maturation Project Viewed", {
+        project_id: project.id,
+        project_name: project.name,
+        phase: project.reno_phase,
+      });
+    }
+  }, [project?.id, loading]);
+
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+    trackEventWithDevice("Maturation Tab Changed", {
+      tab,
+      project_id: projectId,
+    });
+  }, [projectId]);
 
   useEffect(() => {
     if (authLoading || !user || !role) return;
@@ -378,7 +397,7 @@ export default function MaturationProjectDetailPage() {
         <PropertyTabs
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
         />
 
         {/* Content + Sidebar */}

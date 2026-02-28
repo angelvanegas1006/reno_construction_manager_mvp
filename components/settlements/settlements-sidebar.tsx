@@ -47,12 +47,12 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const pathname = usePathname();
   
-  // Unified logout: handle both Auth0 and Supabase
   const handleLogout = async () => {
-    // Logout from Supabase
+    const { resetMixpanel } = await import("@/lib/mixpanel");
+    resetMixpanel();
+
     await signOut();
-    
-    // Also logout from Auth0 if authenticated
+
     if (isAuth0Authenticated && auth0Logout) {
       auth0Logout({
         logoutParams: {

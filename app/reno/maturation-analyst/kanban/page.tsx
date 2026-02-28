@@ -12,6 +12,7 @@ import { useMaturationProjects } from "@/hooks/useMaturationProjects";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { visibleRenoKanbanColumnsMaturation } from "@/lib/reno-kanban-config";
+import { trackEventWithDevice } from "@/lib/mixpanel";
 
 type ViewMode = "kanban" | "list";
 
@@ -54,6 +55,7 @@ export default function MaturationAnalystKanbanPage() {
 
   const handleSyncAirtable = useCallback(async () => {
     setSyncLoading(true);
+    trackEventWithDevice("Maturation Sync Triggered");
     try {
       const res = await fetch("/api/cron/sync-airtable", { method: "POST" });
       const data = await res.json().catch(() => ({}));
@@ -75,6 +77,11 @@ export default function MaturationAnalystKanbanPage() {
     }
   }, [refetchProjects]);
 
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    trackEventWithDevice("Maturation View Mode Changed", { to: mode });
+    setViewMode(mode);
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden">
       <RenoSidebar
@@ -93,7 +100,7 @@ export default function MaturationAnalystKanbanPage() {
             loading: syncLoading,
           }}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onViewModeChange={handleViewModeChange}
         />
 
         <div
@@ -108,7 +115,7 @@ export default function MaturationAnalystKanbanPage() {
           <RenoKanbanBoard
             searchQuery={searchQuery}
             viewMode={viewMode}
-            onViewModeChange={setViewMode}
+            onViewModeChange={handleViewModeChange}
             viewLevel="project"
             projectsByPhaseOverride={projectsByPhase}
             visibleColumnsOverride={visibleRenoKanbanColumnsMaturation}
