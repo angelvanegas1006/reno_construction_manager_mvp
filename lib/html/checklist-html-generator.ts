@@ -1669,6 +1669,73 @@ body {
   color: #1E293B;
   margin-bottom: 14px;
 }
+
+/* View Toggle (Por Estancias / Por Partidas) */
+.view-toggle-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 0 64px 24px;
+  background: #F8FAFC;
+}
+
+.view-toggle {
+  display: inline-flex;
+  background: #E2E8F0;
+  border-radius: 9999px;
+  padding: 4px;
+  gap: 0;
+}
+
+.view-toggle-btn {
+  padding: 8px 24px;
+  border: none;
+  border-radius: 9999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #64748B;
+  background: transparent;
+  line-height: 20px;
+  letter-spacing: -0.3px;
+}
+
+.view-toggle-btn.active {
+  background: #FFFFFF;
+  color: #1E293B;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+.view-toggle-btn:hover:not(.active) {
+  color: #334155;
+}
+
+/* Partidas view: sub-header for room origin */
+.partida-room-group {
+  margin-bottom: 12px;
+}
+
+.partida-room-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #162EB7;
+  margin-bottom: 6px;
+  padding: 4px 0;
+  border-bottom: 1px dashed #CBD5E1;
+}
+
+@media (max-width: 640px) {
+  .view-toggle-wrapper {
+    padding: 0 16px 16px;
+  }
+
+  .view-toggle-btn {
+    padding: 6px 16px;
+    font-size: 13px;
+  }
+}
 </style>
 </head>
 <body>
@@ -1682,8 +1749,27 @@ body {
 <div class="report-intro-title">Informe de la Propiedad</div>
 <div class="report-intro-address">${escapeHtml(propertyInfo.address)}</div>
 <div class="report-intro-date">Fecha de inspección: ${escapeHtml(completedDate)}</div>
+</div>`;
+
+  // Toggle: only for initial check
+  const isInitial = checklistTypeLabel === 'initial';
+
+  if (isInitial) {
+    html += `
+<div class="view-toggle-wrapper">
+<div class="view-toggle">
+<button class="view-toggle-btn active" id="btn-estancias" onclick="toggleView('estancias')">Por Estancias</button>
+<button class="view-toggle-btn" id="btn-partidas" onclick="toggleView('partidas')">Por Partidas</button>
 </div>
-<div class="container">`;
+</div>`;
+  }
+
+  html += `<div class="container">`;
+
+  // === VIEW: Por Estancias (default) ===
+  if (isInitial) {
+    html += `<div id="view-estancias">`;
+  }
 
   // Generar secciones (solo las que tienen fotos; no generar reporte de zona sin fotos)
   for (const sectionId of sectionOrder) {
@@ -1725,6 +1811,15 @@ body {
       if (sectionImages.length === 0) continue;
       html += generateSectionHTML(section, sectionTitle, sectionId, translations);
     }
+  }
+
+  if (isInitial) {
+    html += `</div>`;
+
+    // === VIEW: Por Partidas ===
+    html += `<div id="view-partidas" style="display:none">`;
+    html += generateByPartidasHTML(checklist, sectionOrder, sectionTitleMap, translations);
+    html += `</div>`;
   }
 
   // JavaScript para carrusel y modal
@@ -1822,13 +1917,47 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// View toggle (Por Estancias / Por Partidas)
+function toggleView(view) {
+  var estancias = document.getElementById('view-estancias');
+  var partidas = document.getElementById('view-partidas');
+  var btnEstancias = document.getElementById('btn-estancias');
+  var btnPartidas = document.getElementById('btn-partidas');
+  if (!estancias || !partidas) return;
+
+  if (view === 'partidas') {
+    estancias.style.display = 'none';
+    partidas.style.display = 'block';
+    if (btnEstancias) btnEstancias.classList.remove('active');
+    if (btnPartidas) btnPartidas.classList.add('active');
+    // Initialize carousels inside partidas view on first show
+    partidas.querySelectorAll('.section-container').forEach(function(section) {
+      var sid = section.getAttribute('data-section-id');
+      if (sid) initCarousel(sid);
+    });
+  } else {
+    estancias.style.display = 'block';
+    partidas.style.display = 'none';
+    if (btnEstancias) btnEstancias.classList.add('active');
+    if (btnPartidas) btnPartidas.classList.remove('active');
+  }
+}
+
 // Initialize all carousels
 document.addEventListener('DOMContentLoaded', () => {
-  const sections = document.querySelectorAll('.section-container');
-  sections.forEach(section => {
+  // Only init carousels in the visible view (estancias by default)
+  var visibleView = document.getElementById('view-estancias') || document;
+  visibleView.querySelectorAll('.section-container').forEach(section => {
     const sectionId = section.getAttribute('data-section-id');
     if (sectionId) {
       initCarousel(sectionId);
+    }
+  });
+  // Also init any carousels outside the views (for final check reports)
+  document.querySelectorAll('.section-container').forEach(section => {
+    if (!section.closest('#view-estancias') && !section.closest('#view-partidas')) {
+      const sectionId = section.getAttribute('data-section-id');
+      if (sectionId) initCarousel(sectionId);
     }
   });
 });
@@ -1838,6 +1967,261 @@ document.addEventListener('DOMContentLoaded', () => {
 </html>`;
 
   return html;
+}
+
+interface CategorizedElementWithRoom extends CategorizedElement {
+  sectionTitle: string;
+}
+
+const CATEGORY_ORDER = [
+  'Acabados', 'Comunicaciones', 'Electricidad', 'Carpintería', 'Ascensor',
+  'Climatización', 'Almacenamiento', 'Electrodomésticos', 'Seguridad',
+  'Sistemas', 'Mobiliario', 'Otros',
+];
+
+/**
+ * Generates the "By Partidas" (grouped by category across all rooms) view
+ * for the initial check report.
+ */
+function generateByPartidasHTML(
+  checklist: ChecklistData,
+  sectionOrder: string[],
+  sectionTitleMap: Record<string, string>,
+  translations: any
+): string {
+  // Collect all categorized elements from every section, annotating the room of origin
+  const globalCategories: Record<string, CategorizedElementWithRoom[]> = {};
+  const globalImagesByCategory: Record<string, ImageWithMetadata[]> = {};
+  const globalNotesByCategory: Record<string, string[]> = {};
+
+  const addGlobal = (category: string, element: CategorizedElementWithRoom) => {
+    if (!globalCategories[category]) globalCategories[category] = [];
+    globalCategories[category].push(element);
+  };
+
+  const addImage = (category: string, img: ImageWithMetadata) => {
+    if (!globalImagesByCategory[category]) globalImagesByCategory[category] = [];
+    globalImagesByCategory[category].push(img);
+  };
+
+  const addNote = (category: string, note: string) => {
+    if (!globalNotesByCategory[category]) globalNotesByCategory[category] = [];
+    globalNotesByCategory[category].push(note);
+  };
+
+  for (const sectionId of sectionOrder) {
+    const section = checklist.sections[sectionId];
+    if (!section) continue;
+
+    const sectionTitle = sectionTitleMap[sectionId] || sectionId;
+
+    if (section.dynamicItems && section.dynamicItems.length > 0) {
+      for (const dynamicItem of section.dynamicItems) {
+        const dynamicSection: ChecklistSection = {
+          id: dynamicItem.id,
+          uploadZones: dynamicItem.uploadZone ? [dynamicItem.uploadZone] : undefined,
+          questions: dynamicItem.questions,
+          carpentryItems: dynamicItem.carpentryItems,
+          climatizationItems: dynamicItem.climatizationItems,
+          mobiliario: dynamicItem.mobiliario,
+        };
+
+        const itemNumber = dynamicItem.id.match(/\d+/)?.[0] || '';
+        const itemLabel = sectionId === 'habitaciones'
+          ? `Habitación ${itemNumber}`
+          : sectionId === 'banos'
+          ? `Baño ${itemNumber}`
+          : dynamicItem.id;
+
+        const dynamicSectionId = `dynamic-${dynamicItem.id}`;
+        const categorized = groupElementsByCategory(dynamicSection, dynamicSectionId, translations);
+        const images = collectSectionImages(dynamicSection, dynamicSectionId, translations);
+        const notes = collectSectionNotes(dynamicSection, dynamicSectionId, translations);
+
+        for (const [cat, elements] of Object.entries(categorized)) {
+          for (const el of elements) {
+            addGlobal(cat, { ...el, sectionTitle: itemLabel });
+          }
+        }
+
+        for (const img of images) {
+          const imgCategory = guessCategoryForImage(img);
+          addImage(imgCategory, { ...img, label: `${itemLabel} — ${img.label || ''}` });
+        }
+
+        for (const n of notes) {
+          addNote('_all', `${itemLabel}: ${n}`);
+        }
+      }
+    } else {
+      const categorized = groupElementsByCategory(section, sectionId, translations);
+      const images = collectSectionImages(section, sectionId, translations);
+      const notes = collectSectionNotes(section, sectionId, translations);
+
+      for (const [cat, elements] of Object.entries(categorized)) {
+        for (const el of elements) {
+          addGlobal(cat, { ...el, sectionTitle: sectionTitle });
+        }
+      }
+
+      for (const img of images) {
+        const imgCategory = guessCategoryForImage(img);
+        addImage(imgCategory, { ...img, label: `${sectionTitle} — ${img.label || ''}` });
+      }
+
+      for (const n of notes) {
+        addNote('_all', `${sectionTitle}: ${n}`);
+      }
+    }
+  }
+
+  let html = '';
+  let partidaSectionIndex = 0;
+
+  for (const category of CATEGORY_ORDER) {
+    const elements = globalCategories[category];
+    if (!elements || elements.length === 0) continue;
+
+    const partidaId = `partida-${partidaSectionIndex}`;
+    partidaSectionIndex++;
+
+    // Collect images for this category
+    const categoryImages = globalImagesByCategory[category] || [];
+
+    // Group elements by room
+    const byRoom = new Map<string, CategorizedElementWithRoom[]>();
+    for (const el of elements) {
+      if (!byRoom.has(el.sectionTitle)) byRoom.set(el.sectionTitle, []);
+      byRoom.get(el.sectionTitle)!.push(el);
+    }
+
+    html += `
+<section class="section-container" data-section-id="${partidaId}">
+<div class="section-header">
+<h2 class="section-title">${escapeHtml(category)}</h2>`;
+
+    if (categoryImages.length > 0) {
+      html += `<a href="#" class="see-all-images-link" onclick="event.preventDefault(); openModal('${partidaId}'); return false;">Ver todas las imágenes</a>`;
+    }
+
+    html += `</div>
+<div class="section-content">`;
+
+    // Left: carousel with all images for this category
+    html += `<div class="image-carousel">`;
+    if (categoryImages.length > 0) {
+      const useCompactLayout = categoryImages.length === 1;
+      const imagesPerGroup = 1;
+      html += `<div class="carousel-container" id="carousel-${partidaId}" data-total-images="${categoryImages.length}" data-images-per-group="${imagesPerGroup}">`;
+      const totalGroups = categoryImages.length;
+
+      html += `<div class="carousel-images-wrapper">`;
+      for (let groupIndex = 0; groupIndex < totalGroups; groupIndex++) {
+        const fewClass = useCompactLayout ? ' carousel-images-group--few' : '';
+        const oneImageClass = useCompactLayout ? ' carousel-images-group--one' : '';
+        const activeClass = groupIndex === 0 ? ' active' : '';
+        html += `<div class="carousel-images-group${fewClass}${oneImageClass}${activeClass}" style="--img-count: 1">`;
+        html += `<img src="${escapeHtml(categoryImages[groupIndex].url)}" alt="${escapeHtml(categoryImages[groupIndex].label || '')}" class="carousel-image" />`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+
+      if (totalGroups > 1) {
+        html += `<button class="carousel-nav prev">‹</button>
+<button class="carousel-nav next">›</button>`;
+      }
+      const counterText = totalGroups > 1
+        ? `1 de ${categoryImages.length}`
+        : `${categoryImages.length} de ${categoryImages.length}`;
+      html += `<div class="carousel-counter">${counterText}</div>`;
+      html += `</div>`;
+    } else {
+      html += `<div class="carousel-container" style="display: flex; align-items: center; justify-content: center; color: #94A3B8;">
+<p>No hay imágenes disponibles</p>
+</div>`;
+    }
+    html += `</div>`;
+
+    // Right: conditions grouped by room
+    html += `<div class="conditions-list">`;
+
+    for (const [roomTitle, roomElements] of byRoom) {
+      html += `<div class="partida-room-group">
+<div class="partida-room-title">${escapeHtml(roomTitle)}</div>`;
+
+      for (const element of roomElements) {
+        const statusLabel = getStatusLabel(element.status, translations);
+        const statusClasses = getStatusBadgeClasses(element.status);
+
+        html += `<div class="condition-item">
+<div class="condition-item-wrapper">
+<div class="condition-label">${escapeHtml(element.label)}</div>`;
+
+        if (element.notes) {
+          html += `<div class="condition-notes">${escapeHtml(element.notes)}</div>`;
+        }
+
+        if (element.badElementsLabels && element.badElementsLabels.length > 0) {
+          html += `<div class="condition-bad-elements">Elementos en mal estado: ${escapeHtml(element.badElementsLabels.join(', '))}</div>`;
+        }
+
+        if (element.photoUrls && element.photoUrls.length > 0) {
+          html += `<div class="condition-photos">`;
+          for (const url of element.photoUrls) {
+            html += `<img src="${escapeHtml(url)}" alt="" class="condition-thumbnail" loading="lazy" />`;
+          }
+          html += `</div>`;
+        }
+
+        html += `</div>
+<span class="condition-badge ${statusClasses}">${escapeHtml(statusLabel)}</span>
+</div>`;
+      }
+
+      html += `</div>`;
+    }
+
+    if (byRoom.size === 0) {
+      html += `<div class="category-group">
+<p style="color: #94A3B8; font-size: 14px;">No se han reportado condiciones</p>
+</div>`;
+    }
+
+    html += `</div>
+</div>`;
+
+    // Modal for this partida category
+    if (categoryImages.length > 0) {
+      const allNotes = globalNotesByCategory['_all'] || [];
+      html += generateModalHTML(partidaId, category, categoryImages, allNotes);
+    }
+
+    html += `</section>`;
+  }
+
+  return html;
+}
+
+/**
+ * Guesses the category for an image based on its label/source to slot it
+ * into the right partida section.
+ */
+function guessCategoryForImage(img: ImageWithMetadata): string {
+  const label = (img.label || '').toLowerCase();
+  if (label.includes('carpinter') || label.includes('ventana') || label.includes('persiana') || label.includes('armario') || label.includes('puerta')) return 'Carpintería';
+  if (label.includes('climatiz') || label.includes('radiador') || label.includes('split') || label.includes('calentador') || label.includes('calefacc')) return 'Climatización';
+  if (label.includes('almacenam') || label.includes('despensa') || label.includes('lavado')) return 'Almacenamiento';
+  if (label.includes('electrodom') || label.includes('placa') || label.includes('campana') || label.includes('horno') || label.includes('nevera') || label.includes('lavadora') || label.includes('lavavajillas') || label.includes('microondas')) return 'Electrodomésticos';
+  if (label.includes('seguridad') || label.includes('barandilla') || label.includes('reja')) return 'Seguridad';
+  if (label.includes('sistema') || label.includes('tendedero') || label.includes('toldo')) return 'Sistemas';
+  if (label.includes('mobiliario')) return 'Mobiliario';
+  if (label.includes('electricidad') || label.includes('cuadro-general')) return 'Electricidad';
+  if (label.includes('comunicacion')) return 'Comunicaciones';
+  if (label.includes('ascensor')) return 'Ascensor';
+  if (label.includes('acabado')) return 'Acabados';
+  // Upload zone / general photos -> Acabados as default bucket
+  if (img.source === 'uploadZone') return 'Acabados';
+  return 'Otros';
 }
 
 /**
