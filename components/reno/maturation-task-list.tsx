@@ -25,8 +25,8 @@ const TASKS_PHASES_1_3: TaskDef[] = [
   { key: "excluded_from_ecu", label: "Excluido de ECU", type: "boolean", field: "excluded_from_ecu" },
   { key: "draft_order_date", label: "Fecha de Encargo Anteproyecto", type: "readonly-date", field: "draft_order_date" },
   { key: "measurement_date", label: "Fecha de Medición", type: "readonly-date", field: "measurement_date" },
-  { key: "project_draft_date", label: "Fecha del Anteproyecto", type: "date", field: "project_draft_date" },
-  { key: "draft_plan", label: "Plano de Borrador", type: "attachment", field: "draft_plan" },
+  { key: "project_draft_date", label: "Fecha del Anteproyecto", type: "readonly-date", field: "project_draft_date" },
+  { key: "draft_plan", label: "Planos de Anteproyecto", type: "attachment", field: "draft_plan" },
 ];
 
 const TASKS_PHASE_4_BASE: TaskDef[] = [
