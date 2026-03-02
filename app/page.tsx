@@ -30,6 +30,8 @@ export default function HomePage() {
       router.push("/reno/construction-manager");
     } else if (role === "maduration_analyst") {
       router.push("/reno/maturation-analyst");
+    } else if (role === "architect") {
+      router.push("/reno/architect");
     } else if (role && ["rent_manager", "rent_agent", "tenant"].includes(role)) {
       router.push("/rent");
     } else if (role && ROLES_WITH_VIEW_IN_DEVELOPMENT.includes(role as (typeof ROLES_WITH_VIEW_IN_DEVELOPMENT)[number])) {

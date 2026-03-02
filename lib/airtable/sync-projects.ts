@@ -5,19 +5,71 @@
  * Projects: "Project Name" (fldivXm0vlDYdNHpC).
  * Projects tiene "Properties linked" (linked a Properties). Relación en Supabase: properties.project_id.
  *
- * Campos Airtable Projects (por nombre en API; IDs de referencia):
- * Investment type fldqEG0ELFy8MMahd, Properties to convert fldvz2h1As8l0wFM5,
- * Project start date fldm2GkittZedjjgo, Renovation spend fldgUj4koDoLmVia1,
- * Project Unique ID fldEpcdZ9IRytENi4, Estimated settlement date fldrLe0R4eOMzDFb8,
- * Project status flds2Fe3uSYu9ipUZ, Drive folder fldK6cfta4u4fJiSq, Area cluster fldaXmigA6pfpwCYG,
- * Project Set up team notes fldlwg6qwfEMFJ4qA, Project keys location fldYFSjn9dRTzqpS0,
- * Renovator fldhEjMMmiodnBHFW, Est. reno start date fld06pg57Bo1zXy9O,
- * Reno start date fldY7PqHCZahKDiQF, Reno end date fldqzu3dXk1bBkd1v, Est. reno end date fldWbTN9n4BZQ3zSM,
- * Type fldHrPVWqJ2m9EucF, Reno duration fldW9EfmK05fYjiPr, Project address fldJKUEuK8hRttoy6,
- * Settlement date fldopnOMgl7wmjl3y, Already tenanted fldyehoj5ZEGaLrLE,
- * Operation name fldxxeOLZWPhOVBfO, Opportunity stage fldm8rncZl4gFyKkN,
- * Scouter fld0kTfLFaCMqGDzG, Lead fldjSFG3SZv34igsd
+ * IMPORTANTE: Todos los campos se acceden por Field ID (inmutables) en vez de por nombre
+ * para evitar problemas de capitalización inconsistente en la API de Airtable.
  */
+
+// ─── Airtable Field Names & IDs ──────────────────────────────────────────────
+// The SDK returns fields by their human-readable name. We centralise all names
+// here so a rename in Airtable only requires changing one place.
+// The Field ID is kept as a comment for traceability.
+const F = {
+  PROJECT_NAME:               'Project Name',             // fldivXm0vlDYdNHpC
+  INVESTMENT_TYPE:            'Investment type',           // fldqEG0ELFy8MMahd
+  PROPERTIES_TO_CONVERT:      'Properties to convert',    // fldvz2h1As8l0wFM5
+  PROJECT_START_DATE:         'Project start date',       // fldm2GkittZedjjgo
+  RENOVATION_SPEND:           'Renovation spend',         // fldgUj4koDoLmVia1
+  PROJECT_UNIQUE_ID:          'Project Unique ID',        // fldEpcdZ9IRytENi4
+  ESTIMATED_SETTLEMENT_DATE:  'Estimated settlement date',// fldrLe0R4eOMzDFb8
+  PROJECT_STATUS:             'Project status',           // flds2Fe3uSYu9ipUZ
+  DRIVE_FOLDER:               'Drive folder',             // fldK6cfta4u4fJiSq
+  AREA_CLUSTER:               'Area cluster',             // fldaXmigA6pfpwCYG
+  PROJECT_SETUP_TEAM_NOTES:   'Project Set up team notes',// fldlwg6qwfEMFJ4qA
+  PROJECT_KEYS_LOCATION:      'Project keys location',    // fldYFSjn9dRTzqpS0
+  RENOVATOR:                  'Renovator',                // fldhEjMMmiodnBHFW
+  EST_RENO_START_DATE:        'Est. reno start date',     // fld06pg57Bo1zXy9O
+  RENO_START_DATE:            'Reno start date',          // fldY7PqHCZahKDiQF
+  RENO_END_DATE:              'Reno end date',            // fldqzu3dXk1bBkd1v
+  EST_RENO_END_DATE:          'Est. reno end date',       // fldWbTN9n4BZQ3zSM
+  TYPE:                       'Type',                     // fldHrPVWqJ2m9EucF
+  RENO_DURATION:              'Reno duration',            // fldW9EfmK05fYjiPr
+  PROJECT_ADDRESS:            'Project address',          // fldJKUEuK8hRttoy6
+  SETTLEMENT_DATE:            'Settlement date',          // fldopnOMgl7wmjl3y
+  ALREADY_TENANTED:           'Already tenanted',         // fldyehoj5ZEGaLrLE
+  OPERATION_NAME:             'Operation name',           // fldxxeOLZWPhOVBfO
+  OPPORTUNITY_STAGE:          'Opportunity stage',        // fldm8rncZl4gFyKkN
+  SCOUTER:                    'Scouter',                  // fld0kTfLFaCMqGDzG
+  LEAD:                       'Lead',                     // fldjSFG3SZv34igsd
+  RENOVATION_EXECUTOR:        'Renovation executor',      // fldojf9FKqX3kkh9p
+  PROPERTIES_LINKED:          'Properties linked',        // fldNNtxGRZcUO5Xr2
+
+  // Maturation-specific fields
+  EST_PROPERTIES:             'Est. Properties',          // fldHyN7COZgThuPsL
+  ARCHITECT:                  'Architect',                // fldsAsdiGeOaQvlHe
+  EXCLUDED_FROM_ECU:          'Excluded from ECU',        // fldbOhkaWOFxgEF9N
+  DRAFT_ORDER_DATE:           'Draft order date',         // fldolJBkc8xg4zX4u
+  MEASUREMENT_DATE:           'Measurement date',         // flduoq2AThXWINa12
+  PROJECT_DRAFT_DATE:         'Project draft date',       // fld1MRXYInkTA5zfY
+  DRAFT_PLAN:                 'Draft plan',               // fldb2MtV66Z7lOknJ
+  PROJECT_VALIDATION_NOTES:   'Project validation notes', // fldSv6DaHv0JiVnAI
+  OFFER_STATUS:               'Offer status',             // fldhwWGWazLA4hcWU
+  ECU_CONTACT:                'ECU contact',              // fld4Xgn8xt2OD7iF4
+  ESTIMATED_PROJECT_END_DATE: 'Estimated project end date',// fldBd9H8MzeIB7FLE
+  PROJECT_END_DATE:           'Project end date',         // fldU09hsxbuciKWLi
+  ARRAS_DEADLINE:             'Arras deadline',           // fld7WWN0ZwhTsUKfJ
+  ECU_DELIVERY_DATE:          'ECU delivery date',        // fldZw1fCoB7P4uec9
+  EST_FIRST_CORRECTION_DATE:  'Estimated first correction date', // fld48U9r5NgQIOkyY
+  FIRST_CORRECTION_DATE:      'First correction date',    // fldobn5jZpdWBJyn3
+  FIRST_VALIDATION_DURATION:  'First validation duration',// fldiBaYTDuEqcAuw4
+  DEFINITIVE_VALIDATION_DATE: 'Definitive validation date',// fldSPVWoaocQwpx0S
+  TECHNICAL_PROJECT_DOC:      'Technical project doc',    // fldqmIliUeNEjIQUO
+  FINAL_PLAN:                 'Final plan',               // fldz5e4HkJWDByrtj
+  LICENSE_ATTACHMENT:          'License attachment',       // fldpOMBUKylokMJ0E
+} as const;
+
+// Linked record tables
+const LINKED_TABLE_SCOUTER = 'tblBbuRrxZQEavbML'; // Team Profiles
+const LINKED_TABLE_B2B     = 'tbljB4pROJtXPOdpt'; // B2B Partners (Architect + ECU Contact)
 
 import Airtable from 'airtable';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -41,6 +93,16 @@ function getField<T>(fields: Record<string, unknown>, ...keys: string[]): T | nu
   for (const k of keys) {
     const v = fields[k];
     if (v !== undefined && v !== null && v !== '') return v as T;
+  }
+  // Fallback: case-insensitive match (Airtable capitalisation can vary)
+  const fieldKeys = Object.keys(fields);
+  for (const k of keys) {
+    const lower = k.toLowerCase();
+    const match = fieldKeys.find((fk) => fk.toLowerCase() === lower);
+    if (match) {
+      const v = fields[match];
+      if (v !== undefined && v !== null && v !== '') return v as T;
+    }
   }
   return null;
 }
@@ -265,6 +327,7 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
     opportunity_stage: string | null;
     scouter: string | null;
     lead: string | null;
+    renovation_executor: string | null;
   };
 
   const records: ProjectRecord[] = [];
@@ -278,41 +341,40 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
 
     pageRecords.forEach((rec: any) => {
       const f = rec.fields ?? {};
-      const name =
-        getField<string>(f, 'Name', 'name', 'Project Name', 'Title') ?? null;
-      const phaseRaw =
-        getField<string>(f, 'Project status', 'Set Up Status', 'Phase', 'Status', 'Stage') ?? null;
+      const name = getField<string>(f, F.PROJECT_NAME) ?? null;
+      const phaseRaw = getField<string>(f, F.PROJECT_STATUS) ?? null;
       let reno_phase = mapSetUpStatusToProjectPhase(phaseRaw);
       if (!reno_phase) reno_phase = 'obra-en-progreso';
       records.push({
         id: rec.id,
         name: name != null ? String(name) : null,
         reno_phase,
-        investment_type: getField<string>(f, 'Investment type') ?? null,
-        properties_to_convert: getField<string>(f, 'Properties to convert') ?? null,
-        project_start_date: parseDate(getField(f, 'Project start date')),
-        renovation_spend: parseNumber(getField(f, 'Renovation spend')),
-        project_unique_id: getField<string>(f, 'Project Unique ID') ?? null,
-        estimated_settlement_date: parseDate(getField(f, 'Estimated settlement date')),
-        project_status: getField<string>(f, 'Project status') ?? null,
-        drive_folder: getField<string>(f, 'Drive folder') ?? null,
-        area_cluster: getField<string>(f, 'Area cluster') ?? null,
-        project_set_up_team_notes: getField<string>(f, 'Project Set up team notes') ?? null,
-        project_keys_location: getField<string>(f, 'Project keys location') ?? null,
-        renovator: getField<string>(f, 'Renovator') ?? null,
-        est_reno_start_date: parseDate(getField(f, 'Est. reno start date')),
-        reno_start_date: parseDate(getField(f, 'Reno start date')),
-        reno_end_date: parseDate(getField(f, 'Reno end date')),
-        est_reno_end_date: parseDate(getField(f, 'Est. reno end date')),
-        type: getField<string>(f, 'Type') ?? null,
-        reno_duration: parseNumber(getField(f, 'Reno duration')),
-        project_address: getField<string>(f, 'Project address') ?? null,
-        settlement_date: parseDate(getField(f, 'Settlement date')),
-        already_tenanted: (() => { const v = getField(f, 'Already tenanted'); return v != null && v !== '' ? String(v) : null; })(),
-        operation_name: getField<string>(f, 'Operation name') ?? null,
-        opportunity_stage: getField<string>(f, 'Opportunity stage') ?? null,
-        scouter: getField<string>(f, 'Scouter') ?? null,
-        lead: getField<string>(f, 'Lead') ?? null,
+        investment_type: getField<string>(f, F.INVESTMENT_TYPE) ?? null,
+        properties_to_convert: getField<string>(f, F.PROPERTIES_TO_CONVERT) ?? null,
+        project_start_date: parseDate(getField(f, F.PROJECT_START_DATE)),
+        renovation_spend: parseNumber(getField(f, F.RENOVATION_SPEND)),
+        project_unique_id: getField<string>(f, F.PROJECT_UNIQUE_ID) ?? null,
+        estimated_settlement_date: parseDate(getField(f, F.ESTIMATED_SETTLEMENT_DATE)),
+        project_status: getField<string>(f, F.PROJECT_STATUS) ?? null,
+        drive_folder: getField<string>(f, F.DRIVE_FOLDER) ?? null,
+        area_cluster: getField<string>(f, F.AREA_CLUSTER) ?? null,
+        project_set_up_team_notes: getField<string>(f, F.PROJECT_SETUP_TEAM_NOTES) ?? null,
+        project_keys_location: getField<string>(f, F.PROJECT_KEYS_LOCATION) ?? null,
+        renovator: getField<string>(f, F.RENOVATOR) ?? null,
+        est_reno_start_date: parseDate(getField(f, F.EST_RENO_START_DATE)),
+        reno_start_date: parseDate(getField(f, F.RENO_START_DATE)),
+        reno_end_date: parseDate(getField(f, F.RENO_END_DATE)),
+        est_reno_end_date: parseDate(getField(f, F.EST_RENO_END_DATE)),
+        type: getField<string>(f, F.TYPE) ?? null,
+        reno_duration: parseNumber(getField(f, F.RENO_DURATION)),
+        project_address: getField<string>(f, F.PROJECT_ADDRESS) ?? null,
+        settlement_date: parseDate(getField(f, F.SETTLEMENT_DATE)),
+        already_tenanted: (() => { const v = getField(f, F.ALREADY_TENANTED); return v != null && v !== '' ? String(v) : null; })(),
+        operation_name: getField<string>(f, F.OPERATION_NAME) ?? null,
+        opportunity_stage: getField<string>(f, F.OPPORTUNITY_STAGE) ?? null,
+        scouter: getField<string>(f, F.SCOUTER) ?? null,
+        lead: getField<string>(f, F.LEAD) ?? null,
+        renovation_executor: getField<string>(f, F.RENOVATION_EXECUTOR) ?? null,
       });
     });
   } catch (e: unknown) {
@@ -361,6 +423,7 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
     opportunity_stage: rec.opportunity_stage,
     scouter: rec.scouter,
     lead: rec.lead,
+    renovation_executor: rec.renovation_executor,
     updated_at: now,
   });
 
@@ -478,10 +541,9 @@ export async function getProjectNameToSupabaseIdMap(): Promise<Map<string, strin
   return map;
 }
 
-/** Posibles nombres/IDs del campo en Airtable Projects que enlaza a Properties o Transactions. */
+/** Posibles nombres del campo en Airtable Projects que enlaza a Properties o Transactions. */
 const LINK_FIELD_IDS_AND_NAMES = [
-  'fldNNtxGRZcUO5Xr2', // "Properties linked"
-  'Properties linked',
+  F.PROPERTIES_LINKED,
   'Linked properties',
   'Properties',
   'Transactions',
@@ -678,6 +740,7 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
     technical_project_doc: AttachmentMeta[] | null;
     final_plan: AttachmentMeta[] | null;
     license_attachment: AttachmentMeta[] | null;
+    renovation_executor: string | null;
   };
 
   const records: ProjectRecord[] = [];
@@ -691,24 +754,18 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
     if (pageRecords.length > 0) {
       const firstFields = (pageRecords[0] as any).fields ?? {};
       console.log('[Sync Maturation Projects] First record field keys:', Object.keys(firstFields));
-      console.log('[Sync Maturation Projects] First record Project status:', firstFields['Project status']);
+      console.log('[Sync Maturation Projects] First record Project status:', firstFields[F.PROJECT_STATUS]);
     }
 
     // Phase 1: Collect linked record IDs grouped by source table
-    const LINKED_TABLE_SCOUTER = 'tblBbuRrxZQEavbML';   // Team Profiles
-    const LINKED_TABLE_B2B = 'tbljB4pROJtXPOdpt';       // B2B Partners (Architect + ECU Contact)
-
     const scouterIds: string[] = [];
     const b2bIds: string[] = [];
 
     pageRecords.forEach((rec: any) => {
       const f = rec.fields ?? {};
-      for (const key of ['Scouter', 'fld0kTfLFaCMqGDzG']) {
-        scouterIds.push(...extractLinkedRecordIds(f[key]).filter((id) => id.startsWith('rec')));
-      }
-      for (const key of ['Architect', 'fldsAsdiGeOaQvlHe', 'ECU contact', 'Ecu Contact', 'fld4Xgn8xt2OD7iF4']) {
-        b2bIds.push(...extractLinkedRecordIds(f[key]).filter((id) => id.startsWith('rec')));
-      }
+      scouterIds.push(...extractLinkedRecordIds(f[F.SCOUTER]).filter((id) => id.startsWith('rec')));
+      b2bIds.push(...extractLinkedRecordIds(f[F.ARCHITECT]).filter((id) => id.startsWith('rec')));
+      b2bIds.push(...extractLinkedRecordIds(f[F.ECU_CONTACT]).filter((id) => id.startsWith('rec')));
     });
 
     // Phase 2: Resolve linked record IDs to names (in parallel, one call per table)
@@ -722,65 +779,66 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
     // Phase 3: Build project records with resolved names
     pageRecords.forEach((rec: any) => {
       const f = rec.fields ?? {};
-      const name = getField<string>(f, 'Name', 'name', 'Project Name', 'Title', 'fldivXm0vlDYdNHpC') ?? null;
-      const phaseRaw = getField<string>(f, 'Project status', 'Set Up Status', 'Phase', 'Status', 'Stage') ?? null;
+      const name = getField<string>(f, F.PROJECT_NAME) ?? null;
+      const phaseRaw = getField<string>(f, F.PROJECT_STATUS) ?? null;
       let reno_phase = mapMaturationStatusToPhase(phaseRaw);
       if (!reno_phase) reno_phase = 'get-project-draft';
 
-      const rawScouter = getField(f, 'Scouter', 'fld0kTfLFaCMqGDzG');
-      const rawArchitect = getField(f, 'Architect', 'fldsAsdiGeOaQvlHe');
-      const rawEcuContact = getField(f, 'ECU contact', 'Ecu Contact', 'fld4Xgn8xt2OD7iF4');
+      const rawScouter = getField(f, F.SCOUTER);
+      const rawArchitect = getField(f, F.ARCHITECT);
+      const rawEcuContact = getField(f, F.ECU_CONTACT);
 
       records.push({
         id: rec.id,
         name: name != null ? String(name) : null,
         reno_phase,
-        investment_type: getField<string>(f, 'Investment type') ?? null,
-        properties_to_convert: getField<string>(f, 'Properties to convert') ?? null,
-        project_start_date: parseDate(getField(f, 'Project start date', 'fldm2GkittZedjjgo')),
-        renovation_spend: parseNumber(getField(f, 'Renovation spend')),
-        project_unique_id: getField<string>(f, 'Project Unique ID') ?? null,
-        estimated_settlement_date: parseDate(getField(f, 'Estimated settlement date')),
-        project_status: getField<string>(f, 'Project status') ?? null,
-        drive_folder: getField<string>(f, 'Drive folder', 'Drive Folder', 'fldK6cfta4u4fJiSq') ?? null,
-        area_cluster: getField<string>(f, 'Area cluster') ?? null,
-        project_set_up_team_notes: getField<string>(f, 'Project Set up team notes', 'Project Setup Team Notes', 'fldlwg6qwfEMFJ4qA') ?? null,
-        project_keys_location: getField<string>(f, 'Project keys location', 'Project Key Location', 'fldYFSjn9dRTzqpS0') ?? null,
-        renovator: getField<string>(f, 'Renovator') ?? null,
-        est_reno_start_date: parseDate(getField(f, 'Est. reno start date')),
-        reno_start_date: parseDate(getField(f, 'Reno start date')),
-        reno_end_date: parseDate(getField(f, 'Reno end date')),
-        est_reno_end_date: parseDate(getField(f, 'Est. reno end date')),
-        type: getField<string>(f, 'Type') ?? null,
-        reno_duration: parseNumber(getField(f, 'Reno duration')),
-        project_address: getField<string>(f, 'Project address') ?? null,
-        settlement_date: parseDate(getField(f, 'Settlement date')),
-        already_tenanted: (() => { const v = getField(f, 'Already tenanted'); return v != null && v !== '' ? String(v) : null; })(),
-        operation_name: getField<string>(f, 'Operation name') ?? null,
-        opportunity_stage: getField<string>(f, 'Opportunity stage') ?? null,
+        investment_type: getField<string>(f, F.INVESTMENT_TYPE) ?? null,
+        properties_to_convert: getField<string>(f, F.PROPERTIES_TO_CONVERT) ?? null,
+        project_start_date: parseDate(getField(f, F.PROJECT_START_DATE)),
+        renovation_spend: parseNumber(getField(f, F.RENOVATION_SPEND)),
+        project_unique_id: getField<string>(f, F.PROJECT_UNIQUE_ID) ?? null,
+        estimated_settlement_date: parseDate(getField(f, F.ESTIMATED_SETTLEMENT_DATE)),
+        project_status: getField<string>(f, F.PROJECT_STATUS) ?? null,
+        drive_folder: getField<string>(f, F.DRIVE_FOLDER) ?? null,
+        area_cluster: getField<string>(f, F.AREA_CLUSTER) ?? null,
+        project_set_up_team_notes: getField<string>(f, F.PROJECT_SETUP_TEAM_NOTES) ?? null,
+        project_keys_location: getField<string>(f, F.PROJECT_KEYS_LOCATION) ?? null,
+        renovator: getField<string>(f, F.RENOVATOR) ?? null,
+        est_reno_start_date: parseDate(getField(f, F.EST_RENO_START_DATE)),
+        reno_start_date: parseDate(getField(f, F.RENO_START_DATE)),
+        reno_end_date: parseDate(getField(f, F.RENO_END_DATE)),
+        est_reno_end_date: parseDate(getField(f, F.EST_RENO_END_DATE)),
+        type: getField<string>(f, F.TYPE) ?? null,
+        reno_duration: parseNumber(getField(f, F.RENO_DURATION)),
+        project_address: getField<string>(f, F.PROJECT_ADDRESS) ?? null,
+        settlement_date: parseDate(getField(f, F.SETTLEMENT_DATE)),
+        already_tenanted: (() => { const v = getField(f, F.ALREADY_TENANTED); return v != null && v !== '' ? String(v) : null; })(),
+        operation_name: getField<string>(f, F.OPERATION_NAME) ?? null,
+        opportunity_stage: getField<string>(f, F.OPPORTUNITY_STAGE) ?? null,
         scouter: linkedIdsToNames(rawScouter, linkedNameMap) ?? (typeof rawScouter === 'string' ? rawScouter : null),
-        lead: getField<string>(f, 'Lead') ?? null,
-        est_properties: getField<string>(f, 'Est. Properties', 'fldHyN7COZgThuPsL') ?? null,
+        lead: getField<string>(f, F.LEAD) ?? null,
+        est_properties: getField<string>(f, F.EST_PROPERTIES) ?? null,
         architect: linkedIdsToNames(rawArchitect, linkedNameMap) ?? (typeof rawArchitect === 'string' ? rawArchitect : null),
-        excluded_from_ecu: parseBool(getField(f, 'Excluded from ECU', 'fldbOhkaWOFxgEF9N')),
-        draft_order_date: parseDate(getField(f, 'Draft Order Date', 'fldolJBkc8xg4zX4u')),
-        measurement_date: parseDate(getField(f, 'Measurement Date', 'flduoq2AThXWINa12')),
-        project_draft_date: parseDate(getField(f, 'Project Draft Date', 'fld1MRXYInkTA5zfY')),
-        draft_plan: parseAttachments(getField(f, 'Draft plan', 'Draft Plan', 'fldb2MtV66Z7lOknJ')),
-        project_validation_notes: getField<string>(f, 'Project Validation Notes', 'fldSv6DaHv0JiVnAI') ?? null,
-        offer_status: getField<string>(f, 'Offer Status', 'fldhwWGWazLA4hcWU') ?? null,
+        excluded_from_ecu: parseBool(getField(f, F.EXCLUDED_FROM_ECU)),
+        draft_order_date: parseDate(getField(f, F.DRAFT_ORDER_DATE)),
+        measurement_date: parseDate(getField(f, F.MEASUREMENT_DATE)),
+        project_draft_date: parseDate(getField(f, F.PROJECT_DRAFT_DATE)),
+        draft_plan: parseAttachments(getField(f, F.DRAFT_PLAN)),
+        project_validation_notes: getField<string>(f, F.PROJECT_VALIDATION_NOTES) ?? null,
+        offer_status: getField<string>(f, F.OFFER_STATUS) ?? null,
         ecu_contact: linkedIdsToNames(rawEcuContact, linkedNameMap) ?? (typeof rawEcuContact === 'string' ? rawEcuContact : null),
-        estimated_project_end_date: parseDate(getField(f, 'Estimated Project End Date', 'fldBd9H8MzeIB7FLE')),
-        project_end_date: parseDate(getField(f, 'Project End Date', 'Project end date', 'fldU09hsxbuciKWLi')),
-        arras_deadline: parseDate(getField(f, 'ARRAS Deadline', 'fld7WWN0ZwhTsUKfJ')),
-        ecu_delivery_date: parseDate(getField(f, 'ECU Delivery Date', 'fldZw1fCoB7P4uec9')),
-        estimated_first_correction_date: parseDate(getField(f, 'Estimated First Correction Date', 'fld48U9r5NgQIOkyY')),
-        first_correction_date: parseDate(getField(f, 'First Correction Date', 'fldobn5jZpdWBJyn3')),
-        first_validation_duration: parseNumber(getField(f, 'First Validation Duration', 'fldiBaYTDuEqcAuw4')),
-        definitive_validation_date: parseDate(getField(f, 'Definitive Validation Date', 'fldSPVWoaocQwpx0S')),
-        technical_project_doc: parseAttachments(getField(f, 'Technical Project Doc', 'fldqmIliUeNEjIQUO')),
-        final_plan: parseAttachments(getField(f, 'Final plan', 'Final Plan', 'fldz5e4HkJWDByrtj')),
-        license_attachment: parseAttachments(getField(f, 'License Attachment', 'fldpOMBUKylokMJ0E')),
+        estimated_project_end_date: parseDate(getField(f, F.ESTIMATED_PROJECT_END_DATE)),
+        project_end_date: parseDate(getField(f, F.PROJECT_END_DATE)),
+        arras_deadline: parseDate(getField(f, F.ARRAS_DEADLINE)),
+        ecu_delivery_date: parseDate(getField(f, F.ECU_DELIVERY_DATE)),
+        estimated_first_correction_date: parseDate(getField(f, F.EST_FIRST_CORRECTION_DATE)),
+        first_correction_date: parseDate(getField(f, F.FIRST_CORRECTION_DATE)),
+        first_validation_duration: parseNumber(getField(f, F.FIRST_VALIDATION_DURATION)),
+        definitive_validation_date: parseDate(getField(f, F.DEFINITIVE_VALIDATION_DATE)),
+        technical_project_doc: parseAttachments(getField(f, F.TECHNICAL_PROJECT_DOC)),
+        final_plan: parseAttachments(getField(f, F.FINAL_PLAN)),
+        license_attachment: parseAttachments(getField(f, F.LICENSE_ATTACHMENT)),
+        renovation_executor: getField<string>(f, F.RENOVATION_EXECUTOR) ?? null,
       });
     });
 
@@ -858,6 +916,7 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
     technical_project_doc: rec.technical_project_doc,
     final_plan: rec.final_plan,
     license_attachment: rec.license_attachment,
+    renovation_executor: rec.renovation_executor,
     updated_at: now,
   });
 

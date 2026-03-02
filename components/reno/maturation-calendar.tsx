@@ -47,13 +47,13 @@ interface CalendarEvent {
 type EventType = keyof typeof EVENT_CONFIG;
 
 const EVENT_CONFIG = {
-  draft_order_date:                { label: "Draft Order",             icon: FileText,     colorClass: "text-blue-500",    filterKey: "drafts" as const },
+  draft_order_date:                { label: "Encargo de Borrador",     icon: FileText,     colorClass: "text-blue-500",    filterKey: "drafts" as const },
   measurement_date:                { label: "Medición",                icon: Ruler,        colorClass: "text-indigo-500",  filterKey: "measurements" as const },
   project_draft_date:              { label: "Borrador Proyecto",       icon: FileText,     colorClass: "text-violet-500",  filterKey: "drafts" as const },
   project_start_date:              { label: "Inicio Proyecto",         icon: Hammer,       colorClass: "text-orange-500",  filterKey: "projectDates" as const },
   estimated_project_end_date:      { label: "Fin Estimado",           icon: Clock,        colorClass: "text-amber-500",   filterKey: "projectDates" as const },
   project_end_date:                { label: "Fin Proyecto",           icon: CalendarCheck, colorClass: "text-green-500",   filterKey: "projectDates" as const },
-  arras_deadline:                  { label: "Deadline Arras",         icon: Gavel,        colorClass: "text-red-500",     filterKey: "arras" as const },
+  arras_deadline:                  { label: "Fecha Límite Arras",     icon: Gavel,        colorClass: "text-red-500",     filterKey: "arras" as const },
   ecu_delivery_date:               { label: "Entrega ECU",           icon: ShieldCheck,  colorClass: "text-teal-500",    filterKey: "ecu" as const },
   estimated_first_correction_date: { label: "1ª Corrección Est.",     icon: Clock,        colorClass: "text-cyan-500",    filterKey: "corrections" as const },
   first_correction_date:           { label: "1ª Corrección",         icon: CalendarCheck, colorClass: "text-sky-500",     filterKey: "corrections" as const },
@@ -333,7 +333,7 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
                 }
               />
               <span className="text-xs text-foreground">
-                Borradores / Draft
+                Borradores
               </span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">

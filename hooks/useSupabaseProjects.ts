@@ -59,6 +59,10 @@ export interface ProjectRow {
   technical_project_doc?: string | null;
   final_plan?: string | null;
   license_attachment?: string | null;
+  renovation_executor?: string | null;
+  architect_notes?: string | null;
+  usable_square_meters?: number | null;
+  architect_attachments?: unknown;
 }
 
 /** Mapea Project status (Airtable) → fase Kanban; prioridad sobre reno_phase */
@@ -123,6 +127,11 @@ const EMPTY_BY_PHASE: Record<RenoKanbanPhase, ProjectRow[]> = {
   "technical-project-fine-tuning": [],
   "ecuv-final-validation": [],
   "pending-budget-from-renovator": [],
+  "arch-pending-measurement": [],
+  "arch-preliminary-project": [],
+  "arch-technical-project": [],
+  "arch-technical-adjustments": [],
+  "arch-completed": [],
 };
 
 function mapProjectPhaseForKanban(reno_phase: string | null): RenoKanbanPhase {

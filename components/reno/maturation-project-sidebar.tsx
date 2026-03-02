@@ -56,7 +56,7 @@ export function MaturationProjectSidebar({ project }: MaturationProjectSidebarPr
   if (PHASES_1_3.includes(phase)) {
     return (
       <div className="space-y-6 p-4">
-        <InfoItem icon={Building2} label="Est. Properties">
+        <InfoItem icon={Building2} label="Propiedades Estimadas">
           {p.est_properties || "—"}
         </InfoItem>
         <InfoItem icon={User} label="Scouter">
@@ -79,17 +79,17 @@ export function MaturationProjectSidebar({ project }: MaturationProjectSidebarPr
   if (phase === "technical-project-in-progress") {
     return (
       <div className="space-y-6 p-4">
-        <InfoItem icon={Calendar} label="ARRAS Deadline">
+        <InfoItem icon={Calendar} label="Fecha Límite ARRAS">
           {formatDate(p.arras_deadline)}
         </InfoItem>
-        <InfoItem icon={FileText} label="Project Setup Team Notes">
+        <InfoItem icon={FileText} label="Notas del Equipo de Puesta en Marcha">
           {p.project_set_up_team_notes ? (
             <p className="whitespace-pre-wrap break-words">{p.project_set_up_team_notes}</p>
           ) : (
             <p className="italic">Sin notas</p>
           )}
         </InfoItem>
-        <InfoItem icon={MapPin} label="Project Keys Location">
+        <InfoItem icon={MapPin} label="Ubicación de las Llaves">
           {p.project_keys_location || "—"}
         </InfoItem>
         <InfoItem icon={FolderOpen} label="Carpeta Drive">
@@ -105,29 +105,29 @@ export function MaturationProjectSidebar({ project }: MaturationProjectSidebarPr
         <InfoItem icon={User} label="Arquitecto">
           {p.architect || "—"}
         </InfoItem>
-        <InfoItem icon={User} label="ECU Contact">
+        <InfoItem icon={User} label="Contacto ECU">
           {p.ecu_contact || "—"}
         </InfoItem>
-        <InfoItem icon={Calendar} label="ARRAS Deadline">
+        <InfoItem icon={Calendar} label="Fecha Límite ARRAS">
           {formatDate(p.arras_deadline)}
         </InfoItem>
-        <InfoItem icon={Calendar} label="Settlement Date">
+        <InfoItem icon={Calendar} label="Fecha de Firma">
           {formatDate(p.settlement_date)}
         </InfoItem>
-        <InfoItem icon={Calendar} label="Project End Date">
+        <InfoItem icon={Calendar} label="Fecha de Fin del Proyecto">
           {formatDate(p.project_end_date)}
         </InfoItem>
-        <InfoItem icon={Clock} label="First Validation Duration">
+        <InfoItem icon={Clock} label="Duración Primera Validación">
           {p.first_validation_duration != null ? `${p.first_validation_duration} días` : "—"}
         </InfoItem>
-        <InfoItem icon={FileText} label="Project Setup Team Notes">
+        <InfoItem icon={FileText} label="Notas del Equipo de Puesta en Marcha">
           {p.project_set_up_team_notes ? (
             <p className="whitespace-pre-wrap break-words">{p.project_set_up_team_notes}</p>
           ) : (
             <p className="italic">Sin notas</p>
           )}
         </InfoItem>
-        <InfoItem icon={MapPin} label="Project Keys Location">
+        <InfoItem icon={MapPin} label="Ubicación de las Llaves">
           {p.project_keys_location || "—"}
         </InfoItem>
         <InfoItem icon={FolderOpen} label="Carpeta Drive">

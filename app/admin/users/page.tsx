@@ -437,6 +437,7 @@ export default function AdminUsersPage() {
                       <SelectItem value="technical_constructor_projects">{t.roles.technical_constructor_projects}</SelectItem>
                       <SelectItem value="maduration_analyst">{t.roles.maduration_analyst}</SelectItem>
                       <SelectItem value="set_up_analyst">{t.roles.set_up_analyst}</SelectItem>
+                      <SelectItem value="architect">{t.roles.architect}</SelectItem>
                       <SelectItem value="user">{t.roles.user}</SelectItem>
                     </SelectContent>
                   </Select>
@@ -495,6 +496,7 @@ export default function AdminUsersPage() {
               <SelectItem value="technical_constructor_projects">{t.roles.technical_constructor_projects}</SelectItem>
               <SelectItem value="maduration_analyst">{t.roles.maduration_analyst}</SelectItem>
               <SelectItem value="set_up_analyst">{t.roles.set_up_analyst}</SelectItem>
+              <SelectItem value="architect">{t.roles.architect}</SelectItem>
               <SelectItem value="user">{t.roles.user}</SelectItem>
             </SelectContent>
           </Select>
@@ -777,6 +779,8 @@ export default function AdminUsersPage() {
                   <SelectItem value="manager_projects">{t.roles.manager_projects}</SelectItem>
                   <SelectItem value="technical_constructor_projects">{t.roles.technical_constructor_projects}</SelectItem>
                   <SelectItem value="maduration_analyst">{t.roles.maduration_analyst}</SelectItem>
+                  <SelectItem value="set_up_analyst">{t.roles.set_up_analyst}</SelectItem>
+                  <SelectItem value="architect">{t.roles.architect}</SelectItem>
                   <SelectItem value="user">{t.roles.user}</SelectItem>
                 </SelectContent>
               </Select>

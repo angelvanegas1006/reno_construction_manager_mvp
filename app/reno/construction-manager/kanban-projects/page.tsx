@@ -87,7 +87,7 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
     if (role !== "admin" && role !== "construction_manager") {
       router.push("/reno/construction-manager");
       if (role === "foreman") {
-        toast.error("No tienes permisos para acceder al Kanban Proyectos / WIP");
+        toast.error("No tienes permisos para acceder a Gestión de Obra de Proyectos");
       }
     }
   }, [user, role, isLoading, router]);
@@ -134,6 +134,11 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
       "technical-project-fine-tuning": [],
       "ecuv-final-validation": [],
       "pending-budget-from-renovator": [],
+      "arch-pending-measurement": [],
+      "arch-preliminary-project": [],
+      "arch-technical-project": [],
+      "arch-technical-adjustments": [],
+      "arch-completed": [],
     };
     if (!rawPropertiesByPhase) return empty;
     const allowedTypes = ["project", "wip"];

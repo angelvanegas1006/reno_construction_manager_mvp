@@ -24,6 +24,8 @@ export default function LoginPage() {
         router.push("/reno/construction-manager/kanban");
       } else if (role === "set_up_analyst") {
         router.push("/reno/setup-analyst");
+      } else if (role === "architect") {
+        router.push("/reno/architect");
       } else if (["rent_manager", "rent_agent", "tenant"].includes(role)) {
         router.push("/rent");
       }

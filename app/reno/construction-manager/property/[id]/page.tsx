@@ -1456,6 +1456,11 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "technical-project-fine-tuning": "Ajuste Proyecto Técnico",
     "ecuv-final-validation": "ECUV Validación Final",
     "pending-budget-from-renovator": "Pendiente Presupuesto Renovador",
+    "arch-pending-measurement": "Pendiente de Medición",
+    "arch-preliminary-project": "Anteproyecto en Curso",
+    "arch-technical-project": "Proyecto Técnico en Progreso",
+    "arch-technical-adjustments": "Ajustes Técnicos del Proyecto",
+    "arch-completed": "Finalizados",
   };
   
   return phaseLabels[phase] || phase;

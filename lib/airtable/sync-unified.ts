@@ -615,6 +615,11 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       'technical-project-fine-tuning': 0,
       'ecuv-final-validation': 0,
       'pending-budget-from-renovator': 0,
+      'arch-pending-measurement': 0,
+      'arch-preliminary-project': 0,
+      'arch-technical-project': 0,
+      'arch-technical-adjustments': 0,
+      'arch-completed': 0,
     },
     details: [],
   };
@@ -838,6 +843,11 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         'technical-project-fine-tuning': 0,
         'ecuv-final-validation': 0,
         'pending-budget-from-renovator': 0,
+        'arch-pending-measurement': 0,
+        'arch-preliminary-project': 0,
+        'arch-technical-project': 0,
+        'arch-technical-adjustments': 0,
+        'arch-completed': 0,
       };
 
       finalCounts.forEach(p => {

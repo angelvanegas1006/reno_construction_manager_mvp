@@ -81,6 +81,7 @@ export interface Translations {
     technical_constructor_projects: string;
     maduration_analyst: string;
     set_up_analyst: string;
+    architect: string;
   };
   
   // Login
@@ -684,7 +685,7 @@ export const translations: Record<Language, Translations> = {
       home: "Inicio",
       properties: "Gestión de propiedades",
       renoManagement: "Gestión de Reno",
-      kanbanProjects: "Proyectos / WIP",
+      kanbanProjects: "Gestión de Obra de Proyectos",
       notifications: "Notificaciones",
       help: "Ayuda",
       logout: "Cerrar sesión",
@@ -736,6 +737,7 @@ export const translations: Record<Language, Translations> = {
       technical_constructor_projects: "Jefe de obra Projects",
       maduration_analyst: "Analista de Maduración",
       set_up_analyst: "Set Up Analyst",
+      architect: "Arquitecto",
     },
     login: {
       title: "Inicia sesión o crea una cuenta",
@@ -1743,7 +1745,7 @@ export const translations: Record<Language, Translations> = {
       home: "Home",
       properties: "Renovation Management",
       renoManagement: "Reno Management",
-      kanbanProjects: "Projects / WIP",
+      kanbanProjects: "Project Construction Management",
       notifications: "Notifications",
       help: "Help",
       logout: "Logout",
@@ -1795,6 +1797,7 @@ export const translations: Record<Language, Translations> = {
       technical_constructor_projects: "Technical Constructor Projects",
       maduration_analyst: "Maduration Analyst",
       set_up_analyst: "Set Up Analyst",
+      architect: "Architect",
     },
     login: {
       title: "Log in or create an account",

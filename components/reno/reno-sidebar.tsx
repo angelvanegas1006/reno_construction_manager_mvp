@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Mail, Landmark, LayoutGrid } from "lucide-react";
+import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Mail, Landmark, LayoutGrid, Ruler, PencilRuler } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -46,7 +46,7 @@ const getNavigationItems = (t: any, role?: string) => {
     ] as Array<{ label: string; href: string; icon: typeof Home }>;
   }
 
-  // maduration_analyst tiene su propia home y kanban de maduración
+  // maduration_analyst tiene su propia home, kanban de maduración y kanban de arquitectos
   if (role === "maduration_analyst") {
     return [
       {
@@ -58,6 +58,27 @@ const getNavigationItems = (t: any, role?: string) => {
         label: "Maduración de Proyectos",
         href: "/reno/maturation-analyst/kanban",
         icon: Landmark,
+      },
+      {
+        label: "Kanban Arquitecto",
+        href: "/reno/architect/kanban",
+        icon: PencilRuler,
+      },
+    ] as Array<{ label: string; href: string; icon: typeof Home }>;
+  }
+
+  // architect tiene su propia home y kanban de proyectos
+  if (role === "architect") {
+    return [
+      {
+        label: "Inicio",
+        href: "/reno/architect",
+        icon: Home,
+      },
+      {
+        label: "Mis Proyectos",
+        href: "/reno/architect/kanban",
+        icon: Ruler,
       },
     ] as Array<{ label: string; href: string; icon: typeof Home }>;
   }
@@ -84,6 +105,11 @@ const getNavigationItems = (t: any, role?: string) => {
       label: "Maduración de Proyectos",
       href: "/reno/maturation-analyst/kanban",
       icon: Landmark,
+    });
+    items.push({
+      label: "Kanban Arquitecto",
+      href: "/reno/architect/kanban",
+      icon: PencilRuler,
     });
   }
   return items;

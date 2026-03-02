@@ -1,48 +1,50 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, PencilRuler } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { trackEventWithDevice } from "@/lib/mixpanel";
 import type { ProjectRow } from "@/hooks/useSupabaseProject";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { AttachmentViewer } from "@/components/reno/attachment-viewer";
+import { ArchitectSelectorModal } from "@/components/reno/architect-selector-modal";
 
 interface TaskDef {
   key: string;
   label: string;
-  type: "text" | "date" | "boolean" | "attachment";
+  type: "text" | "date" | "boolean" | "attachment" | "architect-selector";
   field: string;
 }
 
 const TASKS_PHASES_1_3: TaskDef[] = [
-  { key: "architect", label: "Definir Arquitecto", type: "text", field: "architect" },
+  { key: "architect", label: "Definir Arquitecto", type: "architect-selector", field: "architect" },
   { key: "excluded_from_ecu", label: "Excluido de ECU", type: "boolean", field: "excluded_from_ecu" },
-  { key: "draft_order_date", label: "Draft Order Date", type: "date", field: "draft_order_date" },
-  { key: "measurement_date", label: "Measurement Date", type: "date", field: "measurement_date" },
-  { key: "project_draft_date", label: "Project Draft Date", type: "date", field: "project_draft_date" },
-  { key: "draft_plan", label: "Draft Plan", type: "attachment", field: "draft_plan" },
+  { key: "draft_order_date", label: "Fecha de Encargo de Borrador", type: "date", field: "draft_order_date" },
+  { key: "measurement_date", label: "Fecha de Medición", type: "date", field: "measurement_date" },
+  { key: "project_draft_date", label: "Fecha del Anteproyecto", type: "date", field: "project_draft_date" },
+  { key: "draft_plan", label: "Plano de Borrador", type: "attachment", field: "draft_plan" },
 ];
 
 const TASKS_PHASE_4_BASE: TaskDef[] = [
-  { key: "project_start_date", label: "Project Start Date", type: "date", field: "project_start_date" },
-  { key: "estimated_project_end_date", label: "Estimated Project End Date", type: "date", field: "estimated_project_end_date" },
-  { key: "project_end_date", label: "Project End Date", type: "date", field: "project_end_date" },
+  { key: "project_start_date", label: "Fecha de Inicio del Proyecto", type: "date", field: "project_start_date" },
+  { key: "estimated_project_end_date", label: "Fecha Estimada de Fin del Proyecto", type: "date", field: "estimated_project_end_date" },
+  { key: "project_end_date", label: "Fecha de Fin del Proyecto", type: "date", field: "project_end_date" },
 ];
 
-const TASK_ECU_CONTACT: TaskDef = { key: "ecu_contact", label: "ECU Contact", type: "text", field: "ecu_contact" };
+const TASK_ECU_CONTACT: TaskDef = { key: "ecu_contact", label: "Contacto ECU", type: "text", field: "ecu_contact" };
 
 const TASKS_PHASES_5_7: TaskDef[] = [
-  { key: "ecu_delivery_date", label: "ECU Delivery Date", type: "date", field: "ecu_delivery_date" },
-  { key: "estimated_first_correction_date", label: "Estimated First Correction Date", type: "date", field: "estimated_first_correction_date" },
-  { key: "first_correction_date", label: "First Correction Date", type: "date", field: "first_correction_date" },
-  { key: "definitive_validation_date", label: "Definitive Validation Date", type: "date", field: "definitive_validation_date" },
-  { key: "technical_project_doc", label: "Technical Project Doc", type: "attachment", field: "technical_project_doc" },
-  { key: "final_plan", label: "Final Plan", type: "attachment", field: "final_plan" },
-  { key: "license_attachment", label: "License Attachment", type: "attachment", field: "license_attachment" },
+  { key: "ecu_delivery_date", label: "Fecha de Entrega ECU", type: "date", field: "ecu_delivery_date" },
+  { key: "estimated_first_correction_date", label: "Fecha Est. Primera Corrección", type: "date", field: "estimated_first_correction_date" },
+  { key: "first_correction_date", label: "Fecha de Primera Corrección", type: "date", field: "first_correction_date" },
+  { key: "definitive_validation_date", label: "Fecha de Validación Definitiva", type: "date", field: "definitive_validation_date" },
+  { key: "technical_project_doc", label: "Documento del Proyecto Técnico", type: "attachment", field: "technical_project_doc" },
+  { key: "final_plan", label: "Plano Final", type: "attachment", field: "final_plan" },
+  { key: "license_attachment", label: "Adjunto de Licencia", type: "attachment", field: "license_attachment" },
 ];
 
 const PHASES_1_3: RenoKanbanPhase[] = [
@@ -188,6 +190,7 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
   const phase = (project.reno_phase ?? "get-project-draft") as RenoKanbanPhase;
   const tasks = getTasksForPhase(phase, project);
   const [savingField, setSavingField] = useState<string | null>(null);
+  const [architectModalOpen, setArchitectModalOpen] = useState(false);
   const supabase = createClient();
 
   const saveField = useCallback(
@@ -282,6 +285,20 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
                       />
                     )}
 
+                    {task.type === "architect-selector" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-sm flex-1 justify-start font-normal"
+                        onClick={() => setArchitectModalOpen(true)}
+                      >
+                        <PencilRuler className="h-3.5 w-3.5 mr-2 flex-shrink-0 text-muted-foreground" />
+                        <span className="truncate">
+                          {(getFieldValue(project, task.field) as string) || "Sin asignar"}
+                        </span>
+                      </Button>
+                    )}
+
                     {task.type === "date" && (
                       <Input
                         type="date"
@@ -312,6 +329,16 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
           );
         })}
       </div>
+
+      <ArchitectSelectorModal
+        open={architectModalOpen}
+        onOpenChange={setArchitectModalOpen}
+        currentArchitect={(getFieldValue(project, "architect") as string) ?? null}
+        airtableProjectId={project.airtable_project_id ?? null}
+        onSelect={async ({ name }) => {
+          await saveField("architect", name);
+        }}
+      />
     </div>
   );
 }

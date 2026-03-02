@@ -408,6 +408,7 @@ export type Database = {
           technical_project_doc: unknown | null
           final_plan: unknown | null
           license_attachment: unknown | null
+          renovation_executor: string | null
         }
         Insert: {
           id?: string
@@ -463,6 +464,7 @@ export type Database = {
           technical_project_doc?: unknown | null
           final_plan?: unknown | null
           license_attachment?: unknown | null
+          renovation_executor?: string | null
         }
         Update: {
           id?: string
@@ -518,6 +520,7 @@ export type Database = {
           technical_project_doc?: unknown | null
           final_plan?: unknown | null
           license_attachment?: unknown | null
+          renovation_executor?: string | null
         }
         Relationships: []
       }
@@ -1359,7 +1362,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "construction_manager" | "foreman" | "user" | "rent_manager" | "rent_agent" | "tenant" | "manager_projects" | "technical_constructor_projects" | "maduration_analyst" | "set_up_analyst"
+      app_role: "admin" | "construction_manager" | "foreman" | "user" | "rent_manager" | "rent_agent" | "tenant" | "manager_projects" | "technical_constructor_projects" | "maduration_analyst" | "set_up_analyst" | "architect"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1470,7 +1473,7 @@ export type Enums<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "construction_manager", "foreman", "user", "rent_manager", "rent_agent", "tenant", "manager_projects", "technical_constructor_projects", "maduration_analyst", "set_up_analyst"],
+      app_role: ["admin", "construction_manager", "foreman", "user", "rent_manager", "rent_agent", "tenant", "manager_projects", "technical_constructor_projects", "maduration_analyst", "set_up_analyst", "architect"],
     },
   },
 } as const
