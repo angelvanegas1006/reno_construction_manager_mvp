@@ -59,7 +59,7 @@ export function ArchitectProjectSidebar({ project }: ArchitectProjectSidebarProp
         {p.usable_square_meters != null ? `${p.usable_square_meters} m\u00B2` : "\u2014"}
       </InfoItem>
 
-      <InfoItem icon={Calendar} label="Fecha de Encargo de Borrador">
+      <InfoItem icon={Calendar} label="Fecha de Encargo Anteproyecto">
         {formatDate(p.draft_order_date)}
       </InfoItem>
     </div>

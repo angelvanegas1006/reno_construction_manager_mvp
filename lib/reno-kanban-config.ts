@@ -222,9 +222,9 @@ export const MATURATION_PHASE_LABELS: Record<string, string> = {
   "pending-to-validate": "Pendiente de Validación",
   "pending-to-reserve-arras": "Pendiente de Reserva / Arras",
   "technical-project-in-progress": "Proyecto Técnico en Progreso",
-  "ecuv-first-validation": "ECUV Primera Validación",
+  "ecuv-first-validation": "ECU Primera Validación",
   "technical-project-fine-tuning": "Ajuste Proyecto Técnico",
-  "ecuv-final-validation": "ECUV Validación Final",
+  "ecuv-final-validation": "ECU Validación Final",
   "pending-budget-from-renovator": "Pendiente Presupuesto Renovador",
 };
 

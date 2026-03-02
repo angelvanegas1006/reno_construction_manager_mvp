@@ -6,15 +6,62 @@ import { use } from "react";
 import { RenoSidebar } from "@/components/reno/reno-sidebar";
 import { NavbarL1 } from "@/components/layout/navbar-l1";
 import { RenoKanbanBoard } from "@/components/reno/reno-kanban-board";
-import { useI18n } from "@/lib/i18n";
+import { MaturationKanbanFilters, DEFAULT_MATURATION_FILTERS, getMaturationFilterBadgeCount } from "@/components/reno/maturation-kanban-filters";
+import type { MaturationFilters } from "@/components/reno/maturation-kanban-filters";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { useMaturationProjects } from "@/hooks/useMaturationProjects";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { visibleRenoKanbanColumnsMaturation } from "@/lib/reno-kanban-config";
+import {
+  visibleRenoKanbanColumnsMaturation,
+  PHASES_KANBAN_MATURATION,
+} from "@/lib/reno-kanban-config";
+import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
+import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import { trackEventWithDevice } from "@/lib/mixpanel";
 
 type ViewMode = "kanban" | "list";
+
+function applyMaturationFilters(
+  byPhase: Record<RenoKanbanPhase, ProjectRow[]>,
+  filters: MaturationFilters,
+): Record<RenoKanbanPhase, ProjectRow[]> {
+  const out: Record<string, ProjectRow[]> = {};
+  for (const phase of PHASES_KANBAN_MATURATION) {
+    out[phase] = [];
+  }
+
+  for (const phase of PHASES_KANBAN_MATURATION) {
+    if (filters.phase && filters.phase !== phase) continue;
+    const projects = byPhase[phase] ?? [];
+    for (const p of projects) {
+      const pa = p as any;
+
+      if (filters.architectNames.length > 0) {
+        const arch = (pa.architect ?? "").toString().trim().toLowerCase();
+        if (!filters.architectNames.some((n) => n.toLowerCase() === arch)) continue;
+      }
+
+      if (filters.scouterNames.length > 0) {
+        const sc = (pa.scouter ?? "").toString().trim().toLowerCase();
+        if (!filters.scouterNames.some((n) => n.toLowerCase() === sc)) continue;
+      }
+
+      if (filters.ecuStatus === "con-ecu" && pa.excluded_from_ecu === true) continue;
+      if (filters.ecuStatus === "sin-ecu" && pa.excluded_from_ecu !== true) continue;
+
+      if (filters.investmentType !== "all") {
+        const inv = (p.investment_type ?? "").toString().trim().toLowerCase();
+        if (filters.investmentType === "flip" && !inv.includes("flip")) continue;
+        if (filters.investmentType === "yield" && !inv.includes("yield")) continue;
+      }
+
+      out[phase].push(p);
+    }
+  }
+
+  return out as Record<RenoKanbanPhase, ProjectRow[]>;
+}
 
 export default function MaturationAnalystKanbanPage() {
   const searchParams = useSearchParams();
@@ -25,14 +72,23 @@ export default function MaturationAnalystKanbanPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
-  const { t } = useI18n();
+  const [filters, setFilters] = useState<MaturationFilters>(DEFAULT_MATURATION_FILTERS);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const {
     projectsByPhase,
+    allProjects,
     refetch: refetchProjects,
   } = useMaturationProjects();
 
   const [syncLoading, setSyncLoading] = useState(false);
+
+  const filteredByPhase = useMemo(
+    () => applyMaturationFilters(projectsByPhase, filters),
+    [projectsByPhase, filters],
+  );
+
+  const filterBadgeCount = getMaturationFilterBadgeCount(filters);
 
   useEffect(() => {
     const viewModeParam = unwrappedSearchParams.get("viewMode");
@@ -99,6 +155,8 @@ export default function MaturationAnalystKanbanPage() {
             onClick: handleSyncAirtable,
             loading: syncLoading,
           }}
+          onFilterClick={() => setIsFiltersOpen(true)}
+          filterBadgeCount={filterBadgeCount}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
         />
@@ -117,11 +175,20 @@ export default function MaturationAnalystKanbanPage() {
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
             viewLevel="project"
-            projectsByPhaseOverride={projectsByPhase}
+            projectsByPhaseOverride={filteredByPhase}
             visibleColumnsOverride={visibleRenoKanbanColumnsMaturation}
             fromParam="maturation-kanban"
           />
         </div>
+
+        {/* Filters Dialog */}
+        <MaturationKanbanFilters
+          open={isFiltersOpen}
+          onOpenChange={setIsFiltersOpen}
+          allProjects={allProjects}
+          filters={filters}
+          onFiltersChange={setFilters}
+        />
       </div>
     </div>
   );

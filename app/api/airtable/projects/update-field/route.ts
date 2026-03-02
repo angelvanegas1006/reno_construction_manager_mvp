@@ -14,22 +14,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { airtable_project_id, architect_record_id } = body as {
+    const { airtable_project_id, field_name, field_value } = body as {
       airtable_project_id?: string;
-      architect_record_id?: string;
+      field_name?: string;
+      field_value?: unknown;
     };
 
     if (!airtable_project_id?.trim()) {
-      return NextResponse.json(
-        { error: "airtable_project_id is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "airtable_project_id is required" }, { status: 400 });
     }
-    if (!architect_record_id?.trim()) {
-      return NextResponse.json(
-        { error: "architect_record_id is required" },
-        { status: 400 }
-      );
+    if (!field_name?.trim()) {
+      return NextResponse.json({ error: "field_name is required" }, { status: 400 });
     }
 
     const url = `https://api.airtable.com/v0/${baseId}/${tableId}/${airtable_project_id.trim()}`;
@@ -42,14 +37,14 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         fields: {
-          Architect: [architect_record_id.trim()],
+          [field_name.trim()]: field_value,
         },
       }),
     });
 
     if (!res.ok) {
       const errorBody = await res.text();
-      console.error("[API /airtable/projects/update-architect] Airtable error:", res.status, errorBody);
+      console.error(`[API /airtable/projects/update-field] Airtable error for "${field_name}":`, res.status, errorBody);
       return NextResponse.json(
         { error: `Airtable returned ${res.status}: ${errorBody}` },
         { status: 500 }
@@ -58,9 +53,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("[API /airtable/projects/update-architect] Error:", error.message);
+    console.error("[API /airtable/projects/update-field] Error:", error.message);
     return NextResponse.json(
-      { error: error.message || "Error updating architect" },
+      { error: error.message || "Error updating field" },
       { status: 500 }
     );
   }

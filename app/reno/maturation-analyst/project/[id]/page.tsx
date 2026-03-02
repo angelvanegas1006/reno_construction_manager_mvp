@@ -200,7 +200,7 @@ export default function MaturationProjectDetailPage() {
                   <SummaryField label="Fecha fin" value={formatDate(p.project_end_date)} />
                   <SummaryField label="Fecha de Firma" value={formatDate(p.settlement_date)} />
                   <SummaryField label="Fecha Límite ARRAS" value={formatDate(p.arras_deadline)} />
-                  <SummaryField label="Fecha de Encargo de Borrador" value={formatDate(p.draft_order_date)} />
+                  <SummaryField label="Fecha de Encargo Anteproyecto" value={formatDate(p.draft_order_date)} />
                   <SummaryField label="Fecha de Medición" value={formatDate(p.measurement_date)} />
                   <SummaryField label="Fecha del Anteproyecto" value={formatDate(p.project_draft_date)} />
                 </div>
@@ -227,24 +227,6 @@ export default function MaturationProjectDetailPage() {
                 </div>
               )}
 
-              {project.airtable_project_id && (
-                <div className="bg-card rounded-lg border p-6 shadow-sm">
-                  <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
-                    <Info className="h-5 w-5 text-muted-foreground" />
-                    IDs del sistema
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Airtable ID</span>
-                      <span className="font-mono text-xs">{project.airtable_project_id}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Supabase ID</span>
-                      <span className="font-mono text-xs">{project.id.slice(0, 12)}…</span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="bg-card rounded-lg border p-6 shadow-sm">

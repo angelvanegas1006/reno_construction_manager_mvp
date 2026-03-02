@@ -47,7 +47,7 @@ interface CalendarEvent {
 type EventType = keyof typeof EVENT_CONFIG;
 
 const EVENT_CONFIG = {
-  draft_order_date:                { label: "Encargo de Borrador",     icon: FileText,     colorClass: "text-blue-500",    filterKey: "drafts" as const },
+  draft_order_date:                { label: "Encargo Anteproyecto",    icon: FileText,     colorClass: "text-blue-500",    filterKey: "drafts" as const },
   measurement_date:                { label: "Medición",                icon: Ruler,        colorClass: "text-indigo-500",  filterKey: "measurements" as const },
   project_draft_date:              { label: "Borrador Proyecto",       icon: FileText,     colorClass: "text-violet-500",  filterKey: "drafts" as const },
   project_start_date:              { label: "Inicio Proyecto",         icon: Hammer,       colorClass: "text-orange-500",  filterKey: "projectDates" as const },

@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { airtable_project_id, architect_record_id } = body as {
+    const { airtable_project_id, excluded_from_ecu } = body as {
       airtable_project_id?: string;
-      architect_record_id?: string;
+      excluded_from_ecu?: boolean;
     };
 
     if (!airtable_project_id?.trim()) {
@@ -25,9 +25,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (!architect_record_id?.trim()) {
+
+    if (typeof excluded_from_ecu !== "boolean") {
       return NextResponse.json(
-        { error: "architect_record_id is required" },
+        { error: "excluded_from_ecu must be a boolean" },
         { status: 400 }
       );
     }
@@ -42,14 +43,14 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         fields: {
-          Architect: [architect_record_id.trim()],
+          "Excluded from ECU": excluded_from_ecu,
         },
       }),
     });
 
     if (!res.ok) {
       const errorBody = await res.text();
-      console.error("[API /airtable/projects/update-architect] Airtable error:", res.status, errorBody);
+      console.error("[API /airtable/projects/update-ecu] Airtable error:", res.status, errorBody);
       return NextResponse.json(
         { error: `Airtable returned ${res.status}: ${errorBody}` },
         { status: 500 }
@@ -58,9 +59,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("[API /airtable/projects/update-architect] Error:", error.message);
+    console.error("[API /airtable/projects/update-ecu] Error:", error.message);
     return NextResponse.json(
-      { error: error.message || "Error updating architect" },
+      { error: error.message || "Error updating ECU status" },
       { status: 500 }
     );
   }
