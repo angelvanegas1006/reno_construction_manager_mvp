@@ -16,15 +16,15 @@ import { ArchitectSelectorModal } from "@/components/reno/architect-selector-mod
 interface TaskDef {
   key: string;
   label: string;
-  type: "text" | "date" | "boolean" | "attachment" | "architect-selector";
+  type: "text" | "date" | "boolean" | "attachment" | "architect-selector" | "readonly-date";
   field: string;
 }
 
 const TASKS_PHASES_1_3: TaskDef[] = [
   { key: "architect", label: "Definir Arquitecto", type: "architect-selector", field: "architect" },
   { key: "excluded_from_ecu", label: "Excluido de ECU", type: "boolean", field: "excluded_from_ecu" },
-  { key: "draft_order_date", label: "Fecha de Encargo de Borrador", type: "date", field: "draft_order_date" },
-  { key: "measurement_date", label: "Fecha de Medición", type: "date", field: "measurement_date" },
+  { key: "draft_order_date", label: "Fecha de Encargo Anteproyecto", type: "readonly-date", field: "draft_order_date" },
+  { key: "measurement_date", label: "Fecha de Medición", type: "readonly-date", field: "measurement_date" },
   { key: "project_draft_date", label: "Fecha del Anteproyecto", type: "date", field: "project_draft_date" },
   { key: "draft_plan", label: "Plano de Borrador", type: "attachment", field: "draft_plan" },
 ];
@@ -197,11 +197,47 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
     async (field: string, value: unknown) => {
       setSavingField(field);
       try {
+        const updates: Record<string, unknown> = {
+          [field]: value,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Auto-timestamp: draft_order_date cuando se asigna arquitecto por primera vez
+        if (field === "architect" && value && !(project as any).draft_order_date) {
+          updates.draft_order_date = new Date().toISOString();
+        }
+
         const { error } = await supabase
           .from("projects")
-          .update({ [field]: value, updated_at: new Date().toISOString() })
+          .update(updates)
           .eq("id", project.id);
         if (error) throw new Error(error.message);
+
+        // Write-back ECU a Airtable
+        if (field === "excluded_from_ecu" && project.airtable_project_id) {
+          fetch("/api/airtable/projects/update-ecu", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              airtable_project_id: project.airtable_project_id,
+              excluded_from_ecu: value === true,
+            }),
+          }).catch(() => console.warn("Airtable ECU sync failed"));
+        }
+
+        // Write-back draft_order_date a Airtable (formato YYYY-MM-DD)
+        if (field === "architect" && updates.draft_order_date && project.airtable_project_id) {
+          fetch("/api/airtable/projects/update-field", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              airtable_project_id: project.airtable_project_id,
+              field_name: "Draft order date",
+              field_value: (updates.draft_order_date as string).slice(0, 10),
+            }),
+          }).catch(() => console.warn("Airtable draft_order_date sync failed"));
+        }
+
         await onRefetch();
         toast.success("Guardado");
         trackEventWithDevice("Maturation Task Saved", {
@@ -215,7 +251,7 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
         setSavingField(null);
       }
     },
-    [supabase, project.id, onRefetch]
+    [supabase, project.id, project.airtable_project_id, onRefetch]
   );
 
   if (tasks.length === 0) {
@@ -310,6 +346,17 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
                         }}
                       />
                     )}
+
+                    {task.type === "readonly-date" && (() => {
+                      const raw = getFieldValue(project, task.field);
+                      if (!raw) return <span className="text-sm text-muted-foreground italic">Se genera automáticamente</span>;
+                      const d = new Date(raw as string);
+                      return (
+                        <span className="text-sm text-foreground">
+                          {d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+                        </span>
+                      );
+                    })()}
 
                     {task.type === "boolean" && (
                       <div className="flex items-center gap-2">

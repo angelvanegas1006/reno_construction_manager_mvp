@@ -211,11 +211,35 @@ export function ArchitectTaskList({ project, onRefetch }: ArchitectTaskListProps
     async (field: string, value: unknown) => {
       setSavingField(field);
       try {
+        const updates: Record<string, unknown> = {
+          [field]: value,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Auto-timestamp: measurement_date cuando se rellenan m² por primera vez
+        if (field === "usable_square_meters" && value != null && !(project as any).measurement_date) {
+          updates.measurement_date = new Date().toISOString();
+        }
+
         const { error } = await supabase
           .from("projects")
-          .update({ [field]: value, updated_at: new Date().toISOString() })
+          .update(updates)
           .eq("id", project.id);
         if (error) throw new Error(error.message);
+
+        // Write-back a Airtable si se generó timestamp de measurement_date (formato YYYY-MM-DD)
+        if (field === "usable_square_meters" && updates.measurement_date && project.airtable_project_id) {
+          fetch("/api/airtable/projects/update-field", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              airtable_project_id: project.airtable_project_id,
+              field_name: "Measurement date",
+              field_value: (updates.measurement_date as string).slice(0, 10),
+            }),
+          }).catch(() => console.warn("Airtable measurement_date sync failed"));
+        }
+
         await onRefetch();
         toast.success("Guardado");
         trackEventWithDevice("Architect Task Saved", {
@@ -229,7 +253,7 @@ export function ArchitectTaskList({ project, onRefetch }: ArchitectTaskListProps
         setSavingField(null);
       }
     },
-    [supabase, project.id, onRefetch, archPhase]
+    [supabase, project.id, project.airtable_project_id, onRefetch, archPhase]
   );
 
   if (archPhase === "arch-completed") {
