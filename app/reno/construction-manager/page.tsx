@@ -27,23 +27,28 @@ import { useAssignedProjectsForForeman } from "@/hooks/useAssignedProjectsForFor
 import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-modal";
 import { RenoHomeAdminDashboard } from "@/components/reno/reno-home-admin-dashboard";
 import { useMaturationProjects } from "@/hooks/useMaturationProjects";
+import { useArchitectProjects } from "@/hooks/useArchitectProjects";
 import { MaturationPhaseDistribution } from "@/components/reno/maturation-phase-distribution";
 import { DonutChart } from "@/components/reno/donut-chart";
 import { ArchitectRanking } from "@/components/reno/architect-ranking";
 import { MaturationCalendar } from "@/components/reno/maturation-calendar";
 import { MaturationTodoWidgets } from "@/components/reno/maturation-todo-widgets";
+import { ArchitectTodoWidgets } from "@/components/reno/architect-todo-widgets";
 import {
   Building2,
   TrendingUp,
   Clock,
   CheckCircle,
+  PencilRuler,
+  DollarSign,
 } from "lucide-react";
 import {
   MATURATION_PHASE_LABELS,
+  ARCHITECT_PHASE_LABELS,
 } from "@/lib/reno-kanban-config";
 import { trackEventWithDevice } from "@/lib/mixpanel";
 
-type DashboardView = "units" | "projects";
+type DashboardView = "units" | "projects" | "architect";
 
 export default function RenoConstructionManagerHomePage() {
   const { t } = useI18n();
@@ -266,7 +271,14 @@ export default function RenoConstructionManagerHomePage() {
     loading: matLoading,
   } = useMaturationProjects();
 
+  const {
+    projectsByPhase: archProjectsByPhase,
+    allProjects: archAllProjects,
+    loading: archLoading,
+  } = useArchitectProjects(null, true);
+
   const matTotalProjects = matAllProjects.length;
+  const archTotalProjects = archAllProjects.length;
 
   const matInvestmentSegments = useMemo(() => {
     const map = new Map<string, number>();
@@ -309,6 +321,16 @@ export default function RenoConstructionManagerHomePage() {
       .slice(0, 8);
   }, [matAllProjects]);
 
+  const archRecentProjects = useMemo(() => {
+    return [...archAllProjects]
+      .sort((a, b) => {
+        const da = a.updated_at || a.created_at || "";
+        const db = b.updated_at || b.created_at || "";
+        return db.localeCompare(da);
+      })
+      .slice(0, 8);
+  }, [archAllProjects]);
+
   return (
     <div className="flex h-screen overflow-hidden">
       <RenoSidebar 
@@ -350,10 +372,136 @@ export default function RenoConstructionManagerHomePage() {
                 >
                   Datos Reno Projects
                 </button>
+                <button
+                  onClick={() => handleDashboardToggle("architect")}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    dashboardView === "architect"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Datos Arquitecto
+                </button>
               </div>
             )}
 
-            {dashboardView === "units" ? (
+            {dashboardView === "architect" ? (
+              <>
+                {archLoading ? (
+                  <VistralLogoLoader className="min-h-[400px]" />
+                ) : (
+                  <>
+                    {/* Architect KPIs */}
+                    <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                      <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <PencilRuler className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Proyectos de Arquitecto</CardTitle>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-xl md:text-2xl font-bold text-foreground">{archTotalProjects}</div>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Total de proyectos con arquitecto asignado</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Ingresos Arquitectos</CardTitle>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-xl md:text-2xl font-bold text-foreground">12.450 &euro;</div>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Dato estimado (pendiente de integración)</p>
+                        </CardContent>
+                      </Card>
+                      <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Media de Elaboración</CardTitle>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-xl md:text-2xl font-bold text-foreground">18 días</div>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Tiempo medio en elaboración de proyectos</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Architect Todo Widgets */}
+                    <ArchitectTodoWidgets allProjects={archAllProjects} projectsByPhase={archProjectsByPhase} />
+
+                    {/* Architect Ranking (full width) */}
+                    <ArchitectRanking allProjects={archAllProjects} />
+
+                    {/* Recent Projects */}
+                    <div className="bg-card border rounded-lg p-4">
+                      <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-violet-500" />
+                        Últimos proyectos actualizados
+                      </h3>
+                      {archRecentProjects.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4 text-center">
+                          No hay proyectos de arquitecto
+                        </p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b text-left text-muted-foreground">
+                                <th className="pb-2 pr-4 font-medium">Proyecto</th>
+                                <th className="pb-2 pr-4 font-medium">Arquitecto</th>
+                                <th className="pb-2 pr-4 font-medium">Fase</th>
+                                <th className="pb-2 font-medium">Última actualización</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {archRecentProjects.map((p) => (
+                                <tr
+                                  key={p.id}
+                                  className="border-b last:border-0 cursor-pointer hover:bg-muted/30 transition-colors"
+                                  onClick={() =>
+                                    router.push(`/reno/maturation-analyst/project/${p.id}?from=architect-home`)
+                                  }
+                                >
+                                  <td className="py-2.5 pr-4">
+                                    <div className="font-medium max-w-[200px] truncate">{p.name || "Sin nombre"}</div>
+                                    {p.area_cluster && (
+                                      <div className="text-xs text-muted-foreground">{p.area_cluster}</div>
+                                    )}
+                                  </td>
+                                  <td className="py-2.5 pr-4 text-xs">
+                                    {(p as any).architect || "Sin asignar"}
+                                  </td>
+                                  <td className="py-2.5 pr-4 text-xs">
+                                    {ARCHITECT_PHASE_LABELS[p.reno_phase as string] ||
+                                      MATURATION_PHASE_LABELS[p.reno_phase as string] ||
+                                      p.project_status ||
+                                      "—"}
+                                  </td>
+                                  <td className="py-2.5 text-xs text-muted-foreground">
+                                    {p.updated_at
+                                      ? new Date(p.updated_at).toLocaleDateString("es-ES", {
+                                          day: "2-digit",
+                                          month: "short",
+                                          year: "numeric",
+                                        })
+                                      : "—"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </>
+            ) : dashboardView === "units" ? (
               <>
                 {supabaseLoading ? (
                   <VistralLogoLoader className="min-h-[400px]" />

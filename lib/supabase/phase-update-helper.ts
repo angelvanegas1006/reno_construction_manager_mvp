@@ -104,6 +104,11 @@ export function getSetUpStatusForPhase(phase: RenoKanbanPhase): string {
     'technical-project-fine-tuning': 'Technical Project Fine Tuning',
     'ecuv-final-validation': 'ECUV Final Validation',
     'pending-budget-from-renovator': 'Pending to Budget from Renovator',
+    'arch-pending-measurement': 'Pending Measurement',
+    'arch-preliminary-project': 'Preliminary Project',
+    'arch-technical-project': 'Technical Project in Progress',
+    'arch-technical-adjustments': 'Technical Project Fine Tuning',
+    'arch-completed': 'Completed',
   };
 
   return phaseToStatusMap[phase] || phase;

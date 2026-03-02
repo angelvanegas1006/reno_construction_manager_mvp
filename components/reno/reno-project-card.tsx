@@ -11,9 +11,11 @@ interface RenoProjectCardProps {
   onClick?: () => void;
   isHighlighted?: boolean;
   linkedProperties?: Property[];
+  variant?: "default" | "architect";
 }
 
-export function RenoProjectCard({ project, onClick, isHighlighted, linkedProperties = [] }: RenoProjectCardProps) {
+export function RenoProjectCard({ project, onClick, isHighlighted, linkedProperties = [], variant = "default" }: RenoProjectCardProps) {
+  const isArchitectVariant = variant === "architect";
   const name = project.name || "Sin nombre";
   const projectIdDisplay = project.project_unique_id || project.id?.slice(0, 8) || project.id;
   const investmentType = (project.investment_type ?? "").toString().trim().toLowerCase();
@@ -62,6 +64,7 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
   const scouter = p.scouter as string | null;
   const architect = p.architect as string | null;
   const excludedFromEcu = p.excluded_from_ecu === true;
+  const renovationExecutor = (p.renovation_executor as string | null)?.trim() || null;
 
   return (
     <button
@@ -77,7 +80,7 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
       {/* ID + investment type badges */}
       <div className="flex items-center justify-between mb-2 gap-2 min-w-0">
         <div className="text-xs font-semibold text-muted-foreground truncate min-w-0">
-          ID {projectIdDisplay}
+          ID: {projectIdDisplay}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           {excludedFromEcu && (
@@ -86,17 +89,17 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
               Sin ECU
             </span>
           )}
-          {isFlip && (
+          {!isArchitectVariant && isFlip && (
             <Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">
               Flip
             </Badge>
           )}
-          {isYield && (
+          {!isArchitectVariant && isYield && (
             <Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">
               Yield
             </Badge>
           )}
-          {!isFlip && !isYield && investmentType && (
+          {!isArchitectVariant && !isFlip && !isYield && investmentType && (
             <Badge variant="secondary" className="text-xs">{project.investment_type}</Badge>
           )}
         </div>
@@ -112,20 +115,34 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
         </p>
       </div>
 
-      {/* Type tag + Est. Properties */}
+      {/* Type tag + Renovation executor + Est. Properties */}
       <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
-        {showTypeTag && (
-          <span className={cn(getTypeTagStyles(), "inline-flex items-center rounded-full text-xs font-medium px-2 py-1")}>
-            {typeRaw || "Project"}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {showTypeTag && (
+            <span className={cn(getTypeTagStyles(), "inline-flex items-center rounded-full text-xs font-medium px-2 py-1")}>
+              {typeRaw || "Proyecto"}
+            </span>
+          )}
+          {!isArchitectVariant && renovationExecutor && (
+            <span className={cn(
+              "inline-flex items-center rounded-full text-xs font-medium px-2 py-1",
+              renovationExecutor.toLowerCase() === "prophero"
+                ? "bg-blue-800 dark:bg-blue-900 text-white dark:text-white"
+                : renovationExecutor.toLowerCase() === "other"
+                  ? "bg-gray-700 dark:bg-gray-800 text-white dark:text-gray-100"
+                  : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700/50"
+            )}>
+              {renovationExecutor}
+            </span>
+          )}
+        </div>
         <span className="text-xs text-muted-foreground ml-auto">
           Propiedades: {propertiesDisplay}
         </span>
       </div>
 
-      {/* Scouter + Architect */}
-      {(scouter || architect) && (
+      {/* Scouter + Architect (hidden in architect variant) */}
+      {!isArchitectVariant && (scouter || architect) && (
         <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
           {scouter && (
             <p className="text-xs text-muted-foreground truncate">

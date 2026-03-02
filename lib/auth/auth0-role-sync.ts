@@ -27,10 +27,13 @@ export async function syncAuth0RoleToSupabase(
       'manager_projects': 'manager_projects',
       'technical_constructor_projects': 'technical_constructor_projects',
       'maduration_analyst': 'maduration_analyst',
+      'set_up_analyst': 'set_up_analyst',
+      'architect': 'architect',
       // Aliases comunes
       'jefe_de_obra': 'foreman',
       'administrator': 'admin',
       'usuario': 'user',
+      'setup_analyst': 'set_up_analyst',
     };
 
     const normalizedRole = auth0Role.toLowerCase().trim();
@@ -104,10 +107,13 @@ export async function syncRoleToSupabaseAdmin(
       'manager_projects': 'manager_projects',
       'technical_constructor_projects': 'technical_constructor_projects',
       'maduration_analyst': 'maduration_analyst',
+      'set_up_analyst': 'set_up_analyst',
+      'architect': 'architect',
       // Aliases comunes
       'jefe_de_obra': 'foreman',
       'administrator': 'admin',
       'usuario': 'user',
+      'setup_analyst': 'set_up_analyst',
     };
 
     const normalizedRole = auth0Role.toLowerCase().trim();

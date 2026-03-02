@@ -170,6 +170,11 @@ export default function RenoConstructionManagerKanbanPage() {
       "technical-project-fine-tuning": [],
       "ecuv-final-validation": [],
       "pending-budget-from-renovator": [],
+      "arch-pending-measurement": [],
+      "arch-preliminary-project": [],
+      "arch-technical-project": [],
+      "arch-technical-adjustments": [],
+      "arch-completed": [],
     };
     if (!rawPropertiesByPhase) return empty;
     const isProjectOrWip = (p: Property) =>

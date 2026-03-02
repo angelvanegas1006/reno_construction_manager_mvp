@@ -175,9 +175,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
 
   const handleProjectClick = useCallback((project: ProjectRow) => {
     startTransition(() => {
-      const basePath = fromParam === "maturation-kanban"
-        ? `/reno/maturation-analyst/project/${project.id}`
-        : `/reno/construction-manager/project/${project.id}`;
+      let basePath: string;
+      if (fromParam === "maturation-kanban") {
+        basePath = `/reno/maturation-analyst/project/${project.id}`;
+      } else if (fromParam === "architect-kanban") {
+        basePath = `/reno/architect/project/${project.id}`;
+      } else {
+        basePath = `/reno/construction-manager/project/${project.id}`;
+      }
       router.push(`${basePath}?viewMode=${viewMode}&from=${fromParam}`);
     });
   }, [router, viewMode, fromParam]);
@@ -251,6 +256,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "technical-project-fine-tuning": [],
       "ecuv-final-validation": [],
       "pending-budget-from-renovator": [],
+      "arch-pending-measurement": [],
+      "arch-preliminary-project": [],
+      "arch-technical-project": [],
+      "arch-technical-adjustments": [],
+      "arch-completed": [],
     };
     }
 
@@ -429,6 +439,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "technical-project-fine-tuning": [],
       "ecuv-final-validation": [],
       "pending-budget-from-renovator": [],
+      "arch-pending-measurement": [],
+      "arch-preliminary-project": [],
+      "arch-technical-project": [],
+      "arch-technical-adjustments": [],
+      "arch-completed": [],
     };
     
     // Debug log removed for production
@@ -691,6 +706,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "technical-project-fine-tuning": allProperties["technical-project-fine-tuning"].filter(matchesAll),
       "ecuv-final-validation": allProperties["ecuv-final-validation"].filter(matchesAll),
       "pending-budget-from-renovator": allProperties["pending-budget-from-renovator"].filter(matchesAll),
+      "arch-pending-measurement": allProperties["arch-pending-measurement"].filter(matchesAll),
+      "arch-preliminary-project": allProperties["arch-preliminary-project"].filter(matchesAll),
+      "arch-technical-project": allProperties["arch-technical-project"].filter(matchesAll),
+      "arch-technical-adjustments": allProperties["arch-technical-adjustments"].filter(matchesAll),
+      "arch-completed": allProperties["arch-completed"].filter(matchesAll),
     };
     
     // Debug: Check filtered results (only in development and when filters are active)
@@ -867,6 +887,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "technical-project-fine-tuning": filtered["technical-project-fine-tuning"] || [],
       "ecuv-final-validation": filtered["ecuv-final-validation"] || [],
       "pending-budget-from-renovator": filtered["pending-budget-from-renovator"] || [],
+      "arch-pending-measurement": filtered["arch-pending-measurement"] || [],
+      "arch-preliminary-project": filtered["arch-preliminary-project"] || [],
+      "arch-technical-project": filtered["arch-technical-project"] || [],
+      "arch-technical-adjustments": filtered["arch-technical-adjustments"] || [],
+      "arch-completed": filtered["arch-completed"] || [],
     };
 
     return sorted;
@@ -1002,6 +1027,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "technical-project-fine-tuning": [],
       "ecuv-final-validation": [],
       "pending-budget-from-renovator": [],
+      "arch-pending-measurement": [],
+      "arch-preliminary-project": [],
+      "arch-technical-project": [],
+      "arch-technical-adjustments": [],
+      "arch-completed": [],
     };
 
     for (const col of visibleColumns) {
@@ -1165,6 +1195,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'technical-project-fine-tuning': [],
       'ecuv-final-validation': [],
       'pending-budget-from-renovator': [],
+      'arch-pending-measurement': [],
+      'arch-preliminary-project': [],
+      'arch-technical-project': [],
+      'arch-technical-adjustments': [],
+      'arch-completed': [],
     };
 
     visibleColumns.forEach((column) => {

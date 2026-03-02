@@ -36,7 +36,13 @@ export type RenoKanbanPhase =
   | "ecuv-first-validation"
   | "technical-project-fine-tuning"
   | "ecuv-final-validation"
-  | "pending-budget-from-renovator";
+  | "pending-budget-from-renovator"
+  // Fases Kanban Arquitecto
+  | "arch-pending-measurement"
+  | "arch-preliminary-project"
+  | "arch-technical-project"
+  | "arch-technical-adjustments"
+  | "arch-completed";
 
 export interface RenoKanbanColumn {
   key: RenoKanbanPhase;
@@ -255,6 +261,45 @@ export const visibleRenoKanbanColumnsMaturation: RenoKanbanColumn[] = PHASES_KAN
     stage: key,
     translationKey: "renoInProgress" as const,
     label: MATURATION_PHASE_LABELS[key] ?? key,
+  })
+);
+
+// ─── Architect Kanban ────────────────────────────────────────────────────────
+
+export const PHASES_KANBAN_ARCHITECT: RenoKanbanPhase[] = [
+  "arch-pending-measurement",
+  "arch-preliminary-project",
+  "arch-technical-project",
+  "arch-technical-adjustments",
+  "arch-completed",
+];
+
+export const ARCHITECT_PHASE_LABELS: Record<string, string> = {
+  "arch-pending-measurement": "Pendiente de Medición",
+  "arch-preliminary-project": "Anteproyecto en Curso",
+  "arch-technical-project": "Proyecto Técnico en Progreso",
+  "arch-technical-adjustments": "Ajustes Técnicos del Proyecto",
+  "arch-completed": "Finalizados",
+};
+
+/** Maps maturation reno_phase to architect kanban phase */
+export const MATURATION_TO_ARCHITECT_PHASE: Record<string, RenoKanbanPhase> = {
+  "get-project-draft": "arch-pending-measurement",
+  "pending-to-validate": "arch-preliminary-project",
+  "pending-to-reserve-arras": "arch-preliminary-project",
+  "technical-project-in-progress": "arch-technical-project",
+  "ecuv-first-validation": "arch-technical-adjustments",
+  "technical-project-fine-tuning": "arch-technical-adjustments",
+  "ecuv-final-validation": "arch-technical-adjustments",
+  "pending-budget-from-renovator": "arch-completed",
+};
+
+export const visibleRenoKanbanColumnsArchitect: RenoKanbanColumn[] = PHASES_KANBAN_ARCHITECT.map(
+  (key) => ({
+    key,
+    stage: key,
+    translationKey: "renoInProgress" as const,
+    label: ARCHITECT_PHASE_LABELS[key] ?? key,
   })
 );
 

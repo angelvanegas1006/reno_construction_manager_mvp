@@ -159,7 +159,7 @@ export default function MaturationProjectDetailPage() {
               </div>
               <div className="bg-card rounded-lg border p-4 shadow-sm text-center overflow-hidden">
                 <p className="text-lg font-bold text-foreground truncate">{project.investment_type ?? "—"}</p>
-                <p className="text-xs text-muted-foreground mt-1">Investment Type</p>
+                <p className="text-xs text-muted-foreground mt-1">Tipo de Inversión</p>
               </div>
             </div>
 
@@ -174,9 +174,9 @@ export default function MaturationProjectDetailPage() {
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                   <SummaryField label="Nombre" value={project.name} />
-                  <SummaryField label="Project ID" value={project.project_unique_id} mono />
-                  <SummaryField label="Area Cluster" value={parseAreaClusterDisplay(project.area_cluster)} />
-                  <SummaryField label="Offer Status" value={p.offer_status} />
+                  <SummaryField label="ID del Proyecto" value={project.project_unique_id} mono />
+                  <SummaryField label="Clúster de Zona" value={parseAreaClusterDisplay(project.area_cluster)} />
+                  <SummaryField label="Estado de la Oferta" value={p.offer_status} />
                   <SummaryField label="Arquitecto" value={p.architect} />
                   <SummaryField label="Contacto ECU" value={p.ecu_contact} />
                   <SummaryField label="Scouter" value={p.scouter} />
@@ -198,11 +198,11 @@ export default function MaturationProjectDetailPage() {
                   <SummaryField label="Fecha inicio" value={formatDate(p.project_start_date)} />
                   <SummaryField label="Fecha fin estimada" value={formatDate(p.estimated_project_end_date)} />
                   <SummaryField label="Fecha fin" value={formatDate(p.project_end_date)} />
-                  <SummaryField label="Settlement date" value={formatDate(p.settlement_date)} />
-                  <SummaryField label="ARRAS Deadline" value={formatDate(p.arras_deadline)} />
-                  <SummaryField label="Draft Order Date" value={formatDate(p.draft_order_date)} />
-                  <SummaryField label="Measurement Date" value={formatDate(p.measurement_date)} />
-                  <SummaryField label="Project Draft Date" value={formatDate(p.project_draft_date)} />
+                  <SummaryField label="Fecha de Firma" value={formatDate(p.settlement_date)} />
+                  <SummaryField label="Fecha Límite ARRAS" value={formatDate(p.arras_deadline)} />
+                  <SummaryField label="Fecha de Encargo de Borrador" value={formatDate(p.draft_order_date)} />
+                  <SummaryField label="Fecha de Medición" value={formatDate(p.measurement_date)} />
+                  <SummaryField label="Fecha del Anteproyecto" value={formatDate(p.project_draft_date)} />
                 </div>
               </div>
             </div>
@@ -364,7 +364,7 @@ export default function MaturationProjectDetailPage() {
                   <div className="mt-1 text-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
                     {project.project_unique_id && (
                       <>
-                        <span className="font-mono">{project.project_unique_id}</span>
+                        <span className="font-semibold">{project.project_unique_id}</span>
                         <span>·</span>
                       </>
                     )}

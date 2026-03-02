@@ -66,6 +66,11 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "technical-project-fine-tuning": 0,
       "ecuv-final-validation": 0,
       "pending-budget-from-renovator": 0,
+      "arch-pending-measurement": 0,
+      "arch-preliminary-project": 0,
+      "arch-technical-project": 0,
+      "arch-technical-adjustments": 0,
+      "arch-completed": 0,
     };
 
     // Use propertiesByPhase directly from Supabase hook
@@ -133,6 +138,11 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "technical-project-fine-tuning": "Ajuste Proyecto Técnico",
       "ecuv-final-validation": "ECUV Validación Final",
       "pending-budget-from-renovator": "Pendiente Presupuesto Renovador",
+      "arch-pending-measurement": "Pendiente de Medición",
+      "arch-preliminary-project": "Anteproyecto en Curso",
+      "arch-technical-project": "Proyecto Técnico en Progreso",
+      "arch-technical-adjustments": "Ajustes Técnicos del Proyecto",
+      "arch-completed": "Finalizados",
     };
     return stageMap[stage];
   };

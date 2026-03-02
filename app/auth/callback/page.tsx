@@ -6,7 +6,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
-type AppRole = "admin" | "foreman" | "construction_manager" | "user" | "manager_projects" | "technical_constructor_projects" | "maduration_analyst" | "set_up_analyst";
+type AppRole = "admin" | "foreman" | "construction_manager" | "user" | "manager_projects" | "technical_constructor_projects" | "maduration_analyst" | "set_up_analyst" | "architect";
 
 /**
  * Mapea rol de Auth0 a rol de la app
@@ -21,6 +21,7 @@ function mapAuth0RoleToAppRole(auth0Role: string): AppRole | null {
     "technical_constructor_projects": "technical_constructor_projects",
     "maduration_analyst": "maduration_analyst",
     "set_up_analyst": "set_up_analyst",
+    "architect": "architect",
     // Aliases comunes
     "jefe_de_obra": "foreman",
     "administrator": "admin",
@@ -349,6 +350,8 @@ export default function Auth0CallbackPage() {
           redirectUrl = "/reno/setup-analyst";
         } else if (role === "maduration_analyst") {
           redirectUrl = "/reno/maturation-analyst";
+        } else if (role === "architect") {
+          redirectUrl = "/reno/architect";
         } else if (role === "admin" || role === "construction_manager") {
           redirectUrl = "/reno/construction-manager/kanban";
         } else {

@@ -393,6 +393,11 @@ export function useSupabaseKanbanProperties() {
         'technical-project-fine-tuning': [],
         'ecuv-final-validation': [],
         'pending-budget-from-renovator': [],
+        'arch-pending-measurement': [],
+        'arch-preliminary-project': [],
+        'arch-technical-project': [],
+        'arch-technical-adjustments': [],
+        'arch-completed': [],
       } as Record<RenoKanbanPhase, Property[]>;
     }
 
@@ -434,6 +439,11 @@ export function useSupabaseKanbanProperties() {
       'technical-project-fine-tuning': [],
       'ecuv-final-validation': [],
       'pending-budget-from-renovator': [],
+      'arch-pending-measurement': [],
+      'arch-preliminary-project': [],
+      'arch-technical-project': [],
+      'arch-technical-adjustments': [],
+      'arch-completed': [],
     };
 
     let convertedCount = 0;
