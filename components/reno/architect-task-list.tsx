@@ -55,11 +55,13 @@ function AttachmentUploadField({
   field,
   value,
   onRefetch,
+  onUploadComplete,
 }: {
   projectId: string;
   field: string;
   value: unknown;
   onRefetch: () => Promise<void>;
+  onUploadComplete?: () => void;
 }) {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -106,6 +108,7 @@ function AttachmentUploadField({
         field,
         filename: file.name,
       });
+      onUploadComplete?.();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Error al subir");
     } finally {
@@ -334,7 +337,7 @@ export function ArchitectTaskList({ project, onRefetch }: ArchitectTaskListProps
         {/* Attachments - phases 2, 3, 4 (not pending-measurement, not completed) */}
         {archPhase !== "arch-pending-measurement" && (() => {
           const attachmentTitle =
-            archPhase === "arch-preliminary-project" ? "Anteproyecto" :
+            archPhase === "arch-preliminary-project" ? "Planos de Anteproyecto" :
             archPhase === "arch-technical-project" ? "Proyecto" :
             archPhase === "arch-technical-adjustments" ? "Proyecto con Ajustes técnicos" :
             "Documentos adjuntos";
@@ -347,6 +350,27 @@ export function ArchitectTaskList({ project, onRefetch }: ArchitectTaskListProps
                 field="architect_attachments"
                 value={p.architect_attachments}
                 onRefetch={onRefetch}
+                onUploadComplete={archPhase === "arch-preliminary-project" ? () => {
+                  if (!p.project_draft_date) {
+                    const now = new Date().toISOString();
+                    supabase
+                      .from("projects")
+                      .update({ project_draft_date: now, updated_at: now })
+                      .eq("id", project.id)
+                      .then(() => onRefetch());
+                    if (project.airtable_project_id) {
+                      fetch("/api/airtable/projects/update-field", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          airtable_project_id: project.airtable_project_id,
+                          field_name: "Project draft date",
+                          field_value: now.slice(0, 10),
+                        }),
+                      }).catch(() => console.warn("Airtable project_draft_date sync failed"));
+                    }
+                  }
+                } : undefined}
               />
             </div>
           </div>

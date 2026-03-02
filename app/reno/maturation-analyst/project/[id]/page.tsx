@@ -180,7 +180,8 @@ export default function MaturationProjectDetailPage() {
                   <SummaryField label="Arquitecto" value={p.architect} />
                   <SummaryField label="Contacto ECU" value={p.ecu_contact} />
                   <SummaryField label="Scouter" value={p.scouter} />
-                  <SummaryField label="Excluido ECU" value={p.excluded_from_ecu === true ? "Sí" : p.excluded_from_ecu === false ? "No" : null} />
+                  <SummaryField label="Ejecutor de Renovación" value={p.renovation_executor} />
+                  <SummaryField label="ECU" value={p.excluded_from_ecu === true ? "Sin ECU" : p.excluded_from_ecu === false ? "Con ECU" : null} />
                 </div>
               </div>
             </div>
