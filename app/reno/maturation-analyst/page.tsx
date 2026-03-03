@@ -18,6 +18,7 @@ import { DonutChart } from "@/components/reno/donut-chart";
 import { ArchitectRanking } from "@/components/reno/architect-ranking";
 import { MaturationCalendar } from "@/components/reno/maturation-calendar";
 import { MaturationTodoWidgets } from "@/components/reno/maturation-todo-widgets";
+import { ProjectTimelineOverview } from "@/components/reno/project-timeline-compact";
 import { trackEventWithDevice } from "@/lib/mixpanel";
 
 export default function MaturationAnalystHomePage() {
@@ -193,6 +194,9 @@ export default function MaturationAnalystHomePage() {
 
               {/* Calendario de fechas */}
               <MaturationCalendar allProjects={allProjects} />
+
+              {/* Timeline compacto de todos los proyectos */}
+              <ProjectTimelineOverview allProjects={allProjects} />
 
               {/* Proyectos recientes */}
               <div className="bg-card border rounded-lg p-4">

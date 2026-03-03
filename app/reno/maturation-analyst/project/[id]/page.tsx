@@ -18,6 +18,7 @@ import { PropertyTabs } from "@/components/layout/property-tabs";
 import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { MaturationProjectSidebar } from "@/components/reno/maturation-project-sidebar";
 import { MaturationTaskList } from "@/components/reno/maturation-task-list";
+import { ProjectTimeline } from "@/components/reno/project-timeline";
 import { useI18n } from "@/lib/i18n";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { MATURATION_PHASE_LABELS } from "@/lib/reno-kanban-config";
@@ -71,8 +72,11 @@ export default function MaturationProjectDetailPage() {
   const { user, role, isLoading: authLoading } = useAppAuth();
   const { project, properties, loading, error, refetch } =
     useSupabaseProject(projectId);
-  const [activeTab, setActiveTab] = useState("tareas");
+  const initialTab = unwrappedSearchParams?.get("tab") || "tareas";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const isTimelineTab = activeTab === "timeline";
 
   useEffect(() => {
     if (project && !loading) {
@@ -106,6 +110,7 @@ export default function MaturationProjectDetailPage() {
 
   const tabs = [
     { id: "tareas", label: "Tareas" },
+    { id: "timeline", label: "Timeline" },
     { id: "resumen", label: "Resumen" },
     { id: "propiedades", label: "Propiedades del proyecto" },
   ];
@@ -138,6 +143,9 @@ export default function MaturationProjectDetailPage() {
     switch (activeTab) {
       case "tareas":
         return <MaturationTaskList project={project} onRefetch={refetch} />;
+
+      case "timeline":
+        return <ProjectTimeline project={project} />;
 
       case "resumen": {
         const p = project as any;
@@ -363,15 +371,17 @@ export default function MaturationProjectDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden"
-                aria-label="Abrir panel"
-              >
-                <Info className="h-5 w-5" />
-              </Button>
+              {!isTimelineTab && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="lg:hidden"
+                  aria-label="Abrir panel"
+                >
+                  <Info className="h-5 w-5" />
+                </Button>
+              )}
             </div>
           </div>
         </header>
@@ -385,12 +395,16 @@ export default function MaturationProjectDetailPage() {
 
         {/* Content + Sidebar */}
         <div className="flex flex-1 overflow-hidden pt-2">
-          <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24">
-            <div className="max-w-4xl mx-auto">{renderTabContent()}</div>
+          <div className={cn(
+            "flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24",
+          )}>
+            <div className={isTimelineTab ? "w-full" : "max-w-4xl mx-auto"}>{renderTabContent()}</div>
           </div>
-          <div className="hidden lg:block h-full min-h-0 w-[320px] flex-shrink-0 border-l bg-card dark:bg-[var(--prophero-gray-900)] overflow-y-auto">
-            <MaturationProjectSidebar project={project} />
-          </div>
+          {!isTimelineTab && (
+            <div className="hidden lg:block h-full min-h-0 w-[320px] flex-shrink-0 border-l bg-card dark:bg-[var(--prophero-gray-900)] overflow-y-auto">
+              <MaturationProjectSidebar project={project} />
+            </div>
+          )}
         </div>
       </div>
 
