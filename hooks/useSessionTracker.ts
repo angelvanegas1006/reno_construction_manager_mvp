@@ -4,14 +4,18 @@ import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 const HEARTBEAT_INTERVAL_MS = 60_000; // 1 minute
+const RETRY_DELAY_MS = 5_000;
+const MAX_RETRIES = 3;
 
 /**
  * Tracks user sessions by creating a record on mount,
  * sending periodic heartbeats, and finalizing on unmount/close.
+ * Retries session creation if the initial insert fails (e.g. transient network error on mobile).
  */
 export function useSessionTracker(userId: string | null | undefined) {
   const sessionIdRef = useRef<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const retryCountRef = useRef(0);
 
   useEffect(() => {
     if (!userId) return;
@@ -28,15 +32,26 @@ export function useSessionTracker(userId: string | null | undefined) {
 
       if (error) {
         console.warn("[SessionTracker] Failed to create session:", error.message);
+        if (mounted && retryCountRef.current < MAX_RETRIES) {
+          retryCountRef.current++;
+          setTimeout(() => { if (mounted) startSession(); }, RETRY_DELAY_MS);
+        }
         return;
       }
       if (mounted && data) {
         sessionIdRef.current = data.id;
+        retryCountRef.current = 0;
       }
     }
 
     function heartbeat() {
-      if (!sessionIdRef.current) return;
+      if (!sessionIdRef.current) {
+        if (retryCountRef.current < MAX_RETRIES) {
+          retryCountRef.current++;
+          startSession();
+        }
+        return;
+      }
       supabase
         .from("user_sessions")
         .update({ last_active_at: new Date().toISOString() })
@@ -49,6 +64,10 @@ export function useSessionTracker(userId: string | null | undefined) {
     function endSession() {
       if (!sessionIdRef.current) return;
       const now = new Date().toISOString();
+      navigator.sendBeacon?.(
+        "/api/session/end",
+        JSON.stringify({ sessionId: sessionIdRef.current, now })
+      );
       supabase
         .from("user_sessions")
         .update({ ended_at: now, last_active_at: now })
@@ -64,6 +83,8 @@ export function useSessionTracker(userId: string | null | undefined) {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
         heartbeat();
+      } else if (document.visibilityState === "visible" && !sessionIdRef.current) {
+        startSession();
       }
     };
 

@@ -1,21 +1,42 @@
 "use client";
 
 import { useState, useEffect, useCallback, use } from "react";
+import dynamic from "next/dynamic";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   FolderKanban,
+  FolderOpen,
   Info,
   X,
   Building2,
   Calendar,
   MapPin,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PropertyTabs } from "@/components/layout/property-tabs";
 import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { ArchitectProjectSidebar } from "@/components/reno/architect-project-sidebar";
 import { ArchitectTaskList } from "@/components/reno/architect-task-list";
+
+const PdfViewer = dynamic(
+  () => import("@/components/reno/pdf-viewer").then((mod) => ({ default: mod.PdfViewer })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full border rounded-lg overflow-hidden bg-muted/50 flex items-center justify-center" style={{ minHeight: "400px" }}>
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Cargando visor de PDF...</p>
+        </div>
+      </div>
+    ),
+  }
+);
 import { useSupabaseProject } from "@/hooks/useSupabaseProject";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { ARCHITECT_PHASE_LABELS } from "@/lib/reno-kanban-config";
@@ -24,15 +45,11 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { trackEventWithDevice } from "@/lib/mixpanel";
 
-const STATUSES_EARLY = new Set(["get project draft", "pending to validate"]);
-
-function hasAttachments(value: unknown): boolean {
-  if (!value) return false;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === "string") {
-    try { return JSON.parse(value).length > 0; } catch { return false; }
-  }
-  return false;
+function hasValue(v: unknown): boolean {
+  if (v == null) return false;
+  if (typeof v === "string") return v.trim() !== "";
+  if (Array.isArray(v)) return v.length > 0;
+  return !!v;
 }
 
 function resolveArchitectPhase(project: ProjectRow): string {
@@ -40,21 +57,29 @@ function resolveArchitectPhase(project: ProjectRow): string {
   const statusRaw = (pa.project_status ?? project.reno_phase ?? "") as string;
   const status = statusRaw.trim().toLowerCase();
 
-  if (STATUSES_EARLY.has(status)) {
-    const hasSqm = pa.usable_square_meters != null && pa.usable_square_meters !== "";
-    if (!hasSqm) return "arch-pending-measurement";
-    if (!hasAttachments(pa.architect_attachments)) return "arch-preliminary-project";
-    return "arch-completed";
-  }
-  if (status === "technical project in progress") {
-    if (!hasAttachments(pa.architect_attachments)) return "arch-technical-project";
-    return "arch-completed";
-  }
-  if (status === "technical project fine-tuning") {
-    if (!hasAttachments(pa.architect_attachments)) return "arch-technical-adjustments";
-    return "arch-completed";
-  }
-  return "arch-completed";
+  const ADVANCED_STATUSES: Record<string, string> = {
+    "technical project in progress": "arch-technical-project",
+    "ecuv first validation": "arch-ecu-first-validation",
+    "ecu first validation": "arch-ecu-first-validation",
+    "technical project fine-tuning": "arch-technical-adjustments",
+    "technical project fine tuning": "arch-technical-adjustments",
+    "ecuv final validation": "arch-ecu-final-validation",
+    "ecu final validation": "arch-ecu-final-validation",
+    "reno to start": "arch-obra-empezar",
+    "pending to start reno": "arch-obra-empezar",
+    "pending to budget from renovator": "arch-completed",
+    "pending to budget (from renovator)": "arch-completed",
+    "reno in progress": "arch-completed",
+  };
+
+  if (ADVANCED_STATUSES[status]) return ADVANCED_STATUSES[status];
+
+  const hasMeasurement = hasValue(pa.measurement_date);
+  const hasSentToPropHero = hasValue(pa.project_architect_date);
+
+  if (!hasMeasurement) return "arch-pending-measurement";
+  if (!hasSentToPropHero) return "arch-preliminary-project";
+  return "arch-pending-validation";
 }
 
 function getArchitectPhaseLabel(project: ProjectRow): string {
@@ -197,12 +222,6 @@ export default function ArchitectProjectDetailPage() {
                     <span>
                       Fase: {getArchitectPhaseLabel(project)}
                     </span>
-                    {p.usable_square_meters != null && (
-                      <>
-                        <span>·</span>
-                        <span>{p.usable_square_meters} m²</span>
-                      </>
-                    )}
                   </div>
                 </div>
               </div>
@@ -303,12 +322,6 @@ function ArchitectSummary({ project }: { project: ProjectRow }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-card rounded-lg border p-4 shadow-sm text-center overflow-hidden">
           <p className="text-2xl font-bold text-foreground">
-            {p.usable_square_meters != null ? `${p.usable_square_meters} m²` : "—"}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">Metros cuadrados</p>
-        </div>
-        <div className="bg-card rounded-lg border p-4 shadow-sm text-center overflow-hidden">
-          <p className="text-2xl font-bold text-foreground">
             {p.properties_to_convert && String(p.properties_to_convert).trim() && String(p.properties_to_convert).trim() !== "0"
               ? String(p.properties_to_convert).trim()
               : (p.est_properties ?? "—")}
@@ -364,6 +377,9 @@ function ArchitectSummary({ project }: { project: ProjectRow }) {
         </div>
       </div>
 
+      {/* Documents */}
+      <ArchitectDocumentsSection project={project} />
+
       {/* Location */}
       {p.project_address && (
         <div className="bg-card rounded-lg border p-6 shadow-sm">
@@ -374,6 +390,170 @@ function ArchitectSummary({ project }: { project: ProjectRow }) {
           <p className="text-sm text-muted-foreground">{p.project_address}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Documents Section with inline PDF Viewer                           */
+/* ------------------------------------------------------------------ */
+
+type ArchDocSection = {
+  label: string;
+  attachments?: { url: string; filename: string }[];
+  externalUrl?: string;
+};
+
+function ArchitectDocumentsSection({ project }: { project: ProjectRow }) {
+  const p = project as any;
+  const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
+
+  const sections: ArchDocSection[] = [
+    {
+      label: "Planos de Anteproyecto",
+      attachments: Array.isArray(p.architect_attachments) ? p.architect_attachments : [],
+    },
+    {
+      label: "Informe Check Pro",
+      externalUrl: (p.check_pro_report_url as string) || undefined,
+    },
+    {
+      label: "Mediciones",
+      attachments: Array.isArray(p.arch_measurements_doc) ? p.arch_measurements_doc : [],
+    },
+    {
+      label: "Proyecto (PDF)",
+      attachments: Array.isArray(p.arch_project_doc) ? p.arch_project_doc : [],
+    },
+    {
+      label: "Proyecto CAD",
+      attachments: Array.isArray(p.arch_project_cad_doc) ? p.arch_project_cad_doc : [],
+    },
+  ];
+
+  const hasDocs = sections.some(
+    (s) => (s.attachments && s.attachments.length > 0) || s.externalUrl
+  );
+  if (!hasDocs) return null;
+
+  const isPdfFile = (url: string) => /\.pdf(\?|$)/i.test(url);
+
+  return (
+    <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b bg-muted/30">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <FolderOpen className="h-5 w-5 text-muted-foreground" />
+          Documentación
+        </h2>
+      </div>
+      <div className="p-4 md:p-6 space-y-4">
+        {sections.map((section) => {
+          if (section.externalUrl) {
+            return (
+              <div key={section.label} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    {section.label}
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      window.open(
+                        `/api/proxy-html?url=${encodeURIComponent(section.externalUrl!)}`,
+                        "_blank"
+                      )
+                    }
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Ver informe
+                  </Button>
+                </div>
+              </div>
+            );
+          }
+
+          const atts = section.attachments ?? [];
+          if (atts.length === 0) return null;
+
+          const pdfs = atts.filter((a) => isPdfFile(a.url));
+          const nonPdfs = atts.filter((a) => !isPdfFile(a.url));
+
+          return (
+            <div key={section.label} className="space-y-3">
+              {pdfs.map((att, idx) => {
+                const docKey = `${section.label}-${idx}`;
+                const isExpanded = expandedDoc === docKey;
+                const proxyUrl = att.url.startsWith("http")
+                  ? `/api/proxy-pdf?url=${encodeURIComponent(att.url)}`
+                  : att.url;
+
+                return (
+                  <div key={docKey} className="border rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedDoc(isExpanded ? null : docKey)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? (
+                          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        <h3 className="text-base font-semibold">
+                          {pdfs.length === 1 ? section.label : `${section.label} ${idx + 1}`}
+                        </h3>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(proxyUrl, "_blank");
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Abrir en nueva pestaña
+                      </Button>
+                    </button>
+                    {isExpanded && (
+                      <div className="px-4 pb-4">
+                        <PdfViewer fileUrl={proxyUrl} fileName={att.filename} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {nonPdfs.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    {section.label}
+                    {pdfs.length > 0 && " (otros archivos)"}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {nonPdfs.map((att, i) => (
+                      <a
+                        key={i}
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border text-sm font-medium text-primary hover:bg-muted/50 transition-colors"
+                      >
+                        {att.filename}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

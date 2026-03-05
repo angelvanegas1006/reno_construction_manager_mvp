@@ -34,6 +34,7 @@ import { ArchitectRanking } from "@/components/reno/architect-ranking";
 import { MaturationCalendar } from "@/components/reno/maturation-calendar";
 import { MaturationTodoWidgets } from "@/components/reno/maturation-todo-widgets";
 import { ArchitectTodoWidgets } from "@/components/reno/architect-todo-widgets";
+import { ProjectTimelineOverview } from "@/components/reno/project-timeline-compact";
 import {
   Building2,
   TrendingUp,
@@ -648,6 +649,9 @@ export default function RenoConstructionManagerHomePage() {
 
                     {/* Calendar */}
                     <MaturationCalendar allProjects={matAllProjects} />
+
+                    {/* Timeline compacto de todos los proyectos */}
+                    <ProjectTimelineOverview allProjects={matAllProjects} />
 
                     {/* Recent Projects */}
                     <div className="bg-card border rounded-lg p-4">

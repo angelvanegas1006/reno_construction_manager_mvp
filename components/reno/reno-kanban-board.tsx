@@ -260,6 +260,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-preliminary-project": [],
       "arch-technical-project": [],
       "arch-technical-adjustments": [],
+      "arch-pending-validation": [],
+      "arch-ecu-first-validation": [],
+      "arch-ecu-final-validation": [],
+      "arch-obra-empezar": [],
       "arch-completed": [],
     };
     }
@@ -443,6 +447,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-preliminary-project": [],
       "arch-technical-project": [],
       "arch-technical-adjustments": [],
+      "arch-pending-validation": [],
+      "arch-ecu-first-validation": [],
+      "arch-ecu-final-validation": [],
+      "arch-obra-empezar": [],
       "arch-completed": [],
     };
     
@@ -710,6 +718,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-preliminary-project": allProperties["arch-preliminary-project"].filter(matchesAll),
       "arch-technical-project": allProperties["arch-technical-project"].filter(matchesAll),
       "arch-technical-adjustments": allProperties["arch-technical-adjustments"].filter(matchesAll),
+      "arch-pending-validation": allProperties["arch-pending-validation"].filter(matchesAll),
+      "arch-ecu-first-validation": allProperties["arch-ecu-first-validation"].filter(matchesAll),
+      "arch-ecu-final-validation": allProperties["arch-ecu-final-validation"].filter(matchesAll),
+      "arch-obra-empezar": allProperties["arch-obra-empezar"].filter(matchesAll),
       "arch-completed": allProperties["arch-completed"].filter(matchesAll),
     };
     
@@ -891,6 +903,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-preliminary-project": filtered["arch-preliminary-project"] || [],
       "arch-technical-project": filtered["arch-technical-project"] || [],
       "arch-technical-adjustments": filtered["arch-technical-adjustments"] || [],
+      "arch-pending-validation": filtered["arch-pending-validation"] || [],
+      "arch-ecu-first-validation": filtered["arch-ecu-first-validation"] || [],
+      "arch-ecu-final-validation": filtered["arch-ecu-final-validation"] || [],
+      "arch-obra-empezar": filtered["arch-obra-empezar"] || [],
       "arch-completed": filtered["arch-completed"] || [],
     };
 
@@ -1031,6 +1047,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-preliminary-project": [],
       "arch-technical-project": [],
       "arch-technical-adjustments": [],
+      "arch-pending-validation": [],
+      "arch-ecu-first-validation": [],
+      "arch-ecu-final-validation": [],
+      "arch-obra-empezar": [],
       "arch-completed": [],
     };
 
@@ -1197,8 +1217,12 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'pending-budget-from-renovator': [],
       'arch-pending-measurement': [],
       'arch-preliminary-project': [],
+      'arch-pending-validation': [],
       'arch-technical-project': [],
+      'arch-ecu-first-validation': [],
       'arch-technical-adjustments': [],
+      'arch-ecu-final-validation': [],
+      'arch-obra-empezar': [],
       'arch-completed': [],
     };
 

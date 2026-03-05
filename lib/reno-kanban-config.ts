@@ -40,8 +40,12 @@ export type RenoKanbanPhase =
   // Fases Kanban Arquitecto
   | "arch-pending-measurement"
   | "arch-preliminary-project"
+  | "arch-pending-validation"
   | "arch-technical-project"
+  | "arch-ecu-first-validation"
   | "arch-technical-adjustments"
+  | "arch-ecu-final-validation"
+  | "arch-obra-empezar"
   | "arch-completed";
 
 export interface RenoKanbanColumn {
@@ -214,6 +218,8 @@ export const PHASES_KANBAN_MATURATION: RenoKanbanPhase[] = [
   "technical-project-fine-tuning",
   "ecuv-final-validation",
   "pending-budget-from-renovator",
+  "obra-a-empezar",
+  "obra-en-progreso",
 ];
 
 /** Etiquetas en español para las columnas del Kanban de Maduración */
@@ -226,6 +232,8 @@ export const MATURATION_PHASE_LABELS: Record<string, string> = {
   "technical-project-fine-tuning": "Ajuste Proyecto Técnico",
   "ecuv-final-validation": "ECU Validación Final",
   "pending-budget-from-renovator": "Pendiente Presupuesto Renovador",
+  "obra-a-empezar": "Obra a Empezar",
+  "obra-en-progreso": "Obra en Progreso",
 };
 
 /** Mapeo Project status (Airtable) → reno_phase para Kanban Maduración */
@@ -252,6 +260,11 @@ export const MATURATION_PROJECT_STATUS_TO_PHASE: Record<string, RenoKanbanPhase>
   "Pending to Budget from Renovator": "pending-budget-from-renovator",
   "Pending to budget from renovator": "pending-budget-from-renovator",
   "Pending to budget (from renovator)": "pending-budget-from-renovator",
+  "Reno to start": "obra-a-empezar",
+  "Reno To Start": "obra-a-empezar",
+  "Pending to start reno": "obra-a-empezar",
+  "Reno in progress": "obra-en-progreso",
+  "Reno In Progress": "obra-en-progreso",
 };
 
 /** Columnas visibles del Kanban de Maduración */
@@ -269,29 +282,39 @@ export const visibleRenoKanbanColumnsMaturation: RenoKanbanColumn[] = PHASES_KAN
 export const PHASES_KANBAN_ARCHITECT: RenoKanbanPhase[] = [
   "arch-pending-measurement",
   "arch-preliminary-project",
+  "arch-pending-validation",
   "arch-technical-project",
+  "arch-ecu-first-validation",
   "arch-technical-adjustments",
+  "arch-ecu-final-validation",
+  "arch-obra-empezar",
   "arch-completed",
 ];
 
 export const ARCHITECT_PHASE_LABELS: Record<string, string> = {
   "arch-pending-measurement": "Pendiente de Medición",
   "arch-preliminary-project": "Anteproyecto en Curso",
+  "arch-pending-validation": "Pendiente de Validación de PropHero",
   "arch-technical-project": "Proyecto Técnico en Progreso",
+  "arch-ecu-first-validation": "ECU Primera Validación",
   "arch-technical-adjustments": "Ajustes Técnicos del Proyecto",
+  "arch-ecu-final-validation": "ECU Validación Final",
+  "arch-obra-empezar": "Obra a Empezar",
   "arch-completed": "Finalizados",
 };
 
 /** Maps maturation reno_phase to architect kanban phase */
 export const MATURATION_TO_ARCHITECT_PHASE: Record<string, RenoKanbanPhase> = {
   "get-project-draft": "arch-pending-measurement",
-  "pending-to-validate": "arch-preliminary-project",
-  "pending-to-reserve-arras": "arch-preliminary-project",
+  "pending-to-validate": "arch-pending-validation",
+  "pending-to-reserve-arras": "arch-pending-validation",
   "technical-project-in-progress": "arch-technical-project",
-  "ecuv-first-validation": "arch-technical-adjustments",
+  "ecuv-first-validation": "arch-ecu-first-validation",
   "technical-project-fine-tuning": "arch-technical-adjustments",
-  "ecuv-final-validation": "arch-technical-adjustments",
+  "ecuv-final-validation": "arch-ecu-final-validation",
   "pending-budget-from-renovator": "arch-completed",
+  "obra-a-empezar": "arch-obra-empezar",
+  "obra-en-progreso": "arch-completed",
 };
 
 export const visibleRenoKanbanColumnsArchitect: RenoKanbanColumn[] = PHASES_KANBAN_ARCHITECT.map(

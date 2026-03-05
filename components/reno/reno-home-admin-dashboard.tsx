@@ -287,7 +287,7 @@ export function RenoHomeAdminDashboard({
         const usersRes = await fetch("/api/admin/users");
         const usersJson = await usersRes.json();
         const foremen = (usersJson.users || []).filter(
-          (u: any) => u.role === "foreman"
+          (u: any) => u.role === "foreman" || u.role === "construction_manager"
         );
 
         const startOfWeek = getStartOfWeek();

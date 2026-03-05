@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, use } from "react";
+import dynamic from "next/dynamic";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -12,12 +13,31 @@ import {
   Info,
   X,
   Calendar,
+  ChevronDown,
+  ChevronUp,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PropertyTabs } from "@/components/layout/property-tabs";
 import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { MaturationProjectSidebar } from "@/components/reno/maturation-project-sidebar";
 import { MaturationTaskList } from "@/components/reno/maturation-task-list";
+import { ProjectTimeline } from "@/components/reno/project-timeline";
+
+const PdfViewer = dynamic(
+  () => import("@/components/reno/pdf-viewer").then((mod) => ({ default: mod.PdfViewer })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full border rounded-lg overflow-hidden bg-muted/50 flex items-center justify-center" style={{ minHeight: "400px" }}>
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Cargando visor de PDF...</p>
+        </div>
+      </div>
+    ),
+  }
+);
 import { useI18n } from "@/lib/i18n";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { MATURATION_PHASE_LABELS } from "@/lib/reno-kanban-config";
@@ -71,8 +91,11 @@ export default function MaturationProjectDetailPage() {
   const { user, role, isLoading: authLoading } = useAppAuth();
   const { project, properties, loading, error, refetch } =
     useSupabaseProject(projectId);
-  const [activeTab, setActiveTab] = useState("tareas");
+  const initialTab = unwrappedSearchParams?.get("tab") || "tareas";
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const isTimelineTab = activeTab === "timeline";
 
   useEffect(() => {
     if (project && !loading) {
@@ -106,6 +129,7 @@ export default function MaturationProjectDetailPage() {
 
   const tabs = [
     { id: "tareas", label: "Tareas" },
+    { id: "timeline", label: "Timeline" },
     { id: "resumen", label: "Resumen" },
     { id: "propiedades", label: "Propiedades del proyecto" },
   ];
@@ -138,6 +162,9 @@ export default function MaturationProjectDetailPage() {
     switch (activeTab) {
       case "tareas":
         return <MaturationTaskList project={project} onRefetch={refetch} />;
+
+      case "timeline":
+        return <ProjectTimeline project={project} />;
 
       case "resumen": {
         const p = project as any;
@@ -207,6 +234,9 @@ export default function MaturationProjectDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Documents */}
+            <ProjectDocumentsSection project={project} />
 
             {/* Drive + Location */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -363,15 +393,17 @@ export default function MaturationProjectDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden"
-                aria-label="Abrir panel"
-              >
-                <Info className="h-5 w-5" />
-              </Button>
+              {!isTimelineTab && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="lg:hidden"
+                  aria-label="Abrir panel"
+                >
+                  <Info className="h-5 w-5" />
+                </Button>
+              )}
             </div>
           </div>
         </header>
@@ -385,12 +417,16 @@ export default function MaturationProjectDetailPage() {
 
         {/* Content + Sidebar */}
         <div className="flex flex-1 overflow-hidden pt-2">
-          <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24">
-            <div className="max-w-4xl mx-auto">{renderTabContent()}</div>
+          <div className={cn(
+            "flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24",
+          )}>
+            <div className={isTimelineTab ? "w-full" : "max-w-4xl mx-auto"}>{renderTabContent()}</div>
           </div>
-          <div className="hidden lg:block h-full min-h-0 w-[320px] flex-shrink-0 border-l bg-card dark:bg-[var(--prophero-gray-900)] overflow-y-auto">
-            <MaturationProjectSidebar project={project} />
-          </div>
+          {!isTimelineTab && (
+            <div className="hidden lg:block h-full min-h-0 w-[320px] flex-shrink-0 border-l bg-card dark:bg-[var(--prophero-gray-900)] overflow-y-auto">
+              <MaturationProjectSidebar project={project} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -474,5 +510,169 @@ function PropertyCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Documents Section with inline PDF Viewer                           */
+/* ------------------------------------------------------------------ */
+
+type DocSection = {
+  label: string;
+  attachments?: { url: string; filename: string }[];
+  externalUrl?: string;
+};
+
+function ProjectDocumentsSection({ project }: { project: any }) {
+  const p = project as any;
+  const [expandedDoc, setExpandedDoc] = useState<string | null>(null);
+
+  const sections: DocSection[] = [
+    {
+      label: "Planos de Anteproyecto",
+      attachments: Array.isArray(p.architect_attachments) ? p.architect_attachments : [],
+    },
+    {
+      label: "Informe Check Pro",
+      externalUrl: (p.check_pro_report_url as string) || undefined,
+    },
+    {
+      label: "Mediciones",
+      attachments: Array.isArray(p.arch_measurements_doc) ? p.arch_measurements_doc : [],
+    },
+    {
+      label: "Proyecto (PDF)",
+      attachments: Array.isArray(p.arch_project_doc) ? p.arch_project_doc : [],
+    },
+    {
+      label: "Proyecto CAD",
+      attachments: Array.isArray(p.arch_project_cad_doc) ? p.arch_project_cad_doc : [],
+    },
+  ];
+
+  const hasDocs = sections.some(
+    (s) => (s.attachments && s.attachments.length > 0) || s.externalUrl
+  );
+  if (!hasDocs) return null;
+
+  const isPdf = (url: string) => /\.pdf(\?|$)/i.test(url);
+
+  return (
+    <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b bg-muted/30">
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <FolderOpen className="h-5 w-5 text-muted-foreground" />
+          Documentación
+        </h2>
+      </div>
+      <div className="p-4 md:p-6 space-y-4">
+        {sections.map((section) => {
+          if (section.externalUrl) {
+            return (
+              <div key={section.label} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    {section.label}
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      window.open(
+                        `/api/proxy-html?url=${encodeURIComponent(section.externalUrl!)}`,
+                        "_blank"
+                      )
+                    }
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Ver informe
+                  </Button>
+                </div>
+              </div>
+            );
+          }
+
+          const atts = section.attachments ?? [];
+          if (atts.length === 0) return null;
+
+          const pdfs = atts.filter((a) => isPdf(a.url));
+          const nonPdfs = atts.filter((a) => !isPdf(a.url));
+
+          return (
+            <div key={section.label} className="space-y-3">
+              {pdfs.map((att, idx) => {
+                const docKey = `${section.label}-${idx}`;
+                const isExpanded = expandedDoc === docKey;
+                const proxyUrl = att.url.startsWith("http")
+                  ? `/api/proxy-pdf?url=${encodeURIComponent(att.url)}`
+                  : att.url;
+
+                return (
+                  <div key={docKey} className="border rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedDoc(isExpanded ? null : docKey)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? (
+                          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        )}
+                        <h3 className="text-base font-semibold">
+                          {pdfs.length === 1 ? section.label : `${section.label} ${idx + 1}`}
+                        </h3>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(proxyUrl, "_blank");
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Abrir en nueva pestaña
+                      </Button>
+                    </button>
+                    {isExpanded && (
+                      <div className="px-4 pb-4">
+                        <PdfViewer fileUrl={proxyUrl} fileName={att.filename} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {nonPdfs.length > 0 && (
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    {section.label}
+                    {pdfs.length > 0 && " (otros archivos)"}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {nonPdfs.map((att, i) => (
+                      <a
+                        key={i}
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md border text-sm font-medium text-primary hover:bg-muted/50 transition-colors"
+                      >
+                        {att.filename}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

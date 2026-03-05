@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import {
-  PHASES_KANBAN_MATURATION,
   PHASES_KANBAN_ARCHITECT,
 } from "@/lib/reno-kanban-config";
 import type { ProjectRow } from "./useSupabaseProjects";
@@ -17,43 +16,48 @@ interface UseArchitectProjectsReturn {
   refetch: () => Promise<void>;
 }
 
-const STATUSES_EARLY: Set<string> = new Set([
-  "get project draft",
-  "pending to validate",
-]);
-
-function hasAttachments(value: unknown): boolean {
-  if (!value) return false;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === "string") {
-    try { return JSON.parse(value).length > 0; } catch { return false; }
-  }
-  return false;
+function hasValue(v: unknown): boolean {
+  if (v == null) return false;
+  if (typeof v === "string") return v.trim() !== "";
+  if (Array.isArray(v)) return v.length > 0;
+  return !!v;
 }
 
+/**
+ * La fase del arquitecto se resuelve de forma secuencial según lo que ha
+ * completado, pero a partir de "Proyecto Técnico" se usa el project_status
+ * de Airtable porque esas fases las mueve el analista de maduración.
+ */
 function resolveArchitectPhase(p: ProjectRow): RenoKanbanPhase {
   const pa = p as any;
   const statusRaw = (pa.project_status ?? p.reno_phase ?? "") as string;
   const status = statusRaw.trim().toLowerCase();
 
-  if (STATUSES_EARLY.has(status)) {
-    const hasSqm = pa.usable_square_meters != null && pa.usable_square_meters !== "";
-    if (!hasSqm) return "arch-pending-measurement";
-    if (!hasAttachments(pa.architect_attachments)) return "arch-preliminary-project";
-    return "arch-completed";
-  }
+  const ADVANCED_STATUSES: Record<string, RenoKanbanPhase> = {
+    "technical project in progress": "arch-technical-project",
+    "ecuv first validation": "arch-ecu-first-validation",
+    "ecu first validation": "arch-ecu-first-validation",
+    "technical project fine-tuning": "arch-technical-adjustments",
+    "technical project fine tuning": "arch-technical-adjustments",
+    "ecuv final validation": "arch-ecu-final-validation",
+    "ecu final validation": "arch-ecu-final-validation",
+    "reno to start": "arch-obra-empezar",
+    "pending to start reno": "arch-obra-empezar",
+    "pending to budget from renovator": "arch-completed",
+    "pending to budget (from renovator)": "arch-completed",
+    "reno in progress": "arch-completed",
+  };
 
-  if (status === "technical project in progress") {
-    if (!hasAttachments(pa.architect_attachments)) return "arch-technical-project";
-    return "arch-completed";
-  }
+  if (ADVANCED_STATUSES[status]) return ADVANCED_STATUSES[status];
 
-  if (status === "technical project fine-tuning") {
-    if (!hasAttachments(pa.architect_attachments)) return "arch-technical-adjustments";
-    return "arch-completed";
-  }
+  // Fases tempranas: "Get project draft", "Pending to validate", "Pending to reserve arras"
+  // La fase del arquitecto depende de lo que haya completado:
+  const hasMeasurement = hasValue(pa.measurement_date);
+  const hasSentToPropHero = hasValue(pa.project_architect_date);
 
-  return "arch-completed";
+  if (!hasMeasurement) return "arch-pending-measurement";
+  if (!hasSentToPropHero) return "arch-preliminary-project";
+  return "arch-pending-validation";
 }
 
 /**
@@ -83,7 +87,7 @@ export function useArchitectProjects(
     const { data, error: e } = await supabase
       .from("projects")
       .select("*")
-      .in("reno_phase", PHASES_KANBAN_MATURATION as unknown as string[]);
+      .eq("is_maturation_project", true);
 
     if (e) {
       setError(e.message);

@@ -619,6 +619,10 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       'arch-preliminary-project': 0,
       'arch-technical-project': 0,
       'arch-technical-adjustments': 0,
+      'arch-pending-validation': 0,
+      'arch-ecu-first-validation': 0,
+      'arch-ecu-final-validation': 0,
+      'arch-obra-empezar': 0,
       'arch-completed': 0,
     },
     details: [],
@@ -847,6 +851,10 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         'arch-preliminary-project': 0,
         'arch-technical-project': 0,
         'arch-technical-adjustments': 0,
+        'arch-pending-validation': 0,
+        'arch-ecu-first-validation': 0,
+        'arch-ecu-final-validation': 0,
+        'arch-obra-empezar': 0,
         'arch-completed': 0,
       };
 
