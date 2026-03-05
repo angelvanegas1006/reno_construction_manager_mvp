@@ -138,6 +138,10 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
       "arch-preliminary-project": [],
       "arch-technical-project": [],
       "arch-technical-adjustments": [],
+      "arch-pending-validation": [],
+      "arch-ecu-first-validation": [],
+      "arch-ecu-final-validation": [],
+      "arch-obra-empezar": [],
       "arch-completed": [],
     };
     if (!rawPropertiesByPhase) return empty;

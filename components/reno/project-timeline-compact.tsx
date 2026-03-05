@@ -57,7 +57,7 @@ function getCompactPhases(project: ProjectRow): CompactPhase[] | null {
 
   const dates = {
     measurement: parseDate(p.measurement_date),
-    draft: parseDate(p.project_draft_date),
+    draft: parseDate(p.draft_validation_date) ?? parseDate(p.project_draft_date),
     techEnd: parseDate(p.project_end_date) ?? parseDate(p.estimated_project_end_date),
     firstCorrection: parseDate(p.first_correction_date),
     definitiveValidation: parseDate(p.definitive_validation_date),

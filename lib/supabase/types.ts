@@ -393,6 +393,7 @@ export type Database = {
           draft_order_date: string | null
           measurement_date: string | null
           project_draft_date: string | null
+          draft_validation_date: string | null
           draft_plan: unknown | null
           project_validation_notes: string | null
           offer_status: string | null
@@ -409,6 +410,31 @@ export type Database = {
           final_plan: unknown | null
           license_attachment: unknown | null
           renovation_executor: string | null
+          ecu_uploaded: boolean | null
+          ecu_reuploaded: boolean | null
+          project_review_done: boolean | null
+          financial_review_done: boolean | null
+          ecu_validation_notes: string | null
+          ecu_validation_result: string | null
+          ecu_final_delivery_doc: unknown | null
+          ecu_reparos_doc: unknown | null
+          ecu_reparos_notes: string | null
+          renovator_budget_doc: unknown | null
+          license_docs_ayto: unknown | null
+          town_hall_receipt: unknown | null
+          town_hall_fees: unknown | null
+          is_maturation_project: boolean | null
+          check_pro_data: unknown | null
+          check_pro_report_url: string | null
+          project_architect_date: string | null
+          arch_measurements_doc: unknown | null
+          arch_project_doc: unknown | null
+          arch_project_cad_doc: unknown | null
+          arch_corrected_project_doc: unknown | null
+          arch_corrected_measurements_doc: unknown | null
+          arch_safety_doc: unknown | null
+          arch_approval_doc: unknown | null
+          arch_correction_date: string | null
         }
         Insert: {
           id?: string
@@ -449,6 +475,7 @@ export type Database = {
           draft_order_date?: string | null
           measurement_date?: string | null
           project_draft_date?: string | null
+          draft_validation_date?: string | null
           draft_plan?: unknown | null
           project_validation_notes?: string | null
           offer_status?: string | null
@@ -465,6 +492,31 @@ export type Database = {
           final_plan?: unknown | null
           license_attachment?: unknown | null
           renovation_executor?: string | null
+          ecu_uploaded?: boolean | null
+          ecu_reuploaded?: boolean | null
+          project_review_done?: boolean | null
+          financial_review_done?: boolean | null
+          ecu_validation_notes?: string | null
+          ecu_validation_result?: string | null
+          ecu_final_delivery_doc?: unknown | null
+          ecu_reparos_doc?: unknown | null
+          ecu_reparos_notes?: string | null
+          renovator_budget_doc?: unknown | null
+          license_docs_ayto?: unknown | null
+          town_hall_receipt?: unknown | null
+          town_hall_fees?: unknown | null
+          is_maturation_project?: boolean | null
+          check_pro_data?: unknown | null
+          check_pro_report_url?: string | null
+          project_architect_date?: string | null
+          arch_measurements_doc?: unknown | null
+          arch_project_doc?: unknown | null
+          arch_project_cad_doc?: unknown | null
+          arch_corrected_project_doc?: unknown | null
+          arch_corrected_measurements_doc?: unknown | null
+          arch_safety_doc?: unknown | null
+          arch_approval_doc?: unknown | null
+          arch_correction_date?: string | null
         }
         Update: {
           id?: string
@@ -505,6 +557,7 @@ export type Database = {
           draft_order_date?: string | null
           measurement_date?: string | null
           project_draft_date?: string | null
+          draft_validation_date?: string | null
           draft_plan?: unknown | null
           project_validation_notes?: string | null
           offer_status?: string | null
@@ -521,6 +574,31 @@ export type Database = {
           final_plan?: unknown | null
           license_attachment?: unknown | null
           renovation_executor?: string | null
+          ecu_uploaded?: boolean | null
+          ecu_reuploaded?: boolean | null
+          project_review_done?: boolean | null
+          financial_review_done?: boolean | null
+          ecu_validation_notes?: string | null
+          ecu_validation_result?: string | null
+          ecu_final_delivery_doc?: unknown | null
+          ecu_reparos_doc?: unknown | null
+          ecu_reparos_notes?: string | null
+          renovator_budget_doc?: unknown | null
+          license_docs_ayto?: unknown | null
+          town_hall_receipt?: unknown | null
+          town_hall_fees?: unknown | null
+          is_maturation_project?: boolean | null
+          check_pro_data?: unknown | null
+          check_pro_report_url?: string | null
+          project_architect_date?: string | null
+          arch_measurements_doc?: unknown | null
+          arch_project_doc?: unknown | null
+          arch_project_cad_doc?: unknown | null
+          arch_corrected_project_doc?: unknown | null
+          arch_corrected_measurements_doc?: unknown | null
+          arch_safety_doc?: unknown | null
+          arch_approval_doc?: unknown | null
+          arch_correction_date?: string | null
         }
         Relationships: []
       }

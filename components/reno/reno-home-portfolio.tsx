@@ -70,6 +70,10 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "arch-preliminary-project": 0,
       "arch-technical-project": 0,
       "arch-technical-adjustments": 0,
+      "arch-pending-validation": 0,
+      "arch-ecu-first-validation": 0,
+      "arch-ecu-final-validation": 0,
+      "arch-obra-empezar": 0,
       "arch-completed": 0,
     };
 
@@ -142,6 +146,10 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "arch-preliminary-project": "Anteproyecto en Curso",
       "arch-technical-project": "Proyecto Técnico en Progreso",
       "arch-technical-adjustments": "Ajustes Técnicos del Proyecto",
+      "arch-pending-validation": "Pendiente de Validación",
+      "arch-ecu-first-validation": "ECU Primera Validación",
+      "arch-ecu-final-validation": "ECU Validación Final",
+      "arch-obra-empezar": "Obra por Empezar",
       "arch-completed": "Finalizados",
     };
     return stageMap[stage];

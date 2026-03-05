@@ -1,0 +1,9 @@
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS check_pro_data jsonb;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS project_architect_date timestamptz;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS arch_measurements_doc jsonb;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS arch_project_doc jsonb;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS arch_project_cad_doc jsonb;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS arch_corrected_project_doc jsonb;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS arch_corrected_measurements_doc jsonb;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS arch_safety_doc jsonb;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS arch_approval_doc jsonb;

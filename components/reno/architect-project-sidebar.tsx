@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Calendar, MapPin, Ruler } from "lucide-react";
+import { Building2, Calendar, MapPin } from "lucide-react";
 import type { ProjectRow } from "@/hooks/useSupabaseProject";
 
 interface ArchitectProjectSidebarProps {
@@ -53,10 +53,6 @@ export function ArchitectProjectSidebar({ project }: ArchitectProjectSidebarProp
         {p.properties_to_convert && String(p.properties_to_convert).trim() && String(p.properties_to_convert).trim() !== "0"
           ? String(p.properties_to_convert).trim()
           : (p.est_properties ?? "\u2014")}
-      </InfoItem>
-
-      <InfoItem icon={Ruler} label="Metros cuadrados usables">
-        {p.usable_square_meters != null ? `${p.usable_square_meters} m\u00B2` : "\u2014"}
       </InfoItem>
 
       <InfoItem icon={Calendar} label="Fecha de Encargo Anteproyecto">

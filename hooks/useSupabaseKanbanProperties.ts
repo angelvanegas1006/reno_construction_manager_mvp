@@ -397,6 +397,10 @@ export function useSupabaseKanbanProperties() {
         'arch-preliminary-project': [],
         'arch-technical-project': [],
         'arch-technical-adjustments': [],
+        'arch-pending-validation': [],
+        'arch-ecu-first-validation': [],
+        'arch-ecu-final-validation': [],
+        'arch-obra-empezar': [],
         'arch-completed': [],
       } as Record<RenoKanbanPhase, Property[]>;
     }
@@ -443,6 +447,10 @@ export function useSupabaseKanbanProperties() {
       'arch-preliminary-project': [],
       'arch-technical-project': [],
       'arch-technical-adjustments': [],
+      'arch-pending-validation': [],
+      'arch-ecu-first-validation': [],
+      'arch-ecu-final-validation': [],
+      'arch-obra-empezar': [],
       'arch-completed': [],
     };
 

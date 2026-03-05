@@ -66,7 +66,7 @@ export function useMaturationProjects(): UseMaturationProjectsReturn {
     const { data, error: e } = await supabase
       .from("projects")
       .select("*")
-      .in("reno_phase", PHASES_KANBAN_MATURATION as unknown as string[]);
+      .eq("is_maturation_project", true);
 
     if (e) {
       setError(e.message);

@@ -91,34 +91,36 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
   cursor += 7;
 
   // 2. Anteproyecto — 14 days
+  // Starts when measurement is done, ends when architect sends to PropHero
   const measurementReal = parseDate(p.measurement_date);
   const anteStart = measurementReal ?? addDays(origin, 7);
+  const anteEnd = parseDate(p.project_architect_date) ?? parseDate(p.project_draft_date);
   phases.push({
     id: "preliminary",
     label: "Anteproyecto",
     plannedStartDay: cursor,
     plannedDuration: 14,
     actualStartDate: anteStart,
-    actualEndDate: parseDate(p.project_draft_date),
+    actualEndDate: anteEnd,
     type: "phase",
   });
   cursor += 14;
 
-  // HITO: Validación Draft
+  // HITO: Validación Draft (cuando el analista valida y solicita proyecto técnico)
+  const draftValidationDate = parseDate(p.draft_validation_date);
   phases.push({
     id: "milestone-draft",
     label: "Validación Draft",
     plannedStartDay: cursor,
     plannedDuration: 0,
-    actualStartDate: parseDate(p.project_draft_date),
-    actualEndDate: parseDate(p.project_draft_date),
+    actualStartDate: draftValidationDate,
+    actualEndDate: draftValidationDate,
     type: "milestone",
     milestoneStyle: "normal",
   });
 
   // 3. Elaboración Proyecto Técnico — 28 days
-  const draftReal = parseDate(p.project_draft_date);
-  const techStart = draftReal ?? addDays(origin, cursor);
+  const techStart = draftValidationDate ?? parseDate(p.project_draft_date) ?? addDays(origin, cursor);
   phases.push({
     id: "technical-project",
     label: "Elaboración Proyecto Técnico",

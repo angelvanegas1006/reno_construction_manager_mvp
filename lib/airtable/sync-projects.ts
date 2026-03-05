@@ -385,12 +385,12 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
 
   const { data: existing } = await supabase
     .from('projects')
-    .select('id, airtable_project_id')
+    .select('id, airtable_project_id, is_maturation_project')
     .in('airtable_project_id', records.map((r) => r.id));
 
-  const byAirtableId = new Map<string | null, { id: string }>();
-  existing?.forEach((row: { id: string; airtable_project_id: string | null }) => {
-    if (row.airtable_project_id) byAirtableId.set(row.airtable_project_id, { id: row.id });
+  const byAirtableId = new Map<string | null, { id: string; is_maturation_project: boolean | null }>();
+  existing?.forEach((row: { id: string; airtable_project_id: string | null; is_maturation_project: boolean | null }) => {
+    if (row.airtable_project_id) byAirtableId.set(row.airtable_project_id, { id: row.id, is_maturation_project: row.is_maturation_project });
   });
 
   const now = new Date().toISOString();
@@ -432,6 +432,11 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
   for (const rec of records) {
     const existingRow = byAirtableId.get(rec.id);
     if (existingRow) {
+      // Skip maturation projects — they are managed by syncMaturationProjectsFromAirtable
+      // which has richer data (resolved linked records, extra fields)
+      if (existingRow.is_maturation_project) {
+        continue;
+      }
       const { error } = await supabase
         .from('projects')
         .update(toPayload(rec))
@@ -462,18 +467,17 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
   }
 
   // Proyectos que están en Supabase pero NO en la vista actual de Airtable → reno_phase = 'orphaned'
-  // Excluir proyectos con fases de maduración (se gestionan en syncMaturationProjectsFromAirtable)
+  // Excluir proyectos marcados como maduración (se gestionan en syncMaturationProjectsFromAirtable)
   const airtableIdsInView = new Set(records.map((r) => r.id));
   const { data: allSupabase } = await supabase
     .from('projects')
-    .select('id, airtable_project_id, reno_phase')
+    .select('id, airtable_project_id, reno_phase, is_maturation_project')
     .not('airtable_project_id', 'is', null);
-  const maturationPhases = new Set(PHASES_KANBAN_MATURATION as readonly string[]);
   const toOrphan = (allSupabase ?? []).filter(
-    (row: { id: string; airtable_project_id: string | null; reno_phase: string | null }) =>
+    (row: { id: string; airtable_project_id: string | null; reno_phase: string | null; is_maturation_project: boolean | null }) =>
       row.airtable_project_id &&
       !airtableIdsInView.has(row.airtable_project_id) &&
-      !maturationPhases.has(row.reno_phase ?? '')
+      !row.is_maturation_project
   );
   if (toOrphan.length > 0) {
     const ids = toOrphan.map((r: { id: string }) => r.id);
@@ -917,6 +921,7 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
     final_plan: rec.final_plan,
     license_attachment: rec.license_attachment,
     renovation_executor: rec.renovation_executor,
+    is_maturation_project: true,
     updated_at: now,
   });
 
@@ -937,6 +942,24 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
       const { error } = await supabase.from('projects').insert(payload);
       if (error) { console.error(`[Sync Maturation] Insert error for ${rec.name}:`, error.message, JSON.stringify(payload).slice(0, 300)); result.errors++; } else { result.created++; }
     }
+  }
+
+  // Proyectos que ya no están en la vista de maduración de Airtable: quitar el flag
+  const maturationAirtableIds = new Set(records.map((r) => r.id));
+  const { data: currentMaturation } = await supabase
+    .from('projects')
+    .select('id, airtable_project_id')
+    .eq('is_maturation_project', true);
+  const toUnflag = (currentMaturation ?? []).filter(
+    (row: { id: string; airtable_project_id: string | null }) =>
+      row.airtable_project_id && !maturationAirtableIds.has(row.airtable_project_id)
+  );
+  if (toUnflag.length > 0) {
+    await supabase
+      .from('projects')
+      .update({ is_maturation_project: false, updated_at: now })
+      .in('id', toUnflag.map((r: { id: string }) => r.id));
+    console.log(`[Sync Maturation Projects] Unflagged ${toUnflag.length} projects no longer in maturation view`);
   }
 
   console.log('[Sync Maturation Projects] Done:', { created: result.created, updated: result.updated, errors: result.errors });

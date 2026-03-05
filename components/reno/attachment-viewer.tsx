@@ -26,12 +26,12 @@ function parseAttachments(value: unknown): AttachmentMeta[] {
 }
 
 function isPdf(att: AttachmentMeta): boolean {
-  if (att.type === "application/pdf") return true;
+  if (att.type?.includes("pdf")) return true;
   return /\.pdf(\?|$)/i.test(att.url) || /\.pdf$/i.test(att.filename);
 }
 
 function isImage(att: AttachmentMeta): boolean {
-  if (att.type.startsWith("image/")) return true;
+  if (att.type?.startsWith("image/")) return true;
   return /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(att.url) ||
     /\.(png|jpe?g|gif|webp|svg)$/i.test(att.filename);
 }
