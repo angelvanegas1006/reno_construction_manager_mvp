@@ -9,10 +9,12 @@ import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
 import { useArchitectProjects } from "@/hooks/useArchitectProjects";
 import { toast } from "sonner";
-import { Building2, DollarSign, Clock } from "lucide-react";
+import { Timer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ARCHITECT_PHASE_LABELS } from "@/lib/reno-kanban-config";
 import { ArchitectTodoWidgets } from "@/components/reno/architect-todo-widgets";
+import { ProjectTimelineOverview } from "@/components/reno/project-timeline-compact";
+import { useArchitectNotifications } from "@/hooks/useArchitectNotifications";
+import { Bell, X } from "lucide-react";
 import { trackEventWithDevice } from "@/lib/mixpanel";
 
 export default function ArchitectHomePage() {
@@ -36,6 +38,8 @@ export default function ArchitectHomePage() {
     loading: projectsLoading,
   } = useArchitectProjects(architectName);
 
+  const { notifications, markAsRead, markAllRead } = useArchitectNotifications(architectName);
+
   useEffect(() => {
     if (isLoading) return;
     if (!user || !role) {
@@ -58,14 +62,26 @@ export default function ArchitectHomePage() {
 
   const totalProjects = allProjects.length;
 
-  const recentProjects = useMemo(() => {
-    return [...allProjects]
-      .sort((a, b) => {
-        const da = a.updated_at || a.created_at || "";
-        const db = b.updated_at || b.created_at || "";
-        return db.localeCompare(da);
-      })
-      .slice(0, 8);
+  const avgDays = useMemo(() => {
+    const diff = (a: string | null | undefined, b: string | null | undefined): number | null => {
+      if (!a || !b) return null;
+      const da = new Date(a).getTime();
+      const db = new Date(b).getTime();
+      if (isNaN(da) || isNaN(db)) return null;
+      return Math.round(Math.abs(db - da) / (1000 * 60 * 60 * 24));
+    };
+    const mean = (vals: (number | null)[]): number | null => {
+      const valid = vals.filter((v): v is number => v !== null);
+      if (valid.length === 0) return null;
+      return Math.round(valid.reduce((s, v) => s + v, 0) / valid.length);
+    };
+
+    return {
+      measurement: mean(allProjects.map((p) => diff((p as any).draft_order_date, (p as any).measurement_date))),
+      draft: mean(allProjects.map((p) => diff((p as any).measurement_date, (p as any).project_architect_date))),
+      project: mean(allProjects.map((p) => diff((p as any).draft_validation_date, (p as any).project_end_date))),
+      repairs: mean(allProjects.map((p) => diff((p as any).ecu_first_end_date, (p as any).arch_correction_date))),
+    };
   }, [allProjects]);
 
   const loading = isLoading || projectsLoading;
@@ -85,124 +101,99 @@ export default function ArchitectHomePage() {
             <VistralLogoLoader className="min-h-[400px]" />
           ) : (
             <div className="max-w-[1600px] mx-auto space-y-4 md:space-y-6 px-4 lg:px-8">
+              {/* Notificaciones */}
+              {notifications.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Bell className="h-4 w-4 text-primary" />
+                      Novedades en tus proyectos
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white px-1">
+                        {notifications.length}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => markAllRead()}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Marcar todas como leídas
+                    </button>
+                  </div>
+                  {notifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className="flex items-start justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 cursor-pointer hover:bg-primary/10 transition-colors"
+                      onClick={() => {
+                        markAsRead(n.id);
+                        if (n.project_id) router.push(`/reno/architect/project/${n.project_id}`);
+                      }}
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        <Bell className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-foreground leading-snug">{n.message}</p>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
+                        className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label="Descartar"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* KPIs */}
-              <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-                <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Proyectos Asignados</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl md:text-2xl font-bold text-foreground">{totalProjects}</div>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Total de proyectos en los que trabajas</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Ingresos con PropHero</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl md:text-2xl font-bold text-foreground">12.450 €</div>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Ingresos acumulados (dato estimado)</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Media de Elaboración</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl md:text-2xl font-bold text-foreground">18 días</div>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Tiempo medio en elaboración de proyectos</p>
-                  </CardContent>
-                </Card>
+              <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4">
+                <AvgTimeKpi label="Media Tiempos Medición" value={avgDays.measurement} limitDays={7} />
+                <AvgTimeKpi label="Media Tiempos Anteproyecto" value={avgDays.draft} limitDays={14} />
+                <AvgTimeKpi label="Media Tiempos Proyecto" value={avgDays.project} limitDays={28} />
+                <AvgTimeKpi label="Media Tiempos Reparos" value={avgDays.repairs} limitDays={7} />
               </div>
 
               {/* Todo Widgets */}
               <ArchitectTodoWidgets allProjects={allProjects} projectsByPhase={projectsByPhase} />
 
-              {/* Proyectos recientes */}
-              <div className="bg-card border rounded-lg p-4">
-                <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-violet-500" />
-                  Últimos proyectos actualizados
-                </h3>
-                {recentProjects.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">
-                    No hay proyectos asignados
-                  </p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b text-left text-muted-foreground">
-                          <th className="pb-2 pr-4 font-medium">Proyecto</th>
-                          <th className="pb-2 pr-4 font-medium">Tipo</th>
-                          <th className="pb-2 pr-4 font-medium">Fase</th>
-                          <th className="pb-2 font-medium">Última actualización</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentProjects.map((p) => (
-                          <tr
-                            key={p.id}
-                            className="border-b last:border-0 cursor-pointer hover:bg-muted/30 transition-colors"
-                            onClick={() =>
-                              router.push(
-                                `/reno/maturation-analyst/project/${p.id}?from=architect-home`
-                              )
-                            }
-                          >
-                            <td className="py-2.5 pr-4">
-                              <div className="font-medium max-w-[200px] truncate">
-                                {p.name || "Sin nombre"}
-                              </div>
-                              {p.area_cluster && (
-                                <div className="text-xs text-muted-foreground">
-                                  {p.area_cluster}
-                                </div>
-                              )}
-                            </td>
-                            <td className="py-2.5 pr-4">
-                              <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                                {p.investment_type || (p as any).type || "—"}
-                              </span>
-                            </td>
-                            <td className="py-2.5 pr-4 text-xs">
-                              {ARCHITECT_PHASE_LABELS[p.reno_phase as string] ||
-                                p.project_status ||
-                                "—"}
-                            </td>
-                            <td className="py-2.5 text-xs text-muted-foreground">
-                              {p.updated_at
-                                ? new Date(p.updated_at).toLocaleDateString(
-                                    "es-ES",
-                                    {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric",
-                                    }
-                                  )
-                                : "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              {/* Timeline compacto */}
+              <ProjectTimelineOverview
+                allProjects={allProjects}
+                getProjectUrl={(p) => `/reno/architect/project/${p.id}?tab=timeline`}
+              />
             </div>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+function AvgTimeKpi({ label, value, limitDays }: { label: string; value: number | null; limitDays: number }) {
+  const valueColor =
+    value === null
+      ? "text-foreground"
+      : value <= limitDays
+        ? "text-emerald-600 dark:text-emerald-400"
+        : value <= limitDays * 1.5
+          ? "text-amber-500"
+          : "text-red-500";
+
+  return (
+    <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Timer className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground leading-tight">
+            {label}
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className={`text-xl md:text-2xl font-bold ${valueColor}`}>
+          {value !== null ? `${value} días` : "—"}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">Límite: {limitDays} días</p>
+      </CardContent>
+    </Card>
   );
 }

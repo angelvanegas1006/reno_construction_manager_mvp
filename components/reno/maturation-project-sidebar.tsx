@@ -62,6 +62,12 @@ export function MaturationProjectSidebar({ project }: MaturationProjectSidebarPr
         <InfoItem icon={User} label="Scouter">
           {p.scouter || "Sin asignar"}
         </InfoItem>
+        <InfoItem icon={Calendar} label="Fecha de Encargo Anteproyecto">
+          {formatDate(p.draft_order_date)}
+        </InfoItem>
+        <InfoItem icon={Calendar} label="Fecha de Medición">
+          {formatDate(p.measurement_date)}
+        </InfoItem>
         <InfoItem icon={FileText} label="Notas de Validación">
           {p.project_validation_notes ? (
             <p className="whitespace-pre-wrap break-words">{p.project_validation_notes}</p>

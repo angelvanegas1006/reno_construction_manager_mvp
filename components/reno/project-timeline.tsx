@@ -157,43 +157,44 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
   });
 
   // 4. 1ª Validación ECU — 28 days
-  const techEndReal = parseDate(p.project_end_date) ?? parseDate(p.estimated_project_end_date);
-  const ecuStart = techEndReal ?? addDays(origin, cursor);
+  const ecuFirstStart = parseDate(p.ecu_first_start_date);
+  const ecuFirstEnd = parseDate(p.ecu_first_end_date);
+  const ecuStartFallback = parseDate(p.project_end_date) ?? parseDate(p.estimated_project_end_date);
   phases.push({
     id: "ecu-first-validation",
     label: "1ª Validación ECU",
     plannedStartDay: cursor,
     plannedDuration: 28,
-    actualStartDate: ecuStart,
-    actualEndDate: parseDate(p.first_correction_date),
+    actualStartDate: ecuFirstStart ?? ecuStartFallback ?? addDays(origin, cursor),
+    actualEndDate: ecuFirstEnd,
     type: "phase",
   });
   cursor += 28;
 
-  // 5. Reparos — 5 days
-  const firstCorrReal = parseDate(p.first_correction_date);
-  const repairsStart = firstCorrReal ?? addDays(origin, cursor);
+  // 5. Reparos / Ajuste Proyecto Técnico — 5 days
+  const repairsStart = ecuFirstEnd ?? addDays(origin, cursor);
+  const archCorrDate = parseDate(p.arch_correction_date);
   phases.push({
     id: "repairs",
     label: "Reparos",
     plannedStartDay: cursor,
     plannedDuration: 5,
     actualStartDate: repairsStart,
-    actualEndDate: parseDate(p.definitive_validation_date),
+    actualEndDate: archCorrDate,
     type: "phase",
   });
   cursor += 5;
 
   // 6. Validación Final ECU — 21 days
-  const defValReal = parseDate(p.definitive_validation_date);
-  const finalValStart = defValReal ?? addDays(origin, cursor);
+  const ecuFinalStart = parseDate(p.ecu_final_start_date);
+  const ecuFinalEnd = parseDate(p.ecu_final_end_date);
   phases.push({
     id: "ecu-final-validation",
     label: "Validación Final ECU",
     plannedStartDay: cursor,
     plannedDuration: 21,
-    actualStartDate: finalValStart,
-    actualEndDate: null,
+    actualStartDate: ecuFinalStart ?? archCorrDate ?? addDays(origin, cursor),
+    actualEndDate: ecuFinalEnd,
     type: "phase",
   });
 
@@ -203,7 +204,7 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
     label: "Asignación constructora",
     plannedStartDay: cursor,
     plannedDuration: 21,
-    actualStartDate: finalValStart,
+    actualStartDate: ecuFinalStart ?? archCorrDate ?? addDays(origin, cursor),
     actualEndDate: null,
     type: "parallel",
     parentPhaseId: "ecu-final-validation",
@@ -215,7 +216,7 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
     label: "Check: Ready to Settle",
     plannedStartDay: cursor,
     plannedDuration: 21,
-    actualStartDate: finalValStart,
+    actualStartDate: ecuFinalStart ?? archCorrDate ?? addDays(origin, cursor),
     actualEndDate: parseDate(p.settlement_date),
     type: "parallel",
     parentPhaseId: "ecu-final-validation",
@@ -236,31 +237,6 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
   return { phases, originDate: origin };
 }
 
-/* ------------------------------------------------------------------ */
-/*  Mock data for testing                                              */
-/* ------------------------------------------------------------------ */
-
-function buildMockProject(): ProjectRow {
-  const now = new Date();
-  const origin = addDays(now, -56); // 8 weeks ago
-  return {
-    id: "mock-timeline",
-    name: "Proyecto de prueba Timeline",
-    airtable_project_id: null,
-    reno_phase: "technical-project-in-progress",
-    created_at: origin.toISOString(),
-    updated_at: now.toISOString(),
-    draft_order_date: origin.toISOString(),
-    measurement_date: addDays(origin, 7).toISOString(),
-    project_draft_date: addDays(origin, 25).toISOString(), // 4 days late
-    project_end_date: null,
-    estimated_project_end_date: null,
-    first_correction_date: null,
-    definitive_validation_date: null,
-    ecu_delivery_date: null,
-    settlement_date: null,
-  } as ProjectRow;
-}
 
 /* ------------------------------------------------------------------ */
 /*  Component: PhaseTooltip                                            */
@@ -322,8 +298,6 @@ function PhaseTooltip({ data, originDate }: { data: TooltipData; originDate: Dat
 export function ProjectTimeline({ project }: { project: ProjectRow | Record<string, any> }) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const useMock = !(project as any).draft_order_date;
-
   const toggleFullscreen = useCallback(() => setIsFullscreen(prev => !prev), []);
 
   useEffect(() => {
@@ -345,15 +319,14 @@ export function ProjectTimeline({ project }: { project: ProjectRow | Record<stri
   }, [isFullscreen]);
 
   const result = useMemo(() => {
-    const p = useMock ? buildMockProject() : project as ProjectRow;
-    return buildPhases(p);
-  }, [useMock, project]);
+    return buildPhases(project as ProjectRow);
+  }, [project]);
 
   if (!result) {
     return (
       <div className="bg-card rounded-lg border p-8 shadow-sm text-center">
-        <p className="text-muted-foreground">
-          No se puede mostrar el timeline: falta la fecha de encargo anteproyecto (asignación de arquitecto).
+        <p className="text-muted-foreground text-sm">
+          El timeline estará disponible cuando se asigne el arquitecto al proyecto.
         </p>
       </div>
     );
@@ -451,11 +424,6 @@ export function ProjectTimeline({ project }: { project: ProjectRow | Record<stri
       <div className="px-6 py-4 border-b bg-muted/30 flex items-center justify-between flex-shrink-0">
         <div>
           <h2 className="text-lg font-semibold">Timeline del proyecto</h2>
-          {useMock && (
-            <p className="text-xs text-amber-500 mt-1">
-              Mostrando datos de ejemplo (el proyecto no tiene fecha de encargo anteproyecto)
-            </p>
-          )}
         </div>
         <button
           onClick={toggleFullscreen}

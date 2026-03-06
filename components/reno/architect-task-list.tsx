@@ -312,8 +312,7 @@ function PhaseAnteproyecto({
   const latestCheckProRef = useRef<CheckProData | null>((p.check_pro_data as CheckProData | null) ?? null);
 
   const hasAttachment = hasValue(p.architect_attachments);
-  const hasCheckPro = hasValue(p.check_pro_data) || hasValue(latestCheckProRef.current);
-  const canSend = hasAttachment && hasCheckPro;
+  const canSend = hasAttachment;
 
   const handleSendToPropHero = async () => {
     setSending(true);
@@ -338,11 +337,16 @@ function PhaseAnteproyecto({
         console.warn("Check Pro report generation failed:", errData);
       }
 
-      // 3. Mark as sent
+      // 3. Mark as sent + advance phase
       const now = new Date().toISOString();
       const { error } = await supabase
         .from("projects")
-        .update({ project_architect_date: now, updated_at: now })
+        .update({
+          project_architect_date: now,
+          reno_phase: "pending-to-validate",
+          project_status: "Pending to validate",
+          updated_at: now,
+        })
         .eq("id", project.id);
       if (error) throw new Error(error.message);
 
@@ -352,10 +356,10 @@ function PhaseAnteproyecto({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             airtable_project_id: project.airtable_project_id,
-            field_name: "Project end date",
-            field_value: now.slice(0, 10),
+            field_name: "Project status",
+            field_value: "Pending to validate",
           }),
-        }).catch(() => console.warn("Airtable project_architect_date sync failed"));
+        }).catch(() => console.warn("Airtable project_status sync failed"));
       }
 
       await onRefetch();
@@ -429,11 +433,7 @@ function PhaseAnteproyecto({
         </button>
         {!canSend && (
           <p className="text-xs text-muted-foreground text-center mt-2">
-            {!hasAttachment && !hasCheckPro
-              ? "Sube el plano de anteproyecto y completa el Check Pro para enviar"
-              : !hasAttachment
-                ? "Sube el plano de anteproyecto para poder enviar"
-                : "Completa el Check Pro para poder enviar"}
+            Sube el plano de anteproyecto para poder enviar
           </p>
         )}
       </div>

@@ -162,6 +162,8 @@ export function RenoKanbanColumn({
                 onClick={() => onProjectClick?.(project)}
                 linkedProperties={project.id ? (propertiesByProjectId?.[project.id] ?? []) : []}
                 variant={fromParam === "architect-kanban" ? "architect" : "default"}
+                phaseElapsedDays={(project as any)._phaseElapsedDays ?? null}
+                phaseLimitDays={(project as any)._phaseLimitDays ?? null}
               />
             ))
           ) : properties.length === 0 ? (

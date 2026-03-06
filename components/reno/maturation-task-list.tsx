@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Upload, PencilRuler, Hammer, AlertTriangle, CheckCircle2, FileText, ExternalLink, Paperclip, Send } from "lucide-react";
+import { Loader2, Upload, PencilRuler, AlertTriangle, CheckCircle2, FileText, ExternalLink, Paperclip, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,8 +15,10 @@ import type { ProjectRow } from "@/hooks/useSupabaseProject";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { AttachmentViewer } from "@/components/reno/attachment-viewer";
 import { ArchitectSelectorModal } from "@/components/reno/architect-selector-modal";
+import { EcuContactSelectorModal } from "@/components/reno/ecu-contact-selector-modal";
 import { PdfViewer } from "@/components/reno/pdf-viewer";
 import { cn } from "@/lib/utils";
+import { insertArchitectNotification } from "@/hooks/useArchitectNotifications";
 
 /* ------------------------------------------------------------------ */
 /*  Task definitions                                                   */
@@ -31,6 +33,7 @@ interface TaskDef {
     | "boolean"
     | "attachment"
     | "architect-selector"
+    | "ecu-contact-selector"
     | "readonly-date"
     | "inverted-boolean"
     | "checkbox"
@@ -121,11 +124,28 @@ function shouldShowFineTuningBlock(phase: RenoKanbanPhase): boolean {
 }
 
 function shouldShowBudgetBlock(phase: RenoKanbanPhase): boolean {
-  return phase === "ecuv-first-validation" || phase === "technical-project-fine-tuning";
+  return phase === "ecuv-first-validation" || phase === "technical-project-fine-tuning" || phase === "pending-budget-from-renovator";
 }
 
 function shouldShowEcuValidationFlow(phase: RenoKanbanPhase): boolean {
   return phase === "ecuv-final-validation";
+}
+
+const ECU_CONTACT_PHASES: RenoKanbanPhase[] = [
+  "get-project-draft",
+  "pending-to-validate",
+  "pending-to-reserve-arras",
+  "technical-project-in-progress",
+  "ecuv-first-validation",
+  "technical-project-fine-tuning",
+  "ecuv-final-validation",
+];
+
+function shouldShowEcuContactTask(phase: RenoKanbanPhase, project: ProjectRow): boolean {
+  const p = project as any;
+  const hasEcu = p.excluded_from_ecu !== true;
+  const missingContact = !p.ecu_contact || String(p.ecu_contact).trim() === "";
+  return hasEcu && missingContact && ECU_CONTACT_PHASES.includes(phase);
 }
 
 /* ------------------------------------------------------------------ */
@@ -299,6 +319,15 @@ function RequestProjectButton({
         }).catch(() => console.warn("Airtable phase sync failed"));
       }
 
+      if (p.architect) {
+        insertArchitectNotification({
+          projectId: project.id,
+          architectName: p.architect,
+          type: "phase_advance",
+          message: `El proyecto "${project.name || project.project_unique_id}" ha pasado a Proyecto Técnico en Progreso. ¡Es tu turno!`,
+        }).catch(() => {});
+      }
+
       toast.success("Proyecto solicitado al arquitecto");
       trackEventWithDevice("Maturation Request Project", {
         project_id: project.id,
@@ -374,6 +403,7 @@ function TechnicalProjectDocsBlock({
         .update({
           reno_phase: "ecuv-first-validation",
           project_status: "Ecu first validation",
+          ecu_first_start_date: now,
           updated_at: now,
         })
         .eq("id", project.id);
@@ -622,6 +652,7 @@ function EcuValidationFlow({
           project_status: "Technical project fine-tuning",
           ecu_reparos_notes: notes || null,
           ecu_validation_result: "rejected",
+          ecu_final_end_date: now,
           arch_correction_date: null,
           updated_at: now,
         })
@@ -638,6 +669,15 @@ function EcuValidationFlow({
             field_value: "Technical project fine-tuning",
           }),
         }).catch(() => console.warn("Airtable sync failed"));
+      }
+
+      if (p.architect) {
+        insertArchitectNotification({
+          projectId: project.id,
+          architectName: p.architect,
+          type: "phase_advance",
+          message: `El proyecto "${project.name || project.project_unique_id}" requiere ajustes técnicos. PropHero ha enviado notas de corrección.`,
+        }).catch(() => {});
       }
 
       toast.success("Proyecto enviado a Ajuste Proyecto Técnico");
@@ -661,6 +701,7 @@ function EcuValidationFlow({
           reno_phase: "pending-budget-from-renovator",
           project_status: "Pending to budget (from renovator)",
           ecu_validation_result: "approved",
+          ecu_final_end_date: now,
           updated_at: now,
         })
         .eq("id", project.id);
@@ -845,6 +886,7 @@ function EcuFirstValidationBlock({
           project_status: "Technical project fine-tuning",
           ecu_validation_notes: notes || null,
           ecu_validation_result: "rejected",
+          ecu_first_end_date: now,
           updated_at: now,
         })
         .eq("id", project.id);
@@ -860,6 +902,15 @@ function EcuFirstValidationBlock({
             field_value: "Technical project fine-tuning",
           }),
         }).catch(() => console.warn("Airtable sync failed"));
+      }
+
+      if (p.architect) {
+        insertArchitectNotification({
+          projectId: project.id,
+          architectName: p.architect,
+          type: "phase_advance",
+          message: `El proyecto "${project.name || project.project_unique_id}" requiere ajustes técnicos tras la primera validación ECU. PropHero ha enviado notas de corrección.`,
+        }).catch(() => {});
       }
 
       toast.success("Proyecto enviado a Ajuste Proyecto Técnico");
@@ -883,6 +934,7 @@ function EcuFirstValidationBlock({
           reno_phase: "pending-budget-from-renovator",
           project_status: "Pending to budget (from renovator)",
           ecu_validation_result: "approved",
+          ecu_first_end_date: now,
           updated_at: now,
         })
         .eq("id", project.id);
@@ -1073,6 +1125,7 @@ function FineTuningBlock({
           reno_phase: "ecuv-final-validation",
           project_status: "Ecu final validation",
           ecu_reuploaded: true,
+          ecu_final_start_date: now,
           updated_at: now,
         })
         .eq("id", project.id);
@@ -1195,19 +1248,67 @@ function FineTuningBlock({
 function BudgetReformBlock({
   project,
   onRefetch,
+  showAdvance = false,
 }: {
   project: ProjectRow;
   onRefetch: () => Promise<void>;
+  showAdvance?: boolean;
 }) {
+  const router = useRouter();
+  const supabase = createClient();
+  const [advancing, setAdvancing] = useState(false);
+  const p = project as any;
+
+  const budgetDoc = Array.isArray(p.renovator_budget_doc) ? p.renovator_budget_doc : [];
+  const hasBudget = budgetDoc.length > 0;
+
+  const handleAdvanceToRenoStart = async () => {
+    setAdvancing(true);
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from("projects")
+        .update({
+          reno_phase: "obra-a-empezar",
+          project_status: "Reno to start",
+          updated_at: now,
+        })
+        .eq("id", project.id);
+      if (error) throw new Error(error.message);
+
+      if (project.airtable_project_id) {
+        fetch("/api/airtable/projects/update-field", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            airtable_project_id: project.airtable_project_id,
+            field_name: "Project status",
+            field_value: "Reno to start",
+          }),
+        }).catch(() => console.warn("Airtable sync failed"));
+      }
+
+      toast.success("Proyecto movido a Obra a Empezar");
+      trackEventWithDevice("Maturation Phase Moved", {
+        project_id: project.id,
+        from: "pending-budget-from-renovator",
+        to: "obra-a-empezar",
+      });
+      await onRefetch();
+      router.push("/reno/maturation-analyst/kanban");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Error al avanzar");
+    } finally {
+      setAdvancing(false);
+    }
+  };
+
   return (
     <div>
       <div className="px-6 py-3 bg-muted/30 border-t">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Hammer className="h-4 w-4 text-amber-600" />
-          Tareas presupuesto reforma
-        </h3>
+        <h3 className="text-sm font-semibold">Tareas presupuesto reforma</h3>
       </div>
-      <div className="px-6 py-4">
+      <div className="px-6 py-4 space-y-4">
         <div className="space-y-2">
           <span className="text-sm font-medium text-foreground">Presupuesto del reformista</span>
           <AttachmentUploadField
@@ -1217,6 +1318,19 @@ function BudgetReformBlock({
             onRefetch={onRefetch}
           />
         </div>
+
+        {showAdvance && hasBudget && (
+          <div className="border-t pt-4">
+            <button
+              onClick={handleAdvanceToRenoStart}
+              disabled={advancing}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all disabled:opacity-50"
+            >
+              {advancing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Avanzar a Obra a Empezar
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1236,9 +1350,11 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
   const tasks = getTasksForPhase(phase, project);
   const [savingField, setSavingField] = useState<string | null>(null);
   const [architectModalOpen, setArchitectModalOpen] = useState(false);
+  const [ecuContactModalOpen, setEcuContactModalOpen] = useState(false);
   const supabase = createClient();
 
   const showBudget = shouldShowBudgetBlock(phase);
+  const showEcuContactTask = shouldShowEcuContactTask(phase, project);
   const showEcuFlow = shouldShowEcuValidationFlow(phase);
   const showTechDocs = shouldShowTechnicalProjectDocs(phase);
   const showEcuFirst = shouldShowEcuFirstBlock(phase);
@@ -1302,7 +1418,7 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
     [supabase, project.id, project.airtable_project_id, onRefetch, project.reno_phase, project.draft_order_date]
   );
 
-  const hasContent = tasks.length > 0 || showBudget || showEcuFlow || showTechDocs || showEcuFirst || showFineTuning;
+  const hasContent = tasks.length > 0 || showBudget || showEcuFlow || showTechDocs || showEcuFirst || showFineTuning || showEcuContactTask;
 
   if (!hasContent) {
     return (
@@ -1481,6 +1597,31 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
         </div>
       )}
 
+      {/* ECU Contact task — siempre visible si proyecto tiene ECU y falta el contacto */}
+      {showEcuContactTask && (
+        <div className="border-t">
+          <div className="px-6 py-3 bg-amber-50/60 dark:bg-amber-950/20 border-b border-amber-200/60 dark:border-amber-800/40">
+            <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-400 flex items-center gap-2">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Contacto ECU pendiente
+            </h3>
+          </div>
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-foreground">Contacto ECU</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-sm flex-1 justify-start font-normal max-w-[220px]"
+                onClick={() => setEcuContactModalOpen(true)}
+              >
+                <span className="truncate text-muted-foreground italic">Sin asignar</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Request project to architect (Pendiente de Validación) */}
       {showArchitectDeliverables && (
         <RequestProjectButton project={project} onRefetch={onRefetch} />
@@ -1498,7 +1639,7 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
 
       {/* Budget reform block (fases 4 y 5) */}
       {showBudget && (
-        <BudgetReformBlock project={project} onRefetch={onRefetch} />
+        <BudgetReformBlock project={project} onRefetch={onRefetch} showAdvance={phase === "pending-budget-from-renovator"} />
       )}
 
       {/* ECU Validation Flow (fase 6) */}
@@ -1516,6 +1657,17 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
         airtableProjectId={project.airtable_project_id ?? null}
         onSelect={async ({ name }) => {
           await saveField("architect", name);
+        }}
+      />
+
+      <EcuContactSelectorModal
+        open={ecuContactModalOpen}
+        onOpenChange={setEcuContactModalOpen}
+        currentContact={(getFieldValue(project, "ecu_contact") as string) ?? null}
+        airtableProjectId={project.airtable_project_id ?? null}
+        onSelect={async ({ id, name }) => {
+          await saveField("ecu_contact", name);
+          await saveField("ecu_contact_airtable_id", id);
         }}
       />
     </div>

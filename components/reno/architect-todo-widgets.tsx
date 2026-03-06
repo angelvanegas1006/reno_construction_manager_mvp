@@ -55,40 +55,41 @@ export function ArchitectTodoWidgets({
     const sortDesc = (a: ProjectRow, b: ProjectRow) =>
       phaseIndex(b) - phaseIndex(a);
 
-    const noMeasurement = allProjects
+    // Only projects in the specific arch phase
+    const pendingMeasurement = (projectsByPhase["arch-pending-measurement"] || [])
       .filter((p) => !(p as any).measurement_date)
       .sort(sortDesc);
 
-    const noDraftDate = allProjects
-      .filter((p) => !(p as any).project_draft_date)
+    const pendingDraft = (projectsByPhase["arch-preliminary-project"] || [])
+      .filter((p) => !(p as any).project_architect_date)
       .sort(sortDesc);
 
-    const noProjectEnd = allProjects
+    const pendingProjectEnd = (projectsByPhase["arch-technical-project"] || [])
       .filter((p) => !(p as any).project_end_date)
       .sort(sortDesc);
 
-    const pendingAdjustments = (
-      projectsByPhase["arch-technical-adjustments"] || []
-    ).sort(sortDesc);
+    const pendingAdjustments = (projectsByPhase["arch-technical-adjustments"] || [])
+      .filter((p) => !(p as any).arch_corrected_project_doc || (p as any).arch_corrected_project_doc?.length === 0)
+      .sort(sortDesc);
 
     return [
       {
         id: "measurement",
         title: "Pendiente de Medición",
-        count: noMeasurement.length,
-        projects: noMeasurement,
+        count: pendingMeasurement.length,
+        projects: pendingMeasurement,
       },
       {
         id: "draft",
         title: "Pendiente Entrega Anteproyecto",
-        count: noDraftDate.length,
-        projects: noDraftDate,
+        count: pendingDraft.length,
+        projects: pendingDraft,
       },
       {
         id: "project-end",
         title: "Pendiente Elaboración Proyecto",
-        count: noProjectEnd.length,
-        projects: noProjectEnd,
+        count: pendingProjectEnd.length,
+        projects: pendingProjectEnd,
       },
       {
         id: "adjustments",
@@ -97,13 +98,13 @@ export function ArchitectTodoWidgets({
         projects: pendingAdjustments,
       },
     ];
-  }, [allProjects, projectsByPhase]);
+  }, [projectsByPhase]);
 
   const totalCount = todoWidgets.reduce((s, w) => s + w.count, 0);
 
   const handleProjectClick = (project: ProjectRow) => {
     router.push(
-      `/reno/maturation-analyst/project/${project.id}?from=architect-home`
+      `/reno/architect/project/${project.id}?from=architect-home`
     );
   };
 
