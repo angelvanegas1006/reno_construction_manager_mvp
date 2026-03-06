@@ -22,6 +22,7 @@ import { PropertyTabs } from "@/components/layout/property-tabs";
 import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { ArchitectProjectSidebar } from "@/components/reno/architect-project-sidebar";
 import { ArchitectTaskList } from "@/components/reno/architect-task-list";
+import { ProjectDocumentationTab } from "@/components/reno/project-documentation-tab";
 
 const PdfViewer = dynamic(
   () => import("@/components/reno/pdf-viewer").then((mod) => ({ default: mod.PdfViewer })),
@@ -112,6 +113,7 @@ export default function ArchitectProjectDetailPage() {
 
   const tabs = [
     { id: "tareas", label: "Tareas" },
+    { id: "documentacion", label: "Documentación" },
     { id: "resumen", label: "Resumen del proyecto" },
   ];
 
@@ -251,9 +253,13 @@ export default function ArchitectProjectDetailPage() {
         <div className="flex flex-1 overflow-hidden pt-2">
           <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24">
             <div className="max-w-4xl mx-auto">
-              {activeTab === "tareas" ? (
+              {activeTab === "tareas" && (
                 <ArchitectTaskList project={project} onRefetch={handleRefetch} />
-              ) : (
+              )}
+              {activeTab === "documentacion" && (
+                <ProjectDocumentationTab project={project} />
+              )}
+              {activeTab === "resumen" && (
                 <ArchitectSummary project={project} />
               )}
             </div>
