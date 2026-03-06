@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      architect_notifications: {
+        Row: {
+          id: string
+          project_id: string | null
+          architect_name: string
+          type: string
+          message: string
+          read: boolean
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id?: string | null
+          architect_name: string
+          type: string
+          message: string
+          read?: boolean
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string | null
+          architect_name?: string
+          type?: string
+          message?: string
+          read?: boolean
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "architect_notifications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_tasks: {
         Row: {
           activity_id: string
