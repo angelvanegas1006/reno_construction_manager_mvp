@@ -192,7 +192,7 @@ function CompactTooltip({ phases, x, y }: { phases: CompactPhase[]; x: number; y
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
-export function ProjectTimelineOverview({ allProjects }: { allProjects: ProjectRow[] }) {
+export function ProjectTimelineOverview({ allProjects, getProjectUrl }: { allProjects: ProjectRow[]; getProjectUrl?: (project: ProjectRow) => string }) {
   const router = useRouter();
   const [tooltipData, setTooltipData] = useState<{ phases: CompactPhase[]; x: number; y: number } | null>(null);
 
@@ -286,7 +286,7 @@ export function ProjectTimelineOverview({ allProjects }: { allProjects: ProjectR
             <div
               key={project.id}
               className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/40 transition-colors cursor-pointer group"
-              onClick={() => router.push(`/reno/maturation-analyst/project/${project.id}?viewMode=kanban&from=maturation-home&tab=timeline`)}
+              onClick={() => router.push(getProjectUrl ? getProjectUrl(project) : `/reno/maturation-analyst/project/${project.id}?viewMode=kanban&from=maturation-home&tab=timeline`)}
             >
               {/* Project info */}
               <div className="w-44 flex-shrink-0 min-w-0">

@@ -23,6 +23,7 @@ import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { MaturationProjectSidebar } from "@/components/reno/maturation-project-sidebar";
 import { MaturationTaskList } from "@/components/reno/maturation-task-list";
 import { ProjectTimeline } from "@/components/reno/project-timeline";
+import { EcuPageTab } from "@/components/reno/ecu-page-tab";
 
 const PdfViewer = dynamic(
   () => import("@/components/reno/pdf-viewer").then((mod) => ({ default: mod.PdfViewer })),
@@ -95,7 +96,7 @@ export default function MaturationProjectDetailPage() {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const isTimelineTab = activeTab === "timeline";
+  const isFullWidthTab = activeTab === "timeline" || activeTab === "ecu";
 
   useEffect(() => {
     if (project && !loading) {
@@ -127,11 +128,26 @@ export default function MaturationProjectDetailPage() {
     }
   }, [authLoading, user, role, router]);
 
+  const ECU_TAB_PHASES = [
+    "get-project-draft",
+    "pending-to-validate",
+    "pending-to-reserve-arras",
+    "technical-project-in-progress",
+    "ecuv-first-validation",
+    "technical-project-fine-tuning",
+    "ecuv-final-validation",
+  ];
+  const showEcuTab =
+    project &&
+    (project as any).excluded_from_ecu !== true &&
+    ECU_TAB_PHASES.includes(project.reno_phase ?? "");
+
   const tabs = [
     { id: "tareas", label: "Tareas" },
     { id: "timeline", label: "Timeline" },
     { id: "resumen", label: "Resumen" },
     { id: "propiedades", label: "Propiedades del proyecto" },
+    ...(showEcuTab ? [{ id: "ecu", label: "Página ECU" }] : []),
   ];
 
   const getPhaseLabel = (phase: string | null): string => {
@@ -165,6 +181,9 @@ export default function MaturationProjectDetailPage() {
 
       case "timeline":
         return <ProjectTimeline project={project} />;
+
+      case "ecu":
+        return <EcuPageTab />;
 
       case "resumen": {
         const p = project as any;
@@ -393,7 +412,7 @@ export default function MaturationProjectDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {!isTimelineTab && (
+              {!isFullWidthTab && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -420,9 +439,9 @@ export default function MaturationProjectDetailPage() {
           <div className={cn(
             "flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24",
           )}>
-            <div className={isTimelineTab ? "w-full" : "max-w-4xl mx-auto"}>{renderTabContent()}</div>
+            <div className={isFullWidthTab ? "w-full" : "max-w-4xl mx-auto"}>{renderTabContent()}</div>
           </div>
-          {!isTimelineTab && (
+          {!isFullWidthTab && (
             <div className="hidden lg:block h-full min-h-0 w-[320px] flex-shrink-0 border-l bg-card dark:bg-[var(--prophero-gray-900)] overflow-y-auto">
               <MaturationProjectSidebar project={project} />
             </div>

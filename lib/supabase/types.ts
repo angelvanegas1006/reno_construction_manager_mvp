@@ -398,6 +398,7 @@ export type Database = {
           project_validation_notes: string | null
           offer_status: string | null
           ecu_contact: string | null
+          ecu_contact_airtable_id: string | null
           estimated_project_end_date: string | null
           project_end_date: string | null
           arras_deadline: string | null
@@ -416,6 +417,10 @@ export type Database = {
           financial_review_done: boolean | null
           ecu_validation_notes: string | null
           ecu_validation_result: string | null
+          ecu_first_start_date: string | null
+          ecu_first_end_date: string | null
+          ecu_final_start_date: string | null
+          ecu_final_end_date: string | null
           ecu_final_delivery_doc: unknown | null
           ecu_reparos_doc: unknown | null
           ecu_reparos_notes: string | null
@@ -480,6 +485,7 @@ export type Database = {
           project_validation_notes?: string | null
           offer_status?: string | null
           ecu_contact?: string | null
+          ecu_contact_airtable_id?: string | null
           estimated_project_end_date?: string | null
           project_end_date?: string | null
           arras_deadline?: string | null
@@ -498,6 +504,10 @@ export type Database = {
           financial_review_done?: boolean | null
           ecu_validation_notes?: string | null
           ecu_validation_result?: string | null
+          ecu_first_start_date?: string | null
+          ecu_first_end_date?: string | null
+          ecu_final_start_date?: string | null
+          ecu_final_end_date?: string | null
           ecu_final_delivery_doc?: unknown | null
           ecu_reparos_doc?: unknown | null
           ecu_reparos_notes?: string | null
@@ -562,6 +572,7 @@ export type Database = {
           project_validation_notes?: string | null
           offer_status?: string | null
           ecu_contact?: string | null
+          ecu_contact_airtable_id?: string | null
           estimated_project_end_date?: string | null
           project_end_date?: string | null
           arras_deadline?: string | null
@@ -580,6 +591,10 @@ export type Database = {
           financial_review_done?: boolean | null
           ecu_validation_notes?: string | null
           ecu_validation_result?: string | null
+          ecu_first_start_date?: string | null
+          ecu_first_end_date?: string | null
+          ecu_final_start_date?: string | null
+          ecu_final_end_date?: string | null
           ecu_final_delivery_doc?: unknown | null
           ecu_reparos_doc?: unknown | null
           ecu_reparos_notes?: string | null

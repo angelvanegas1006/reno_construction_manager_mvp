@@ -23,6 +23,46 @@ import { trackEventWithDevice } from "@/lib/mixpanel";
 
 type ViewMode = "kanban" | "list";
 
+const PHASE_DAY_CONFIG: Partial<Record<RenoKanbanPhase, { field: string; limitDays: number }>> = {
+  "arch-pending-measurement": { field: "draft_order_date", limitDays: 7 },
+  "arch-preliminary-project": { field: "measurement_date", limitDays: 14 },
+  "arch-technical-project": { field: "draft_validation_date", limitDays: 28 },
+  "arch-technical-adjustments": { field: "ecu_first_end_date", limitDays: 7 },
+};
+
+function calcElapsedDays(project: ProjectRow, phase: RenoKanbanPhase): { elapsed: number | null; limit: number | null } {
+  const config = PHASE_DAY_CONFIG[phase];
+  if (!config) return { elapsed: null, limit: null };
+  const startVal = (project as any)[config.field];
+  if (!startVal) return { elapsed: null, limit: config.limitDays };
+  const start = new Date(startVal).getTime();
+  if (isNaN(start)) return { elapsed: null, limit: config.limitDays };
+  const elapsed = Math.floor((Date.now() - start) / (1000 * 60 * 60 * 24));
+  return { elapsed: Math.max(0, elapsed), limit: config.limitDays };
+}
+
+function enrichAndSort(
+  byPhase: Record<RenoKanbanPhase, ProjectRow[]>,
+): Record<RenoKanbanPhase, ProjectRow[]> {
+  const out: Record<string, ProjectRow[]> = {};
+  for (const phase of PHASES_KANBAN_ARCHITECT) {
+    const projects = byPhase[phase] ?? [];
+    const enriched = projects.map((p) => {
+      const { elapsed, limit } = calcElapsedDays(p, phase);
+      return { ...p, _phaseElapsedDays: elapsed, _phaseLimitDays: limit };
+    });
+    if (PHASE_DAY_CONFIG[phase]) {
+      enriched.sort((a, b) => {
+        const da = (a as any)._phaseElapsedDays ?? -1;
+        const db = (b as any)._phaseElapsedDays ?? -1;
+        return db - da;
+      });
+    }
+    out[phase] = enriched as ProjectRow[];
+  }
+  return out as Record<RenoKanbanPhase, ProjectRow[]>;
+}
+
 function applyFilters(
   byPhase: Record<RenoKanbanPhase, ProjectRow[]>,
   filters: ArchitectFilters,
@@ -92,7 +132,7 @@ export default function ArchitectKanbanPage() {
   const [syncLoading, setSyncLoading] = useState(false);
 
   const filteredByPhase = useMemo(
-    () => applyFilters(projectsByPhase, filters),
+    () => enrichAndSort(applyFilters(projectsByPhase, filters)),
     [projectsByPhase, filters],
   );
 

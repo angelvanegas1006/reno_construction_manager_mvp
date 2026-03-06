@@ -40,12 +40,10 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  PencilRuler,
-  DollarSign,
+  Timer,
 } from "lucide-react";
 import {
   MATURATION_PHASE_LABELS,
-  ARCHITECT_PHASE_LABELS,
 } from "@/lib/reno-kanban-config";
 import { trackEventWithDevice } from "@/lib/mixpanel";
 
@@ -322,14 +320,25 @@ export default function RenoConstructionManagerHomePage() {
       .slice(0, 8);
   }, [matAllProjects]);
 
-  const archRecentProjects = useMemo(() => {
-    return [...archAllProjects]
-      .sort((a, b) => {
-        const da = a.updated_at || a.created_at || "";
-        const db = b.updated_at || b.created_at || "";
-        return db.localeCompare(da);
-      })
-      .slice(0, 8);
+  const archAvgDays = useMemo(() => {
+    const diff = (a: string | null | undefined, b: string | null | undefined): number | null => {
+      if (!a || !b) return null;
+      const da = new Date(a).getTime();
+      const db = new Date(b).getTime();
+      if (isNaN(da) || isNaN(db)) return null;
+      return Math.round(Math.abs(db - da) / (1000 * 60 * 60 * 24));
+    };
+    const mean = (vals: (number | null)[]): number | null => {
+      const valid = vals.filter((v): v is number => v !== null);
+      if (valid.length === 0) return null;
+      return Math.round(valid.reduce((s, v) => s + v, 0) / valid.length);
+    };
+    return {
+      measurement: mean(archAllProjects.map((p) => diff((p as any).draft_order_date, (p as any).measurement_date))),
+      draft: mean(archAllProjects.map((p) => diff((p as any).measurement_date, (p as any).project_architect_date))),
+      project: mean(archAllProjects.map((p) => diff((p as any).draft_validation_date, (p as any).project_end_date))),
+      repairs: mean(archAllProjects.map((p) => diff((p as any).ecu_first_end_date, (p as any).arch_correction_date))),
+    };
   }, [archAllProjects]);
 
   return (
@@ -392,44 +401,12 @@ export default function RenoConstructionManagerHomePage() {
                   <VistralLogoLoader className="min-h-[400px]" />
                 ) : (
                   <>
-                    {/* Architect KPIs */}
-                    <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-                      <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <PencilRuler className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Proyectos de Arquitecto</CardTitle>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-xl md:text-2xl font-bold text-foreground">{archTotalProjects}</div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Total de proyectos con arquitecto asignado</p>
-                        </CardContent>
-                      </Card>
-                      <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Ingresos Arquitectos</CardTitle>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-xl md:text-2xl font-bold text-foreground">12.450 &euro;</div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Dato estimado (pendiente de integración)</p>
-                        </CardContent>
-                      </Card>
-                      <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Media de Elaboración</CardTitle>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-xl md:text-2xl font-bold text-foreground">18 días</div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Tiempo medio en elaboración de proyectos</p>
-                        </CardContent>
-                      </Card>
+                    {/* Architect KPIs - tiempos medios dinámicos */}
+                    <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-4">
+                      <ArchAvgTimeKpi label="Media Tiempos Medición" value={archAvgDays.measurement} limitDays={7} />
+                      <ArchAvgTimeKpi label="Media Tiempos Anteproyecto" value={archAvgDays.draft} limitDays={14} />
+                      <ArchAvgTimeKpi label="Media Tiempos Proyecto" value={archAvgDays.project} limitDays={28} />
+                      <ArchAvgTimeKpi label="Media Tiempos Reparos" value={archAvgDays.repairs} limitDays={7} />
                     </div>
 
                     {/* Architect Todo Widgets */}
@@ -438,67 +415,11 @@ export default function RenoConstructionManagerHomePage() {
                     {/* Architect Ranking (full width) */}
                     <ArchitectRanking allProjects={archAllProjects} />
 
-                    {/* Recent Projects */}
-                    <div className="bg-card border rounded-lg p-4">
-                      <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-violet-500" />
-                        Últimos proyectos actualizados
-                      </h3>
-                      {archRecentProjects.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-4 text-center">
-                          No hay proyectos de arquitecto
-                        </p>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="border-b text-left text-muted-foreground">
-                                <th className="pb-2 pr-4 font-medium">Proyecto</th>
-                                <th className="pb-2 pr-4 font-medium">Arquitecto</th>
-                                <th className="pb-2 pr-4 font-medium">Fase</th>
-                                <th className="pb-2 font-medium">Última actualización</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {archRecentProjects.map((p) => (
-                                <tr
-                                  key={p.id}
-                                  className="border-b last:border-0 cursor-pointer hover:bg-muted/30 transition-colors"
-                                  onClick={() =>
-                                    router.push(`/reno/maturation-analyst/project/${p.id}?from=architect-home`)
-                                  }
-                                >
-                                  <td className="py-2.5 pr-4">
-                                    <div className="font-medium max-w-[200px] truncate">{p.name || "Sin nombre"}</div>
-                                    {p.area_cluster && (
-                                      <div className="text-xs text-muted-foreground">{p.area_cluster}</div>
-                                    )}
-                                  </td>
-                                  <td className="py-2.5 pr-4 text-xs">
-                                    {(p as any).architect || "Sin asignar"}
-                                  </td>
-                                  <td className="py-2.5 pr-4 text-xs">
-                                    {ARCHITECT_PHASE_LABELS[p.reno_phase as string] ||
-                                      MATURATION_PHASE_LABELS[p.reno_phase as string] ||
-                                      p.project_status ||
-                                      "—"}
-                                  </td>
-                                  <td className="py-2.5 text-xs text-muted-foreground">
-                                    {p.updated_at
-                                      ? new Date(p.updated_at).toLocaleDateString("es-ES", {
-                                          day: "2-digit",
-                                          month: "short",
-                                          year: "numeric",
-                                        })
-                                      : "—"}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
+                    {/* Timeline compacto */}
+                    <ProjectTimelineOverview
+                      allProjects={archAllProjects}
+                      getProjectUrl={(p) => `/reno/maturation-analyst/project/${p.id}?tab=timeline`}
+                    />
                   </>
                 )}
               </>
@@ -730,5 +651,35 @@ export default function RenoConstructionManagerHomePage() {
         />
       )}
     </div>
+  );
+}
+
+function ArchAvgTimeKpi({ label, value, limitDays }: { label: string; value: number | null; limitDays: number }) {
+  const valueColor =
+    value === null
+      ? "text-foreground"
+      : value <= limitDays
+        ? "text-emerald-600 dark:text-emerald-400"
+        : value <= limitDays * 1.5
+          ? "text-amber-500"
+          : "text-red-500";
+
+  return (
+    <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Timer className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground leading-tight">
+            {label}
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className={`text-xl md:text-2xl font-bold ${valueColor}`}>
+          {value !== null ? `${value} días` : "—"}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">Límite: {limitDays} días</p>
+      </CardContent>
+    </Card>
   );
 }

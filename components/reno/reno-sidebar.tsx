@@ -25,6 +25,7 @@ import { HelpModal } from "@/components/reno/help-modal";
 import { extractNameFromEmail } from "@/lib/supabase/user-name-utils";
 import { useHelpConversations } from "@/hooks/useHelpConversations";
 import { useAssignedProjectsForForeman } from "@/hooks/useAssignedProjectsForForeman";
+import { useArchitectNotifications } from "@/hooks/useArchitectNotifications";
 import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-modal";
 import { createClient } from "@/lib/supabase/client";
 
@@ -174,6 +175,12 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
       .eq("status", "draft")
       .then(({ count }) => setDraftEmailCount(count ?? 0));
   }, [role]);
+
+  // Notificaciones para arquitecto
+  const architectName = role === "architect"
+    ? (supabaseUser?.user_metadata?.full_name ?? supabaseUser?.user_metadata?.name ?? null)
+    : null;
+  const { unreadCount: architectNotifCount } = useArchitectNotifications(architectName);
   
   const handleLogout = async () => {
     const { resetMixpanel } = await import("@/lib/mixpanel");
@@ -203,8 +210,11 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
     if (item.href === '/reno/construction-manager/kanban') {
       return { ...item, href: getKanbanHref() };
     }
+    if (item.href === '/reno/architect' && architectNotifCount > 0) {
+      return { ...item, badge: architectNotifCount };
+    }
     return item;
-  });
+  }) as Array<{ label: string; href: string; icon: typeof Home; badge?: number }>;
   const settingsItems = getSettingsItems(t, unreadCount, role || undefined);
   const pathname = usePathname();
   
@@ -302,7 +312,14 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                         )}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                          <div className="relative flex-shrink-0">
+                            <Icon className="h-5 w-5 text-current" />
+                            {item.badge && item.badge > 0 ? (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white px-0.5">
+                                {item.badge > 9 ? "9+" : item.badge}
+                              </span>
+                            ) : null}
+                          </div>
                           <span className="whitespace-nowrap truncate">{item.label}</span>
                         </div>
                         <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -508,7 +525,14 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                      <div className="relative flex-shrink-0">
+                        <Icon className="h-5 w-5 text-current" />
+                        {item.badge && item.badge > 0 ? (
+                          <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white px-0.5">
+                            {item.badge > 9 ? "9+" : item.badge}
+                          </span>
+                        ) : null}
+                      </div>
                       <span className="whitespace-nowrap truncate">{item.label}</span>
                     </div>
                     <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -562,14 +586,21 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   key={item.href}
                   href={item.href}
                     className={cn(
-                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full",
+                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
                       isActive
                         ? "bg-primary/20 text-primary dark:text-white"
                         : "text-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   title={item.label}
                 >
-                  <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                  <div className="relative">
+                    <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                    {item.badge && item.badge > 0 ? (
+                      <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white px-0.5">
+                        {item.badge > 9 ? "9+" : item.badge}
+                      </span>
+                    ) : null}
+                  </div>
                 </Link>
               );
             })}

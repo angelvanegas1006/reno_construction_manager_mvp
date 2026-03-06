@@ -2,7 +2,6 @@
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { ShieldOff } from "lucide-react";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import type { Property } from "@/lib/property-storage";
 
@@ -12,9 +11,11 @@ interface RenoProjectCardProps {
   isHighlighted?: boolean;
   linkedProperties?: Property[];
   variant?: "default" | "architect";
+  phaseElapsedDays?: number | null;
+  phaseLimitDays?: number | null;
 }
 
-export function RenoProjectCard({ project, onClick, isHighlighted, linkedProperties = [], variant = "default" }: RenoProjectCardProps) {
+export function RenoProjectCard({ project, onClick, isHighlighted, linkedProperties = [], variant = "default", phaseElapsedDays, phaseLimitDays }: RenoProjectCardProps) {
   const isArchitectVariant = variant === "architect";
   const name = project.name || "Sin nombre";
   const projectIdDisplay = project.project_unique_id || project.id?.slice(0, 8) || project.id;
@@ -66,6 +67,9 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
   const excludedFromEcu = p.excluded_from_ecu === true;
   const renovationExecutor = (p.renovation_executor as string | null)?.trim() || null;
 
+  const showDaysBadge = phaseElapsedDays != null;
+  const isOverLimit = showDaysBadge && phaseLimitDays != null && phaseElapsedDays! > phaseLimitDays;
+
   return (
     <button
       type="button"
@@ -74,7 +78,8 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
         "w-full text-left rounded-lg border-2 border-border bg-card p-4 shadow-sm transition-all duration-200",
         "hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.15)] dark:hover:bg-[#1a1a1a] dark:hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.6)]",
         isHighlighted &&
-          "ring-2 ring-[var(--prophero-blue-500)] border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30"
+          "ring-2 ring-[var(--prophero-blue-500)] border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30",
+        isOverLimit && "border-l-4 border-l-red-500"
       )}
     >
       {/* ID + investment type badges */}
@@ -83,10 +88,13 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
           ID: {projectIdDisplay}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          {excludedFromEcu && (
-            <span title="Excluido de ECU" className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 text-[10px] font-semibold">
-              <ShieldOff className="h-3 w-3" />
-              Sin ECU
+          {excludedFromEcu ? (
+            <span className="inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 px-1.5 py-0.5 text-[10px] font-semibold">
+              Ayto
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 px-1.5 py-0.5 text-[10px] font-semibold">
+              ECU
             </span>
           )}
           {!isArchitectVariant && isFlip && (
@@ -153,6 +161,21 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
             <p className="text-xs text-muted-foreground truncate">
               <span className="font-medium text-foreground">Arquitecto:</span> {architect}
             </p>
+          )}
+        </div>
+      )}
+
+      {/* Phase elapsed days badge */}
+      {showDaysBadge && (
+        <div className="mt-2 pt-2 border-t border-border/50 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {isOverLimit ? "⚠ " : ""}
+            {phaseElapsedDays} {phaseElapsedDays === 1 ? "día" : "días"} en esta fase
+          </span>
+          {phaseLimitDays != null && (
+            <span className={cn("text-xs font-medium", isOverLimit ? "text-red-500" : "text-muted-foreground")}>
+              Límite: {phaseLimitDays}d
+            </span>
           )}
         </div>
       )}
