@@ -378,12 +378,14 @@ input[type="range"].slider-blue::-moz-range-thumb {
   background-color: rgb(82 82 91);
 }
 
-.scrollbar-hidden {
+.scrollbar-hidden,
+.scrollbar-hide {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.scrollbar-hidden::-webkit-scrollbar {
+.scrollbar-hidden::-webkit-scrollbar,
+.scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 

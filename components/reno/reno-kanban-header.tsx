@@ -86,7 +86,7 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, vi
                 aria-label="List view"
               >
                 <List className="h-3 w-3" />
-                <span className="hidden sm:inline">List</span>
+                <span className="hidden sm:inline">Tabla</span>
               </button>
             </div>
           )}
@@ -145,7 +145,7 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, vi
                 aria-label="List view"
               >
                 <List className="h-4 w-4" />
-                List
+                Tabla
               </button>
             </div>
           )}
