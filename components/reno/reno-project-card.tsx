@@ -62,7 +62,7 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
   const estProperties = p.est_properties;
   const ptcStr = propertiesToConvert != null ? String(propertiesToConvert).trim() : "";
   const propertiesDisplay = ptcStr && ptcStr !== "0" ? ptcStr : (estProperties ?? "—");
-  const scouter = p.scouter as string | null;
+  const ecuContact = ((p.ecu_contact as string | null) ?? "").replace(/[\[\]"]/g, "").trim() || null;
   const architect = p.architect as string | null;
   const excludedFromEcu = p.excluded_from_ecu === true;
   const renovationExecutor = (p.renovation_executor as string | null)?.trim() || null;
@@ -149,12 +149,12 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
         </span>
       </div>
 
-      {/* Scouter + Architect (hidden in architect variant) */}
-      {!isArchitectVariant && (scouter || architect) && (
+      {/* ECU Contact (only if ECU, not Ayto) + Architect (hidden in architect variant) */}
+      {!isArchitectVariant && ((!excludedFromEcu && ecuContact) || architect) && (
         <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
-          {scouter && (
+          {!excludedFromEcu && ecuContact && (
             <p className="text-xs text-muted-foreground truncate">
-              <span className="font-medium text-foreground">Scouter:</span> {scouter}
+              <span className="font-medium text-foreground">Contacto ECU:</span> {ecuContact}
             </p>
           )}
           {architect && (

@@ -186,11 +186,11 @@ export default function MaturationAnalystHomePage() {
                 </div>
               </div>
 
-              {/* Distribución por fase + Ranking de Arquitectos */}
-              <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
-                <ArchitectRanking allProjects={allProjects} />
-                <MaturationPhaseDistribution projectsByPhase={projectsByPhase} />
-              </div>
+              {/* Análisis de Arquitectos (ancho completo) */}
+              <ArchitectRanking allProjects={allProjects} />
+
+              {/* Distribución por fase */}
+              <MaturationPhaseDistribution projectsByPhase={projectsByPhase} />
 
               {/* Calendario de fechas */}
               <MaturationCalendar allProjects={allProjects} />

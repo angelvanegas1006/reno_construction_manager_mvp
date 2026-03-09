@@ -14,12 +14,9 @@ import {
   Hammer,
   CalendarCheck,
   ShieldCheck,
-  Gavel,
+  Euro,
   FileSignature,
   Filter,
-  Maximize2,
-  Minimize2,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -47,18 +44,18 @@ interface CalendarEvent {
 type EventType = keyof typeof EVENT_CONFIG;
 
 const EVENT_CONFIG = {
-  draft_order_date:                { label: "Encargo Anteproyecto",    icon: FileText,     colorClass: "text-blue-500",    filterKey: "drafts" as const },
-  measurement_date:                { label: "Medición",                icon: Ruler,        colorClass: "text-indigo-500",  filterKey: "measurements" as const },
-  project_draft_date:              { label: "Borrador Proyecto",       icon: FileText,     colorClass: "text-violet-500",  filterKey: "drafts" as const },
-  project_start_date:              { label: "Inicio Proyecto",         icon: Hammer,       colorClass: "text-orange-500",  filterKey: "projectDates" as const },
-  estimated_project_end_date:      { label: "Fin Estimado",           icon: Clock,        colorClass: "text-amber-500",   filterKey: "projectDates" as const },
-  project_end_date:                { label: "Fin Proyecto",           icon: CalendarCheck, colorClass: "text-green-500",   filterKey: "projectDates" as const },
-  arras_deadline:                  { label: "Fecha Límite Arras",     icon: Gavel,        colorClass: "text-red-500",     filterKey: "arras" as const },
-  ecu_delivery_date:               { label: "Entrega ECU",           icon: ShieldCheck,  colorClass: "text-teal-500",    filterKey: "ecu" as const },
-  estimated_first_correction_date: { label: "1ª Corrección Est.",     icon: Clock,        colorClass: "text-cyan-500",    filterKey: "corrections" as const },
-  first_correction_date:           { label: "1ª Corrección",         icon: CalendarCheck, colorClass: "text-sky-500",     filterKey: "corrections" as const },
-  definitive_validation_date:      { label: "Validación Definitiva", icon: FileSignature, colorClass: "text-emerald-500", filterKey: "corrections" as const },
-  settlement_date:                 { label: "Escrituración",         icon: FileSignature, colorClass: "text-purple-500",  filterKey: "arras" as const },
+  draft_order_date:                { label: "Encargo Anteproyecto",    icon: FileText,     colorClass: "text-blue-500",    borderClass: "border-l-blue-500",    bgClass: "bg-blue-50 dark:bg-blue-950/30",    filterKey: "drafts" as const },
+  measurement_date:                { label: "Medición",                icon: Ruler,        colorClass: "text-indigo-500",  borderClass: "border-l-indigo-500",  bgClass: "bg-indigo-50 dark:bg-indigo-950/30",  filterKey: "measurements" as const },
+  project_draft_date:              { label: "Borrador Proyecto",       icon: FileText,     colorClass: "text-violet-500",  borderClass: "border-l-violet-500",  bgClass: "bg-violet-50 dark:bg-violet-950/30",  filterKey: "drafts" as const },
+  project_start_date:              { label: "Inicio Proyecto",         icon: Hammer,       colorClass: "text-orange-500",  borderClass: "border-l-orange-500",  bgClass: "bg-orange-50 dark:bg-orange-950/30",  filterKey: "projectDates" as const },
+  estimated_project_end_date:      { label: "Fin Estimado",           icon: Clock,        colorClass: "text-amber-500",   borderClass: "border-l-amber-500",   bgClass: "bg-amber-50 dark:bg-amber-950/30",   filterKey: "projectDates" as const },
+  project_end_date:                { label: "Fin Proyecto",           icon: CalendarCheck, colorClass: "text-green-500",   borderClass: "border-l-green-500",   bgClass: "bg-green-50 dark:bg-green-950/30",   filterKey: "projectDates" as const },
+  arras_deadline:                  { label: "Fecha Límite Arras",     icon: Euro,         colorClass: "text-red-500",     borderClass: "border-l-red-500",     bgClass: "bg-red-50 dark:bg-red-950/30",     filterKey: "arras" as const },
+  ecu_delivery_date:               { label: "Entrega ECU",           icon: ShieldCheck,  colorClass: "text-teal-500",    borderClass: "border-l-teal-500",    bgClass: "bg-teal-50 dark:bg-teal-950/30",    filterKey: "ecu" as const },
+  estimated_first_correction_date: { label: "1ª Corrección Est.",     icon: Clock,        colorClass: "text-cyan-500",    borderClass: "border-l-cyan-500",    bgClass: "bg-cyan-50 dark:bg-cyan-950/30",    filterKey: "corrections" as const },
+  first_correction_date:           { label: "1ª Corrección",         icon: CalendarCheck, colorClass: "text-sky-500",     borderClass: "border-l-sky-500",     bgClass: "bg-sky-50 dark:bg-sky-950/30",     filterKey: "corrections" as const },
+  definitive_validation_date:      { label: "Validación Definitiva", icon: FileSignature, colorClass: "text-emerald-500", borderClass: "border-l-emerald-500", bgClass: "bg-emerald-50 dark:bg-emerald-950/30", filterKey: "corrections" as const },
+  settlement_date:                 { label: "Escrituración",         icon: FileSignature, colorClass: "text-purple-500",  borderClass: "border-l-purple-500",  bgClass: "bg-purple-50 dark:bg-purple-950/30",  filterKey: "arras" as const },
 };
 
 const DATE_FIELDS = Object.keys(EVENT_CONFIG) as EventType[];
@@ -70,15 +67,15 @@ interface MaturationCalendarProps {
 export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"day" | "week">(() => {
+  const [viewMode, setViewMode] = useState<"day" | "month">(() => {
     if (typeof window !== "undefined") {
-      return window.innerWidth < 768 ? "day" : "week";
+      return window.innerWidth < 768 ? "day" : "month";
     }
-    return "week";
+    return "month";
   });
   const [isMobile, setIsMobile] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
+  const [selectedDayEvents, setSelectedDayEvents] = useState<{ date: Date; events: CalendarEvent[] } | null>(null);
 
   const [filters, setFilters] = useState({
     drafts: true,
@@ -92,7 +89,7 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768 && viewMode === "week") {
+      if (window.innerWidth < 768 && viewMode === "month") {
         setViewMode("day");
       }
     };
@@ -103,19 +100,33 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
 
   const goToPreviousPeriod = () => {
     const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + (viewMode === "day" ? -1 : -7));
+    if (viewMode === "day") {
+      newDate.setDate(newDate.getDate() - 1);
+    } else {
+      newDate.setMonth(newDate.getMonth() - 1);
+    }
     setCurrentDate(newDate);
   };
 
   const goToNextPeriod = () => {
     const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + (viewMode === "day" ? 1 : 7));
+    if (viewMode === "day") {
+      newDate.setDate(newDate.getDate() + 1);
+    } else {
+      newDate.setMonth(newDate.getMonth() + 1);
+    }
     setCurrentDate(newDate);
   };
 
   const goToToday = () => setCurrentDate(new Date());
 
   const getDateButtonText = () => {
+    if (viewMode === "month") {
+      return currentDate.toLocaleDateString("es-ES", {
+        month: "long",
+        year: "numeric",
+      });
+    }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const curr = new Date(currentDate);
@@ -144,14 +155,20 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
       end.setHours(23, 59, 59, 999);
       return { start, end };
     }
-    const start = new Date(currentDate);
-    const dayOfWeek = start.getDay();
-    const diff = start.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    start.setDate(diff);
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const start = new Date(year, month, 1);
     start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
+    const firstDow = start.getDay();
+    const offset = firstDow === 0 ? 6 : firstDow - 1;
+    start.setDate(start.getDate() - offset);
+
+    const end = new Date(year, month + 1, 0);
     end.setHours(23, 59, 59, 999);
+    const lastDow = end.getDay();
+    const trailing = lastDow === 0 ? 0 : 7 - lastDow;
+    end.setDate(end.getDate() + trailing);
+
     return { start, end };
   }, [currentDate, viewMode]);
 
@@ -192,41 +209,41 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
     });
   }, [allEvents, filters]);
 
-  const groupedEvents = useMemo(() => {
-    if (viewMode === "day") {
-      const grouped: Record<number, CalendarEvent[]> = {};
-      filteredEvents.forEach((ev) => {
-        const hour = ev.date.getHours();
-        if (!grouped[hour]) grouped[hour] = [];
-        grouped[hour].push(ev);
-      });
-      return grouped;
-    }
+  const groupedByHour = useMemo(() => {
     const grouped: Record<number, CalendarEvent[]> = {};
     filteredEvents.forEach((ev) => {
-      const dayOfWeek = ev.date.getDay();
-      const adjusted = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      if (adjusted >= 0 && adjusted <= 4) {
-        if (!grouped[adjusted]) grouped[adjusted] = [];
-        grouped[adjusted].push(ev);
-      }
+      const hour = ev.date.getHours();
+      if (!grouped[hour]) grouped[hour] = [];
+      grouped[hour].push(ev);
     });
     return grouped;
-  }, [filteredEvents, viewMode]);
+  }, [filteredEvents]);
+
+  const groupedByDateKey = useMemo(() => {
+    const grouped: Record<string, CalendarEvent[]> = {};
+    filteredEvents.forEach((ev) => {
+      const key = ev.date.toISOString().slice(0, 10);
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(ev);
+    });
+    return grouped;
+  }, [filteredEvents]);
 
   const hours = Array.from({ length: 13 }, (_, i) => i + 8);
 
-  const weekDays = useMemo(() => {
-    const { start } = getDateRange();
+  const monthCalendarDays = useMemo(() => {
+    if (viewMode !== "month") return [];
+    const { start, end } = getDateRange();
     const days: Date[] = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(start);
-      day.setDate(start.getDate() + i);
-      const dow = day.getDay();
-      if (dow !== 0 && dow !== 6) days.push(day);
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      days.push(new Date(cursor));
+      cursor.setDate(cursor.getDate() + 1);
     }
     return days;
-  }, [getDateRange]);
+  }, [getDateRange, viewMode]);
+
+  const WEEKDAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
   const getEventIcon = (type: string) => {
     const cfg = EVENT_CONFIG[type as EventType];
@@ -271,15 +288,15 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
                   Día
                 </button>
                 <button
-                  onClick={() => setViewMode("week")}
+                  onClick={() => setViewMode("month")}
                   className={cn(
                     "px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                    viewMode === "week"
+                    viewMode === "month"
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  Semana
+                  Mes
                 </button>
               </div>
             )}
@@ -405,7 +422,7 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
           <div className="relative max-h-[500px] md:max-h-[750px] overflow-y-auto">
             <div className="space-y-0">
               {hours.map((hour) => {
-                const hourEvents = groupedEvents[hour] || [];
+                const hourEvents = groupedByHour[hour] || [];
                 const now = new Date();
                 const isToday =
                   currentDate.toDateString() === now.toDateString();
@@ -505,139 +522,93 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
             </div>
           </div>
         ) : (
-          <>
-            <div
-              className={cn(
-                "flex md:grid gap-2 overflow-x-auto pb-2",
-                "scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
-                isMobile
-                  ? "flex-row snap-x snap-mandatory"
-                  : "grid-cols-2 md:grid-cols-3 lg:grid-cols-5"
-              )}
-            >
-              {weekDays.map((day, dayIndex) => {
-                const dayOfWeek = day.getDay();
-                const originalIndex =
-                  dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-                const dayEvents = groupedEvents[originalIndex] || [];
-                const isToday =
-                  day.toDateString() === new Date().toDateString();
-
-                const sortedEvents = [...dayEvents].sort(
-                  (a, b) => a.date.getTime() - b.date.getTime()
-                );
-
-                const MAX_VISIBLE = 5;
-                const hasOverflow = sortedEvents.length > MAX_VISIBLE;
+          <div>
+            <div className="grid grid-cols-7 border-b mb-1">
+              {WEEKDAY_LABELS.map((label) => (
+                <div
+                  key={label}
+                  className="text-center text-xs font-semibold text-muted-foreground py-2"
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 auto-rows-fr">
+              {monthCalendarDays.map((day, idx) => {
+                const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+                const dayEvents = groupedByDateKey[key] || [];
+                const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+                const isToday = day.toDateString() === new Date().toDateString();
+                const MAX_VISIBLE_MONTH = 2;
+                const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_MONTH);
+                const overflow = dayEvents.length - MAX_VISIBLE_MONTH;
 
                 return (
                   <div
-                    key={dayIndex}
+                    key={idx}
                     className={cn(
-                      "border rounded-lg p-3 md:p-4 flex flex-col",
-                      isMobile
-                        ? "min-w-[calc(100vw-2rem)] snap-start"
-                        : "min-w-0",
-                      isToday &&
-                        "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      "border border-border/30 p-1 md:p-1.5 min-h-[100px] md:min-h-[130px] flex flex-col",
+                      !isCurrentMonth && "bg-muted/20",
+                      isToday && "bg-primary/5 ring-1 ring-primary/30"
                     )}
                   >
                     <div
                       className={cn(
-                        "text-sm md:text-xs font-semibold mb-3 md:mb-2 flex-shrink-0",
-                        isToday && "text-primary"
+                        "text-[11px] font-medium mb-1 text-right pr-0.5",
+                        isToday ? "text-primary font-bold" : isCurrentMonth ? "text-foreground" : "text-muted-foreground/60"
                       )}
                     >
-                      <div className="text-xs text-muted-foreground mb-0.5">
-                        {day.toLocaleDateString("es-ES", {
-                          weekday: "long",
-                        })}
-                      </div>
-                      <div className="text-lg md:text-base">
-                        {day.toLocaleDateString("es-ES", {
-                          day: "numeric",
-                        })}
-                      </div>
-                    </div>
-                    <div
-                      className={cn(
-                        "space-y-2 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent",
-                        !isCalendarExpanded &&
-                          !isMobile &&
-                          "max-h-[310px]",
-                        isMobile && "min-h-[350px]"
-                      )}
-                    >
-                      {sortedEvents.length === 0 ? (
-                        <span className="text-xs text-muted-foreground block py-2">
-                          Sin eventos
+                      {isToday ? (
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-[11px] font-bold">
+                          {day.getDate()}
                         </span>
                       ) : (
-                        sortedEvents.map((ev) => (
+                        day.getDate()
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-1 overflow-hidden">
+                      {visibleEvents.map((ev) => {
+                        const cfg = EVENT_CONFIG[ev.type as EventType];
+                        const Icon = cfg?.icon ?? Calendar;
+                        return (
                           <button
                             key={ev.id}
                             onClick={() => setSelectedEvent(ev)}
                             className={cn(
-                              "w-full flex items-start gap-2 px-3 py-2.5 rounded-lg",
-                              "border-2 transition-all text-left",
-                              "bg-card hover:bg-accent hover:border-primary/50",
-                              "shadow-sm hover:shadow-md",
-                              "active:scale-[0.98]"
+                              "w-full text-left rounded-md transition-all group",
+                              "border-l-[3px] pl-1.5 pr-1 py-1",
+                              "hover:shadow-md hover:scale-[1.02]",
+                              cfg?.borderClass ?? "border-l-muted-foreground",
+                              cfg?.bgClass ?? "bg-muted/40"
                             )}
+                            title={`${ev.projectName} — ${ev.label}`}
                           >
-                            <div className="flex-shrink-0 mt-0.5">
-                              {getEventIcon(ev.type)}
-                            </div>
-                            <div className="flex-1 min-w-0 space-y-1">
-                              <div className="flex items-start justify-between gap-2">
-                                <span className="text-xs md:text-sm font-semibold text-foreground line-clamp-2 break-words">
-                                  {ev.projectName}
-                                </span>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <Icon className={cn("h-3 w-3 flex-shrink-0", cfg?.colorClass ?? "text-muted-foreground")} />
+                              <span className={cn("text-[10px] font-semibold truncate", cfg?.colorClass ?? "text-muted-foreground")}>
                                 {ev.label}
-                              </div>
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate leading-tight group-hover:text-foreground transition-colors">
+                              {ev.projectName}
                             </div>
                           </button>
-                        ))
+                        );
+                      })}
+                      {overflow > 0 && (
+                        <button
+                          onClick={() => setSelectedDayEvents({ date: day, events: dayEvents })}
+                          className="w-full text-center text-[10px] font-medium text-primary hover:underline cursor-pointer py-0.5 rounded hover:bg-primary/5 transition-colors"
+                        >
+                          +{overflow} más
+                        </button>
                       )}
                     </div>
-                    {!isCalendarExpanded &&
-                      hasOverflow &&
-                      !isMobile && (
-                        <div className="pt-1 text-center">
-                          <span className="text-[10px] text-muted-foreground">
-                            +{sortedEvents.length - MAX_VISIBLE} más
-                          </span>
-                        </div>
-                      )}
                   </div>
                 );
               })}
             </div>
-            {!isMobile && (
-              <div className="flex justify-center pt-2">
-                <button
-                  onClick={() =>
-                    setIsCalendarExpanded(!isCalendarExpanded)
-                  }
-                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-muted"
-                >
-                  {isCalendarExpanded ? (
-                    <>
-                      <Minimize2 className="h-3.5 w-3.5" />
-                      Contraer calendario
-                    </>
-                  ) : (
-                    <>
-                      <Maximize2 className="h-3.5 w-3.5" />
-                      Expandir calendario completo
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </>
+          </div>
         )}
 
         {/* Modal de detalles */}
@@ -702,6 +673,70 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
                     Ver Proyecto
                   </Button>
                 </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {selectedDayEvents && (
+          <Dialog
+            open={!!selectedDayEvents}
+            onOpenChange={() => setSelectedDayEvents(null)}
+          >
+            <DialogContent className="sm:max-w-[550px] w-[95vw] md:w-full max-h-[85vh] md:max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  Eventos del{" "}
+                  {selectedDayEvents.date.toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2 mt-4">
+                {selectedDayEvents.events.map((ev) => {
+                  const cfg = EVENT_CONFIG[ev.type as EventType];
+                  const Icon = cfg?.icon ?? Calendar;
+                  return (
+                    <button
+                      key={ev.id}
+                      onClick={() => {
+                        setSelectedDayEvents(null);
+                        setSelectedEvent(ev);
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 rounded-lg transition-all text-left",
+                        "border-l-4 pl-3 pr-4 py-3",
+                        "hover:shadow-md active:scale-[0.98]",
+                        cfg?.borderClass ?? "border-l-muted-foreground",
+                        cfg?.bgClass ?? "bg-muted/40"
+                      )}
+                    >
+                      <div className="flex-shrink-0">
+                        <Icon className={cn("h-4 w-4", cfg?.colorClass ?? "text-muted-foreground")} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-foreground line-clamp-1">
+                          {ev.projectName}
+                        </div>
+                        <div className={cn("text-xs font-medium", cfg?.colorClass ?? "text-muted-foreground")}>
+                          {ev.label}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex justify-end pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedDayEvents(null)}
+                >
+                  Cerrar
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
