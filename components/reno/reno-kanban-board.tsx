@@ -27,6 +27,9 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { PropertySidePanel } from "./property-side-panel";
+import { ProjectSidePanel } from "./project-side-panel";
 import { createClient } from "@/lib/supabase/client";
 import { getForemanEmailFromName } from "@/lib/supabase/user-name-utils";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
@@ -99,6 +102,27 @@ const DATE_COLUMN_KEYS: SortColumn[] = [
   "renoEndDate",
 ];
 
+const BASE_COLS: SortColumn[] = ["address", "region", "renoType"];
+
+const DEFAULT_COLUMNS_BY_PHASE: Partial<Record<RenoKanbanPhase, SortColumn[]>> = {
+  "upcoming-settlements": [...BASE_COLS, "daysToVisit", "daysToStartRenoSinceRSD", "estimatedVisit"],
+  "initial-check": [...BASE_COLS, "daysToVisit", "daysToStartRenoSinceRSD", "initialVisitDate"],
+  "reno-budget-renovator": [...BASE_COLS, "renovador", "estRenoStartDate", "daysToStartRenoSinceRSD"],
+  "reno-budget-client": [...BASE_COLS, "renovador", "estRenoStartDate", "daysToStartRenoSinceRSD"],
+  "reno-budget-start": [...BASE_COLS, "renovador", "estRenoStartDate", "renoStartDate"],
+  "reno-in-progress": [...BASE_COLS, "renovador", "renoDuration", "proximaActualizacion", "renoStartDate", "renoEstimatedEndDate", "progress"],
+  "furnishing": [...BASE_COLS, "renovador", "daysToPropertyReady", "renoEndDate"],
+  "final-check": [...BASE_COLS, "renovador", "daysToPropertyReady", "renoEndDate"],
+  "pendiente-suministros": [...BASE_COLS, "renovador", "daysToPropertyReady", "renoEndDate"],
+  "cleaning": [...BASE_COLS, "renovador", "daysToPropertyReady", "renoEndDate"],
+};
+
+function getDefaultColumnsForPhase(phase: RenoKanbanPhase): Set<SortColumn> {
+  const phaseDefaults = DEFAULT_COLUMNS_BY_PHASE[phase];
+  if (phaseDefaults) return new Set(phaseDefaults);
+  return new Set([...BASE_COLS, "progress"]);
+}
+
 export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onViewModeChange, propertiesByPhaseOverride, visibleColumnsOverride, fromParam = "kanban", viewLevel = "property", projectsByPhaseOverride, propertiesByProjectId }: RenoKanbanBoardProps) {
   const { t, language } = useI18n();
   const { user } = useSupabaseAuth();
@@ -125,6 +149,8 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [selectedPhaseFilter, setSelectedPhaseFilter] = useState<RenoKanbanPhase | "all">("all");
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedProjectRow, setSelectedProjectRow] = useState<ProjectRow | null>(null);
 
   type ProjectSortCol = "name" | "projectId" | "type" | "investmentType" | "area" | "renovator" | "status" | "propertiesCount" | "projectStartDate" | "settlementDate" | "scouter" | "architect" | "excludedEcu";
   const [projectSortCol, setProjectSortCol] = useState<ProjectSortCol | null>(null);
@@ -134,10 +160,9 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   
   // Column visibility state per phase - Map<phase, Set<columns>>
   const [visibleColumnsByPhase, setVisibleColumnsByPhase] = useState<Map<RenoKanbanPhase, Set<SortColumn>>>(() => {
-    const defaultColumns = new Set(COLUMN_CONFIG.filter(col => col.defaultVisible).map(col => col.key));
     const map = new Map<RenoKanbanPhase, Set<SortColumn>>();
     visibleColumns.forEach(col => {
-      map.set(col.key, new Set(defaultColumns));
+      map.set(col.key, getDefaultColumnsForPhase(col.key));
     });
     return map;
   });
@@ -1405,7 +1430,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
 
   // Get visible columns for a specific phase
   const getVisibleColumnsForPhase = useCallback((phase: RenoKanbanPhase): Set<SortColumn> => {
-    return visibleColumnsByPhase.get(phase) || new Set(COLUMN_CONFIG.filter(col => col.defaultVisible).map(col => col.key));
+    return visibleColumnsByPhase.get(phase) || getDefaultColumnsForPhase(phase);
   }, [visibleColumnsByPhase]);
 
   // Calculate total count for "All" (must be before early returns)
@@ -1515,71 +1540,90 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
 
 
     return (
+      <>
       <div className="flex flex-col h-full">
-        {/* Sticky Phase Filter */}
-        <div className="sticky top-0 z-10 bg-background border-b border-border pb-3 mb-4 pt-2">
-          <div className="flex flex-wrap gap-2 overflow-x-auto">
-            {/* All Button */}
-            <button
-              onClick={() => setSelectedPhaseFilter("all")}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-2",
-                selectedPhaseFilter === "all"
-                  ? "bg-[var(--prophero-blue-500)] text-white"
-                  : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-muted/50 dark:hover:bg-[var(--prophero-gray-800)]"
-              )}
-            >
-              <span>All ({totalCount})</span>
-              {(() => {
-                const totalAlertCount = visibleColumns.reduce((sum, col) => {
-                  const props = propertiesByPhaseForList[col.key] || [];
-                  return sum + props.filter((p: Property) => {
-                    return isDelayedWork(p, col.key) || shouldShowExpiredBadge(p, col.key);
-                  }).length;
-                }, 0);
-                return totalAlertCount > 0 ? (
-                  <span className="text-xs font-medium text-white bg-red-500 px-2 py-0.5 rounded-full">
-                    {totalAlertCount}
-                  </span>
-                ) : null;
-              })()}
-            </button>
-            
-            {/* Phase Buttons */}
-            {visibleColumns.map((column) => {
-              const properties = propertiesByPhaseForList[column.key] || [];
-              const count = properties.length;
-              const alertCount = properties.filter(p => {
-                return isDelayedWork(p, column.key) || shouldShowExpiredBadge(p, column.key);
-              }).length;
-              const phaseLabel = (column as RenoKanbanColumnConfig & { label?: string }).label ?? PROJECT_KANBAN_PHASE_LABELS[column.key] ?? t.kanban[column.translationKey];
-              const isSelected = selectedPhaseFilter === column.key;
-              
-              return (
-                <button
-                  key={column.key}
-                  onClick={() => setSelectedPhaseFilter(column.key)}
-                  className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 flex items-center gap-2",
-                    isSelected
-                      ? "bg-[var(--prophero-blue-500)] text-white"
-                      : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-muted/50 dark:hover:bg-[var(--prophero-gray-800)]"
-                  )}
-                >
-                  <span>{phaseLabel} ({count})</span>
-                  {alertCount > 0 && (
-                    <span className="text-xs font-medium text-white bg-red-500 px-2 py-0.5 rounded-full">
-                      {alertCount}
+        {/* Sticky Phase Filter — Segmented Control */}
+        <div className="sticky top-0 z-10 bg-background pb-3 mb-3 pt-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-muted/60 dark:bg-muted/30 rounded-lg p-1 overflow-x-auto scrollbar-hide flex-1 min-w-0">
+              <button
+                onClick={() => setSelectedPhaseFilter("all")}
+                className={cn(
+                  "relative px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5",
+                  selectedPhaseFilter === "all"
+                    ? "bg-background dark:bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Todos
+                <span className={cn("text-[10px] tabular-nums", selectedPhaseFilter === "all" ? "text-foreground/60" : "text-muted-foreground/70")}>{totalCount}</span>
+                {(() => {
+                  const totalAlertCount = visibleColumns.reduce((sum, col) => {
+                    const props = propertiesByPhaseForList[col.key] || [];
+                    return sum + props.filter((p: Property) => {
+                      return isDelayedWork(p, col.key) || shouldShowExpiredBadge(p, col.key);
+                    }).length;
+                  }, 0);
+                  return totalAlertCount > 0 ? (
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 text-[9px] font-bold text-white bg-red-500 rounded-full px-1">
+                      {totalAlertCount}
                     </span>
-                  )}
-                </button>
-              );
-            })}
+                  ) : null;
+                })()}
+              </button>
+
+              {visibleColumns.map((column) => {
+                const properties = propertiesByPhaseForList[column.key] || [];
+                const count = properties.length;
+                const alertCount = properties.filter(p => {
+                  return isDelayedWork(p, column.key) || shouldShowExpiredBadge(p, column.key);
+                }).length;
+                const phaseLabel = (column as RenoKanbanColumnConfig & { label?: string }).label ?? PROJECT_KANBAN_PHASE_LABELS[column.key] ?? t.kanban[column.translationKey];
+                const isSelected = selectedPhaseFilter === column.key;
+
+                return (
+                  <button
+                    key={column.key}
+                    onClick={() => setSelectedPhaseFilter(column.key)}
+                    className={cn(
+                      "relative px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5",
+                      isSelected
+                        ? "bg-background dark:bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {phaseLabel}
+                    <span className={cn("text-[10px] tabular-nums", isSelected ? "text-foreground/60" : "text-muted-foreground/70")}>{count}</span>
+                    {alertCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 text-[9px] font-bold text-white bg-red-500 rounded-full px-1">
+                        {alertCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => {
+                const allPhaseKeys = filteredPhases.map(c => c.key);
+                const allCollapsed = allPhaseKeys.every(k => collapsedPhases.has(k));
+                if (allCollapsed) {
+                  setCollapsedPhases(new Set());
+                } else {
+                  setCollapsedPhases(new Set(allPhaseKeys));
+                }
+              }}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-md hover:bg-accent/50 flex-shrink-0 whitespace-nowrap"
+              title={filteredPhases.every(c => collapsedPhases.has(c.key)) ? "Expandir todo" : "Colapsar todo"}
+            >
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", filteredPhases.every(c => collapsedPhases.has(c.key)) && "-rotate-90")} />
+              <span className="hidden sm:inline">{filteredPhases.every(c => collapsedPhases.has(c.key)) ? "Expandir" : "Colapsar"}</span>
+            </button>
           </div>
         </div>
 
         {/* Properties List */}
-        <div className="space-y-6 pb-4 overflow-y-auto flex-1">
+        <div className="space-y-3 pb-4 overflow-y-auto flex-1">
           {filteredPhases.map((column) => {
             // Use filteredProperties directly to maintain kanban sorting logic
             let properties = filteredProperties[column.key] || [];
@@ -1628,61 +1672,53 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           };
 
           return (
-            <div key={column.key} className="bg-card rounded-lg border border-border overflow-hidden">
-              {/* Phase Header - Collapsible */}
-              <div className="bg-muted/50 dark:bg-[var(--prophero-gray-900)] px-4 py-3 border-b border-border">
+            <div key={column.key} className="bg-card rounded-lg border border-border/60 overflow-hidden shadow-sm">
+              {/* Phase Header */}
+              <div className="px-4 py-2.5 border-b border-border/40 bg-muted/30 dark:bg-muted/10">
                 <div className="flex items-center justify-between gap-2">
                   <button
                     onClick={() => togglePhaseCollapse(column.key)}
-                    className="flex items-center gap-2 hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors rounded px-2 py-1 -ml-2 flex-1 min-w-0"
+                    className="flex items-center gap-2 hover:bg-accent/50 transition-colors rounded-md px-2 py-1 -ml-2 flex-1 min-w-0"
                   >
-                    {isCollapsed ? (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform rotate-[-90deg] flex-shrink-0" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform flex-shrink-0" />
-                    )}
-                    <h3 className="font-semibold text-foreground text-lg truncate">{phaseLabel}</h3>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <Badge variant="secondary" className="text-sm">
-                        {properties.length}
-                      </Badge>
-                      {(() => {
-                        const alertCount = properties.filter(p => {
-                          return isDelayedWork(p, column.key) || shouldShowExpiredBadge(p, column.key);
-                        }).length;
-                        return alertCount > 0 ? (
-                          <Badge className="text-xs bg-red-500 text-white border-0">
-                            {alertCount}
-                          </Badge>
-                        ) : null;
-                      })()}
-                    </div>
+                    <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200 flex-shrink-0", isCollapsed && "-rotate-90")} />
+                    <h3 className="font-semibold text-foreground text-base truncate">{phaseLabel}</h3>
+                    <span className="text-xs font-medium text-muted-foreground tabular-nums bg-muted rounded-full px-2 py-0.5 flex-shrink-0">
+                      {properties.length}
+                    </span>
+                    {(() => {
+                      const alertCount = properties.filter(p => {
+                        return isDelayedWork(p, column.key) || shouldShowExpiredBadge(p, column.key);
+                      }).length;
+                      return alertCount > 0 ? (
+                        <span className="text-[10px] font-bold text-white bg-red-500 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                          {alertCount}
+                        </span>
+                      ) : null;
+                    })()}
                   </button>
-                  
-                  {/* Column Visibility Toggle */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 flex-shrink-0"
+
+                  <button
+                    className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-accent/50 flex-shrink-0"
                     onClick={(e) => {
                       e.stopPropagation();
                       setColumnSelectorOpen({ phase: column.key });
                     }}
                   >
-                    <Settings className="h-4 w-4" />
-                  </Button>
+                    <Settings className="h-3 w-3" />
+                    <span>Más campos</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Table - Collapsible */}
+              {/* Table */}
               {!isCollapsed && (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-muted/50 dark:bg-[var(--prophero-gray-900)] border-b border-border">
+                    <thead className="bg-muted/20 dark:bg-muted/10 border-b border-border/40 sticky top-0">
                       <tr>
                         {getVisibleColumnsForPhase(column.key).has("id") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("id")}
                           >
                             <div className="flex items-center gap-2">
@@ -1693,7 +1729,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("address") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("address")}
                           >
                             <div className="flex items-center gap-2">
@@ -1704,7 +1740,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("region") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("region")}
                           >
                             <div className="flex items-center gap-2">
@@ -1715,7 +1751,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("renovador") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("renovador")}
                           >
                             <div className="flex items-center gap-2">
@@ -1726,7 +1762,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("renoType") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("renoType")}
                           >
                             <div className="flex items-center gap-2">
@@ -1737,7 +1773,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("estimatedVisit") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("estimatedVisit")}
                           >
                             <div className="flex items-center gap-2">
@@ -1748,7 +1784,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("proximaActualizacion") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("proximaActualizacion")}
                           >
                             <div className="flex items-center gap-2">
@@ -1759,7 +1795,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("daysToVisit") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("daysToVisit")}
                           >
                             <div className="flex items-center gap-2">
@@ -1770,7 +1806,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("daysToStartRenoSinceRSD") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("daysToStartRenoSinceRSD")}
                           >
                             <div className="flex items-center gap-2">
@@ -1781,7 +1817,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("renoDuration") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("renoDuration")}
                           >
                             <div className="flex items-center gap-2">
@@ -1792,7 +1828,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("daysToPropertyReady") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("daysToPropertyReady")}
                           >
                             <div className="flex items-center gap-2">
@@ -1802,43 +1838,43 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                           </th>
                         )}
                         {getVisibleColumnsForPhase(column.key).has("budgetPhReadyDate") && (
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]" onClick={() => handleSort("budgetPhReadyDate")}>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleSort("budgetPhReadyDate")}>
                             <div className="flex items-center gap-2">{columnConfigWithTranslations.find(c => c.key === "budgetPhReadyDate")?.label ?? "Budget PH ready date"} {renderSortIcon("budgetPhReadyDate")}</div>
                           </th>
                         )}
                         {getVisibleColumnsForPhase(column.key).has("renovatorBudgetApprovalDate") && (
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]" onClick={() => handleSort("renovatorBudgetApprovalDate")}>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleSort("renovatorBudgetApprovalDate")}>
                             <div className="flex items-center gap-2">{columnConfigWithTranslations.find(c => c.key === "renovatorBudgetApprovalDate")?.label ?? "Renovator budget approval date"} {renderSortIcon("renovatorBudgetApprovalDate")}</div>
                           </th>
                         )}
                         {getVisibleColumnsForPhase(column.key).has("initialVisitDate") && (
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]" onClick={() => handleSort("initialVisitDate")}>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleSort("initialVisitDate")}>
                             <div className="flex items-center gap-2">{columnConfigWithTranslations.find(c => c.key === "initialVisitDate")?.label ?? "Fecha de visita inicial"} {renderSortIcon("initialVisitDate")}</div>
                           </th>
                         )}
                         {getVisibleColumnsForPhase(column.key).has("estRenoStartDate") && (
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]" onClick={() => handleSort("estRenoStartDate")}>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleSort("estRenoStartDate")}>
                             <div className="flex items-center gap-2">{columnConfigWithTranslations.find(c => c.key === "estRenoStartDate")?.label ?? "Est. reno start date"} {renderSortIcon("estRenoStartDate")}</div>
                           </th>
                         )}
                         {getVisibleColumnsForPhase(column.key).has("renoStartDate") && (
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]" onClick={() => handleSort("renoStartDate")}>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleSort("renoStartDate")}>
                             <div className="flex items-center gap-2">{columnConfigWithTranslations.find(c => c.key === "renoStartDate")?.label ?? "Reno start date"} {renderSortIcon("renoStartDate")}</div>
                           </th>
                         )}
                         {getVisibleColumnsForPhase(column.key).has("renoEstimatedEndDate") && (
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]" onClick={() => handleSort("renoEstimatedEndDate")}>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleSort("renoEstimatedEndDate")}>
                             <div className="flex items-center gap-2">{columnConfigWithTranslations.find(c => c.key === "renoEstimatedEndDate")?.label ?? "Reno estimated end date"} {renderSortIcon("renoEstimatedEndDate")}</div>
                           </th>
                         )}
                         {getVisibleColumnsForPhase(column.key).has("renoEndDate") && (
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]" onClick={() => handleSort("renoEndDate")}>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleSort("renoEndDate")}>
                             <div className="flex items-center gap-2">{columnConfigWithTranslations.find(c => c.key === "renoEndDate")?.label ?? "Reno end date"} {renderSortIcon("renoEndDate")}</div>
                           </th>
                         )}
                         {getVisibleColumnsForPhase(column.key).has("progress") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("progress")}
                           >
                             <div className="flex items-center gap-2">
@@ -1849,7 +1885,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                         {getVisibleColumnsForPhase(column.key).has("status") && (
                           <th 
-                            className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+                            className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors"
                             onClick={() => handleSort("status")}
                           >
                             <div className="flex items-center gap-2">
@@ -1860,36 +1896,32 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         )}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border">
-                      {properties.map((property) => {
+                    <tbody className="divide-y divide-border/40">
+                      {properties.map((property, idx) => {
                         const showExpired = shouldShowExpiredBadge(property, column.key);
                         const isRed = shouldMarkRed(property, column.key);
+                        const hasLeftRedBorder = showExpired || isRed;
                         return (
                           <tr
                             key={property.id}
-                            onClick={() => handleCardClick(property)}
+                            onClick={() => setSelectedProperty(property)}
                             className={cn(
-                              "cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors relative",
-                              showExpired && "bg-red-50 dark:bg-red-950/10",
-                              isRed && "bg-red-50 dark:bg-red-950/10"
+                              "cursor-pointer transition-colors relative group",
+                              hasLeftRedBorder && "border-l-[3px] border-l-red-500",
+                              selectedProperty?.id === property.id && "bg-accent/80 dark:bg-accent/30",
+                              idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/5" : "",
+                              "hover:bg-accent/60 dark:hover:bg-accent/20"
                             )}
                           >
                             {getVisibleColumnsForPhase(column.key).has("id") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium text-foreground">
-                                    {property.uniqueIdFromEngagements || property.id}
-                                  </span>
-                                  {showExpired && (
-                                    <Badge className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-0">
-                                      {t.propertyCard.expired}
-                                    </Badge>
-                                  )}
-                                </div>
+                              <td className="px-3 py-2.5 whitespace-nowrap">
+                                <span className="text-sm font-medium text-foreground">
+                                  {property.uniqueIdFromEngagements || property.id}
+                                </span>
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("address") && (
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2.5">
                                 <div className="flex items-start gap-2 max-w-xs">
                                   <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                                   <span className="text-sm text-foreground break-words">
@@ -1899,14 +1931,14 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("region") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-muted-foreground">
                                   {property.region || "N/A"}
                                 </span>
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("renovador") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <div className="flex items-center gap-1">
                                   <User className="h-3 w-3 text-muted-foreground" />
                                   <span className="text-sm text-foreground">
@@ -1916,40 +1948,35 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("renoType") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 {property.renoType ? (() => {
                                   const typeLower = property.renoType.toLowerCase();
-                                  let badgeClass = '';
-                                  
-                                  // Light Reno: Verde fuerte sin borde ni hover
-                                  if (typeLower.includes('light')) {
-                                    badgeClass = 'bg-green-600 dark:bg-green-600 text-white dark:text-white border-0';
+                                  const isNoReno = typeLower.includes('no reno') || typeLower.includes('no_reno');
+
+                                  let dotColor = 'bg-green-500';
+                                  if (isNoReno) {
+                                    dotColor = 'bg-gray-600 dark:bg-gray-400';
+                                  } else if (typeLower.includes('light')) {
+                                    dotColor = 'bg-green-600';
+                                  } else if (typeLower.includes('medium')) {
+                                    dotColor = 'bg-amber-500';
+                                  } else if (typeLower.includes('major')) {
+                                    dotColor = 'bg-orange-500';
                                   }
-                                  // Medium Reno: Verde claro
-                                  else if (typeLower.includes('medium')) {
-                                    badgeClass = 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/30';
-                                  }
-                                  // Major Reno: Amarillo-naranja claro
-                                  else if (typeLower.includes('major')) {
-                                    badgeClass = 'bg-yellow-200 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-200 border border-yellow-300 dark:border-yellow-800/30';
-                                  }
-                                  // Default: verde claro
-                                  else {
-                                    badgeClass = 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/30';
-                                  }
-                                  
+
                                   return (
-                                    <Badge className={cn(badgeClass, "text-xs font-medium px-2 py-1 hover:opacity-100")}>
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
+                                      <span className={cn("h-2 w-2 rounded-full flex-shrink-0", dotColor)} />
                                       {property.renoType}
-                                    </Badge>
+                                    </span>
                                   );
                                 })() : (
-                                  <span className="text-sm text-muted-foreground">N/A</span>
+                                  <span className="text-sm text-muted-foreground">—</span>
                                 )}
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("estimatedVisit") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <div className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3 text-muted-foreground" />
                                   <span className="text-sm text-foreground">
@@ -1961,7 +1988,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("proximaActualizacion") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-3 w-3 text-muted-foreground" />
                                   <span className="text-sm text-foreground">
@@ -1973,7 +2000,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("daysToVisit") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {property.daysToVisit !== null && property.daysToVisit !== undefined 
                                     ? `${property.daysToVisit} días`
@@ -1982,7 +2009,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("daysToStartRenoSinceRSD") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {property.daysToStartRenoSinceRSD !== null && property.daysToStartRenoSinceRSD !== undefined 
                                     ? `${property.daysToStartRenoSinceRSD} días`
@@ -1991,7 +2018,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("renoDuration") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {property.renoDuration !== null && property.renoDuration !== undefined 
                                     ? `${property.renoDuration} días`
@@ -2000,7 +2027,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("daysToPropertyReady") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {property.daysToPropertyReady !== null && property.daysToPropertyReady !== undefined 
                                     ? `${property.daysToPropertyReady} días`
@@ -2009,56 +2036,56 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("budgetPhReadyDate") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {(property as any).supabaseProperty?.budget_ph_ready_date ? formatDate((property as any).supabaseProperty.budget_ph_ready_date) : "N/A"}
                                 </span>
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("renovatorBudgetApprovalDate") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {(property as any).supabaseProperty?.renovator_budget_approval_date ? formatDate((property as any).supabaseProperty.renovator_budget_approval_date) : "N/A"}
                                 </span>
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("initialVisitDate") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {(property as any).supabaseProperty?.initial_visit_date ? formatDate((property as any).supabaseProperty.initial_visit_date) : "N/A"}
                                 </span>
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("estRenoStartDate") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {(property as any).supabaseProperty?.est_reno_start_date ? formatDate((property as any).supabaseProperty.est_reno_start_date) : "N/A"}
                                 </span>
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("renoStartDate") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {(property as any).supabaseProperty?.start_date ? formatDate((property as any).supabaseProperty.start_date) : "N/A"}
                                 </span>
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("renoEstimatedEndDate") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {(property as any).supabaseProperty?.estimated_end_date ? formatDate((property as any).supabaseProperty.estimated_end_date) : "N/A"}
                                 </span>
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("renoEndDate") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm text-foreground">
                                   {(property as any).supabaseProperty?.reno_end_date ? formatDate((property as any).supabaseProperty.reno_end_date) : "N/A"}
                                 </span>
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("progress") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 {(() => {
                                   const progress = calculateOverallProgress(property.data);
                                   return progress !== undefined ? (
@@ -2075,19 +2102,13 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               </td>
                             )}
                             {getVisibleColumnsForPhase(column.key).has("status") && (
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                {showExpired ? (
-                                  <Badge className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-0">
-                                    {t.propertyCard.expired}
-                                  </Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-xs">
-                                    {(property as any)?.supabaseProperty?.['Set Up Status'] || 
-                                     property.status || 
-                                     t.propertyCard.workInProgress || 
-                                     "Active"}
-                                  </Badge>
-                                )}
+                              <td className="px-3 py-2.5 whitespace-nowrap">
+                                <Badge variant="outline" className="text-xs">
+                                  {(property as any)?.supabaseProperty?.['Set Up Status'] || 
+                                   property.status || 
+                                   t.propertyCard.workInProgress || 
+                                   "Active"}
+                                </Badge>
                               </td>
                             )}
                           </tr>
@@ -2102,6 +2123,26 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
         })}
         </div>
       </div>
+
+      {/* Side Panel Sheet */}
+      <Sheet open={!!selectedProperty} onOpenChange={(open) => { if (!open) setSelectedProperty(null); }}>
+        <SheetContent side="right" className="w-[90vw] sm:w-[50vw] sm:max-w-2xl p-0 overflow-hidden">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Detalle de vivienda</SheetTitle>
+            <SheetDescription>Resumen de la propiedad seleccionada</SheetDescription>
+          </SheetHeader>
+          {selectedProperty && (
+            <div className="p-6 h-full overflow-y-auto">
+              <PropertySidePanel
+                property={selectedProperty}
+                viewMode={viewMode}
+                fromParam={fromParam}
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+      </>
     );
   };
 
@@ -2201,44 +2242,66 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     const isMaturationList = fromParam === "maturation-kanban";
 
     return (
+      <>
       <div className="flex flex-col h-full">
-        {/* Phase filter pills */}
-        <div className="sticky top-0 z-10 bg-background border-b border-border pb-3 mb-4 pt-2">
-          <div className="flex flex-wrap gap-2 overflow-x-auto">
+        {/* Phase filter — Segmented Control */}
+        <div className="sticky top-0 z-10 bg-background pb-3 mb-3 pt-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-muted/60 dark:bg-muted/30 rounded-lg p-1 overflow-x-auto scrollbar-hide flex-1 min-w-0">
+              <button
+                onClick={() => setSelectedPhaseFilter("all")}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5",
+                  selectedPhaseFilter === "all"
+                    ? "bg-background dark:bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Todos
+                <span className={cn("text-[10px] tabular-nums", selectedPhaseFilter === "all" ? "text-foreground/60" : "text-muted-foreground/70")}>{projectTotalCount}</span>
+              </button>
+              {visibleColumns.map((col) => {
+                const count = (filteredProjectsByPhase[col.key] || []).length;
+                const phaseLabel = (col as RenoKanbanColumnConfig & { label?: string }).label ?? PROJECT_KANBAN_PHASE_LABELS[col.key] ?? t.kanban[col.translationKey];
+                const isSelected = selectedPhaseFilter === col.key;
+                return (
+                  <button
+                    key={col.key}
+                    onClick={() => setSelectedPhaseFilter(col.key)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 flex items-center gap-1.5",
+                      isSelected
+                        ? "bg-background dark:bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {phaseLabel}
+                    <span className={cn("text-[10px] tabular-nums", isSelected ? "text-foreground/60" : "text-muted-foreground/70")}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
             <button
-              onClick={() => setSelectedPhaseFilter("all")}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0",
-                selectedPhaseFilter === "all"
-                  ? "bg-[var(--prophero-blue-500)] text-white"
-                  : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-muted/50 dark:hover:bg-[var(--prophero-gray-800)]"
-              )}
+              onClick={() => {
+                const allPhaseKeys = projectFilteredPhases.map(c => c.key);
+                const allCollapsed = allPhaseKeys.every(k => collapsedPhases.has(k));
+                if (allCollapsed) {
+                  setCollapsedPhases(new Set());
+                } else {
+                  setCollapsedPhases(new Set(allPhaseKeys));
+                }
+              }}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-md hover:bg-accent/50 flex-shrink-0 whitespace-nowrap"
+              title={projectFilteredPhases.every(c => collapsedPhases.has(c.key)) ? "Expandir todo" : "Colapsar todo"}
             >
-              Todos ({projectTotalCount})
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", projectFilteredPhases.every(c => collapsedPhases.has(c.key)) && "-rotate-90")} />
+              <span className="hidden sm:inline">{projectFilteredPhases.every(c => collapsedPhases.has(c.key)) ? "Expandir" : "Colapsar"}</span>
             </button>
-            {visibleColumns.map((col) => {
-              const count = (filteredProjectsByPhase[col.key] || []).length;
-              const phaseLabel = (col as RenoKanbanColumnConfig & { label?: string }).label ?? PROJECT_KANBAN_PHASE_LABELS[col.key] ?? t.kanban[col.translationKey];
-              return (
-                <button
-                  key={col.key}
-                  onClick={() => setSelectedPhaseFilter(col.key)}
-                  className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0",
-                    selectedPhaseFilter === col.key
-                      ? "bg-[var(--prophero-blue-500)] text-white"
-                      : "bg-card dark:bg-[var(--prophero-gray-900)] border border-border text-foreground hover:bg-muted/50 dark:hover:bg-[var(--prophero-gray-800)]"
-                  )}
-                >
-                  {phaseLabel} ({count})
-                </button>
-              );
-            })}
           </div>
         </div>
 
         {/* Project tables grouped by phase */}
-        <div className="space-y-6 pb-4 overflow-y-auto flex-1">
+        <div className="space-y-3 pb-4 overflow-y-auto flex-1">
           {projectFilteredPhases.map((column) => {
             const projects = sortProjectRows(filteredProjectsByPhase[column.key] || []);
             if (projects.length === 0) return null;
@@ -2246,21 +2309,19 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
             const isCollapsed = collapsedPhases.has(column.key);
 
             return (
-              <div key={column.key} className="bg-card rounded-lg border border-border overflow-hidden">
+              <div key={column.key} className="bg-card rounded-lg border border-border/60 overflow-hidden shadow-sm">
                 {/* Phase header */}
-                <div className="bg-muted/50 dark:bg-[var(--prophero-gray-900)] px-4 py-3 border-b border-border">
+                <div className="px-4 py-2.5 border-b border-border/40 bg-muted/30 dark:bg-muted/10">
                   <div className="flex items-center justify-between gap-2">
                     <button
                       onClick={() => togglePhaseCollapse(column.key)}
-                      className="flex items-center gap-2 hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors rounded px-2 py-1 -ml-2 flex-1 min-w-0"
+                      className="flex items-center gap-2 hover:bg-accent/50 transition-colors rounded-md px-2 py-1 -ml-2 flex-1 min-w-0"
                     >
-                      {isCollapsed ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform rotate-[-90deg] flex-shrink-0" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform flex-shrink-0" />
-                      )}
-                      <h3 className="font-semibold text-foreground text-lg truncate">{phaseLabel}</h3>
-                      <Badge variant="secondary" className="text-sm">{projects.length}</Badge>
+                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200 flex-shrink-0", isCollapsed && "-rotate-90")} />
+                      <h3 className="font-semibold text-foreground text-base truncate">{phaseLabel}</h3>
+                      <span className="text-xs font-medium text-muted-foreground tabular-nums bg-muted rounded-full px-2 py-0.5 flex-shrink-0">
+                        {projects.length}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -2269,67 +2330,67 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                 {!isCollapsed && (
                   <div className="overflow-x-auto">
                     <table className="w-full">
-                      <thead className="bg-muted/50 dark:bg-[var(--prophero-gray-900)] border-b border-border">
+                      <thead className="bg-muted/20 dark:bg-muted/10 border-b border-border/40 sticky top-0">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("projectId")}>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("projectId")}>
                             <div className="flex items-center gap-2">ID {renderProjectSortIcon("projectId")}</div>
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("name")}>
+                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("name")}>
                             <div className="flex items-center gap-2">Nombre {renderProjectSortIcon("name")}</div>
                           </th>
                           {isMaturationList ? (
                             <>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("propertiesCount")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("propertiesCount")}>
                                 <div className="flex items-center gap-2">Propiedades {renderProjectSortIcon("propertiesCount")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("scouter")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("scouter")}>
                                 <div className="flex items-center gap-2">Scouter {renderProjectSortIcon("scouter")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("architect")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("architect")}>
                                 <div className="flex items-center gap-2">Arquitecto {renderProjectSortIcon("architect")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("excludedEcu")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("excludedEcu")}>
                                 <div className="flex items-center gap-2">ECU {renderProjectSortIcon("excludedEcu")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("type")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("type")}>
                                 <div className="flex items-center gap-2">Tipo {renderProjectSortIcon("type")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("investmentType")}>
-                                <div className="flex items-center gap-2">Inversi\u00f3n {renderProjectSortIcon("investmentType")}</div>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("investmentType")}>
+                                <div className="flex items-center gap-2">Inversión {renderProjectSortIcon("investmentType")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("area")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("area")}>
                                 <div className="flex items-center gap-2">Zona {renderProjectSortIcon("area")}</div>
                               </th>
                             </>
                           ) : (
                             <>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("area")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("area")}>
                                 <div className="flex items-center gap-2">Zona {renderProjectSortIcon("area")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("type")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("type")}>
                                 <div className="flex items-center gap-2">Tipo {renderProjectSortIcon("type")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("investmentType")}>
-                                <div className="flex items-center gap-2">Inversi\u00f3n {renderProjectSortIcon("investmentType")}</div>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("investmentType")}>
+                                <div className="flex items-center gap-2">Inversión {renderProjectSortIcon("investmentType")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("renovator")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("renovator")}>
                                 <div className="flex items-center gap-2">Renovador {renderProjectSortIcon("renovator")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("projectStartDate")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("projectStartDate")}>
                                 <div className="flex items-center gap-2">Inicio Proyecto {renderProjectSortIcon("projectStartDate")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("settlementDate")}>
-                                <div className="flex items-center gap-2">Fecha Liquidaci\u00f3n {renderProjectSortIcon("settlementDate")}</div>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("settlementDate")}>
+                                <div className="flex items-center gap-2">Fecha Liquidación {renderProjectSortIcon("settlementDate")}</div>
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors" onClick={() => handleProjectSort("status")}>
+                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("status")}>
                                 <div className="flex items-center gap-2">Estado {renderProjectSortIcon("status")}</div>
                               </th>
                             </>
                           )}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-border">
-                        {projects.map((proj) => {
+                      <tbody className="divide-y divide-border/40">
+                        {projects.map((proj, idx) => {
                           const investType = ((proj as any).investment_type ?? "").toString().trim().toLowerCase();
                           const isFlip = investType.includes("flip");
                           const isYield = investType.includes("yield");
@@ -2340,38 +2401,42 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                           return (
                             <tr
                               key={proj.id}
-                              onClick={() => handleProjectClick(proj)}
-                              className="cursor-pointer hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)] transition-colors"
+                              onClick={() => setSelectedProjectRow(proj)}
+                              className={cn(
+                                "cursor-pointer transition-colors",
+                                selectedProjectRow?.id === proj.id && "bg-accent/80 dark:bg-accent/30",
+                                idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/5 hover:bg-accent/60 dark:hover:bg-accent/20" : "hover:bg-accent/60 dark:hover:bg-accent/20"
+                              )}
                             >
-                              <td className="px-4 py-3 whitespace-nowrap">
+                              <td className="px-3 py-2.5 whitespace-nowrap">
                                 <span className="text-sm font-medium text-foreground">
                                   {proj.project_unique_id || proj.id?.slice(0, 8)}
                                 </span>
                               </td>
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2.5">
                                 <span className="text-sm text-foreground font-medium break-words max-w-xs inline-block">
                                   {proj.name || "Sin nombre"}
                                 </span>
                               </td>
                               {isMaturationList ? (
                                 <>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     <span className="text-sm text-foreground">{(() => { const ptc = (proj as any).properties_to_convert; const ptcS = ptc != null ? String(ptc).trim() : ""; return ptcS && ptcS !== "0" ? ptcS : ((proj as any).est_properties ?? "\u2014"); })()}</span>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     <span className="text-sm text-foreground">{(proj as any).scouter || "\u2014"}</span>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     <span className="text-sm text-foreground">{(proj as any).architect || "\u2014"}</span>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     {(proj as any).excluded_from_ecu === true ? (
                                       <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">Sin ECU</Badge>
                                     ) : (
                                       <span className="text-sm text-muted-foreground">Con ECU</span>
                                     )}
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     {typeRaw ? (
                                       <span className={cn(
                                         "inline-flex items-center rounded-full text-xs font-medium px-2 py-1",
@@ -2384,7 +2449,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                       </span>
                                     ) : <span className="text-sm text-muted-foreground">\u2014</span>}
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     {isFlip ? (
                                       <Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">Flip</Badge>
                                     ) : isYield ? (
@@ -2393,16 +2458,16 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                       <Badge variant="secondary" className="text-xs">{(proj as any).investment_type}</Badge>
                                     ) : <span className="text-sm text-muted-foreground">\u2014</span>}
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     <span className="text-sm text-muted-foreground">{area || "\u2014"}</span>
                                   </td>
                                 </>
                               ) : (
                                 <>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     <span className="text-sm text-muted-foreground">{area || "\u2014"}</span>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     {typeRaw ? (
                                       <span className={cn(
                                         "inline-flex items-center rounded-full text-xs font-medium px-2 py-1",
@@ -2415,7 +2480,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                       </span>
                                     ) : <span className="text-sm text-muted-foreground">\u2014</span>}
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     {isFlip ? (
                                       <Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">Flip</Badge>
                                     ) : isYield ? (
@@ -2424,20 +2489,20 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                       <Badge variant="secondary" className="text-xs">{(proj as any).investment_type}</Badge>
                                     ) : <span className="text-sm text-muted-foreground">\u2014</span>}
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     <span className="text-sm text-foreground">{(proj as any).renovator || "\u2014"}</span>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     <span className="text-sm text-foreground">
                                       {(proj as any).project_start_date ? formatDate((proj as any).project_start_date) : "\u2014"}
                                     </span>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     <span className="text-sm text-foreground">
                                       {(proj as any).settlement_date ? formatDate((proj as any).settlement_date) : "\u2014"}
                                     </span>
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
                                     <Badge variant="outline" className="text-xs">
                                       {(proj as any).project_status || "\u2014"}
                                     </Badge>
@@ -2456,6 +2521,26 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           })}
         </div>
       </div>
+
+      {/* Project Side Panel */}
+      <Sheet open={!!selectedProjectRow} onOpenChange={(open) => { if (!open) setSelectedProjectRow(null); }}>
+        <SheetContent side="right" className="w-[90vw] sm:w-[50vw] sm:max-w-2xl p-0 overflow-hidden">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Detalle del proyecto</SheetTitle>
+            <SheetDescription>Panel lateral con resumen del proyecto</SheetDescription>
+          </SheetHeader>
+          {selectedProjectRow && (
+            <div className="p-6 h-full overflow-y-auto">
+              <ProjectSidePanel
+                project={selectedProjectRow}
+                viewMode="list"
+                fromParam={fromParam}
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+      </>
     );
   };
 

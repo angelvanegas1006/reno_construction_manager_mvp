@@ -348,6 +348,9 @@ export function RenoPropertyCard({
         const getRenoTypeBadgeStyles = (renoType?: string) => {
           if (!renoType) return null;
           const typeLower = renoType.toLowerCase();
+          if (typeLower.includes('no reno') || typeLower.includes('no_reno')) {
+            return { bg: 'bg-gray-700 dark:bg-gray-800', text: 'text-white dark:text-gray-100', border: 'border-0', hover: '' };
+          }
           if (typeLower.includes('light')) {
             return { bg: 'bg-green-600 dark:bg-green-600', text: 'text-white dark:text-white', border: 'border-0', hover: '' };
           }

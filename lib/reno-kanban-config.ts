@@ -161,6 +161,22 @@ export const visibleRenoKanbanColumnsFasesIniciales: RenoKanbanColumn[] =
       col.key !== "orphaned"
   );
 
+/** Etiquetas en español para las fases del Kanban de Units (Day Units / CM) */
+export const UNITS_PHASE_LABELS: Record<string, string> = {
+  "upcoming-settlements": "Próximas Reformas",
+  "initial-check": "Revisión Inicial",
+  "reno-budget-renovator": "Pendiente Presupuesto (Reformista)",
+  "reno-budget-client": "Pendiente Presupuesto (Cliente)",
+  "reno-budget-start": "Obra a Empezar",
+  "reno-budget": "Presupuesto de Renovación",
+  "reno-in-progress": "Obras en Proceso",
+  "furnishing": "Amueblamiento",
+  "final-check": "Revisión Final",
+  "pendiente-suministros": "Pendiente de Suministros",
+  "final-check-post-suministros": "Final Check Post Suministros",
+  "cleaning": "Limpieza",
+};
+
 // Kanban Proyectos L1: 5 fases según Project status (Airtable). Orphaned no se muestra.
 export const PHASES_KANBAN_PROJECTS: RenoKanbanPhase[] = [
   "pendiente-presupuestos-renovador",
