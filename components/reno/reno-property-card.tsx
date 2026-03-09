@@ -578,7 +578,19 @@ export function RenoPropertyCard({
               <span className="font-medium">Duración de la reno:</span> {property.renoDuration} días
             </div>
           )}
-          {/* Ocultar timeInPhase para las nuevas fases de budget */}
+          {stage === "reno-budget-start" && (() => {
+            const raw = (property as any).supabaseProperty?.est_reno_start_date;
+            if (!raw) return null;
+            const d = new Date(raw);
+            if (isNaN(d.getTime())) return null;
+            const formatted = d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+            return (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="font-medium">Fecha est. arranque de obra:</span> {formatted}
+              </div>
+            );
+          })()}
           {(stage === "reno-budget-renovator" || stage === "reno-budget-client" || stage === "reno-budget-start") ? null : (
             <div className="text-xs text-muted-foreground">{timeInPhase}</div>
           )}

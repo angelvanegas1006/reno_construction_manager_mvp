@@ -24,6 +24,7 @@ import { MaturationProjectSidebar } from "@/components/reno/maturation-project-s
 import { MaturationTaskList } from "@/components/reno/maturation-task-list";
 import { ProjectTimeline } from "@/components/reno/project-timeline";
 import { EcuPageTab } from "@/components/reno/ecu-page-tab";
+import { ProjectDocumentationTab } from "@/components/reno/project-documentation-tab";
 
 const PdfViewer = dynamic(
   () => import("@/components/reno/pdf-viewer").then((mod) => ({ default: mod.PdfViewer })),
@@ -145,6 +146,7 @@ export default function MaturationProjectDetailPage() {
   const tabs = [
     { id: "tareas", label: "Tareas" },
     { id: "timeline", label: "Timeline" },
+    { id: "documentacion", label: "Documentación" },
     { id: "resumen", label: "Resumen" },
     { id: "propiedades", label: "Propiedades del proyecto" },
     ...(showEcuTab ? [{ id: "ecu", label: "Página ECU" }] : []),
@@ -181,6 +183,9 @@ export default function MaturationProjectDetailPage() {
 
       case "timeline":
         return <ProjectTimeline project={project} />;
+
+      case "documentacion":
+        return <ProjectDocumentationTab project={project} />;
 
       case "ecu":
         return <EcuPageTab />;

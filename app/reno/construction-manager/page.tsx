@@ -412,9 +412,6 @@ export default function RenoConstructionManagerHomePage() {
                     {/* Architect Todo Widgets */}
                     <ArchitectTodoWidgets allProjects={archAllProjects} projectsByPhase={archProjectsByPhase} />
 
-                    {/* Architect Ranking (full width) */}
-                    <ArchitectRanking allProjects={archAllProjects} />
-
                     {/* Timeline compacto */}
                     <ProjectTimelineOverview
                       allProjects={archAllProjects}
@@ -562,11 +559,11 @@ export default function RenoConstructionManagerHomePage() {
                       </div>
                     </div>
 
-                    {/* Phase Distribution + Architect Ranking */}
-                    <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
-                      <ArchitectRanking allProjects={matAllProjects} />
-                      <MaturationPhaseDistribution projectsByPhase={matProjectsByPhase} />
-                    </div>
+                    {/* Análisis de Arquitectos (ancho completo) */}
+                    <ArchitectRanking allProjects={matAllProjects} />
+
+                    {/* Distribución por fase */}
+                    <MaturationPhaseDistribution projectsByPhase={matProjectsByPhase} />
 
                     {/* Calendar */}
                     <MaturationCalendar allProjects={matAllProjects} />
