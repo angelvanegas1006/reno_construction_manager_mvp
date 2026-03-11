@@ -26,6 +26,7 @@ import { getTechnicalConstructionNamesFromForemanEmail } from "@/lib/supabase/us
 import { useAssignedProjectsForForeman } from "@/hooks/useAssignedProjectsForForeman";
 import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-modal";
 import { RenoHomeAdminDashboard } from "@/components/reno/reno-home-admin-dashboard";
+import { RenovatorAnalysisPanel } from "@/components/reno/renovator-analysis-panel";
 import { useMaturationProjects } from "@/hooks/useMaturationProjects";
 import { useArchitectProjects } from "@/hooks/useArchitectProjects";
 import { DonutChart } from "@/components/reno/donut-chart";
@@ -255,6 +256,62 @@ export default function RenoConstructionManagerHomePage() {
     };
   }, [properties, updatesForThisWeek, propertiesByPhase]);
 
+  const renoTypeSegments = useMemo(() => {
+    if (!propertiesByPhase) return [];
+    const allProps = Object.values(propertiesByPhase).flat();
+    const counts: Record<string, number> = {};
+    for (const p of allProps) {
+      const rt = p.renoType?.trim() || "Sin definir";
+      counts[rt] = (counts[rt] || 0) + 1;
+    }
+    const colorMap: Record<string, string> = {
+      "Light Reno": "#60a5fa",
+      "Medium Reno": "#f59e0b",
+      "Major Reno": "#ef4444",
+      "No Reno Needed": "#6b7280",
+      "Sin definir": "#d1d5db",
+    };
+    return Object.entries(counts)
+      .map(([label, value]) => ({
+        label,
+        value,
+        color: colorMap[label] || "#94a3b8",
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [propertiesByPhase]);
+
+  const propertyTypeSegments = useMemo(() => {
+    if (!propertiesByPhase) return [];
+    const allProps = Object.values(propertiesByPhase).flat();
+    const counts: Record<string, number> = {};
+    for (const p of allProps) {
+      const sp = (p as any).supabaseProperty;
+      const raw = (sp?.type || "").toString().trim().toLowerCase();
+      let label = "Unit";
+      if (raw.includes("wip")) label = "WIP";
+      else if (raw.includes("lot")) label = "Lot";
+      else if (raw.includes("building")) label = "Building";
+      else if (raw.includes("project")) label = "Project";
+      else if (raw.includes("unit") || raw === "") label = "Unit";
+      else label = "Otro";
+      counts[label] = (counts[label] || 0) + 1;
+    }
+    const colorMap: Record<string, string> = {
+      Unit: "#3b82f6",
+      Building: "#8b5cf6",
+      Project: "#f59e0b",
+      WIP: "#10b981",
+      Lot: "#ef4444",
+      Otro: "#6b7280",
+    };
+    return Object.entries(counts)
+      .map(([label, value]) => ({
+        label,
+        value,
+        color: colorMap[label] || "#94a3b8",
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [propertiesByPhase]);
 
   // Handle property click - navigate to property detail or task
   const handlePropertyClick = (property: Property) => {
@@ -496,12 +553,57 @@ export default function RenoConstructionManagerHomePage() {
                       viviendasQueSeFirmanEstaSemana={indicators.viviendasQueSeFirmanEstaSemana}
                     />
 
-                    {/* Todo List Widgets */}
-                    <RenoHomeTodoWidgets propertiesByPhase={propertiesByPhase} />
+                    {/* Todo List Widgets - oculto para admin */}
+                    {role !== 'admin' && (
+                      <RenoHomeTodoWidgets propertiesByPhase={propertiesByPhase} />
+                    )}
 
                     {/* Admin Dashboard - solo admin/construction_manager */}
                     {(role === 'admin' || role === 'construction_manager') && (
                       <RenoHomeAdminDashboard propertiesByPhase={propertiesByPhase} />
+                    )}
+
+                    {/* Análisis de Reformistas (admin) / Obras activas por reformista (otros) */}
+                    {role === 'admin' ? (
+                      <RenovatorAnalysisPanel propertiesByPhase={propertiesByPhase} />
+                    ) : (
+                      <RenoHomeRecentProperties properties={properties} propertiesByPhase={propertiesByPhase} />
+                    )}
+
+                    {/* Donut Charts - solo admin */}
+                    {role === 'admin' && (
+                      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
+                        <Card className="bg-card">
+                          <CardHeader>
+                            <CardTitle className="text-lg font-semibold">Tipo de Reforma</CardTitle>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Distribución de propiedades por tipo de reforma
+                            </p>
+                          </CardHeader>
+                          <CardContent className="flex justify-center">
+                            <DonutChart
+                              segments={renoTypeSegments}
+                              centerLabel="Total"
+                              centerValue={renoTypeSegments.reduce((s, seg) => s + seg.value, 0)}
+                            />
+                          </CardContent>
+                        </Card>
+                        <Card className="bg-card">
+                          <CardHeader>
+                            <CardTitle className="text-lg font-semibold">Tipo de Vivienda</CardTitle>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Distribución de propiedades por tipo de activo
+                            </p>
+                          </CardHeader>
+                          <CardContent className="flex justify-center">
+                            <DonutChart
+                              segments={propertyTypeSegments}
+                              centerLabel="Total"
+                              centerValue={propertyTypeSegments.reduce((s, seg) => s + seg.value, 0)}
+                            />
+                          </CardContent>
+                        </Card>
+                      </div>
                     )}
 
                     {/* Calendar Row */}
@@ -519,11 +621,8 @@ export default function RenoConstructionManagerHomePage() {
                       />
                     )}
 
-                    {/* Recent Properties and Portfolio Row */}
-                    <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
-                      <RenoHomeRecentProperties properties={properties} propertiesByPhase={propertiesByPhase} />
-                      <RenoHomePortfolio properties={properties} propertiesByPhase={propertiesByPhase} />
-                    </div>
+                    {/* Portfolio */}
+                    <RenoHomePortfolio properties={properties} propertiesByPhase={propertiesByPhase} />
                   </>
                 )}
               </>
