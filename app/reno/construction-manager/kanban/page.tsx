@@ -178,6 +178,7 @@ export default function RenoConstructionManagerKanbanPage() {
       "arch-ecu-first-validation": [],
       "arch-ecu-final-validation": [],
       "arch-obra-empezar": [],
+      "arch-obra-en-progreso": [],
       "arch-completed": [],
     };
     if (!rawPropertiesByPhase) return empty;

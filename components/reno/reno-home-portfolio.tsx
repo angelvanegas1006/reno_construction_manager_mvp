@@ -74,6 +74,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "arch-ecu-first-validation": 0,
       "arch-ecu-final-validation": 0,
       "arch-obra-empezar": 0,
+      "arch-obra-en-progreso": 0,
       "arch-completed": 0,
     };
 
@@ -150,6 +151,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "arch-ecu-first-validation": "ECU Primera Validación",
       "arch-ecu-final-validation": "ECU Validación Final",
       "arch-obra-empezar": "Obra por Empezar",
+      "arch-obra-en-progreso": "Obra en Progreso",
       "arch-completed": "Finalizados",
     };
     return stageMap[stage];

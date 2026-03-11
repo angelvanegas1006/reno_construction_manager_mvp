@@ -112,6 +112,7 @@ export function getSetUpStatusForPhase(phase: RenoKanbanPhase): string {
     'arch-ecu-first-validation': 'Ecu first validation',
     'arch-ecu-final-validation': 'Ecu final validation',
     'arch-obra-empezar': 'Reno to Start',
+    'arch-obra-en-progreso': 'Reno in progress',
     'arch-completed': 'Completed',
   };
 

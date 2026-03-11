@@ -46,6 +46,7 @@ export type RenoKanbanPhase =
   | "arch-technical-adjustments"
   | "arch-ecu-final-validation"
   | "arch-obra-empezar"
+  | "arch-obra-en-progreso"
   | "arch-completed";
 
 export interface RenoKanbanColumn {
@@ -304,6 +305,7 @@ export const PHASES_KANBAN_ARCHITECT: RenoKanbanPhase[] = [
   "arch-technical-adjustments",
   "arch-ecu-final-validation",
   "arch-obra-empezar",
+  "arch-obra-en-progreso",
   "arch-completed",
 ];
 
@@ -316,6 +318,7 @@ export const ARCHITECT_PHASE_LABELS: Record<string, string> = {
   "arch-technical-adjustments": "Ajustes Técnicos del Proyecto",
   "arch-ecu-final-validation": "ECU Validación Final",
   "arch-obra-empezar": "Obra a Empezar",
+  "arch-obra-en-progreso": "Obra en Progreso",
   "arch-completed": "Finalizados",
 };
 
@@ -328,9 +331,9 @@ export const MATURATION_TO_ARCHITECT_PHASE: Record<string, RenoKanbanPhase> = {
   "ecuv-first-validation": "arch-ecu-first-validation",
   "technical-project-fine-tuning": "arch-technical-adjustments",
   "ecuv-final-validation": "arch-ecu-final-validation",
-  "pending-budget-from-renovator": "arch-completed",
+  "pending-budget-from-renovator": "arch-obra-empezar",
   "obra-a-empezar": "arch-obra-empezar",
-  "obra-en-progreso": "arch-completed",
+  "obra-en-progreso": "arch-obra-en-progreso",
 };
 
 export const visibleRenoKanbanColumnsArchitect: RenoKanbanColumn[] = PHASES_KANBAN_ARCHITECT.map(

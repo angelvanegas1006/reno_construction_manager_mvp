@@ -23,6 +23,7 @@ type ArchitectPhase =
   | "arch-technical-adjustments"
   | "arch-ecu-final-validation"
   | "arch-obra-empezar"
+  | "arch-obra-en-progreso"
   | "arch-completed";
 
 function hasValue(v: unknown): boolean {
@@ -47,9 +48,9 @@ function getArchitectPhase(project: ProjectRow): ArchitectPhase {
     "ecu final validation": "arch-ecu-final-validation",
     "reno to start": "arch-obra-empezar",
     "pending to start reno": "arch-obra-empezar",
-    "pending to budget from renovator": "arch-completed",
-    "pending to budget (from renovator)": "arch-completed",
-    "reno in progress": "arch-completed",
+    "pending to budget from renovator": "arch-obra-empezar",
+    "pending to budget (from renovator)": "arch-obra-empezar",
+    "reno in progress": "arch-obra-en-progreso",
   };
 
   if (ADVANCED_STATUSES[status]) return ADVANCED_STATUSES[status];
@@ -833,6 +834,16 @@ export function ArchitectTaskList({ project, onRefetch }: ArchitectTaskListProps
 
       case "arch-obra-empezar":
         return <PhaseObraEmpezar project={project} onRefetch={onRefetch} />;
+
+      case "arch-obra-en-progreso":
+        return (
+          <div className="px-6 py-6">
+            <ReadOnlyBanner
+              message="Obra en progreso. No hay tareas pendientes en esta fase."
+              icon={<Clock className="h-5 w-5 text-blue-500 flex-shrink-0" />}
+            />
+          </div>
+        );
 
       case "arch-completed":
         return (

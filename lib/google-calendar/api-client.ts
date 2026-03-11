@@ -30,7 +30,7 @@ export class GoogleCalendarApiClient {
       client_id: this.config.clientId,
       redirect_uri: this.config.redirectUri,
       response_type: 'code',
-      scope: 'https://www.googleapis.com/auth/calendar',
+      scope: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send',
       access_type: 'offline',
       prompt: 'consent',
     });

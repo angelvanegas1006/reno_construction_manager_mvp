@@ -50,9 +50,9 @@ const TASKS_GET_PROJECT_DRAFT: TaskDef[] = [
 
 /* -- Fase 2: Pendiente de Validación ------------------------------ */
 const TASKS_PENDING_TO_VALIDATE: TaskDef[] = [
+  { key: "has_eq", label: "¿El proyecto necesita ECU?", type: "inverted-boolean", field: "excluded_from_ecu" },
   { key: "project_review_done", label: "Revisión del proyecto", type: "checkbox", field: "project_review_done" },
   { key: "financial_review_done", label: "Revisar financial", type: "checkbox", field: "financial_review_done" },
-  // TODO: Añadir formulario de revisión del arquitecto
 ];
 
 /* -- Fase 3: Proyecto Técnico en Progreso ------------------------- */

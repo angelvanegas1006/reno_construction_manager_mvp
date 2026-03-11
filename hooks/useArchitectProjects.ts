@@ -43,9 +43,9 @@ function resolveArchitectPhase(p: ProjectRow): RenoKanbanPhase {
     "ecu final validation": "arch-ecu-final-validation",
     "reno to start": "arch-obra-empezar",
     "pending to start reno": "arch-obra-empezar",
-    "pending to budget from renovator": "arch-completed",
-    "pending to budget (from renovator)": "arch-completed",
-    "reno in progress": "arch-completed",
+    "pending to budget from renovator": "arch-obra-empezar",
+    "pending to budget (from renovator)": "arch-obra-empezar",
+    "reno in progress": "arch-obra-en-progreso",
   };
 
   if (ADVANCED_STATUSES[status]) return ADVANCED_STATUSES[status];

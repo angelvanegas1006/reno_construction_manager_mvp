@@ -18,7 +18,44 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { visitId, action } = body; // action: 'create' | 'update' | 'delete'
+    const { visitId, action, manualEvent } = body; // action: 'create' | 'update' | 'delete'
+
+    // Handle manual event creation (from MaturationCalendar)
+    if (manualEvent && action === 'create') {
+      const { data: tokenData } = await (supabase as any)
+        .from('google_calendar_tokens')
+        .select('calendar_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!tokenData) {
+        return NextResponse.json({ error: 'Google Calendar not connected' }, { status: 400 });
+      }
+
+      const calendarId = tokenData.calendar_id || 'primary';
+      const apiClient = getGoogleCalendarApiClient();
+
+      const startDate = new Date(manualEvent.start);
+      const endDate = new Date(manualEvent.end);
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      const eventData = {
+        summary: manualEvent.summary,
+        description: manualEvent.description || '',
+        start: { dateTime: startDate.toISOString(), timeZone: tz },
+        end: { dateTime: endDate.toISOString(), timeZone: tz },
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: 'popup' as const, minutes: 30 },
+            { method: 'email' as const, minutes: 1440 },
+          ],
+        },
+      };
+
+      const created = await apiClient.createEvent(user.id, calendarId, eventData, supabase);
+      return NextResponse.json({ success: true, eventId: created.id });
+    }
 
     if (!visitId) {
       return NextResponse.json({ error: 'visitId is required' }, { status: 400 });

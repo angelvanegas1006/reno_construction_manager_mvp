@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Calendar,
   ChevronLeft,
@@ -17,6 +19,9 @@ import {
   Euro,
   FileSignature,
   Filter,
+  RefreshCw,
+  X,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,6 +34,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { MATURATION_PHASE_LABELS } from "@/lib/reno-kanban-config";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
+import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
+import { toast } from "sonner";
 
 interface CalendarEvent {
   id: string;
@@ -66,8 +73,9 @@ interface MaturationCalendarProps {
 
 export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
   const router = useRouter();
+  const { isConnected, isLoading: gcalLoading, isSyncing, isConfigured, connect, disconnect, sync, canConnect } = useGoogleCalendar();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"day" | "month">(() => {
+  const [viewMode, setViewMode] = useState<"day" | "week" | "month">(() => {
     if (typeof window !== "undefined") {
       return window.innerWidth < 768 ? "day" : "month";
     }
@@ -76,6 +84,12 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [selectedDayEvents, setSelectedDayEvents] = useState<{ date: Date; events: CalendarEvent[] } | null>(null);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventTime, setNewEventTime] = useState("10:00");
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventDesc, setNewEventDesc] = useState("");
+  const [creatingEvent, setCreatingEvent] = useState(false);
 
   const [filters, setFilters] = useState({
     drafts: true,
@@ -89,7 +103,7 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768 && viewMode === "month") {
+      if (window.innerWidth < 768 && viewMode !== "day") {
         setViewMode("day");
       }
     };
@@ -102,6 +116,8 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
     const newDate = new Date(currentDate);
     if (viewMode === "day") {
       newDate.setDate(newDate.getDate() - 1);
+    } else if (viewMode === "week") {
+      newDate.setDate(newDate.getDate() - 7);
     } else {
       newDate.setMonth(newDate.getMonth() - 1);
     }
@@ -112,6 +128,8 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
     const newDate = new Date(currentDate);
     if (viewMode === "day") {
       newDate.setDate(newDate.getDate() + 1);
+    } else if (viewMode === "week") {
+      newDate.setDate(newDate.getDate() + 7);
     } else {
       newDate.setMonth(newDate.getMonth() + 1);
     }
@@ -122,16 +140,19 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
 
   const getDateButtonText = () => {
     if (viewMode === "month") {
-      return currentDate.toLocaleDateString("es-ES", {
-        month: "long",
-        year: "numeric",
-      });
+      return currentDate.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+    }
+    if (viewMode === "week") {
+      const start = getWeekStart(currentDate);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      const fmt = (d: Date) => d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+      return `${fmt(start)} – ${fmt(end)}`;
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const curr = new Date(currentDate);
     curr.setHours(0, 0, 0, 0);
-
     if (curr.getTime() === today.getTime()) return "Hoy";
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -139,12 +160,16 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     if (curr.getTime() === yesterday.getTime()) return "Ayer";
+    return currentDate.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
+  };
 
-    return currentDate.toLocaleDateString("es-ES", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
+  const getWeekStart = (d: Date) => {
+    const copy = new Date(d);
+    const day = copy.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    copy.setDate(copy.getDate() - diff);
+    copy.setHours(0, 0, 0, 0);
+    return copy;
   };
 
   const getDateRange = useCallback(() => {
@@ -152,6 +177,13 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
       const start = new Date(currentDate);
       start.setHours(0, 0, 0, 0);
       const end = new Date(currentDate);
+      end.setHours(23, 59, 59, 999);
+      return { start, end };
+    }
+    if (viewMode === "week") {
+      const start = getWeekStart(currentDate);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
       end.setHours(23, 59, 59, 999);
       return { start, end };
     }
@@ -171,6 +203,52 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
 
     return { start, end };
   }, [currentDate, viewMode]);
+
+  const handleCreateEvent = async () => {
+    if (!newEventTitle.trim() || !newEventDate) {
+      toast.error("Título y fecha son obligatorios");
+      return;
+    }
+    if (!isConnected) {
+      toast.error("Conecta Google Calendar primero");
+      return;
+    }
+    setCreatingEvent(true);
+    try {
+      const dateTime = `${newEventDate}T${newEventTime}:00`;
+      const startDate = new Date(dateTime);
+      const endDate = new Date(startDate);
+      endDate.setHours(endDate.getHours() + 1);
+
+      const res = await fetch("/api/google-calendar/sync-visit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          manualEvent: {
+            summary: newEventTitle,
+            description: newEventDesc || undefined,
+            start: startDate.toISOString(),
+            end: endDate.toISOString(),
+          },
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error al crear evento");
+      }
+      toast.success("Evento creado en Google Calendar");
+      setShowCreateEvent(false);
+      setNewEventTitle("");
+      setNewEventDesc("");
+      setNewEventDate("");
+      setNewEventTime("10:00");
+    } catch (err: any) {
+      toast.error(err.message || "Error al crear evento");
+    } finally {
+      setCreatingEvent(false);
+    }
+  };
 
   const allEvents = useMemo(() => {
     const { start, end } = getDateRange();
@@ -231,8 +309,8 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
 
   const hours = Array.from({ length: 13 }, (_, i) => i + 8);
 
-  const monthCalendarDays = useMemo(() => {
-    if (viewMode !== "month") return [];
+  const gridCalendarDays = useMemo(() => {
+    if (viewMode === "day") return [];
     const { start, end } = getDateRange();
     const days: Date[] = [];
     const cursor = new Date(start);
@@ -242,6 +320,16 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
     }
     return days;
   }, [getDateRange, viewMode]);
+
+  const weekDays = useMemo(() => {
+    if (viewMode !== "week") return [];
+    const start = getWeekStart(currentDate);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, [currentDate, viewMode]);
 
   const WEEKDAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
@@ -274,30 +362,48 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            {/* Google Calendar */}
+            {canConnect && !gcalLoading && (
+              <>
+                {isConnected ? (
+                  <>
+                    <Button onClick={() => { setNewEventDate(currentDate.toISOString().slice(0, 10)); setShowCreateEvent(true); }} variant="outline" size="sm" className="flex-shrink-0">
+                      <Plus className="h-3 w-3 mr-1" />
+                      <span className="text-xs">Evento</span>
+                    </Button>
+                    <Button onClick={sync} disabled={isSyncing || !isConfigured} variant="outline" size="sm" className="flex-shrink-0">
+                      <RefreshCw className={cn("h-3 w-3 mr-1", isSyncing && "animate-spin")} />
+                      <span className="text-xs">{isSyncing ? "Sync..." : "Sync"}</span>
+                    </Button>
+                    <Button onClick={disconnect} disabled={!isConfigured} variant="ghost" size="sm" className="flex-shrink-0 h-8 px-2">
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={connect} disabled={!isConfigured} variant="outline" size="sm" className="flex-shrink-0">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    <span className="text-xs">Google Calendar</span>
+                  </Button>
+                )}
+              </>
+            )}
+
             {!isMobile && (
               <div className="flex gap-1 border rounded-md flex-shrink-0">
-                <button
-                  onClick={() => setViewMode("day")}
-                  className={cn(
-                    "px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                    viewMode === "day"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Día
-                </button>
-                <button
-                  onClick={() => setViewMode("month")}
-                  className={cn(
-                    "px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-colors",
-                    viewMode === "month"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Mes
-                </button>
+                {(["day", "week", "month"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={cn(
+                      "px-2 md:px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                      viewMode === mode
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {mode === "day" ? "Día" : mode === "week" ? "Semana" : "Mes"}
+                  </button>
+                ))}
               </div>
             )}
 
@@ -424,93 +530,33 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
               {hours.map((hour) => {
                 const hourEvents = groupedByHour[hour] || [];
                 const now = new Date();
-                const isToday =
-                  currentDate.toDateString() === now.toDateString();
+                const isToday = currentDate.toDateString() === now.toDateString();
                 const isCurrentHour = isToday && hour === now.getHours();
 
                 return (
-                  <div
-                    key={hour}
-                    className={cn(
-                      "flex gap-2 md:gap-4 border-b border-border/50 pb-3 md:pb-4 min-w-0 relative",
-                      isCurrentHour && "bg-primary/5"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "w-12 md:w-16 text-xs md:text-sm font-medium flex-shrink-0 pt-1 flex items-start",
-                        isCurrentHour
-                          ? "text-primary font-semibold"
-                          : "text-muted-foreground"
-                      )}
-                    >
+                  <div key={hour} className={cn("flex gap-2 md:gap-4 border-b border-border/50 pb-3 md:pb-4 min-w-0 relative", isCurrentHour && "bg-primary/5")}>
+                    <div className={cn("w-12 md:w-16 text-xs md:text-sm font-medium flex-shrink-0 pt-1 flex items-start", isCurrentHour ? "text-primary font-semibold" : "text-muted-foreground")}>
                       {isCurrentHour ? (
                         <div className="flex items-center gap-1.5">
                           <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />
-                          <span>
-                            {hour.toString().padStart(2, "0")}:00
-                          </span>
+                          <span>{hour.toString().padStart(2, "0")}:00</span>
                         </div>
                       ) : (
-                        <span>
-                          {hour.toString().padStart(2, "0")}:00
-                        </span>
+                        <span>{hour.toString().padStart(2, "0")}:00</span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0 space-y-2">
                       {hourEvents.length === 0 ? (
-                        <span className="text-xs text-muted-foreground block py-1">
-                          Sin eventos
-                        </span>
+                        <span className="text-xs text-muted-foreground block py-1">Sin eventos</span>
                       ) : (
                         hourEvents.map((ev) => (
-                          <button
-                            key={ev.id}
-                            onClick={() => setSelectedEvent(ev)}
-                            className={cn(
-                              "w-full flex items-center gap-2 rounded-lg",
-                              "border transition-all text-left min-w-0",
-                              "bg-card hover:bg-accent hover:border-primary/50",
-                              "shadow-sm hover:shadow-md",
-                              "active:scale-[0.98]",
-                              isMobile
-                                ? "px-2 py-1.5 border-1"
-                                : "px-3 md:px-4 py-2.5 md:py-3 border-2"
-                            )}
-                          >
+                          <button key={ev.id} onClick={() => setSelectedEvent(ev)} className={cn("w-full flex items-center gap-2 rounded-lg border transition-all text-left min-w-0 bg-card hover:bg-accent hover:border-primary/50 shadow-sm hover:shadow-md active:scale-[0.98]", isMobile ? "px-2 py-1.5 border-1" : "px-3 md:px-4 py-2.5 md:py-3 border-2")}>
                             <div className="flex-shrink-0">
-                              <div
-                                className={cn(
-                                  "flex items-center justify-center",
-                                  isMobile ? "w-6 h-6" : "w-8 h-8"
-                                )}
-                              >
-                                {getEventIcon(ev.type)}
-                              </div>
+                              <div className={cn("flex items-center justify-center", isMobile ? "w-6 h-6" : "w-8 h-8")}>{getEventIcon(ev.type)}</div>
                             </div>
-                            <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div
-                                  className={cn(
-                                    "font-semibold text-foreground line-clamp-1 break-words",
-                                    isMobile
-                                      ? "text-xs"
-                                      : "text-sm md:text-base"
-                                  )}
-                                >
-                                  {ev.projectName}
-                                </div>
-                                <div
-                                  className={cn(
-                                    "text-muted-foreground",
-                                    isMobile
-                                      ? "text-[10px]"
-                                      : "text-xs md:text-sm"
-                                  )}
-                                >
-                                  {ev.label}
-                                </div>
-                              </div>
+                            <div className="flex-1 min-w-0">
+                              <div className={cn("font-semibold text-foreground line-clamp-1 break-words", isMobile ? "text-xs" : "text-sm md:text-base")}>{ev.projectName}</div>
+                              <div className={cn("text-muted-foreground", isMobile ? "text-[10px]" : "text-xs md:text-sm")}>{ev.label}</div>
                             </div>
                           </button>
                         ))
@@ -521,20 +567,63 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
               })}
             </div>
           </div>
+        ) : viewMode === "week" ? (
+          /* ---- WEEK VIEW ---- */
+          <div className="overflow-x-auto">
+            <div className="grid grid-cols-7 border-b mb-1">
+              {weekDays.map((day) => {
+                const isToday = day.toDateString() === new Date().toDateString();
+                return (
+                  <div key={day.toISOString()} className={cn("text-center py-2", isToday && "bg-primary/5")}>
+                    <div className="text-xs font-semibold text-muted-foreground">{WEEKDAY_LABELS[weekDays.indexOf(day)]}</div>
+                    <div className={cn("text-sm font-bold mt-0.5", isToday ? "text-primary" : "text-foreground")}>{day.getDate()}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-7 auto-rows-fr gap-px bg-border/30">
+              {weekDays.map((day) => {
+                const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+                const dayEvents = groupedByDateKey[key] || [];
+                const isToday = day.toDateString() === new Date().toDateString();
+                const MAX_VISIBLE = 4;
+                const visibleEvents = dayEvents.slice(0, MAX_VISIBLE);
+                const overflow = dayEvents.length - MAX_VISIBLE;
+
+                return (
+                  <div key={key} className={cn("bg-card p-1.5 min-h-[200px] flex flex-col gap-1", isToday && "ring-1 ring-primary/30 bg-primary/5")}>
+                    {visibleEvents.map((ev) => {
+                      const cfg = EVENT_CONFIG[ev.type as EventType];
+                      const Icon = cfg?.icon ?? Calendar;
+                      return (
+                        <button key={ev.id} onClick={() => setSelectedEvent(ev)} className={cn("w-full text-left rounded-md transition-all group border-l-[3px] pl-1.5 pr-1 py-1 hover:shadow-md hover:scale-[1.02]", cfg?.borderClass ?? "border-l-muted-foreground", cfg?.bgClass ?? "bg-muted/40")} title={`${ev.projectName} — ${ev.label}`}>
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <Icon className={cn("h-3 w-3 flex-shrink-0", cfg?.colorClass ?? "text-muted-foreground")} />
+                            <span className={cn("text-[10px] font-semibold truncate", cfg?.colorClass ?? "text-muted-foreground")}>{ev.label}</span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate leading-tight group-hover:text-foreground transition-colors">{ev.projectName}</div>
+                        </button>
+                      );
+                    })}
+                    {overflow > 0 && (
+                      <button onClick={() => setSelectedDayEvents({ date: day, events: dayEvents })} className="w-full text-center text-[10px] font-medium text-primary hover:underline cursor-pointer py-0.5 rounded hover:bg-primary/5 transition-colors">+{overflow} más</button>
+                    )}
+                    {dayEvents.length === 0 && <span className="text-[10px] text-muted-foreground/40 text-center mt-4">—</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         ) : (
+          /* ---- MONTH VIEW ---- */
           <div>
             <div className="grid grid-cols-7 border-b mb-1">
               {WEEKDAY_LABELS.map((label) => (
-                <div
-                  key={label}
-                  className="text-center text-xs font-semibold text-muted-foreground py-2"
-                >
-                  {label}
-                </div>
+                <div key={label} className="text-center text-xs font-semibold text-muted-foreground py-2">{label}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 auto-rows-fr">
-              {monthCalendarDays.map((day, idx) => {
+              {gridCalendarDays.map((day, idx) => {
                 const key = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
                 const dayEvents = groupedByDateKey[key] || [];
                 const isCurrentMonth = day.getMonth() === currentDate.getMonth();
@@ -544,24 +633,10 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
                 const overflow = dayEvents.length - MAX_VISIBLE_MONTH;
 
                 return (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "border border-border/30 p-1 md:p-1.5 min-h-[100px] md:min-h-[130px] flex flex-col",
-                      !isCurrentMonth && "bg-muted/20",
-                      isToday && "bg-primary/5 ring-1 ring-primary/30"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "text-[11px] font-medium mb-1 text-right pr-0.5",
-                        isToday ? "text-primary font-bold" : isCurrentMonth ? "text-foreground" : "text-muted-foreground/60"
-                      )}
-                    >
+                  <div key={idx} className={cn("border border-border/30 p-1 md:p-1.5 min-h-[100px] md:min-h-[130px] flex flex-col", !isCurrentMonth && "bg-muted/20", isToday && "bg-primary/5 ring-1 ring-primary/30")}>
+                    <div className={cn("text-[11px] font-medium mb-1 text-right pr-0.5", isToday ? "text-primary font-bold" : isCurrentMonth ? "text-foreground" : "text-muted-foreground/60")}>
                       {isToday ? (
-                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-[11px] font-bold">
-                          {day.getDate()}
-                        </span>
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-[11px] font-bold">{day.getDate()}</span>
                       ) : (
                         day.getDate()
                       )}
@@ -571,37 +646,17 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
                         const cfg = EVENT_CONFIG[ev.type as EventType];
                         const Icon = cfg?.icon ?? Calendar;
                         return (
-                          <button
-                            key={ev.id}
-                            onClick={() => setSelectedEvent(ev)}
-                            className={cn(
-                              "w-full text-left rounded-md transition-all group",
-                              "border-l-[3px] pl-1.5 pr-1 py-1",
-                              "hover:shadow-md hover:scale-[1.02]",
-                              cfg?.borderClass ?? "border-l-muted-foreground",
-                              cfg?.bgClass ?? "bg-muted/40"
-                            )}
-                            title={`${ev.projectName} — ${ev.label}`}
-                          >
+                          <button key={ev.id} onClick={() => setSelectedEvent(ev)} className={cn("w-full text-left rounded-md transition-all group border-l-[3px] pl-1.5 pr-1 py-1 hover:shadow-md hover:scale-[1.02]", cfg?.borderClass ?? "border-l-muted-foreground", cfg?.bgClass ?? "bg-muted/40")} title={`${ev.projectName} — ${ev.label}`}>
                             <div className="flex items-center gap-1 mb-0.5">
                               <Icon className={cn("h-3 w-3 flex-shrink-0", cfg?.colorClass ?? "text-muted-foreground")} />
-                              <span className={cn("text-[10px] font-semibold truncate", cfg?.colorClass ?? "text-muted-foreground")}>
-                                {ev.label}
-                              </span>
+                              <span className={cn("text-[10px] font-semibold truncate", cfg?.colorClass ?? "text-muted-foreground")}>{ev.label}</span>
                             </div>
-                            <div className="text-[10px] text-muted-foreground truncate leading-tight group-hover:text-foreground transition-colors">
-                              {ev.projectName}
-                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate leading-tight group-hover:text-foreground transition-colors">{ev.projectName}</div>
                           </button>
                         );
                       })}
                       {overflow > 0 && (
-                        <button
-                          onClick={() => setSelectedDayEvents({ date: day, events: dayEvents })}
-                          className="w-full text-center text-[10px] font-medium text-primary hover:underline cursor-pointer py-0.5 rounded hover:bg-primary/5 transition-colors"
-                        >
-                          +{overflow} más
-                        </button>
+                        <button onClick={() => setSelectedDayEvents({ date: day, events: dayEvents })} className="w-full text-center text-[10px] font-medium text-primary hover:underline cursor-pointer py-0.5 rounded hover:bg-primary/5 transition-colors">+{overflow} más</button>
                       )}
                     </div>
                   </div>
@@ -679,21 +734,13 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
         )}
 
         {selectedDayEvents && (
-          <Dialog
-            open={!!selectedDayEvents}
-            onOpenChange={() => setSelectedDayEvents(null)}
-          >
+          <Dialog open={!!selectedDayEvents} onOpenChange={() => setSelectedDayEvents(null)}>
             <DialogContent className="sm:max-w-[550px] w-[95vw] md:w-full max-h-[85vh] md:max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-base md:text-lg">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
                   Eventos del{" "}
-                  {selectedDayEvents.date.toLocaleDateString("es-ES", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
+                  {selectedDayEvents.date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-2 mt-4">
@@ -701,46 +748,62 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
                   const cfg = EVENT_CONFIG[ev.type as EventType];
                   const Icon = cfg?.icon ?? Calendar;
                   return (
-                    <button
-                      key={ev.id}
-                      onClick={() => {
-                        setSelectedDayEvents(null);
-                        setSelectedEvent(ev);
-                      }}
-                      className={cn(
-                        "w-full flex items-center gap-3 rounded-lg transition-all text-left",
-                        "border-l-4 pl-3 pr-4 py-3",
-                        "hover:shadow-md active:scale-[0.98]",
-                        cfg?.borderClass ?? "border-l-muted-foreground",
-                        cfg?.bgClass ?? "bg-muted/40"
-                      )}
-                    >
+                    <button key={ev.id} onClick={() => { setSelectedDayEvents(null); setSelectedEvent(ev); }} className={cn("w-full flex items-center gap-3 rounded-lg transition-all text-left border-l-4 pl-3 pr-4 py-3 hover:shadow-md active:scale-[0.98]", cfg?.borderClass ?? "border-l-muted-foreground", cfg?.bgClass ?? "bg-muted/40")}>
                       <div className="flex-shrink-0">
                         <Icon className={cn("h-4 w-4", cfg?.colorClass ?? "text-muted-foreground")} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-foreground line-clamp-1">
-                          {ev.projectName}
-                        </div>
-                        <div className={cn("text-xs font-medium", cfg?.colorClass ?? "text-muted-foreground")}>
-                          {ev.label}
-                        </div>
+                        <div className="text-sm font-semibold text-foreground line-clamp-1">{ev.projectName}</div>
+                        <div className={cn("text-xs font-medium", cfg?.colorClass ?? "text-muted-foreground")}>{ev.label}</div>
                       </div>
                     </button>
                   );
                 })}
               </div>
               <div className="flex justify-end pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedDayEvents(null)}
-                >
-                  Cerrar
-                </Button>
+                <Button variant="outline" onClick={() => setSelectedDayEvents(null)}>Cerrar</Button>
               </div>
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Create event dialog */}
+        <Dialog open={showCreateEvent} onOpenChange={setShowCreateEvent}>
+          <DialogContent className="sm:max-w-[450px] w-[95vw]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Plus className="h-5 w-5 text-primary" />
+                Crear evento en Google Calendar
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Título *</Label>
+                <Input value={newEventTitle} onChange={(e) => setNewEventTitle(e.target.value)} placeholder="Ej: Reunión con arquitecto" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Fecha *</Label>
+                  <Input type="date" value={newEventDate} onChange={(e) => setNewEventDate(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Hora</Label>
+                  <Input type="time" value={newEventTime} onChange={(e) => setNewEventTime(e.target.value)} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Descripción</Label>
+                <Textarea value={newEventDesc} onChange={(e) => setNewEventDesc(e.target.value)} placeholder="Notas adicionales..." rows={3} />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t">
+                <Button variant="outline" onClick={() => setShowCreateEvent(false)}>Cancelar</Button>
+                <Button onClick={handleCreateEvent} disabled={creatingEvent}>
+                  {creatingEvent ? "Creando..." : "Crear evento"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
