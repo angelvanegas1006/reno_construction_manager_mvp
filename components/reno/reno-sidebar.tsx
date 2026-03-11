@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Mail, Landmark, LayoutGrid, Ruler, PencilRuler } from "lucide-react";
+import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Inbox, Send, Landmark, LayoutGrid, Ruler, PencilRuler } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -358,7 +358,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                       )}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <Mail className="h-5 w-5 flex-shrink-0 text-current" />
+                        <Send className="h-5 w-5 flex-shrink-0 text-current" />
                         <span className="whitespace-nowrap truncate">Bandeja de correos</span>
                       </div>
                       {draftEmailCount > 0 && (
@@ -366,6 +366,23 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                           {draftEmailCount > 9 ? "9+" : draftEmailCount}
                         </span>
                       )}
+                    </Link>
+                  )}
+                  {role !== "architect" && (
+                    <Link
+                      href="/reno/gmail"
+                      onClick={onMobileToggle}
+                      className={cn(
+                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        pathname === "/reno/gmail"
+                          ? "bg-primary/20 text-primary dark:text-white"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Inbox className="h-5 w-5 flex-shrink-0 text-current" />
+                        <span className="whitespace-nowrap truncate">Gmail</span>
+                      </div>
                     </Link>
                   )}
                 </nav>
@@ -562,7 +579,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   )}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <Mail className="h-5 w-5 flex-shrink-0 text-current" />
+                    <Send className="h-5 w-5 flex-shrink-0 text-current" />
                     <span className="whitespace-nowrap truncate">Bandeja de correos</span>
                   </div>
                   {draftEmailCount > 0 && (
@@ -570,6 +587,22 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                       {draftEmailCount > 9 ? "9+" : draftEmailCount}
                     </span>
                   )}
+                </Link>
+              )}
+              {role !== "architect" && (
+                <Link
+                  href="/reno/gmail"
+                  className={cn(
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    pathname === "/reno/gmail"
+                      ? "bg-primary/20 text-primary dark:text-white"
+                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Inbox className="h-5 w-5 flex-shrink-0 text-current" />
+                    <span className="whitespace-nowrap truncate">Gmail</span>
+                  </div>
                 </Link>
               )}
             </nav>
@@ -625,12 +658,26 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                     : "text-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
               >
-                <Mail className="h-5 w-5 flex-shrink-0 text-current" />
+                <Send className="h-5 w-5 flex-shrink-0 text-current" />
                 {draftEmailCount > 0 && (
                   <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold text-white">
                     {draftEmailCount > 9 ? "9+" : draftEmailCount}
                   </span>
                 )}
+              </Link>
+            )}
+            {role !== "architect" && (
+              <Link
+                href="/reno/gmail"
+                title="Gmail"
+                className={cn(
+                  "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
+                  pathname === "/reno/gmail"
+                    ? "bg-primary/20 text-primary dark:text-white"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                <Inbox className="h-5 w-5 flex-shrink-0 text-current" />
               </Link>
             )}
           </nav>

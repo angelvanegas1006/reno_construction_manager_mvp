@@ -8,13 +8,13 @@ import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { useMaturationProjects } from "@/hooks/useMaturationProjects";
 import { toast } from "sonner";
-import { Building2, TrendingUp, CheckCircle, Clock } from "lucide-react";
+import { Building2, TrendingUp, CheckCircle, Clock, Ruler, FileText, Hammer, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   MATURATION_PHASE_LABELS,
 } from "@/lib/reno-kanban-config";
-import { MaturationPhaseDistribution } from "@/components/reno/maturation-phase-distribution";
 import { DonutChart } from "@/components/reno/donut-chart";
+import { MaturationPhaseDistribution } from "@/components/reno/maturation-phase-distribution";
 import { ArchitectRanking } from "@/components/reno/architect-ranking";
 import { MaturationCalendar } from "@/components/reno/maturation-calendar";
 import { MaturationTodoWidgets } from "@/components/reno/maturation-todo-widgets";
@@ -52,7 +52,46 @@ export default function MaturationAnalystHomePage() {
     }
   }, [projectsLoading]);
 
-  const totalProjects = allProjects.length;
+  const [selectedQuarter, setSelectedQuarter] = useState<"all" | "Q1" | "Q2" | "Q3" | "Q4">("all");
+
+  const filteredProjects = useMemo(() => {
+    if (selectedQuarter === "all") return allProjects;
+    const year = new Date().getFullYear();
+    const qRanges: Record<string, [number, number]> = {
+      Q1: [0, 2], Q2: [3, 5], Q3: [6, 8], Q4: [9, 11],
+    };
+    const [startMonth, endMonth] = qRanges[selectedQuarter];
+    return allProjects.filter((p) => {
+      const raw = (p as any).draft_order_date || p.created_at;
+      if (!raw) return false;
+      const d = new Date(raw);
+      return d.getFullYear() === year && d.getMonth() >= startMonth && d.getMonth() <= endMonth;
+    });
+  }, [allProjects, selectedQuarter]);
+
+  const totalProjects = filteredProjects.length;
+
+  const avgDays = useMemo(() => {
+    const diff = (a: string | null | undefined, b: string | null | undefined): number | null => {
+      if (!a || !b) return null;
+      const da = new Date(a).getTime();
+      const db = new Date(b).getTime();
+      if (isNaN(da) || isNaN(db)) return null;
+      return Math.round(Math.abs(db - da) / (1000 * 60 * 60 * 24));
+    };
+    const mean = (vals: (number | null)[]): number | null => {
+      const valid = vals.filter((v): v is number => v !== null);
+      if (valid.length === 0) return null;
+      return Math.round(valid.reduce((s, v) => s + v, 0) / valid.length);
+    };
+    const ecuProjects = filteredProjects.filter((p) => (p as any).excluded_from_ecu !== true);
+    return {
+      measurement: mean(filteredProjects.map((p) => diff((p as any).draft_order_date, (p as any).measurement_date))),
+      draft: mean(filteredProjects.map((p) => diff((p as any).measurement_date, (p as any).project_architect_date))),
+      project: mean(filteredProjects.map((p) => diff((p as any).draft_validation_date, (p as any).project_end_date))),
+      ecuFirstValidation: mean(ecuProjects.map((p) => diff((p as any).ecu_first_start_date, (p as any).ecu_first_end_date))),
+    };
+  }, [filteredProjects]);
 
   const investmentSegments = useMemo(() => {
     const map = new Map<string, number>();
@@ -60,14 +99,9 @@ export default function MaturationAnalystHomePage() {
       const type = p.investment_type?.trim() || "Otro";
       map.set(type, (map.get(type) || 0) + 1);
     }
-
-    const colorMap: Record<string, string> = {
-      Flip: "#3b82f6",
-      Yield: "#f59e0b",
-    };
+    const colorMap: Record<string, string> = { Flip: "#3b82f6", Yield: "#f59e0b" };
     const fallbackColors = ["#8b5cf6", "#10b981", "#ef4444", "#ec4899", "#06b6d4"];
     let ci = 0;
-
     return Array.from(map.entries())
       .sort((a, b) => b[1] - a[1])
       .map(([label, value]) => ({
@@ -166,6 +200,66 @@ export default function MaturationAnalystHomePage() {
               {/* Todo Widgets */}
               <MaturationTodoWidgets allProjects={allProjects} projectsByPhase={projectsByPhase} />
 
+              {/* Quarter filter + KPIs de tiempos medios */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Periodo:</span>
+                  <div className="flex gap-1 border rounded-md">
+                    {(["all", "Q1", "Q2", "Q3", "Q4"] as const).map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => setSelectedQuarter(q)}
+                        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                          selectedQuarter === q
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {q === "all" ? "Todo" : q}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedQuarter !== "all" && (
+                    <span className="text-xs text-muted-foreground">
+                      ({totalProjects} proyectos)
+                    </span>
+                  )}
+                </div>
+                <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+                  {([
+                    { label: "Media Tiempo Medición", value: avgDays.measurement, limit: 7, icon: Ruler, desc: "Límite: 7 días" },
+                    { label: "Media Tiempo Anteproyecto", value: avgDays.draft, limit: 14, icon: FileText, desc: "Límite: 14 días" },
+                    { label: "Media Tiempo Proyecto", value: avgDays.project, limit: 28, icon: Hammer, desc: "Límite: 28 días" },
+                    { label: "Media 1ª Validación ECU", value: avgDays.ecuFirstValidation, limit: 14, icon: ShieldCheck, desc: "Solo proyectos ECU" },
+                  ] as const).map((kpi) => {
+                    const color = kpi.value === null
+                      ? "text-muted-foreground"
+                      : kpi.value <= kpi.limit
+                        ? "text-green-600 dark:text-green-400"
+                        : kpi.value <= kpi.limit * 1.5
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-red-600 dark:text-red-400";
+                    const Icon = kpi.icon;
+                    return (
+                      <Card key={kpi.label} className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <CardTitle className="text-[11px] md:text-xs font-medium text-muted-foreground truncate">{kpi.label}</CardTitle>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className={`text-xl md:text-2xl font-bold ${color}`}>
+                            {kpi.value !== null ? `${kpi.value}d` : "—"}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-1">{kpi.desc}</p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Flip vs Yield + Con ECU / Sin ECU */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-card border rounded-lg p-4">
@@ -198,7 +292,8 @@ export default function MaturationAnalystHomePage() {
               {/* Timeline compacto de todos los proyectos */}
               <ProjectTimelineOverview allProjects={allProjects} />
 
-              {/* Proyectos recientes */}
+              {/* Proyectos recientes — solo visible para admin/CM */}
+              {(role === "admin" || role === "construction_manager") && (
               <div className="bg-card border rounded-lg p-4">
                 <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-violet-500" />
@@ -273,6 +368,7 @@ export default function MaturationAnalystHomePage() {
                   </div>
                 )}
               </div>
+              )}
             </div>
           )}
         </div>

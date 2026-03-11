@@ -28,8 +28,8 @@ import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-
 import { RenoHomeAdminDashboard } from "@/components/reno/reno-home-admin-dashboard";
 import { useMaturationProjects } from "@/hooks/useMaturationProjects";
 import { useArchitectProjects } from "@/hooks/useArchitectProjects";
-import { MaturationPhaseDistribution } from "@/components/reno/maturation-phase-distribution";
 import { DonutChart } from "@/components/reno/donut-chart";
+import { MaturationPhaseDistribution } from "@/components/reno/maturation-phase-distribution";
 import { ArchitectRanking } from "@/components/reno/architect-ranking";
 import { MaturationCalendar } from "@/components/reno/maturation-calendar";
 import { MaturationTodoWidgets } from "@/components/reno/maturation-todo-widgets";
@@ -41,6 +41,10 @@ import {
   Clock,
   CheckCircle,
   Timer,
+  Ruler,
+  FileText,
+  Hammer,
+  ShieldCheck,
 } from "lucide-react";
 import {
   MATURATION_PHASE_LABELS,
@@ -276,8 +280,47 @@ export default function RenoConstructionManagerHomePage() {
     loading: archLoading,
   } = useArchitectProjects(null, true);
 
-  const matTotalProjects = matAllProjects.length;
+  const [matSelectedQuarter, setMatSelectedQuarter] = useState<"all" | "Q1" | "Q2" | "Q3" | "Q4">("all");
+
+  const matFilteredProjects = useMemo(() => {
+    if (matSelectedQuarter === "all") return matAllProjects;
+    const year = new Date().getFullYear();
+    const qRanges: Record<string, [number, number]> = {
+      Q1: [0, 2], Q2: [3, 5], Q3: [6, 8], Q4: [9, 11],
+    };
+    const [startMonth, endMonth] = qRanges[matSelectedQuarter];
+    return matAllProjects.filter((p) => {
+      const raw = (p as any).draft_order_date || p.created_at;
+      if (!raw) return false;
+      const d = new Date(raw);
+      return d.getFullYear() === year && d.getMonth() >= startMonth && d.getMonth() <= endMonth;
+    });
+  }, [matAllProjects, matSelectedQuarter]);
+
+  const matTotalProjects = matFilteredProjects.length;
   const archTotalProjects = archAllProjects.length;
+
+  const matAvgDays = useMemo(() => {
+    const diff = (a: string | null | undefined, b: string | null | undefined): number | null => {
+      if (!a || !b) return null;
+      const da = new Date(a).getTime();
+      const db = new Date(b).getTime();
+      if (isNaN(da) || isNaN(db)) return null;
+      return Math.round(Math.abs(db - da) / (1000 * 60 * 60 * 24));
+    };
+    const mean = (vals: (number | null)[]): number | null => {
+      const valid = vals.filter((v): v is number => v !== null);
+      if (valid.length === 0) return null;
+      return Math.round(valid.reduce((s, v) => s + v, 0) / valid.length);
+    };
+    const ecuProjects = matFilteredProjects.filter((p) => (p as any).excluded_from_ecu !== true);
+    return {
+      measurement: mean(matFilteredProjects.map((p) => diff((p as any).draft_order_date, (p as any).measurement_date))),
+      draft: mean(matFilteredProjects.map((p) => diff((p as any).measurement_date, (p as any).project_architect_date))),
+      project: mean(matFilteredProjects.map((p) => diff((p as any).draft_validation_date, (p as any).project_end_date))),
+      ecuFirstValidation: mean(ecuProjects.map((p) => diff((p as any).ecu_first_start_date, (p as any).ecu_first_end_date))),
+    };
+  }, [matFilteredProjects]);
 
   const matInvestmentSegments = useMemo(() => {
     const map = new Map<string, number>();
@@ -539,7 +582,55 @@ export default function RenoConstructionManagerHomePage() {
                     {/* Todo Widgets */}
                     <MaturationTodoWidgets allProjects={matAllProjects} projectsByPhase={matProjectsByPhase} />
 
-                    {/* Flip vs Yield + ECU */}
+                    {/* Quarter filter + KPIs de tiempos medios */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">Periodo:</span>
+                        <div className="flex gap-1 border rounded-md">
+                          {(["all", "Q1", "Q2", "Q3", "Q4"] as const).map((q) => (
+                            <button key={q} onClick={() => setMatSelectedQuarter(q)} className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${matSelectedQuarter === q ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                              {q === "all" ? "Todo" : q}
+                            </button>
+                          ))}
+                        </div>
+                        {matSelectedQuarter !== "all" && (
+                          <span className="text-xs text-muted-foreground">({matTotalProjects} proyectos)</span>
+                        )}
+                      </div>
+                      <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+                        {([
+                          { label: "Media Tiempo Medición", value: matAvgDays.measurement, limit: 7, icon: Ruler, desc: "Límite: 7 días" },
+                          { label: "Media Tiempo Anteproyecto", value: matAvgDays.draft, limit: 14, icon: FileText, desc: "Límite: 14 días" },
+                          { label: "Media Tiempo Proyecto", value: matAvgDays.project, limit: 28, icon: Hammer, desc: "Límite: 28 días" },
+                          { label: "Media 1ª Validación ECU", value: matAvgDays.ecuFirstValidation, limit: 14, icon: ShieldCheck, desc: "Solo proyectos ECU" },
+                        ] as const).map((kpi) => {
+                          const color = kpi.value === null
+                            ? "text-muted-foreground"
+                            : kpi.value <= kpi.limit
+                              ? "text-green-600 dark:text-green-400"
+                              : kpi.value <= kpi.limit * 1.5
+                                ? "text-amber-600 dark:text-amber-400"
+                                : "text-red-600 dark:text-red-400";
+                          const Icon = kpi.icon;
+                          return (
+                            <Card key={kpi.label} className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
+                              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <CardTitle className="text-[11px] md:text-xs font-medium text-muted-foreground truncate">{kpi.label}</CardTitle>
+                                </div>
+                              </CardHeader>
+                              <CardContent>
+                                <div className={`text-xl md:text-2xl font-bold ${color}`}>{kpi.value !== null ? `${kpi.value}d` : "—"}</div>
+                                <p className="text-[10px] text-muted-foreground mt-1">{kpi.desc}</p>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Flip vs Yield + Con ECU / Sin ECU */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-card border rounded-lg p-4">
                         <h3 className="text-sm font-medium mb-4">Flip vs Yield</h3>

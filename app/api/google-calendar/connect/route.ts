@@ -30,20 +30,28 @@ export async function GET(request: NextRequest) {
     // Allow all authenticated users to connect their Google Calendar
     // Each user will sync events to their own personal calendar
 
+    // Capture origin (gmail or calendar) for redirect after callback
+    const origin = request.nextUrl.searchParams.get('origin') || 'calendar';
+
     // Generate state token for CSRF protection
     const state = crypto.randomBytes(32).toString('hex');
     
-    // Store state in session/cookie (simplified - in production use secure session storage)
     const response = NextResponse.redirect(
       getGoogleCalendarApiClient().getAuthorizationUrl(state)
     );
     
-    // Set state in cookie (httpOnly, secure in production)
     response.cookies.set('google_calendar_oauth_state', state, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 600, // 10 minutes
+      maxAge: 600,
+    });
+
+    response.cookies.set('google_oauth_origin', origin, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 600,
     });
 
     return response;

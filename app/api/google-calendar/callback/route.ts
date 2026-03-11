@@ -61,8 +61,8 @@ export async function GET(request: NextRequest) {
     // Calculate expiration time
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
-    // Store tokens in database
-    // google_calendar_tokens table not in types yet - using cast
+    // Store tokens in database (scopes included for Gmail detection)
+    const scopes = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send';
     const { error: insertError } = await (supabase as any)
       .from('google_calendar_tokens')
       .upsert({
@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
         refresh_token: encryptedRefreshToken,
         expires_at: expiresAt.toISOString(),
         calendar_id: calendarId,
+        scopes,
         connected_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }, {
@@ -84,9 +85,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Clear state cookie
-    const response = NextResponse.redirect(new URL('/reno/construction-manager?google_calendar=connected', request.url));
+    // Redirect based on origin (gmail vs calendar)
+    const origin = request.cookies.get('google_oauth_origin')?.value || 'calendar';
+    const redirectPath = origin === 'gmail'
+      ? '/reno/gmail?google_connected=true'
+      : '/reno/construction-manager?google_calendar=connected';
+    const response = NextResponse.redirect(new URL(redirectPath, request.url));
     response.cookies.delete('google_calendar_oauth_state');
+    response.cookies.delete('google_oauth_origin');
 
     return response;
   } catch (error: any) {

@@ -135,6 +135,7 @@ const EMPTY_BY_PHASE: Record<RenoKanbanPhase, ProjectRow[]> = {
   "arch-ecu-first-validation": [],
   "arch-ecu-final-validation": [],
   "arch-obra-empezar": [],
+  "arch-obra-en-progreso": [],
   "arch-completed": [],
 };
 

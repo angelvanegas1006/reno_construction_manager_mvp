@@ -325,6 +325,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-ecu-first-validation": [],
       "arch-ecu-final-validation": [],
       "arch-obra-empezar": [],
+      "arch-obra-en-progreso": [],
       "arch-completed": [],
     };
     }
@@ -512,6 +513,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-ecu-first-validation": [],
       "arch-ecu-final-validation": [],
       "arch-obra-empezar": [],
+      "arch-obra-en-progreso": [],
       "arch-completed": [],
     };
     
@@ -783,6 +785,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-ecu-first-validation": allProperties["arch-ecu-first-validation"].filter(matchesAll),
       "arch-ecu-final-validation": allProperties["arch-ecu-final-validation"].filter(matchesAll),
       "arch-obra-empezar": allProperties["arch-obra-empezar"].filter(matchesAll),
+      "arch-obra-en-progreso": allProperties["arch-obra-en-progreso"].filter(matchesAll),
       "arch-completed": allProperties["arch-completed"].filter(matchesAll),
     };
     
@@ -968,6 +971,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-ecu-first-validation": filtered["arch-ecu-first-validation"] || [],
       "arch-ecu-final-validation": filtered["arch-ecu-final-validation"] || [],
       "arch-obra-empezar": filtered["arch-obra-empezar"] || [],
+      "arch-obra-en-progreso": filtered["arch-obra-en-progreso"] || [],
       "arch-completed": filtered["arch-completed"] || [],
     };
 
@@ -1112,6 +1116,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-ecu-first-validation": [],
       "arch-ecu-final-validation": [],
       "arch-obra-empezar": [],
+      "arch-obra-en-progreso": [],
       "arch-completed": [],
     };
 
@@ -1284,6 +1289,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'arch-technical-adjustments': [],
       'arch-ecu-final-validation': [],
       'arch-obra-empezar': [],
+      'arch-obra-en-progreso': [],
       'arch-completed': [],
     };
 
