@@ -10,7 +10,7 @@ import { Property } from "@/lib/property-storage";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { calculateOverallProgress } from "@/lib/property-validation";
 import { useI18n } from "@/lib/i18n";
-import { visibleRenoKanbanColumns, RenoKanbanPhase, PROJECT_KANBAN_PHASE_LABELS, type RenoKanbanColumn as RenoKanbanColumnConfig } from "@/lib/reno-kanban-config";
+import { visibleRenoKanbanColumns, RenoKanbanPhase, PROJECT_KANBAN_PHASE_LABELS, MATURATION_PHASE_LABELS, ARCHITECT_PHASE_LABELS, type RenoKanbanColumn as RenoKanbanColumnConfig } from "@/lib/reno-kanban-config";
 import { sortPropertiesByExpired, isPropertyExpired, isDelayedWork, shouldShowExpiredBadge } from "@/lib/property-sorting";
 import { trackEventWithDevice } from "@/lib/mixpanel";
 import { KanbanFilters } from "./reno-kanban-filters";
@@ -168,6 +168,42 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   });
   const [isLoadingColumns, setIsLoadingColumns] = useState(true);
   const [columnSelectorOpen, setColumnSelectorOpen] = useState<{ phase: RenoKanbanPhase | null }>({ phase: null });
+
+  // Project column visibility
+  const PROJECT_COL_CONFIG: { key: ProjectSortCol; label: string; defaultVisible: boolean; category?: "shown" | "popular" | "hidden" }[] = useMemo(() => [
+    { key: "projectId", label: "ID", defaultVisible: true },
+    { key: "name", label: "Nombre", defaultVisible: true },
+    { key: "propertiesCount", label: "Propiedades", defaultVisible: true },
+    { key: "scouter", label: "Scouter", defaultVisible: true },
+    { key: "architect", label: "Arquitecto", defaultVisible: true },
+    { key: "excludedEcu", label: "ECU", defaultVisible: true },
+    { key: "type", label: "Tipo", defaultVisible: true },
+    { key: "investmentType", label: "Inversión", defaultVisible: true },
+    { key: "area", label: "Zona", defaultVisible: true },
+    { key: "renovator", label: "Renovador", defaultVisible: false, category: "popular" },
+    { key: "projectStartDate", label: "Inicio Proyecto", defaultVisible: false, category: "popular" },
+    { key: "settlementDate", label: "Fecha Liquidación", defaultVisible: false, category: "popular" },
+    { key: "status", label: "Estado", defaultVisible: false },
+  ], []);
+
+  const getDefaultProjectCols = useCallback((): Set<ProjectSortCol> => {
+    return new Set(PROJECT_COL_CONFIG.filter(c => c.defaultVisible).map(c => c.key));
+  }, [PROJECT_COL_CONFIG]);
+
+  const [visibleProjectColsByPhase, setVisibleProjectColsByPhase] = useState<Map<RenoKanbanPhase, Set<ProjectSortCol>>>(() => new Map());
+  const [projectColSelectorOpen, setProjectColSelectorOpen] = useState<{ phase: RenoKanbanPhase | null }>({ phase: null });
+
+  const getVisibleProjectCols = useCallback((phase: RenoKanbanPhase): Set<ProjectSortCol> => {
+    return visibleProjectColsByPhase.get(phase) || getDefaultProjectCols();
+  }, [visibleProjectColsByPhase, getDefaultProjectCols]);
+
+  const handleProjectColumnSave = useCallback((phase: RenoKanbanPhase, cols: Set<ProjectSortCol>) => {
+    setVisibleProjectColsByPhase(prev => {
+      const m = new Map(prev);
+      m.set(phase, cols);
+      return m;
+    });
+  }, []);
   
   const router = useRouter();
   
@@ -2323,6 +2359,17 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         {projects.length}
                       </span>
                     </button>
+
+                    <button
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-accent/50 flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProjectColSelectorOpen({ phase: column.key });
+                      }}
+                    >
+                      <Settings className="h-3 w-3" />
+                      <span>Más campos</span>
+                    </button>
                   </div>
                 </div>
 
@@ -2331,63 +2378,27 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-muted/20 dark:bg-muted/10 border-b border-border/40 sticky top-0">
-                        <tr>
-                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("projectId")}>
-                            <div className="flex items-center gap-2">ID {renderProjectSortIcon("projectId")}</div>
-                          </th>
-                          <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("name")}>
-                            <div className="flex items-center gap-2">Nombre {renderProjectSortIcon("name")}</div>
-                          </th>
-                          {isMaturationList ? (
-                            <>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("propertiesCount")}>
-                                <div className="flex items-center gap-2">Propiedades {renderProjectSortIcon("propertiesCount")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("scouter")}>
-                                <div className="flex items-center gap-2">Scouter {renderProjectSortIcon("scouter")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("architect")}>
-                                <div className="flex items-center gap-2">Arquitecto {renderProjectSortIcon("architect")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("excludedEcu")}>
-                                <div className="flex items-center gap-2">ECU {renderProjectSortIcon("excludedEcu")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("type")}>
-                                <div className="flex items-center gap-2">Tipo {renderProjectSortIcon("type")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("investmentType")}>
-                                <div className="flex items-center gap-2">Inversión {renderProjectSortIcon("investmentType")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("area")}>
-                                <div className="flex items-center gap-2">Zona {renderProjectSortIcon("area")}</div>
-                              </th>
-                            </>
-                          ) : (
-                            <>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("area")}>
-                                <div className="flex items-center gap-2">Zona {renderProjectSortIcon("area")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("type")}>
-                                <div className="flex items-center gap-2">Tipo {renderProjectSortIcon("type")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("investmentType")}>
-                                <div className="flex items-center gap-2">Inversión {renderProjectSortIcon("investmentType")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("renovator")}>
-                                <div className="flex items-center gap-2">Renovador {renderProjectSortIcon("renovator")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("projectStartDate")}>
-                                <div className="flex items-center gap-2">Inicio Proyecto {renderProjectSortIcon("projectStartDate")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("settlementDate")}>
-                                <div className="flex items-center gap-2">Fecha Liquidación {renderProjectSortIcon("settlementDate")}</div>
-                              </th>
-                              <th className="px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors" onClick={() => handleProjectSort("status")}>
-                                <div className="flex items-center gap-2">Estado {renderProjectSortIcon("status")}</div>
-                              </th>
-                            </>
-                          )}
-                        </tr>
+                        {(() => {
+                          const vc = getVisibleProjectCols(column.key);
+                          const thCls = "px-3 py-2 text-left text-[11px] font-semibold text-muted-foreground/80 uppercase tracking-wider cursor-pointer hover:bg-accent/40 transition-colors";
+                          return (
+                            <tr>
+                              {vc.has("projectId") && <th className={thCls} onClick={() => handleProjectSort("projectId")}><div className="flex items-center gap-2">ID {renderProjectSortIcon("projectId")}</div></th>}
+                              {vc.has("name") && <th className={thCls} onClick={() => handleProjectSort("name")}><div className="flex items-center gap-2">Nombre {renderProjectSortIcon("name")}</div></th>}
+                              {vc.has("propertiesCount") && <th className={thCls} onClick={() => handleProjectSort("propertiesCount")}><div className="flex items-center gap-2">Propiedades {renderProjectSortIcon("propertiesCount")}</div></th>}
+                              {vc.has("scouter") && <th className={thCls} onClick={() => handleProjectSort("scouter")}><div className="flex items-center gap-2">Scouter {renderProjectSortIcon("scouter")}</div></th>}
+                              {vc.has("architect") && <th className={thCls} onClick={() => handleProjectSort("architect")}><div className="flex items-center gap-2">Arquitecto {renderProjectSortIcon("architect")}</div></th>}
+                              {vc.has("excludedEcu") && <th className={thCls} onClick={() => handleProjectSort("excludedEcu")}><div className="flex items-center gap-2">ECU {renderProjectSortIcon("excludedEcu")}</div></th>}
+                              {vc.has("type") && <th className={thCls} onClick={() => handleProjectSort("type")}><div className="flex items-center gap-2">Tipo {renderProjectSortIcon("type")}</div></th>}
+                              {vc.has("investmentType") && <th className={thCls} onClick={() => handleProjectSort("investmentType")}><div className="flex items-center gap-2">Inversión {renderProjectSortIcon("investmentType")}</div></th>}
+                              {vc.has("area") && <th className={thCls} onClick={() => handleProjectSort("area")}><div className="flex items-center gap-2">Zona {renderProjectSortIcon("area")}</div></th>}
+                              {vc.has("renovator") && <th className={thCls} onClick={() => handleProjectSort("renovator")}><div className="flex items-center gap-2">Renovador {renderProjectSortIcon("renovator")}</div></th>}
+                              {vc.has("projectStartDate") && <th className={thCls} onClick={() => handleProjectSort("projectStartDate")}><div className="flex items-center gap-2">Inicio Proyecto {renderProjectSortIcon("projectStartDate")}</div></th>}
+                              {vc.has("settlementDate") && <th className={thCls} onClick={() => handleProjectSort("settlementDate")}><div className="flex items-center gap-2">Fecha Liquidación {renderProjectSortIcon("settlementDate")}</div></th>}
+                              {vc.has("status") && <th className={thCls} onClick={() => handleProjectSort("status")}><div className="flex items-center gap-2">Estado {renderProjectSortIcon("status")}</div></th>}
+                            </tr>
+                          );
+                        })()}
                       </thead>
                       <tbody className="divide-y divide-border/40">
                         {projects.map((proj, idx) => {
@@ -2408,107 +2419,27 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                 idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/5 hover:bg-accent/60 dark:hover:bg-accent/20" : "hover:bg-accent/60 dark:hover:bg-accent/20"
                               )}
                             >
-                              <td className="px-3 py-2.5 whitespace-nowrap">
-                                <span className="text-sm font-medium text-foreground">
-                                  {proj.project_unique_id || proj.id?.slice(0, 8)}
-                                </span>
-                              </td>
-                              <td className="px-3 py-2.5">
-                                <span className="text-sm text-foreground font-medium break-words max-w-xs inline-block">
-                                  {proj.name || "Sin nombre"}
-                                </span>
-                              </td>
-                              {isMaturationList ? (
-                                <>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    <span className="text-sm text-foreground">{(() => { const ptc = (proj as any).properties_to_convert; const ptcS = ptc != null ? String(ptc).trim() : ""; return ptcS && ptcS !== "0" ? ptcS : ((proj as any).est_properties ?? "\u2014"); })()}</span>
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    <span className="text-sm text-foreground">{(proj as any).scouter || "\u2014"}</span>
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    <span className="text-sm text-foreground">{(proj as any).architect || "\u2014"}</span>
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    {(proj as any).excluded_from_ecu === true ? (
-                                      <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">Sin ECU</Badge>
-                                    ) : (
-                                      <span className="text-sm text-muted-foreground">Con ECU</span>
-                                    )}
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    {typeRaw ? (
-                                      <span className={cn(
-                                        "inline-flex items-center rounded-full text-xs font-medium px-2 py-1",
-                                        typeLower === "project" && "bg-blue-600 text-white",
-                                        typeLower === "wip" && "bg-sky-200 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200 border border-sky-300 dark:border-sky-700/50",
-                                        typeLower === "new build" && "bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/50",
-                                        !["project", "wip", "new build"].includes(typeLower) && "bg-muted text-muted-foreground border border-border"
-                                      )}>
-                                        {typeRaw}
-                                      </span>
-                                    ) : <span className="text-sm text-muted-foreground">\u2014</span>}
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    {isFlip ? (
-                                      <Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">Flip</Badge>
-                                    ) : isYield ? (
-                                      <Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">Yield</Badge>
-                                    ) : (proj as any).investment_type ? (
-                                      <Badge variant="secondary" className="text-xs">{(proj as any).investment_type}</Badge>
-                                    ) : <span className="text-sm text-muted-foreground">\u2014</span>}
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    <span className="text-sm text-muted-foreground">{area || "\u2014"}</span>
-                                  </td>
-                                </>
-                              ) : (
-                                <>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    <span className="text-sm text-muted-foreground">{area || "\u2014"}</span>
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    {typeRaw ? (
-                                      <span className={cn(
-                                        "inline-flex items-center rounded-full text-xs font-medium px-2 py-1",
-                                        typeLower === "project" && "bg-blue-600 text-white",
-                                        typeLower === "wip" && "bg-sky-200 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200 border border-sky-300 dark:border-sky-700/50",
-                                        typeLower === "new build" && "bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/50",
-                                        !["project", "wip", "new build"].includes(typeLower) && "bg-muted text-muted-foreground border border-border"
-                                      )}>
-                                        {typeRaw}
-                                      </span>
-                                    ) : <span className="text-sm text-muted-foreground">\u2014</span>}
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    {isFlip ? (
-                                      <Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">Flip</Badge>
-                                    ) : isYield ? (
-                                      <Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">Yield</Badge>
-                                    ) : (proj as any).investment_type ? (
-                                      <Badge variant="secondary" className="text-xs">{(proj as any).investment_type}</Badge>
-                                    ) : <span className="text-sm text-muted-foreground">\u2014</span>}
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    <span className="text-sm text-foreground">{(proj as any).renovator || "\u2014"}</span>
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    <span className="text-sm text-foreground">
-                                      {(proj as any).project_start_date ? formatDate((proj as any).project_start_date) : "\u2014"}
-                                    </span>
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    <span className="text-sm text-foreground">
-                                      {(proj as any).settlement_date ? formatDate((proj as any).settlement_date) : "\u2014"}
-                                    </span>
-                                  </td>
-                                  <td className="px-3 py-2.5 whitespace-nowrap">
-                                    <Badge variant="outline" className="text-xs">
-                                      {(proj as any).project_status || "\u2014"}
-                                    </Badge>
-                                  </td>
-                                </>
-                              )}
+                              {(() => {
+                                const vc = getVisibleProjectCols(column.key);
+                                const tdCls = "px-3 py-2.5 whitespace-nowrap";
+                                return (
+                                  <>
+                                    {vc.has("projectId") && <td className={tdCls}><span className="text-sm font-medium text-foreground">{proj.project_unique_id || proj.id?.slice(0, 8)}</span></td>}
+                                    {vc.has("name") && <td className="px-3 py-2.5"><span className="text-sm text-foreground font-medium break-words max-w-xs inline-block">{proj.name || "Sin nombre"}</span></td>}
+                                    {vc.has("propertiesCount") && <td className={tdCls}><span className="text-sm text-foreground">{(() => { const ptc = (proj as any).properties_to_convert; const ptcS = ptc != null ? String(ptc).trim() : ""; return ptcS && ptcS !== "0" ? ptcS : ((proj as any).est_properties ?? "—"); })()}</span></td>}
+                                    {vc.has("scouter") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).scouter || "—"}</span></td>}
+                                    {vc.has("architect") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).architect || "—"}</span></td>}
+                                    {vc.has("excludedEcu") && <td className={tdCls}>{(proj as any).excluded_from_ecu === true ? (<Badge variant="outline" className="text-xs border-amber-500 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">Sin ECU</Badge>) : (<span className="text-sm text-muted-foreground">Con ECU</span>)}</td>}
+                                    {vc.has("type") && <td className={tdCls}>{typeRaw ? (<span className={cn("inline-flex items-center rounded-full text-xs font-medium px-2 py-1", typeLower === "project" && "bg-blue-600 text-white", typeLower === "wip" && "bg-sky-200 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200 border border-sky-300 dark:border-sky-700/50", typeLower === "new build" && "bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/50", !["project", "wip", "new build"].includes(typeLower) && "bg-muted text-muted-foreground border border-border")}>{typeRaw}</span>) : <span className="text-sm text-muted-foreground">—</span>}</td>}
+                                    {vc.has("investmentType") && <td className={tdCls}>{isFlip ? (<Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">Flip</Badge>) : isYield ? (<Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">Yield</Badge>) : (proj as any).investment_type ? (<Badge variant="secondary" className="text-xs">{(proj as any).investment_type}</Badge>) : <span className="text-sm text-muted-foreground">—</span>}</td>}
+                                    {vc.has("area") && <td className={tdCls}><span className="text-sm text-muted-foreground">{area || "—"}</span></td>}
+                                    {vc.has("renovator") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).renovator || "—"}</span></td>}
+                                    {vc.has("projectStartDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).project_start_date ? formatDate((proj as any).project_start_date) : "—"}</span></td>}
+                                    {vc.has("settlementDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).settlement_date ? formatDate((proj as any).settlement_date) : "—"}</span></td>}
+                                    {vc.has("status") && <td className={tdCls}><Badge variant="outline" className="text-xs">{(proj as any).project_status || "—"}</Badge></td>}
+                                  </>
+                                );
+                              })()}
                             </tr>
                           );
                         })}
@@ -2640,6 +2571,30 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           onSave={(visibleColumns, columnOrder) => {
             if (columnSelectorOpen.phase) {
               handleColumnSave(columnSelectorOpen.phase, visibleColumns, columnOrder);
+            }
+          }}
+        />
+      )}
+
+      {/* Project Column Selector Dialog */}
+      {projectColSelectorOpen.phase && (
+        <ColumnSelectorDialog
+          open={!!projectColSelectorOpen.phase}
+          onOpenChange={(open) => {
+            if (!open) {
+              setProjectColSelectorOpen({ phase: null });
+            }
+          }}
+          columns={PROJECT_COL_CONFIG}
+          visibleColumns={getVisibleProjectCols(projectColSelectorOpen.phase)}
+          phase={projectColSelectorOpen.phase}
+          phaseLabel={(() => {
+            const col = visibleColumns.find(c => c.key === projectColSelectorOpen.phase);
+            return (col as any)?.label || PROJECT_KANBAN_PHASE_LABELS[projectColSelectorOpen.phase!] || MATURATION_PHASE_LABELS[projectColSelectorOpen.phase!] || ARCHITECT_PHASE_LABELS[projectColSelectorOpen.phase!] || projectColSelectorOpen.phase || "";
+          })()}
+          onSave={(cols) => {
+            if (projectColSelectorOpen.phase) {
+              handleProjectColumnSave(projectColSelectorOpen.phase, cols as Set<ProjectSortCol>);
             }
           }}
         />

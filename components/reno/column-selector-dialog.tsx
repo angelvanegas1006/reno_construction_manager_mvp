@@ -12,27 +12,25 @@ import { Search, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 
-type SortColumn = "id" | "address" | "region" | "renovador" | "renoType" | "estimatedVisit" | "proximaActualizacion" | "progress" | "status" | "daysToVisit" | "daysToStartRenoSinceRSD" | "renoDuration" | "daysToPropertyReady" | "budgetPhReadyDate" | "renovatorBudgetApprovalDate" | "initialVisitDate" | "estRenoStartDate" | "renoStartDate" | "renoEstimatedEndDate" | "renoEndDate";
-
-interface ColumnConfig {
-  key: SortColumn;
+interface ColumnConfig<K extends string = string> {
+  key: K;
   label: string;
   defaultVisible: boolean;
   icon?: React.ComponentType<{ className?: string }>;
   category?: "shown" | "popular" | "hidden";
 }
 
-interface ColumnSelectorDialogProps {
+interface ColumnSelectorDialogProps<K extends string = string> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  columns: ColumnConfig[];
-  visibleColumns: Set<SortColumn>;
+  columns: ColumnConfig<K>[];
+  visibleColumns: Set<K>;
   phase: RenoKanbanPhase;
   phaseLabel: string;
-  onSave: (visibleColumns: Set<SortColumn>, columnOrder?: SortColumn[]) => void;
+  onSave: (visibleColumns: Set<K>, columnOrder?: K[]) => void;
 }
 
-export function ColumnSelectorDialog({
+export function ColumnSelectorDialog<K extends string = string>({
   open,
   onOpenChange,
   columns,
@@ -40,11 +38,11 @@ export function ColumnSelectorDialog({
   phase,
   phaseLabel,
   onSave,
-}: ColumnSelectorDialogProps) {
+}: ColumnSelectorDialogProps<K>) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [localVisibleColumns, setLocalVisibleColumns] = useState<Set<SortColumn>>(visibleColumns);
-  const [draggedColumn, setDraggedColumn] = useState<SortColumn | null>(null);
-  const [columnOrder, setColumnOrder] = useState<SortColumn[]>(() => {
+  const [localVisibleColumns, setLocalVisibleColumns] = useState<Set<K>>(visibleColumns);
+  const [draggedColumn, setDraggedColumn] = useState<K | null>(null);
+  const [columnOrder, setColumnOrder] = useState<K[]>(() => {
     // Initialize order: visible columns first (in their original order), then hidden
     const visible = columns.filter(col => visibleColumns.has(col.key));
     const hidden = columns.filter(col => !visibleColumns.has(col.key));
@@ -73,14 +71,14 @@ export function ColumnSelectorDialog({
 
   // Group columns by category, respecting the order
   const groupedColumns = useMemo(() => {
-    const shown: ColumnConfig[] = [];
-    const popular: ColumnConfig[] = [];
-    const hidden: ColumnConfig[] = [];
+    const shown: ColumnConfig<K>[] = [];
+    const popular: ColumnConfig<K>[] = [];
+    const hidden: ColumnConfig<K>[] = [];
 
     // Use columnOrder to maintain order
     const orderedColumns = columnOrder
       .map(key => columns.find(col => col.key === key))
-      .filter((col): col is ColumnConfig => col !== undefined);
+      .filter((col): col is ColumnConfig<K> => col !== undefined);
 
     orderedColumns.forEach(col => {
       // Only include if it matches the search filter
@@ -99,7 +97,7 @@ export function ColumnSelectorDialog({
     return { shown, popular, hidden };
   }, [filteredColumns, localVisibleColumns, columnOrder, columns]);
 
-  const toggleColumn = (columnKey: SortColumn) => {
+  const toggleColumn = (columnKey: K) => {
     setLocalVisibleColumns(prev => {
       const newSet = new Set(prev);
       const wasVisible = newSet.has(columnKey);
@@ -136,7 +134,7 @@ export function ColumnSelectorDialog({
   };
 
   // Drag and drop handlers
-  const handleDragStart = (e: React.DragEvent, columnKey: SortColumn) => {
+  const handleDragStart = (e: React.DragEvent, columnKey: K) => {
     setDraggedColumn(columnKey);
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", columnKey);
@@ -163,7 +161,7 @@ export function ColumnSelectorDialog({
     }
   };
 
-  const handleDrop = (e: React.DragEvent, targetColumnKey: SortColumn) => {
+  const handleDrop = (e: React.DragEvent, targetColumnKey: K) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -232,7 +230,7 @@ export function ColumnSelectorDialog({
     return false;
   }, [localVisibleColumns, visibleColumns, columnOrder, columns]);
 
-  const renderColumnItem = (column: ColumnConfig, isDraggable = false) => {
+  const renderColumnItem = (column: ColumnConfig<K>, isDraggable = false) => {
     const isVisible = localVisibleColumns.has(column.key);
     const isDragging = draggedColumn === column.key;
     

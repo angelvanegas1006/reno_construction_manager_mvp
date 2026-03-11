@@ -3,7 +3,7 @@
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useCallback, useState, useRef, use, useMemo } from "react";
-import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MapPin, AlertTriangle, Info, X, ExternalLink, CheckCircle2, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -1007,17 +1007,47 @@ export default function RenoPropertyDetailPage() {
           );
         }
         
-        // For reno-budget-start, show "No tienes tareas pendientes!" if no tasks
+        // For reno-budget-start, show informative dates and "no tasks" message
         if (currentPhase === "reno-budget-start" && dynamicCategories.length === 0) {
+          const estStart = (supabaseProperty as any)?.est_reno_start_date;
+          const estEnd = (supabaseProperty as any)?.estimated_end_date;
+          const fmt = (d: string | null | undefined) => {
+            if (!d) return null;
+            try { return new Date(d).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }); } catch { return null; }
+          };
+          const fmtStart = fmt(estStart);
+          const fmtEnd = fmt(estEnd);
+
           return (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center space-y-3">
-                <div className="flex justify-center">
-                  <div className="p-3 rounded-full bg-muted/30">
-                    <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
+            <div className="py-8 space-y-6">
+              <div className="max-w-md mx-auto rounded-xl border border-border bg-card p-4 shadow-sm">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 text-center">Fechas estimadas</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-border bg-muted/20 p-3 flex items-center gap-2.5">
+                    <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Arranque de obra</p>
+                      <p className={cn("text-sm font-semibold", fmtStart ? "text-foreground" : "text-muted-foreground")}>{fmtStart || "N/A"}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/20 p-3 flex items-center gap-2.5">
+                    <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Fin de obra</p>
+                      <p className={cn("text-sm font-semibold", fmtEnd ? "text-foreground" : "text-muted-foreground")}>{fmtEnd || "N/A"}</p>
+                    </div>
                   </div>
                 </div>
-                <p className="text-base font-medium text-muted-foreground">No tienes tareas pendientes!</p>
+              </div>
+              <div className="flex items-center justify-center">
+                <div className="text-center space-y-3">
+                  <div className="flex justify-center">
+                    <div className="p-3 rounded-full bg-muted/30">
+                      <CheckCircle2 className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  </div>
+                  <p className="text-base font-medium text-muted-foreground">No tienes tareas pendientes!</p>
+                </div>
               </div>
             </div>
           );

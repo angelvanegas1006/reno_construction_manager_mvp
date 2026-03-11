@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PropertyTabs } from "@/components/layout/property-tabs";
@@ -25,6 +26,7 @@ import { MaturationTaskList } from "@/components/reno/maturation-task-list";
 import { ProjectTimeline } from "@/components/reno/project-timeline";
 import { EcuPageTab } from "@/components/reno/ecu-page-tab";
 import { ProjectDocumentationTab } from "@/components/reno/project-documentation-tab";
+import { ReportProblemModal } from "@/components/reno/report-problem-modal";
 
 const PdfViewer = dynamic(
   () => import("@/components/reno/pdf-viewer").then((mod) => ({ default: mod.PdfViewer })),
@@ -96,6 +98,7 @@ export default function MaturationProjectDetailPage() {
   const initialTab = unwrappedSearchParams?.get("tab") || "tareas";
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [reportProblemOpen, setReportProblemOpen] = useState(false);
 
   const isFullWidthTab = activeTab === "timeline" || activeTab === "ecu";
 
@@ -428,6 +431,14 @@ export default function MaturationProjectDetailPage() {
                   <Info className="h-5 w-5" />
                 </Button>
               )}
+              <Button
+                variant="outline"
+                onClick={() => setReportProblemOpen(true)}
+                className="flex items-center gap-1 md:gap-2 text-xs md:text-sm border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:border-amber-300 dark:hover:border-amber-700"
+              >
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+                <span className="hidden sm:inline">Reportar Problema</span>
+              </Button>
             </div>
           </div>
         </header>
@@ -476,6 +487,17 @@ export default function MaturationProjectDetailPage() {
           </div>
         </>
       )}
+
+      <ReportProblemModal
+        open={reportProblemOpen}
+        onOpenChange={setReportProblemOpen}
+        propertyName={project.name ?? project.project_unique_id ?? "Proyecto"}
+        onSuccess={() => {
+          toast.success("Reporte enviado", {
+            description: "Tu reporte ha sido enviado correctamente al equipo.",
+          });
+        }}
+      />
     </div>
   );
 }
