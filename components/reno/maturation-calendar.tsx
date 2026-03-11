@@ -380,7 +380,7 @@ export function MaturationCalendar({ allProjects }: MaturationCalendarProps) {
                     </Button>
                   </>
                 ) : (
-                  <Button onClick={connect} disabled={!isConfigured} variant="outline" size="sm" className="flex-shrink-0">
+                  <Button onClick={() => connect()} disabled={!isConfigured} variant="outline" size="sm" className="flex-shrink-0">
                     <Calendar className="h-3 w-3 mr-1" />
                     <span className="text-xs">Google Calendar</span>
                   </Button>

@@ -74,9 +74,29 @@ export interface GoogleCalendarApiEvent {
   location?: string;
   status: 'confirmed' | 'tentative' | 'cancelled';
   htmlLink?: string;
+  hangoutLink?: string;
   iCalUID?: string;
   created?: string;
   updated?: string;
+  colorId?: string;
+  attendees?: Array<{
+    email: string;
+    displayName?: string;
+    responseStatus?: 'needsAction' | 'declined' | 'tentative' | 'accepted';
+    self?: boolean;
+  }>;
+  conferenceData?: {
+    entryPoints?: Array<{
+      entryPointType: string;
+      uri: string;
+      label?: string;
+    }>;
+    conferenceSolution?: {
+      name: string;
+      iconUri?: string;
+    };
+    conferenceId?: string;
+  };
 }
 
 export interface GoogleCalendarConfig {

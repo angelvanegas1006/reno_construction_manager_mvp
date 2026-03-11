@@ -85,11 +85,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Redirect based on origin (gmail vs calendar)
+    // Redirect based on origin (gmail, calendar-page, or default)
     const origin = request.cookies.get('google_oauth_origin')?.value || 'calendar';
-    const redirectPath = origin === 'gmail'
-      ? '/reno/gmail?google_connected=true'
-      : '/reno/construction-manager?google_calendar=connected';
+    let redirectPath: string;
+    if (origin === 'gmail') {
+      redirectPath = '/reno/gmail?google_connected=true';
+    } else if (origin === 'calendar-page') {
+      redirectPath = '/reno/calendar?google_calendar=connected';
+    } else {
+      redirectPath = '/reno/construction-manager?google_calendar=connected';
+    }
     const response = NextResponse.redirect(new URL(redirectPath, request.url));
     response.cookies.delete('google_calendar_oauth_state');
     response.cookies.delete('google_oauth_origin');

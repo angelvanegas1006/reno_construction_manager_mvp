@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Inbox, Send, Landmark, LayoutGrid, Ruler, PencilRuler } from "lucide-react";
+import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Inbox, Send, Landmark, LayoutGrid, Ruler, PencilRuler, CalendarDays, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -370,6 +370,23 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   )}
                   {role !== "architect" && (
                     <Link
+                      href="/reno/calendar"
+                      onClick={onMobileToggle}
+                      className={cn(
+                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        pathname === "/reno/calendar"
+                          ? "bg-primary/20 text-primary dark:text-white"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <CalendarDays className="h-5 w-5 flex-shrink-0 text-current" />
+                        <span className="whitespace-nowrap truncate">Calendario</span>
+                      </div>
+                    </Link>
+                  )}
+                  {role !== "architect" && (
+                    <Link
                       href="/reno/gmail"
                       onClick={onMobileToggle}
                       className={cn(
@@ -382,6 +399,23 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                       <div className="flex items-center gap-3 min-w-0">
                         <Inbox className="h-5 w-5 flex-shrink-0 text-current" />
                         <span className="whitespace-nowrap truncate">Gmail</span>
+                      </div>
+                    </Link>
+                  )}
+                  {role !== "architect" && (
+                    <Link
+                      href="/reno/updates"
+                      onClick={onMobileToggle}
+                      className={cn(
+                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        pathname === "/reno/updates"
+                          ? "bg-primary/20 text-primary dark:text-white"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Sparkles className="h-5 w-5 flex-shrink-0 text-current" />
+                        <span className="whitespace-nowrap truncate">Novedades</span>
                       </div>
                     </Link>
                   )}
@@ -591,6 +625,22 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
               )}
               {role !== "architect" && (
                 <Link
+                  href="/reno/calendar"
+                  className={cn(
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    pathname === "/reno/calendar"
+                      ? "bg-primary/20 text-primary dark:text-white"
+                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <CalendarDays className="h-5 w-5 flex-shrink-0 text-current" />
+                    <span className="whitespace-nowrap truncate">Calendario</span>
+                  </div>
+                </Link>
+              )}
+              {role !== "architect" && (
+                <Link
                   href="/reno/gmail"
                   className={cn(
                     "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
@@ -602,6 +652,22 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   <div className="flex items-center gap-3 min-w-0">
                     <Inbox className="h-5 w-5 flex-shrink-0 text-current" />
                     <span className="whitespace-nowrap truncate">Gmail</span>
+                  </div>
+                </Link>
+              )}
+              {role !== "architect" && (
+                <Link
+                  href="/reno/updates"
+                  className={cn(
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    pathname === "/reno/updates"
+                      ? "bg-primary/20 text-primary dark:text-white"
+                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Sparkles className="h-5 w-5 flex-shrink-0 text-current" />
+                    <span className="whitespace-nowrap truncate">Novedades</span>
                   </div>
                 </Link>
               )}
@@ -668,6 +734,20 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
             )}
             {role !== "architect" && (
               <Link
+                href="/reno/calendar"
+                title="Calendario"
+                className={cn(
+                  "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
+                  pathname === "/reno/calendar"
+                    ? "bg-primary/20 text-primary dark:text-white"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                <CalendarDays className="h-5 w-5 flex-shrink-0 text-current" />
+              </Link>
+            )}
+            {role !== "architect" && (
+              <Link
                 href="/reno/gmail"
                 title="Gmail"
                 className={cn(
@@ -678,6 +758,20 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                 )}
               >
                 <Inbox className="h-5 w-5 flex-shrink-0 text-current" />
+              </Link>
+            )}
+            {role !== "architect" && (
+              <Link
+                href="/reno/updates"
+                title="Novedades"
+                className={cn(
+                  "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
+                  pathname === "/reno/updates"
+                    ? "bg-primary/20 text-primary dark:text-white"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                )}
+              >
+                <Sparkles className="h-5 w-5 flex-shrink-0 text-current" />
               </Link>
             )}
           </nav>
