@@ -65,13 +65,16 @@ export function useGoogleCalendar() {
   }, [checkConnection]);
 
   // Connect Google Calendar
-  const connect = useCallback(() => {
+  const connect = useCallback((origin?: string) => {
     if (!user) {
       toast.error('Debes iniciar sesión para conectar Google Calendar');
       return;
     }
 
-    window.location.href = '/api/google-calendar/connect';
+    const url = origin
+      ? `/api/google-calendar/connect?origin=${encodeURIComponent(origin)}`
+      : '/api/google-calendar/connect';
+    window.location.href = url;
   }, [user]);
 
   // Disconnect Google Calendar

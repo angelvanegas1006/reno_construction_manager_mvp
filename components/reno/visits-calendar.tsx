@@ -838,7 +838,7 @@ export function VisitsCalendar({
                 </>
               ) : (
                 <Button
-                  onClick={connect}
+                  onClick={() => connect()}
                   disabled={!isConfigured}
                   variant="outline"
                   size="sm"

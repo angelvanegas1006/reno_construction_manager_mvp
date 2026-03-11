@@ -162,13 +162,16 @@ export class GoogleCalendarApiClient {
   async createEvent(
     userId: string,
     calendarId: string,
-    eventData: GoogleCalendarEventData,
+    eventData: GoogleCalendarEventData & { conferenceData?: any },
     supabaseClient?: any
   ): Promise<GoogleCalendarApiEvent> {
     const accessToken = await this.getAccessToken(userId, supabaseClient);
 
+    const hasConference = !!eventData.conferenceData;
+    const qs = hasConference ? '?conferenceDataVersion=1' : '';
+
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events${qs}`,
       {
         method: 'POST',
         headers: {
@@ -194,13 +197,16 @@ export class GoogleCalendarApiClient {
     userId: string,
     calendarId: string,
     eventId: string,
-    eventData: Partial<GoogleCalendarEventData>,
+    eventData: Partial<GoogleCalendarEventData> & { conferenceData?: any },
     supabaseClient?: any
   ): Promise<GoogleCalendarApiEvent> {
     const accessToken = await this.getAccessToken(userId, supabaseClient);
 
+    const hasConference = !!eventData.conferenceData;
+    const qs = hasConference ? '?conferenceDataVersion=1' : '';
+
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}${qs}`,
       {
         method: 'PUT',
         headers: {
@@ -257,6 +263,8 @@ export class GoogleCalendarApiClient {
     const accessToken = await this.getAccessToken(userId, supabaseClient);
 
     const queryParams = new URLSearchParams();
+    queryParams.set('singleEvents', 'true');
+    queryParams.set('orderBy', 'startTime');
     if (params?.timeMin) queryParams.set('timeMin', params.timeMin);
     if (params?.timeMax) queryParams.set('timeMax', params.timeMax);
     if (params?.maxResults) queryParams.set('maxResults', params.maxResults.toString());
@@ -277,6 +285,48 @@ export class GoogleCalendarApiClient {
 
     const data = await response.json();
     return data.items || [];
+  }
+
+  /**
+   * Query free/busy information for a list of calendars
+   */
+  async queryFreeBusy(
+    userId: string,
+    timeMin: string,
+    timeMax: string,
+    calendarIds: string[],
+    supabaseClient?: any
+  ): Promise<Record<string, { start: string; end: string }[]>> {
+    const accessToken = await this.getAccessToken(userId, supabaseClient);
+
+    const response = await fetch(
+      'https://www.googleapis.com/calendar/v3/freeBusy',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          timeMin,
+          timeMax,
+          timeZone: 'Europe/Madrid',
+          items: calendarIds.map((id) => ({ id })),
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to query free/busy: ${error}`);
+    }
+
+    const data = await response.json();
+    const result: Record<string, { start: string; end: string }[]> = {};
+    for (const [calId, info] of Object.entries(data.calendars || {})) {
+      result[calId] = ((info as any).busy || []) as { start: string; end: string }[];
+    }
+    return result;
   }
 
   /**

@@ -5,7 +5,11 @@ import { useGoogleCalendar } from "@/hooks/useGoogleCalendar";
 import { Calendar, CalendarCheck, Loader2, RefreshCw, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function GoogleCalendarConnect() {
+interface GoogleCalendarConnectProps {
+  origin?: string;
+}
+
+export function GoogleCalendarConnect({ origin }: GoogleCalendarConnectProps = {}) {
   const { isConnected, isLoading, isSyncing, lastSyncAt, connect, disconnect, sync, canConnect, isConfigured } = useGoogleCalendar();
 
   // Don't show if user can't connect or if Google Calendar is not configured
@@ -80,7 +84,7 @@ export function GoogleCalendarConnect() {
             </div>
           </>
         ) : (
-          <Button onClick={connect} className="w-full">
+          <Button onClick={() => connect(origin)} className="w-full">
             <Calendar className="h-4 w-4 mr-2" />
             Conectar Google Calendar
           </Button>
