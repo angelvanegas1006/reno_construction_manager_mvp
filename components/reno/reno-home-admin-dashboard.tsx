@@ -24,6 +24,9 @@ import {
   Activity,
   TrendingUp,
   FileDown,
+  CheckCircle2,
+  Timer,
+  Hourglass,
 } from "lucide-react";
 
 interface ForemanWorkData {
@@ -90,6 +93,11 @@ export function RenoHomeAdminDashboard({
   const [additionalKPIs, setAdditionalKPIs] = useState<AdditionalKPI[]>([]);
   const [projectTypesMap, setProjectTypesMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [finalCheckKPIs, setFinalCheckKPIs] = useState<{
+    completed: number;
+    pending: number;
+    avgDays: number | null;
+  }>({ completed: 0, pending: 0, avgDays: null });
 
   const isAllowed = role === "admin" || role === "construction_manager";
 
@@ -235,13 +243,43 @@ export function RenoHomeAdminDashboard({
     async function fetchData() {
       setLoading(true);
       try {
-        // 1) Final checks completados de propiedades (property_inspections tipo final + completadas)
-        const { data: inspections } = await supabase
+        // 1) Final checks: all final inspections (completed + pending/in_progress)
+        const { data: allFinalInspections } = await supabase
           .from("property_inspections")
           .select("id, property_id, inspection_type, inspection_status, completed_at, created_at")
           .eq("inspection_type", "final")
-          .eq("inspection_status", "completed")
           .order("completed_at", { ascending: false });
+
+        const inspections = (allFinalInspections || []).filter(
+          (i: any) => i.inspection_status === "completed"
+        );
+        const pendingInspections = (allFinalInspections || []).filter(
+          (i: any) => i.inspection_status !== "completed"
+        );
+
+        const durations = inspections
+          .map((i: any) => {
+            if (!i.created_at || !i.completed_at) return null;
+            const d = Math.round(
+              (new Date(i.completed_at).getTime() - new Date(i.created_at).getTime()) /
+                (1000 * 60 * 60 * 24)
+            );
+            return d >= 0 ? d : null;
+          })
+          .filter((d: number | null): d is number => d !== null);
+
+        const pendingFromPhases =
+          (propertiesByPhase?.["final-check"]?.length || 0) +
+          (propertiesByPhase?.["final-check-post-suministros"]?.length || 0);
+
+        setFinalCheckKPIs({
+          completed: inspections.length,
+          pending: Math.max(pendingFromPhases, pendingInspections.length),
+          avgDays:
+            durations.length > 0
+              ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+              : null,
+        });
 
         const propIds = [...new Set((inspections || []).map((i: any) => i.property_id))];
         let propsMap: Record<string, { name: string | null; address: string | null; foreman: string | null }> = {};
@@ -428,6 +466,39 @@ export function RenoHomeAdminDashboard({
             </BarChart>
           </ResponsiveContainer>
         )}
+      </div>
+
+      {/* Final Check KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-card border rounded-lg p-4 flex items-center gap-3">
+          <div className="text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
+            <CheckCircle2 className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{finalCheckKPIs.completed}</p>
+            <p className="text-xs text-muted-foreground">Final Checks completados</p>
+          </div>
+        </div>
+        <div className="bg-card border rounded-lg p-4 flex items-center gap-3">
+          <div className="text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
+            <Hourglass className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{finalCheckKPIs.pending}</p>
+            <p className="text-xs text-muted-foreground">Final Checks pendientes</p>
+          </div>
+        </div>
+        <div className="bg-card border rounded-lg p-4 flex items-center gap-3">
+          <div className="text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2">
+            <Timer className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold">
+              {finalCheckKPIs.avgDays !== null ? `${finalCheckKPIs.avgDays}d` : "—"}
+            </p>
+            <p className="text-xs text-muted-foreground">Media días para completar</p>
+          </div>
+        </div>
       </div>
 
       {/* Final Checks completados — property_inspections */}
