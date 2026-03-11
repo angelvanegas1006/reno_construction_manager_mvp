@@ -1494,6 +1494,7 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "arch-ecu-first-validation": "ECU Primera Validación",
     "arch-ecu-final-validation": "ECU Validación Final",
     "arch-obra-empezar": "Obra por Empezar",
+    "arch-obra-en-progreso": "Obra en Progreso",
     "arch-completed": "Finalizados",
   };
   
