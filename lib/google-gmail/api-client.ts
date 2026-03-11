@@ -228,6 +228,52 @@ export class GmailApiClient {
     return res.json();
   }
 
+  async modifyMessage(
+    userId: string,
+    messageId: string,
+    opts: { addLabelIds?: string[]; removeLabelIds?: string[] },
+    supabaseClient?: any
+  ): Promise<GmailMessageRaw> {
+    const accessToken = await this.getAccessToken(userId, supabaseClient);
+
+    const res = await fetch(`${GMAIL_API}/messages/${messageId}/modify`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        addLabelIds: opts.addLabelIds || [],
+        removeLabelIds: opts.removeLabelIds || [],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Gmail modifyMessage failed: ${err}`);
+    }
+
+    return res.json();
+  }
+
+  async trashMessage(
+    userId: string,
+    messageId: string,
+    supabaseClient?: any
+  ): Promise<void> {
+    const accessToken = await this.getAccessToken(userId, supabaseClient);
+
+    const res = await fetch(`${GMAIL_API}/messages/${messageId}/trash`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Gmail trashMessage failed: ${err}`);
+    }
+  }
+
   async listLabels(
     userId: string,
     supabaseClient?: any

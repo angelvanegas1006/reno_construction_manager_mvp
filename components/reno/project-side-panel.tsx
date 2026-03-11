@@ -4,16 +4,18 @@ import { useMemo } from "react";
 import Link from "next/link";
 import {
   MapPin, Calendar, User, Wrench, ExternalLink, FileText,
-  FolderOpen, Key, Building2, Home, Users, Euro, Landmark,
+  FolderOpen, Key, Building2, Home, Euro, Landmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import {
   PROJECT_KANBAN_PHASE_LABELS,
   MATURATION_PHASE_LABELS,
   ARCHITECT_PHASE_LABELS,
+  type RenoKanbanPhase,
 } from "@/lib/reno-kanban-config";
 
 interface ProjectSidePanelProps {
@@ -45,9 +47,43 @@ function isUrl(s: unknown): boolean {
   return s.startsWith("http://") || s.startsWith("https://");
 }
 
+function hasValue(v: unknown): boolean {
+  if (v == null) return false;
+  if (typeof v === "string" && v.trim() === "") return false;
+  return true;
+}
+
+function resolveArchitectPhase(p: ProjectRow): RenoKanbanPhase {
+  const pa = p as any;
+  const statusRaw = (pa.project_status ?? p.reno_phase ?? "") as string;
+  const status = statusRaw.trim().toLowerCase();
+
+  const ADVANCED: Record<string, RenoKanbanPhase> = {
+    "technical project in progress": "arch-technical-project",
+    "ecuv first validation": "arch-ecu-first-validation",
+    "ecu first validation": "arch-ecu-first-validation",
+    "technical project fine-tuning": "arch-technical-adjustments",
+    "technical project fine tuning": "arch-technical-adjustments",
+    "ecuv final validation": "arch-ecu-final-validation",
+    "ecu final validation": "arch-ecu-final-validation",
+    "reno to start": "arch-obra-empezar",
+    "pending to start reno": "arch-obra-empezar",
+    "pending to budget from renovator": "arch-obra-empezar",
+    "pending to budget (from renovator)": "arch-obra-empezar",
+    "reno in progress": "arch-obra-en-progreso",
+  };
+
+  if (ADVANCED[status]) return ADVANCED[status];
+
+  if (!hasValue(pa.measurement_date)) return "arch-pending-measurement";
+  if (!hasValue(pa.project_architect_date)) return "arch-preliminary-project";
+  return "arch-pending-validation";
+}
+
 export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanban" }: ProjectSidePanelProps) {
   const p = project;
-  const phase = p.reno_phase || "";
+  const isArchitect = fromParam === "architect-kanban";
+  const phase = isArchitect ? resolveArchitectPhase(p) : (p.reno_phase || "");
   const phaseLabel = ALL_PHASE_LABELS[phase] || p.project_status || phase;
 
   const detailUrl = useMemo(() => {
@@ -90,11 +126,24 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
   }, [typeRaw, typeLower]);
 
   const investBadge = useMemo(() => {
+    if (isArchitect) return null;
     if (investType.includes("flip")) return { cls: "border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30", label: "Flip" };
     if (investType.includes("yield")) return { cls: "border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30", label: "Yield" };
     if (p.investment_type) return { cls: "border-border text-muted-foreground", label: p.investment_type };
     return null;
-  }, [investType, p.investment_type]);
+  }, [investType, p.investment_type, isArchitect]);
+
+  const infoItems = useMemo(() => {
+    const items: { icon: typeof MapPin; label: string; value: string }[] = [];
+    if (area) items.push({ icon: MapPin, label: "Zona", value: area });
+    if (architect) items.push({ icon: Building2, label: "Arquitecto", value: architect });
+    if (!isArchitect && scouter) items.push({ icon: User, label: "Scouter", value: scouter });
+    if (renovator) items.push({ icon: Wrench, label: "Renovador", value: renovator });
+    if (renovationExecutor) items.push({ icon: Wrench, label: "Ejecutor", value: renovationExecutor });
+    if (ecuContact) items.push({ icon: Landmark, label: "Contacto ECU", value: ecuContact });
+    if (!isArchitect && keysLocation) items.push({ icon: Key, label: "Llaves", value: keysLocation });
+    return items;
+  }, [area, architect, scouter, renovator, renovationExecutor, ecuContact, keysLocation, isArchitect]);
 
   const datesData = useMemo(() => {
     const items: { label: string; value: string }[] = [];
@@ -116,13 +165,161 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
     return items;
   }, [p]);
 
+  type PhaseTimelineItem = {
+    phaseLabel: string;
+    dateValue: string | null;
+    limitDate: string | null;
+    limitDays: number;
+    daysTaken: number | null;
+    status: "completed-on-time" | "completed-late" | "in-progress" | "in-progress-late" | "pending";
+    isCurrent: boolean;
+  };
+
+  const ARCHITECT_PHASES_ORDER = [
+    { key: "arch-pending-measurement", label: "Medición", dateField: "measurement_date", baseDateField: "draft_order_date", limitDays: 7 },
+    { key: "arch-preliminary-project", label: "Anteproyecto", dateField: "project_draft_date", baseDateField: "measurement_date", limitDays: 14 },
+    { key: "arch-pending-validation", label: "Validación PropHero", dateField: "draft_validation_date", baseDateField: "project_draft_date", limitDays: 0 },
+    { key: "arch-technical-project", label: "Proyecto Técnico", dateField: "project_architect_date", baseDateField: "draft_validation_date", limitDays: 28 },
+    { key: "arch-ecu-first-validation", label: "ECU 1ª Validación", dateField: "ecu_first_start_date", baseDateField: "project_architect_date", limitDays: 28 },
+    { key: "arch-technical-adjustments", label: "Ajustes Técnicos", dateField: "ecu_first_end_date", baseDateField: "ecu_first_end_date", limitDays: 7 },
+    { key: "arch-ecu-final-validation", label: "ECU Validación Final", dateField: "definitive_validation_date", baseDateField: "ecu_first_end_date", limitDays: 0 },
+  ];
+
+  const MATURATION_MILESTONES = [
+    { label: "Medición", dateField: "measurement_date", baseDateField: "draft_order_date", limitDays: 7 },
+    { label: "Anteproyecto", dateField: "project_draft_date", baseDateField: "measurement_date", limitDays: 14 },
+    { label: "Proyecto Técnico", dateField: "project_architect_date", baseDateField: "draft_validation_date", limitDays: 28 },
+    { label: "ECU 1ª Validación", dateField: "ecu_first_start_date", baseDateField: "project_architect_date", limitDays: 28 },
+    { label: "Ajustes Técnicos", dateField: "ecu_first_end_date", baseDateField: "ecu_first_end_date", limitDays: 7 },
+    { label: "ECU Validación Final", dateField: "definitive_validation_date", baseDateField: "ecu_first_end_date", limitDays: 0 },
+  ];
+
+  function buildTimeline(phasesOrder: typeof ARCHITECT_PHASES_ORDER, currentPhaseKey: string): PhaseTimelineItem[] {
+    const currentIdx = phasesOrder.findIndex((ph) => ph.key === currentPhaseKey);
+
+    return phasesOrder.map((ph, idx) => {
+      const dateVal = (p as any)[ph.dateField] || null;
+      const baseVal = (p as any)[ph.baseDateField] || null;
+      let limitDate: string | null = null;
+      if (baseVal && ph.limitDays > 0) {
+        const base = new Date(baseVal);
+        if (!isNaN(base.getTime())) {
+          limitDate = new Date(base.getTime() + ph.limitDays * 24 * 60 * 60 * 1000).toISOString();
+        }
+      }
+
+      let daysTaken: number | null = null;
+      if (baseVal && dateVal) {
+        const diff = new Date(dateVal).getTime() - new Date(baseVal).getTime();
+        daysTaken = Math.round(diff / (24 * 60 * 60 * 1000));
+      } else if (baseVal && !dateVal) {
+        const diff = Date.now() - new Date(baseVal).getTime();
+        daysTaken = Math.round(diff / (24 * 60 * 60 * 1000));
+      }
+
+      const isCurrent = idx === currentIdx;
+      const isPast = currentIdx >= 0 ? idx < currentIdx : false;
+
+      let status: PhaseTimelineItem["status"] = "pending";
+      if (isPast) {
+        if (dateVal && limitDate && new Date(dateVal).getTime() > new Date(limitDate).getTime()) {
+          status = "completed-late";
+        } else {
+          status = "completed-on-time";
+        }
+      } else if (isCurrent) {
+        if (dateVal) {
+          if (limitDate && new Date(dateVal).getTime() > new Date(limitDate).getTime()) {
+            status = "completed-late";
+          } else {
+            status = "completed-on-time";
+          }
+        } else if (limitDate && Date.now() > new Date(limitDate).getTime()) {
+          status = "in-progress-late";
+        } else {
+          status = "in-progress";
+        }
+      }
+
+      return {
+        phaseLabel: ph.label,
+        dateValue: dateVal,
+        limitDate,
+        limitDays: ph.limitDays,
+        daysTaken,
+        status,
+        isCurrent,
+      };
+    });
+  }
+
+  const architectTimeline = useMemo((): PhaseTimelineItem[] => {
+    if (!isArchitect) return [];
+    return buildTimeline(ARCHITECT_PHASES_ORDER, resolveArchitectPhase(p));
+  }, [isArchitect, p, phase]);
+
+  const isMaturation = fromParam === "maturation-kanban";
+
+  const maturationTimeline = useMemo((): PhaseTimelineItem[] => {
+    if (!isMaturation) return [];
+
+    return MATURATION_MILESTONES.map((ms, idx) => {
+      const dateVal = (p as any)[ms.dateField] || null;
+      const baseVal = (p as any)[ms.baseDateField] || null;
+      let limitDate: string | null = null;
+      if (baseVal && ms.limitDays > 0) {
+        const base = new Date(baseVal);
+        if (!isNaN(base.getTime())) {
+          limitDate = new Date(base.getTime() + ms.limitDays * 24 * 60 * 60 * 1000).toISOString();
+        }
+      }
+
+      let daysTaken: number | null = null;
+      if (baseVal && dateVal) {
+        const diff = new Date(dateVal).getTime() - new Date(baseVal).getTime();
+        daysTaken = Math.round(diff / (24 * 60 * 60 * 1000));
+      } else if (baseVal && !dateVal) {
+        const diff = Date.now() - new Date(baseVal).getTime();
+        daysTaken = Math.round(diff / (24 * 60 * 60 * 1000));
+      }
+
+      const hasDate = !!dateVal;
+      const isCurrent = !hasDate && (idx === 0 || !!(p as any)[MATURATION_MILESTONES[idx - 1]?.dateField]);
+
+      let status: PhaseTimelineItem["status"] = "pending";
+      if (hasDate) {
+        if (limitDate && new Date(dateVal).getTime() > new Date(limitDate).getTime()) {
+          status = "completed-late";
+        } else {
+          status = "completed-on-time";
+        }
+      } else if (isCurrent) {
+        if (limitDate && Date.now() > new Date(limitDate).getTime()) {
+          status = "in-progress-late";
+        } else if (baseVal) {
+          status = "in-progress";
+        }
+      }
+
+      return {
+        phaseLabel: ms.label,
+        dateValue: dateVal,
+        limitDate,
+        limitDays: ms.limitDays,
+        daysTaken,
+        status,
+        isCurrent,
+      };
+    });
+  }, [isMaturation, p]);
+
   const docs = useMemo(() => {
     const items: { label: string; url: string }[] = [];
     if (isUrl(p.draft_plan)) items.push({ label: "Planos anteproyecto", url: String(p.draft_plan) });
     if (isUrl(p.technical_project_doc)) items.push({ label: "Proyecto técnico", url: String(p.technical_project_doc) });
     if (isUrl(p.final_plan)) items.push({ label: "Planos finales", url: String(p.final_plan) });
     if (isUrl(p.license_attachment)) items.push({ label: "Licencia", url: String(p.license_attachment) });
-    if (isUrl(p.drive_folder)) items.push({ label: "Carpeta Drive", url: String(p.drive_folder) });
+    // Drive folder is now shown in the header
     if (p.architect_attachments) {
       const atts = Array.isArray(p.architect_attachments) ? p.architect_attachments : [];
       atts.forEach((att: any, i: number) => {
@@ -131,7 +328,7 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
       });
     }
     return items;
-  }, [p]);
+  }, [p, isArchitect]);
 
   const notes = useMemo(() => {
     const items: { label: string; text: string }[] = [];
@@ -144,162 +341,228 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
-      <div className="pb-4 mb-4 border-b border-border">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-muted-foreground mb-0.5">
+      <div className="pb-3 mb-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-medium text-muted-foreground tracking-wide mb-0.5">
               {p.project_unique_id || p.id?.slice(0, 8)}
             </p>
-            <h2 className="text-lg font-semibold text-foreground leading-tight break-words">
+            <h2 className="text-base font-semibold text-foreground leading-tight break-words">
               {p.name || "Sin nombre"}
             </h2>
-            {p.project_address && (
-              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
-                {p.project_address}
-              </p>
+          </div>
+          <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
+            <div className="rounded-lg border border-border/60 bg-card px-3 py-2 flex items-center gap-2">
+              <Home className="h-4 w-4 text-muted-foreground" />
+              <div className="text-right">
+                <p className="text-[10px] text-muted-foreground leading-tight">Nº de Propiedades</p>
+                <p className="text-base font-bold leading-tight">{propertiesCount}</p>
+              </div>
+            </div>
+            {!isArchitect && isUrl(p.drive_folder) && (
+              <a href={String(p.drive_folder)} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-border/60 bg-card px-3 py-2 flex items-center gap-2 hover:bg-accent/60 transition-colors">
+                <FolderOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Carpeta Drive</span>
+                <ExternalLink className="h-3 w-3 text-blue-500/60 ml-auto" />
+              </a>
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 mt-2">
-          <Badge variant="secondary" className="text-xs">{phaseLabel}</Badge>
+        {p.project_address && (
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+            <MapPin className="h-3 w-3 flex-shrink-0" />
+            {p.project_address}
+          </p>
+        )}
+        {area && (
+          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+            <Building2 className="h-3 w-3 flex-shrink-0" />
+            {area}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+          <Badge variant="secondary" className="text-[11px] h-5">{phaseLabel}</Badge>
           {typeBadge && (
-            <span className={cn("inline-flex items-center rounded-full text-xs font-medium px-2 py-0.5", typeBadge.cls)}>
+            <span className={cn("inline-flex items-center rounded-full text-[11px] font-medium px-2 py-0.5 h-5", typeBadge.cls)}>
               {typeBadge.label}
             </span>
           )}
           {investBadge && (
-            <Badge variant="outline" className={cn("text-xs", investBadge.cls)}>
+            <Badge variant="outline" className={cn("text-[11px] h-5", investBadge.cls)}>
               {investBadge.label}
             </Badge>
           )}
           {p.excluded_from_ecu === true ? (
-            <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">Ayto</Badge>
+            <Badge variant="outline" className="text-[11px] h-5 border-amber-500 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">Ayto</Badge>
           ) : p.excluded_from_ecu === false ? (
-            <Badge variant="outline" className="text-xs border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">ECU</Badge>
+            <Badge variant="outline" className="text-[11px] h-5 border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">ECU</Badge>
           ) : null}
         </div>
         <Link href={detailUrl}>
-          <Button variant="outline" size="sm" className="mt-3 w-full text-xs gap-1.5">
-            <ExternalLink className="h-3.5 w-3.5" />
+          <Button variant="outline" size="sm" className="mt-2.5 w-full text-xs gap-1.5 h-8">
+            <ExternalLink className="h-3 w-3" />
             Ver detalle completo
           </Button>
         </Link>
       </div>
 
-      {/* Info básica */}
-      <div className="mb-4">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Información</h3>
-        <div className="space-y-2">
-          {area && (
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">Zona:</span>
-              <span className="font-medium">{area}</span>
-            </div>
-          )}
-          {architect && (
-            <div className="flex items-center gap-2 text-sm">
-              <Building2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">Arquitecto:</span>
-              <span className="font-medium">{architect}</span>
-            </div>
-          )}
-          {scouter && (
-            <div className="flex items-center gap-2 text-sm">
-              <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">Scouter:</span>
-              <span className="font-medium">{scouter}</span>
-            </div>
-          )}
-          {renovator && (
-            <div className="flex items-center gap-2 text-sm">
-              <Wrench className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">Renovador:</span>
-              <span className="font-medium">{renovator}</span>
-            </div>
-          )}
-          {renovationExecutor && (
-            <div className="flex items-center gap-2 text-sm">
-              <Wrench className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">Ejecutor:</span>
-              <span className="font-medium">{renovationExecutor}</span>
-            </div>
-          )}
-          {ecuContact && (
-            <div className="flex items-center gap-2 text-sm">
-              <Landmark className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">Contacto ECU:</span>
-              <span className="font-medium">{ecuContact}</span>
-            </div>
-          )}
-          {keysLocation && (
-            <div className="flex items-center gap-2 text-sm">
-              <Key className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="text-muted-foreground">Llaves:</span>
-              <span className="font-medium">{keysLocation}</span>
-            </div>
-          )}
-        </div>
-      </div>
+      <Separator className="mb-3" />
 
-      {/* Propiedades */}
-      <div className="mb-4">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Propiedades</h3>
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg border border-border bg-muted/20 p-2.5 flex items-center gap-2">
-            <Home className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-[11px] text-muted-foreground">Nº propiedades</p>
-              <p className="text-sm font-semibold">{propertiesCount}</p>
+      {/* Info + Propiedades — Grid layout */}
+      <div className="grid grid-cols-1 gap-3 mb-3">
+        {/* Info section */}
+        {infoItems.length > 0 && (
+          <div className="rounded-lg border border-border/60 bg-card p-3">
+            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Información</h3>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+              {infoItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.label} className="flex items-center gap-1.5 text-xs min-w-0">
+                    <Icon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <span className="text-muted-foreground flex-shrink-0">{item.label}:</span>
+                    <span className="font-medium truncate">{item.value}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          {p.renovation_spend != null && (
-            <div className="rounded-lg border border-border bg-muted/20 p-2.5 flex items-center gap-2">
-              <Euro className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-[11px] text-muted-foreground">Gasto reno.</p>
-                <p className="text-sm font-semibold">{p.renovation_spend.toLocaleString("es-ES")} €</p>
+        )}
+
+        {/* Stats row */}
+        {((!isArchitect && p.renovation_spend != null) || p.reno_duration != null) && (
+          <div className="grid grid-cols-2 gap-2">
+            {!isArchitect && p.renovation_spend != null && (
+              <div className="rounded-lg border border-border/60 bg-card p-2.5 flex items-center gap-2">
+                <Euro className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground leading-tight">Gasto reno.</p>
+                  <p className="text-sm font-semibold">{p.renovation_spend.toLocaleString("es-ES")} €</p>
+                </div>
               </div>
-            </div>
-          )}
-          {p.reno_duration != null && (
-            <div className="rounded-lg border border-border bg-muted/20 p-2.5 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-[11px] text-muted-foreground">Duración</p>
-                <p className="text-sm font-semibold">{p.reno_duration} días</p>
+            )}
+            {p.reno_duration != null && (
+              <div className="rounded-lg border border-border/60 bg-card p-2.5 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground leading-tight">Duración</p>
+                  <p className="text-sm font-semibold">{p.reno_duration} días</p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Fechas clave */}
+      {/* Fechas clave (para todos los roles) */}
       {datesData.length > 0 && (
-        <div className="mb-4">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Fechas clave</h3>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+        <div className="rounded-lg border border-border/60 bg-card p-3 mb-3">
+          <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Fechas clave</h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
             {datesData.map((d) => (
-              <div key={d.label} className="flex items-center gap-1.5 text-sm">
-                <Calendar className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                <span className="text-muted-foreground text-xs">{d.label}:</span>
-                <span className="font-medium text-xs">{d.value}</span>
+              <div key={d.label} className="flex items-center justify-between text-xs py-0.5">
+                <span className="text-muted-foreground">{d.label}</span>
+                <span className="font-medium tabular-nums">{d.value}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
+      {/* Tiempos por fase — tabla compartida para architect y maturation */}
+      {(() => {
+        const timeline = isArchitect ? architectTimeline : isMaturation ? maturationTimeline : [];
+        if (timeline.length === 0) return null;
+        return (
+          <div className="rounded-lg border border-border/60 bg-card p-3 mb-3">
+            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Tiempos por fase</h3>
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="border-b border-border/60">
+                  <th className="text-left font-semibold text-muted-foreground pb-1.5 pr-2">Fase</th>
+                  <th className="text-center font-semibold text-muted-foreground pb-1.5 px-1">Plazo</th>
+                  <th className="text-center font-semibold text-muted-foreground pb-1.5 px-1">Real</th>
+                  <th className="text-center font-semibold text-muted-foreground pb-1.5 px-1">Límite</th>
+                  <th className="text-center font-semibold text-muted-foreground pb-1.5 pl-1">Días</th>
+                </tr>
+              </thead>
+              <tbody>
+                {timeline.map((item, idx) => {
+                  const isLate = item.status === "completed-late" || item.status === "in-progress-late";
+                  const rowBg = item.isCurrent ? "bg-blue-50/60 dark:bg-blue-950/20" : "";
+                  const dotColor =
+                    item.status === "completed-on-time" ? "bg-green-500" :
+                    item.status === "completed-late" ? "bg-red-500" :
+                    item.status === "in-progress-late" ? "bg-amber-500" :
+                    item.status === "in-progress" ? "bg-blue-500" :
+                    "bg-muted-foreground/30";
+
+                  return (
+                    <tr key={idx} className={cn("border-b border-border/30 last:border-0", rowBg)}>
+                      <td className="py-1.5 pr-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className={cn("w-2 h-2 rounded-full flex-shrink-0", dotColor)} />
+                          <span className={cn(
+                            "font-medium truncate",
+                            item.isCurrent && "text-foreground font-semibold",
+                            item.status === "pending" && "text-muted-foreground",
+                          )}>
+                            {item.phaseLabel}
+                          </span>
+                          {item.isCurrent && (
+                            <span className="text-[8px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1 py-px rounded-full font-medium leading-none flex-shrink-0">Actual</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-1.5 px-1 text-center tabular-nums text-muted-foreground">
+                        {item.limitDays > 0 ? `${item.limitDays}d` : "—"}
+                      </td>
+                      <td className="py-1.5 px-1 text-center tabular-nums">
+                        {item.dateValue ? (
+                          <span className={cn(isLate ? "text-destructive font-medium" : "text-foreground")}>
+                            {formatDate(item.dateValue)}
+                          </span>
+                        ) : item.status === "in-progress" || item.status === "in-progress-late" ? (
+                          <span className={cn("italic text-[10px]", isLate ? "text-destructive" : "text-muted-foreground")}>En curso</span>
+                        ) : item.status === "pending" ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <span className="text-green-600 dark:text-green-400">✓</span>
+                        )}
+                      </td>
+                      <td className="py-1.5 px-1 text-center tabular-nums text-muted-foreground">
+                        {item.limitDays > 0 && item.limitDate ? formatDate(item.limitDate) : "—"}
+                      </td>
+                      <td className="py-1.5 pl-1 text-center tabular-nums">
+                        {item.daysTaken != null && item.limitDays > 0 ? (
+                          <span className={cn(
+                            "font-medium",
+                            isLate ? "text-destructive" : "text-green-600 dark:text-green-400",
+                          )}>
+                            {item.daysTaken}d
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
+
       {/* Documentos */}
       {docs.length > 0 && (
-        <div className="mb-4">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Documentos</h3>
-          <div className="space-y-1.5">
+        <div className="rounded-lg border border-border/60 bg-card p-3 mb-3">
+          <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Documentos</h3>
+          <div className="grid grid-cols-2 gap-1.5">
             {docs.map((d) => (
-              <a key={d.url} href={d.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                {d.label.toLowerCase().includes("drive") ? <FolderOpen className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
-                {d.label}
+              <a key={d.url} href={d.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline truncate">
+                {d.label.toLowerCase().includes("drive") ? <FolderOpen className="h-3 w-3 flex-shrink-0" /> : <FileText className="h-3 w-3 flex-shrink-0" />}
+                <span className="truncate">{d.label}</span>
               </a>
             ))}
           </div>
@@ -308,26 +571,19 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
 
       {/* Notas */}
       {notes.length > 0 && (
-        <div className="mb-4">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notas</h3>
+        <div className="rounded-lg border border-border/60 bg-card p-3 mb-3">
+          <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notas</h3>
           <div className="space-y-2">
             {notes.map((n) => (
               <div key={n.label}>
-                <p className="text-[11px] font-medium text-muted-foreground mb-0.5">{n.label}</p>
-                <p className="text-sm text-foreground bg-muted/30 rounded-lg p-3 whitespace-pre-wrap">{n.text}</p>
+                <p className="text-[10px] font-medium text-muted-foreground mb-0.5">{n.label}</p>
+                <p className="text-xs text-foreground bg-muted/30 rounded-md p-3 whitespace-pre-wrap leading-relaxed max-h-80 overflow-y-auto">{n.text}</p>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Estado */}
-      {p.project_status && (
-        <div className="mb-4">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Estado</h3>
-          <Badge variant="outline" className="text-xs">{p.project_status}</Badge>
-        </div>
-      )}
     </div>
   );
 }

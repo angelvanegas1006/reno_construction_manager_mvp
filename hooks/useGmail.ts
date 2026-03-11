@@ -53,6 +53,8 @@ export function useGmail() {
     error: null,
   });
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   const checkStatus = useCallback(async () => {
     if (!user) {
       setState((prev) => ({ ...prev, isLoading: false, isConnected: false }));
@@ -137,6 +139,7 @@ export function useGmail() {
           total: data.total,
           isFetching: false,
         }));
+        if (!opts?.pageToken) setSelectedIds(new Set());
       } catch (err: any) {
         setState((prev) => ({ ...prev, isFetching: false, error: err.message }));
         toast.error("Error al cargar correos: " + err.message);
@@ -186,13 +189,116 @@ export function useGmail() {
     [user]
   );
 
+  const markAsRead = useCallback(
+    async (messageIds: string[]) => {
+      if (!user || messageIds.length === 0) return;
+      try {
+        await Promise.all(
+          messageIds.map((id) =>
+            fetch("/api/gmail/modify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ messageId: id, removeLabelIds: ["UNREAD"] }),
+            })
+          )
+        );
+        setState((prev) => ({
+          ...prev,
+          messages: prev.messages.map((m) =>
+            messageIds.includes(m.id) ? { ...m, isUnread: false, labelIds: m.labelIds.filter((l) => l !== "UNREAD") } : m
+          ),
+        }));
+      } catch (err: any) {
+        toast.error("Error al marcar como leído");
+      }
+    },
+    [user]
+  );
+
+  const markAsUnread = useCallback(
+    async (messageIds: string[]) => {
+      if (!user || messageIds.length === 0) return;
+      try {
+        await Promise.all(
+          messageIds.map((id) =>
+            fetch("/api/gmail/modify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ messageId: id, addLabelIds: ["UNREAD"] }),
+            })
+          )
+        );
+        setState((prev) => ({
+          ...prev,
+          messages: prev.messages.map((m) =>
+            messageIds.includes(m.id) ? { ...m, isUnread: true, labelIds: [...m.labelIds, "UNREAD"] } : m
+          ),
+        }));
+      } catch (err: any) {
+        toast.error("Error al marcar como no leído");
+      }
+    },
+    [user]
+  );
+
+  const trashMessages = useCallback(
+    async (messageIds: string[]) => {
+      if (!user || messageIds.length === 0) return;
+      try {
+        const res = await fetch("/api/gmail/trash", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messageIds }),
+        });
+        if (!res.ok) throw new Error("Failed to trash messages");
+        setState((prev) => ({
+          ...prev,
+          messages: prev.messages.filter((m) => !messageIds.includes(m.id)),
+        }));
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          messageIds.forEach((id) => next.delete(id));
+          return next;
+        });
+        toast.success(messageIds.length === 1 ? "Correo eliminado" : `${messageIds.length} correos eliminados`);
+      } catch (err: any) {
+        toast.error("Error al eliminar correos");
+      }
+    },
+    [user]
+  );
+
+  const toggleSelect = useCallback((messageId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(messageId)) next.delete(messageId);
+      else next.add(messageId);
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    setSelectedIds(new Set(state.messages.map((m) => m.id)));
+  }, [state.messages]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
   return {
     ...state,
+    selectedIds,
     connect,
     disconnect,
     fetchMessages,
     fetchMessageDetail,
     sendMessage,
+    markAsRead,
+    markAsUnread,
+    trashMessages,
+    toggleSelect,
+    selectAll,
+    clearSelection,
     refresh: checkStatus,
     canConnect: !!user,
   };

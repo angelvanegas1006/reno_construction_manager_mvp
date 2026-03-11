@@ -152,9 +152,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [selectedProjectRow, setSelectedProjectRow] = useState<ProjectRow | null>(null);
 
-  type ProjectSortCol = "name" | "projectId" | "type" | "investmentType" | "area" | "renovator" | "status" | "propertiesCount" | "projectStartDate" | "settlementDate" | "scouter" | "architect" | "excludedEcu";
+  type ProjectSortCol = "name" | "projectId" | "type" | "investmentType" | "area" | "renovator" | "status" | "propertiesCount" | "projectStartDate" | "settlementDate" | "scouter" | "architect" | "excludedEcu" | "measurementDate" | "measurementLimit" | "preliminaryDate" | "preliminaryLimit" | "ecuUploadDate" | "ecuEstEndDate" | "adjustmentStartDate" | "adjustmentLimit";
   const [projectSortCol, setProjectSortCol] = useState<ProjectSortCol | null>(null);
   const [projectSortDir, setProjectSortDir] = useState<"asc" | "desc" | null>(null);
+  const isArchitectView = fromParam === "architect-kanban";
 
   const visibleColumns = visibleColumnsOverride ?? visibleRenoKanbanColumns;
   
@@ -170,21 +171,24 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   const [columnSelectorOpen, setColumnSelectorOpen] = useState<{ phase: RenoKanbanPhase | null }>({ phase: null });
 
   // Project column visibility
-  const PROJECT_COL_CONFIG: { key: ProjectSortCol; label: string; defaultVisible: boolean; category?: "shown" | "popular" | "hidden" }[] = useMemo(() => [
-    { key: "projectId", label: "ID", defaultVisible: true },
-    { key: "name", label: "Nombre", defaultVisible: true },
-    { key: "propertiesCount", label: "Propiedades", defaultVisible: true },
-    { key: "scouter", label: "Scouter", defaultVisible: true },
-    { key: "architect", label: "Arquitecto", defaultVisible: true },
-    { key: "excludedEcu", label: "ECU", defaultVisible: true },
-    { key: "type", label: "Tipo", defaultVisible: true },
-    { key: "investmentType", label: "Inversión", defaultVisible: true },
-    { key: "area", label: "Zona", defaultVisible: true },
-    { key: "renovator", label: "Renovador", defaultVisible: false, category: "popular" },
-    { key: "projectStartDate", label: "Inicio Proyecto", defaultVisible: false, category: "popular" },
-    { key: "settlementDate", label: "Fecha Liquidación", defaultVisible: false, category: "popular" },
-    { key: "status", label: "Estado", defaultVisible: false },
-  ], []);
+  const PROJECT_COL_CONFIG: { key: ProjectSortCol; label: string; defaultVisible: boolean; category?: "shown" | "popular" | "hidden" }[] = useMemo(() => {
+    const base: { key: ProjectSortCol; label: string; defaultVisible: boolean; category?: "shown" | "popular" | "hidden" }[] = [
+      { key: "projectId", label: "ID", defaultVisible: true },
+      { key: "name", label: "Nombre", defaultVisible: true },
+      { key: "propertiesCount", label: "Propiedades", defaultVisible: true },
+      ...(!isArchitectView ? [{ key: "scouter" as ProjectSortCol, label: "Scouter", defaultVisible: true }] : []),
+      { key: "architect", label: "Arquitecto", defaultVisible: true },
+      { key: "excludedEcu", label: "ECU", defaultVisible: true },
+      { key: "type", label: "Tipo", defaultVisible: true },
+      ...(!isArchitectView ? [{ key: "investmentType" as ProjectSortCol, label: "Inversión", defaultVisible: true }] : []),
+      { key: "area", label: "Zona", defaultVisible: true },
+      { key: "renovator", label: "Renovador", defaultVisible: false, category: "popular" as const },
+      { key: "projectStartDate", label: "Inicio Proyecto", defaultVisible: false, category: "popular" as const },
+      { key: "settlementDate", label: "Fecha Liquidación", defaultVisible: false, category: "popular" as const },
+      { key: "status", label: "Estado", defaultVisible: false },
+    ];
+    return base;
+  }, [isArchitectView]);
 
   const getDefaultProjectCols = useCallback((): Set<ProjectSortCol> => {
     return new Set(PROJECT_COL_CONFIG.filter(c => c.defaultVisible).map(c => c.key));
@@ -2228,6 +2232,50 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       return <ChevronDown className="h-3 w-3 text-[var(--prophero-blue-500)]" />;
     };
 
+    const ARCHITECT_PHASE_DATE_COLS: Record<string, { cols: { key: ProjectSortCol; label: string; field: string; isLimit?: boolean; baseDateField?: string; limitDays?: number }[] }> = {
+      "arch-pending-measurement": {
+        cols: [
+          { key: "measurementDate", label: "F. Medición", field: "measurement_date" },
+          { key: "measurementLimit", label: "F. Límite Medición", field: "draft_order_date", isLimit: true, baseDateField: "draft_order_date", limitDays: 7 },
+        ],
+      },
+      "arch-preliminary-project": {
+        cols: [
+          { key: "preliminaryDate", label: "F. Anteproyecto", field: "project_draft_date" },
+          { key: "preliminaryLimit", label: "F. Límite Anteproyecto", field: "measurement_date", isLimit: true, baseDateField: "measurement_date", limitDays: 14 },
+        ],
+      },
+      "arch-ecu-first-validation": {
+        cols: [
+          { key: "ecuUploadDate", label: "F. Subida ECU", field: "ecu_first_start_date" },
+          { key: "ecuEstEndDate", label: "F. Est. Fin ECU", field: "draft_validation_date", isLimit: true, baseDateField: "draft_validation_date", limitDays: 28 },
+        ],
+      },
+      "arch-technical-adjustments": {
+        cols: [
+          { key: "adjustmentStartDate", label: "F. Inicio Ajustes", field: "ecu_first_end_date" },
+          { key: "adjustmentLimit", label: "F. Límite Ajustes", field: "ecu_first_end_date", isLimit: true, baseDateField: "ecu_first_end_date", limitDays: 7 },
+        ],
+      },
+    };
+
+    const getArchitectDateValue = (proj: ProjectRow, col: typeof ARCHITECT_PHASE_DATE_COLS[string]["cols"][number]): string | null => {
+      if (col.isLimit && col.baseDateField && col.limitDays) {
+        const baseVal = (proj as any)[col.baseDateField];
+        if (!baseVal) return null;
+        const base = new Date(baseVal);
+        if (isNaN(base.getTime())) return null;
+        const limit = new Date(base.getTime() + col.limitDays * 24 * 60 * 60 * 1000);
+        return limit.toISOString();
+      }
+      return (proj as any)[col.field] || null;
+    };
+
+    const isDatePastLimit = (dateStr: string | null): boolean => {
+      if (!dateStr) return false;
+      return new Date(dateStr).getTime() < Date.now();
+    };
+
     const sortProjectRows = (rows: ProjectRow[]) => {
       if (!projectSortCol || !projectSortDir) return rows;
       return [...rows].sort((a, b) => {
@@ -2259,6 +2307,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
             const sa = (a as any).settlement_date; const sb = (b as any).settlement_date;
             aVal = sa ? new Date(sa).getTime() : 0; bVal = sb ? new Date(sb).getTime() : 0; break;
           }
+          case "measurementDate": { const da = (a as any).measurement_date; const db = (b as any).measurement_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "preliminaryDate": { const da = (a as any).project_draft_date; const db = (b as any).project_draft_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "ecuUploadDate": { const da = (a as any).ecu_first_start_date; const db = (b as any).ecu_first_start_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "adjustmentStartDate": { const da = (a as any).ecu_first_end_date; const db = (b as any).ecu_first_end_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "measurementLimit": case "preliminaryLimit": case "ecuEstEndDate": case "adjustmentLimit": break;
           default: break;
         }
         if (aVal < bVal) return projectSortDir === "asc" ? -1 : 1;
@@ -2374,7 +2427,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                       }}
                     >
                       <Settings className="h-3 w-3" />
-                      <span>Más campos</span>
+                      <span>{isArchitectView ? "Ordenar columnas" : "Más campos"}</span>
                     </button>
                   </div>
                 </div>
@@ -2402,6 +2455,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               {vc.has("projectStartDate") && <th className={thCls} onClick={() => handleProjectSort("projectStartDate")}><div className="flex items-center gap-2">Inicio Proyecto {renderProjectSortIcon("projectStartDate")}</div></th>}
                               {vc.has("settlementDate") && <th className={thCls} onClick={() => handleProjectSort("settlementDate")}><div className="flex items-center gap-2">Fecha Liquidación {renderProjectSortIcon("settlementDate")}</div></th>}
                               {vc.has("status") && <th className={thCls} onClick={() => handleProjectSort("status")}><div className="flex items-center gap-2">Estado {renderProjectSortIcon("status")}</div></th>}
+                              {isArchitectView && ARCHITECT_PHASE_DATE_COLS[column.key]?.cols.map((dc) => (
+                                <th key={dc.key} className={thCls} onClick={() => handleProjectSort(dc.key)}>
+                                  <div className="flex items-center gap-2">{dc.label} {renderProjectSortIcon(dc.key)}</div>
+                                </th>
+                              ))}
                             </tr>
                           );
                         })()}
@@ -2443,6 +2501,21 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                     {vc.has("projectStartDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).project_start_date ? formatDate((proj as any).project_start_date) : "—"}</span></td>}
                                     {vc.has("settlementDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).settlement_date ? formatDate((proj as any).settlement_date) : "—"}</span></td>}
                                     {vc.has("status") && <td className={tdCls}><Badge variant="outline" className="text-xs">{(proj as any).project_status || "—"}</Badge></td>}
+                                    {isArchitectView && ARCHITECT_PHASE_DATE_COLS[column.key]?.cols.map((dc) => {
+                                      const val = getArchitectDateValue(proj, dc);
+                                      const isPast = dc.isLimit && isDatePastLimit(val);
+                                      return (
+                                        <td key={dc.key} className={tdCls}>
+                                          {val ? (
+                                            <span className={cn("text-sm", isPast ? "text-destructive font-medium" : "text-foreground")}>
+                                              {formatDate(val)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-sm text-muted-foreground">—</span>
+                                          )}
+                                        </td>
+                                      );
+                                    })}
                                   </>
                                 );
                               })()}
@@ -2603,6 +2676,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               handleProjectColumnSave(projectColSelectorOpen.phase, cols as Set<ProjectSortCol>);
             }
           }}
+          reorderOnly={isArchitectView}
         />
       )}
     </>

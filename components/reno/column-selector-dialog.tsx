@@ -28,6 +28,7 @@ interface ColumnSelectorDialogProps<K extends string = string> {
   phase: RenoKanbanPhase;
   phaseLabel: string;
   onSave: (visibleColumns: Set<K>, columnOrder?: K[]) => void;
+  reorderOnly?: boolean;
 }
 
 export function ColumnSelectorDialog<K extends string = string>({
@@ -38,6 +39,7 @@ export function ColumnSelectorDialog<K extends string = string>({
   phase,
   phaseLabel,
   onSave,
+  reorderOnly = false,
 }: ColumnSelectorDialogProps<K>) {
   const [searchQuery, setSearchQuery] = useState("");
   const [localVisibleColumns, setLocalVisibleColumns] = useState<Set<K>>(visibleColumns);
@@ -269,10 +271,12 @@ export function ColumnSelectorDialog<K extends string = string>({
         >
           {column.label}
         </Label>
-        <Switch
-          checked={isVisible}
-          onCheckedChange={() => toggleColumn(column.key)}
-        />
+        {!reorderOnly && (
+          <Switch
+            checked={isVisible}
+            onCheckedChange={() => toggleColumn(column.key)}
+          />
+        )}
       </div>
     );
   };
@@ -282,25 +286,29 @@ export function ColumnSelectorDialog<K extends string = string>({
       <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <div>
-            <DialogTitle className="text-lg font-semibold">Columnas</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
+              {reorderOnly ? "Ordenar columnas" : "Columnas"}
+            </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground mt-1">
-              {phaseLabel}
+              {reorderOnly ? `Arrastra para reordenar — ${phaseLabel}` : phaseLabel}
             </DialogDescription>
           </div>
         </DialogHeader>
 
         {/* Search Bar */}
-        <div className="px-6 pt-4 pb-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar columnas..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+        {!reorderOnly && (
+          <div className="px-6 pt-4 pb-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar columnas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Column List */}
         <ScrollArea className="flex-1 px-6">
@@ -310,18 +318,20 @@ export function ColumnSelectorDialog<K extends string = string>({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-semibold text-foreground">
-                    Mostradas
+                    {reorderOnly ? "Columnas" : "Mostradas"}
                   </Label>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      setLocalVisibleColumns(new Set());
-                    }}
-                  >
-                    Ocultar todas
-                  </Button>
+                  {!reorderOnly && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        setLocalVisibleColumns(new Set());
+                      }}
+                    >
+                      Ocultar todas
+                    </Button>
+                  )}
                 </div>
                 <div className="space-y-1">
                   {groupedColumns.shown.map(column => renderColumnItem(column, true))}
@@ -330,7 +340,7 @@ export function ColumnSelectorDialog<K extends string = string>({
             )}
 
             {/* Popular Section */}
-            {groupedColumns.popular.length > 0 && (
+            {!reorderOnly && groupedColumns.popular.length > 0 && (
               <>
                 <Separator />
                 <div className="space-y-2">
@@ -345,7 +355,7 @@ export function ColumnSelectorDialog<K extends string = string>({
             )}
 
             {/* Hidden Section */}
-            {groupedColumns.hidden.length > 0 && (
+            {!reorderOnly && groupedColumns.hidden.length > 0 && (
               <>
                 <Separator />
                 <div className="space-y-2">
