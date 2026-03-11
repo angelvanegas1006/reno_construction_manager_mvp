@@ -95,6 +95,9 @@ export function LoginForm() {
       } else if (role === 'maduration_analyst') {
         router.push("/reno/maturation-analyst");
         toast.success("¡Bienvenido!");
+      } else if (role === 'architect') {
+        router.push("/reno/architect");
+        toast.success("¡Bienvenido!");
       } else if (role === 'foreman' || role === 'admin' || role === 'construction_manager') {
         router.push("/reno/construction-manager");
         toast.success(role === 'admin' ? "¡Bienvenido Admin!" : "¡Bienvenido!");
