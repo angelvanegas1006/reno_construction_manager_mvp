@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
     // Store tokens in database (scopes included for Gmail detection)
-    const scopes = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send';
+    const scopes = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.modify';
     const { error: insertError } = await (supabase as any)
       .from('google_calendar_tokens')
       .upsert({
