@@ -81,7 +81,7 @@ import {
   MATURATION_PROJECT_STATUS_TO_PHASE,
   PHASES_KANBAN_MATURATION,
 } from '@/lib/reno-kanban-config';
-import { persistAttachmentArray } from '@/lib/airtable/persist-attachment';
+import { persistAttachmentArray, clearFolderCache } from '@/lib/airtable/persist-attachment';
 
 function getAirtableBase(): Airtable.Base | null {
   const apiKey = process.env.NEXT_PUBLIC_AIRTABLE_API_KEY;
@@ -861,18 +861,29 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
   }
 
   // Persist Airtable attachment files to Supabase Storage so URLs never expire
+  clearFolderCache();
   const ATTACHMENT_FIELDS = ['draft_plan', 'technical_project_doc', 'final_plan', 'license_attachment'] as const;
-  for (const rec of records) {
+  let persistProgress = 0;
+  const recordsWithAttachments = records.filter((r) =>
+    ATTACHMENT_FIELDS.some((f) => { const v = r[f]; return v && v.length > 0; })
+  );
+  console.log(`[Sync Maturation] Persisting attachments for ${recordsWithAttachments.length}/${records.length} projects...`);
+  for (const rec of recordsWithAttachments) {
+    persistProgress++;
     const entityId = rec.id;
     for (const field of ATTACHMENT_FIELDS) {
       const value = rec[field];
       if (!value || value.length === 0) continue;
       try {
+        console.log(`[Sync Maturation] Persisting ${field} (${value.length} files) for ${rec.name?.slice(0, 40)} [${persistProgress}/${recordsWithAttachments.length}]`);
         const persisted = await persistAttachmentArray(value, 'projects', entityId, field, supabase);
         (rec as any)[field] = persisted;
       } catch (err: any) {
         console.warn(`[Sync Maturation] Failed to persist ${field} for ${rec.name}: ${err?.message}`);
       }
+    }
+    if (persistProgress % 10 === 0 || persistProgress === recordsWithAttachments.length) {
+      console.log(`[Sync Maturation] Attachment progress: ${persistProgress}/${recordsWithAttachments.length}`);
     }
   }
 
