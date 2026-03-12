@@ -10,6 +10,7 @@
 import Airtable from 'airtable';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { mapSetUpStatusToKanbanPhase } from '@/lib/supabase/kanban-mapping';
+import { persistUrlArray, persistUrlString } from '@/lib/airtable/persist-attachment';
 
 interface AirtableProperty {
   id: string; // Airtable record ID
@@ -927,6 +928,21 @@ export async function syncPropertiesFromAirtable(
         }
 
         const supabaseData = mapAirtableToSupabase(airtableProperty);
+
+        // Persist Airtable attachment files to Supabase Storage so URLs never expire
+        try {
+          if (supabaseData.pics_urls && Array.isArray(supabaseData.pics_urls) && supabaseData.pics_urls.length > 0) {
+            const persisted = await persistUrlArray(supabaseData.pics_urls, uniqueId, 'pics_urls', supabase);
+            if (persisted) supabaseData.pics_urls = persisted;
+          }
+          if (supabaseData.budget_pdf_url && typeof supabaseData.budget_pdf_url === 'string') {
+            const persisted = await persistUrlString(supabaseData.budget_pdf_url, uniqueId, 'budget_pdf', supabase);
+            if (persisted) supabaseData.budget_pdf_url = persisted;
+          }
+        } catch (err: any) {
+          console.warn(`[Airtable Sync] Failed to persist attachments for ${uniqueId}: ${err?.message}`);
+        }
+
         const exists = existingPropertyIds.has(uniqueId);
 
         if (exists) {

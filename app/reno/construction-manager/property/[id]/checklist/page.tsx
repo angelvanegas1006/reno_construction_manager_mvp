@@ -95,6 +95,7 @@ export default function RenoChecklistPage() {
   // Get source page and viewMode from query params to know where to redirect back
   const sourcePage = unwrappedSearchParams?.get('from') || null;
   const viewMode = unwrappedSearchParams?.get('viewMode') || 'kanban';
+  const isNewCheck = unwrappedSearchParams?.get('newCheck') === 'true';
 
   // Debug: Log propertyId and navigation params
   useEffect(() => {
@@ -200,6 +201,7 @@ export default function RenoChecklistPage() {
   const finalChecklist = useSupabaseFinalChecklist({
     propertyId: propertyId || "",
     enabled: checklistType === "reno_final", // Solo habilitar si es el tipo activo
+    skipCompleted: isNewCheck,
   });
   
   // Seleccionar el hook apropiado según el tipo de checklist
@@ -210,7 +212,9 @@ export default function RenoChecklistPage() {
   const inspectionType = checklistType === "reno_final" ? "final" : "initial";
   const { inspection, completeInspection, refetch: refetchInspection } = useSupabaseInspection(
     propertyId,
-    inspectionType
+    inspectionType,
+    true,
+    isNewCheck
   );
 
   // Check if checklist is completed (read-only mode)
