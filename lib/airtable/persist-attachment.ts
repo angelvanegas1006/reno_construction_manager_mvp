@@ -4,13 +4,16 @@
  * Airtable attachment URLs are temporary (expire after a few hours).
  * This module downloads each file and re-uploads it to a public Supabase
  * Storage bucket so the URL never expires.
+ *
+ * Performance: folder listings are cached in-memory per sync run to avoid
+ * repeated Storage API calls (the biggest bottleneck in earlier versions).
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const BUCKET = "airtable-attachments";
 const CONCURRENCY = 5;
-const DOWNLOAD_TIMEOUT_MS = 30_000;
+const DOWNLOAD_TIMEOUT_MS = 15_000;
 
 export interface AttachmentMeta {
   url: string;
@@ -35,21 +38,52 @@ function sanitiseFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 200);
 }
 
+// In-memory cache for folder listings to avoid repeated Supabase Storage list() calls.
+const folderCache = new Map<string, Set<string>>();
+
+function clearFolderCache() {
+  folderCache.clear();
+}
+
+async function getFolderFiles(
+  folder: string,
+  client: ReturnType<typeof createAdminClient>
+): Promise<Set<string>> {
+  const cached = folderCache.get(folder);
+  if (cached) return cached;
+
+  const { data: listed } = await client.storage
+    .from(BUCKET)
+    .list(folder, { limit: 1000 });
+
+  const fileSet = new Set<string>(
+    (listed ?? []).map((f: { name: string }) => f.name)
+  );
+  folderCache.set(folder, fileSet);
+  return fileSet;
+}
+
+function addToFolderCache(folder: string, fileName: string) {
+  const cached = folderCache.get(folder);
+  if (cached) cached.add(fileName);
+}
+
 /**
- * Download a file from a remote URL with a timeout.
- * Returns the ArrayBuffer and detected content-type, or null on failure.
+ * Download a file from a remote URL with a timeout that covers the entire
+ * operation (connect + body read). The AbortController stays active until
+ * the full body has been read.
  */
 async function downloadFile(
   sourceUrl: string
 ): Promise<{ buffer: ArrayBuffer; contentType: string } | null> {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
 
+  try {
     const res = await fetch(sourceUrl, { signal: controller.signal });
-    clearTimeout(timer);
 
     if (!res.ok) {
+      clearTimeout(timer);
       console.warn(
         `[persist-attachment] Download failed ${res.status} for ${sourceUrl.slice(0, 120)}`
       );
@@ -57,10 +91,12 @@ async function downloadFile(
     }
 
     const buffer = await res.arrayBuffer();
+    clearTimeout(timer);
     const contentType =
       res.headers.get("content-type") || "application/octet-stream";
     return { buffer, contentType };
   } catch (err: any) {
+    clearTimeout(timer);
     if (err?.name === "AbortError") {
       console.warn(
         `[persist-attachment] Download timed out for ${sourceUrl.slice(0, 120)}`
@@ -76,8 +112,7 @@ async function downloadFile(
 
 /**
  * Persist a single remote file to Supabase Storage and return the public URL.
- * If the file already exists at the target path it returns the existing public URL
- * without re-downloading.
+ * Uses an in-memory folder cache to skip redundant list() calls.
  */
 export async function persistAttachment(
   storagePath: string,
@@ -92,15 +127,11 @@ export async function persistAttachment(
     .from(BUCKET)
     .getPublicUrl(storagePath);
 
-  // Check if file already exists by trying to download a HEAD-like request
-  // We rely on a list call scoped to the folder instead (cheaper).
   const folder = storagePath.substring(0, storagePath.lastIndexOf("/"));
   const fileName = storagePath.substring(storagePath.lastIndexOf("/") + 1);
-  const { data: listed } = await client.storage
-    .from(BUCKET)
-    .list(folder, { limit: 1000 });
 
-  if (listed?.some((f) => f.name === fileName)) {
+  const folderFiles = await getFolderFiles(folder, client);
+  if (folderFiles.has(fileName)) {
     return existing.publicUrl;
   }
 
@@ -115,11 +146,11 @@ export async function persistAttachment(
     });
 
   if (uploadError) {
-    // If the file was uploaded by a concurrent process, treat as success
     if (
       uploadError.message?.includes("already exists") ||
       uploadError.message?.includes("Duplicate")
     ) {
+      addToFolderCache(folder, fileName);
       return existing.publicUrl;
     }
     console.warn(
@@ -128,6 +159,7 @@ export async function persistAttachment(
     return null;
   }
 
+  addToFolderCache(folder, fileName);
   return existing.publicUrl;
 }
 
@@ -159,7 +191,6 @@ export async function persistAttachmentArray(
   const client = supabase ?? createAdminClient();
   const results: AttachmentMeta[] = [];
 
-  // Process in batches of CONCURRENCY
   for (let i = 0; i < attachments.length; i += CONCURRENCY) {
     const batch = attachments.slice(i, i + CONCURRENCY);
     const batchResults = await Promise.all(
@@ -172,7 +203,6 @@ export async function persistAttachmentArray(
         if (newUrl) {
           return { ...att, url: newUrl };
         }
-        // Fallback: keep the temporary Airtable URL
         return att;
       })
     );
@@ -263,3 +293,6 @@ export async function persistUrlArray(
 
   return results;
 }
+
+/** Reset cache between sync runs (called automatically by sync orchestrator). */
+export { clearFolderCache };
