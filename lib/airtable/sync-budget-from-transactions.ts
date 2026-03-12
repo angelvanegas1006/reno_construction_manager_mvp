@@ -7,6 +7,7 @@
 import Airtable from 'airtable';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { findTransactionsRecordIdByUniqueId, findTransactionsRecordIdByPropertiesId } from './transactions-lookup';
+import { persistUrlString } from '@/lib/airtable/persist-attachment';
 
 const BUDGET_ATTACHMENT_FIELD_ID = 'fldVOO4zqx5HUzIjz';
 const RENOVATOR_CONTRACT_DOC_FIELD_ID = 'fldghjw7a7VhMYXaS';
@@ -167,20 +168,32 @@ export async function syncBudgetForProperty(
   }
 
   const uniqueUrls = [...new Set(allUrls)];
-  const budgetPdfUrlValue = uniqueUrls.length > 0 ? uniqueUrls.join(',') : null;
+  let budgetPdfUrlValue = uniqueUrls.length > 0 ? uniqueUrls.join(',') : null;
 
   // Renovator contract doc (fldghjw7a7VhMYXaS)
   const renovatorContractField =
     record.fields[RENOVATOR_CONTRACT_DOC_FIELD_ID] ??
     record.fields['Renovator contract doc'];
   const renovatorContractUrls = extractDocumentUrls(renovatorContractField);
-  const renovatorContractDocUrlValue =
+  let renovatorContractDocUrlValue =
     renovatorContractUrls.length > 0 ? renovatorContractUrls.join(',') : null;
 
   const hasBudgetUrls = uniqueUrls.length > 0;
   const hasContractUrls = renovatorContractUrls.length > 0;
   if (!hasBudgetUrls && !hasContractUrls) {
     return { updated: false, urlCount: 0 };
+  }
+
+  // Persist attachment files to Supabase Storage so URLs never expire
+  try {
+    if (budgetPdfUrlValue) {
+      budgetPdfUrlValue = await persistUrlString(budgetPdfUrlValue, propertyId, 'budget_pdf', supabase) ?? budgetPdfUrlValue;
+    }
+    if (renovatorContractDocUrlValue) {
+      renovatorContractDocUrlValue = await persistUrlString(renovatorContractDocUrlValue, propertyId, 'renovator_contract_doc', supabase) ?? renovatorContractDocUrlValue;
+    }
+  } catch (err: any) {
+    console.warn(`[syncBudgetForProperty] Failed to persist attachments for ${propertyId}: ${err?.message}`);
   }
 
   const updatePayload: Record<string, unknown> = {

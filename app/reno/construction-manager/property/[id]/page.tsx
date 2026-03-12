@@ -691,17 +691,35 @@ export default function RenoPropertyDetailPage() {
                   </p>
                   
                   {isFinalCheckCompleted ? (
-                    <Button
-                      size="lg"
-                      className="mt-4 min-w-[200px]"
-                      asChild
-                    >
-                      <Link
-                        href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=reno_final${sourcePage ? `&from=${sourcePage}` : ""}${viewMode ? `&viewMode=${viewMode}` : ""}`}
+                    <>
+                      <Button
+                        size="lg"
+                        className="mt-4 min-w-[200px]"
+                        asChild
                       >
-                        {t.propertyAction.viewGeneratedReport}
-                      </Link>
-                    </Button>
+                        <Link
+                          href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=reno_final${sourcePage ? `&from=${sourcePage}` : ""}${viewMode ? `&viewMode=${viewMode}` : ""}`}
+                        >
+                          {t.propertyAction.viewGeneratedReport}
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const base = `/reno/construction-manager/property/${propertyId}/checklist`;
+                          const params = new URLSearchParams({ newCheck: "true" });
+                          if (sourcePage === "kanban" || sourcePage === "kanban-projects") {
+                            params.set("from", sourcePage);
+                            params.set("viewMode", viewMode ?? "kanban");
+                          }
+                          router.push(`${base}?${params.toString()}`);
+                        }}
+                        size="lg"
+                        className="mt-2 min-w-[200px]"
+                      >
+                        Hacer segundo Final Check
+                      </Button>
+                    </>
                   ) : (
                     <Button
                       onClick={() => {
@@ -827,17 +845,37 @@ export default function RenoPropertyDetailPage() {
                   </p>
                   
                   {isChecklistCompleted ? (
-                    <Button
-                      size="lg"
-                      className="mt-4 min-w-[200px]"
-                      asChild
-                    >
-                      <Link
-                        href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=${currentPhase === "initial-check" ? "reno_initial" : "reno_final"}${sourcePage ? `&from=${sourcePage}` : ""}${viewMode ? `&viewMode=${viewMode}` : ""}`}
+                    <>
+                      <Button
+                        size="lg"
+                        className="mt-4 min-w-[200px]"
+                        asChild
                       >
-                        {t.propertyAction.viewGeneratedReport}
-                      </Link>
-                    </Button>
+                        <Link
+                          href={`/reno/construction-manager/property/${propertyId}/checklist/pdf?type=${currentPhase === "initial-check" ? "reno_initial" : "reno_final"}${sourcePage ? `&from=${sourcePage}` : ""}${viewMode ? `&viewMode=${viewMode}` : ""}`}
+                        >
+                          {t.propertyAction.viewGeneratedReport}
+                        </Link>
+                      </Button>
+                      {currentPhase !== "initial-check" && (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            const base = `/reno/construction-manager/property/${propertyId}/checklist`;
+                            const params = new URLSearchParams({ newCheck: "true" });
+                            if (sourcePage === "kanban" || sourcePage === "kanban-projects") {
+                              params.set("from", sourcePage);
+                              params.set("viewMode", viewMode ?? "kanban");
+                            }
+                            router.push(`${base}?${params.toString()}`);
+                          }}
+                          size="lg"
+                          className="mt-2 min-w-[200px]"
+                        >
+                          Hacer segundo Final Check
+                        </Button>
+                      )}
+                    </>
                   ) : (
                     <Button
                       onClick={() => {

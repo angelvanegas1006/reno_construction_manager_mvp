@@ -83,6 +83,7 @@ interface UseSupabaseChecklistBaseProps {
   checklistType: ChecklistType;
   inspectionType: InspectionType; // Tipo fijo de inspección
   enabled?: boolean; // Si es false, el hook no hará fetch ni ejecutará lógica
+  skipCompleted?: boolean; // Si es true, ignora inspecciones completadas (para nuevo final check)
 }
 
 interface UseSupabaseChecklistBaseReturn {
@@ -109,6 +110,7 @@ export function useSupabaseChecklistBase({
   checklistType,
   inspectionType, // Tipo fijo de inspección
   enabled = true, // Por defecto está habilitado
+  skipCompleted = false, // Cuando true, ignora inspecciones completadas
 }: UseSupabaseChecklistBaseProps): UseSupabaseChecklistBaseReturn {
   const [checklist, setChecklist] = useState<ChecklistData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -175,7 +177,7 @@ export function useSupabaseChecklistBase({
     createZone,
     upsertElement,
     refetch: refetchInspection,
-  } = useSupabaseInspection(propertyId, inspectionType, enabled);
+  } = useSupabaseInspection(propertyId, inspectionType, enabled, skipCompleted);
 
   // Emit "Checklist Started" once when inspection is first available
   useEffect(() => {

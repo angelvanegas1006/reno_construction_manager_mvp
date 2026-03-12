@@ -39,7 +39,8 @@ interface UseSupabaseInspectionReturn {
 export function useSupabaseInspection(
   propertyId: string | null,
   inspectionType: InspectionType,
-  enabled: boolean = true
+  enabled: boolean = true,
+  skipCompleted: boolean = false
 ): UseSupabaseInspectionReturn {
   const [inspection, setInspection] = useState<PropertyInspection | null>(null);
   const [zones, setZones] = useState<InspectionZone[]>([]);
@@ -78,11 +79,16 @@ export function useSupabaseInspection(
       // Buscar inspección existente por property_id e inspection_type
       // Ordenar por created_at descendente para obtener la más reciente
       // Intentar primero con inspection_type, si falla (campo no existe), buscar sin él
-      let { data: inspectionData, error: inspectionError } = await supabase
+      // When skipCompleted is true, only return in_progress inspections (used for creating a new check)
+      let query = supabase
         .from('property_inspections')
         .select('*')
         .eq('property_id', propertyId)
-        .eq('inspection_type', inspectionType)
+        .eq('inspection_type', inspectionType);
+      if (skipCompleted) {
+        query = query.eq('inspection_status', 'in_progress');
+      }
+      let { data: inspectionData, error: inspectionError } = await query
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -97,10 +103,14 @@ export function useSupabaseInspection(
       )) {
         // Buscar sin filtro de inspection_type (solo por property_id), ordenar por fecha descendente
         // Silently fallback - no need to log this as it's expected behavior
-        const { data: allInspections, error: allError } = await supabase
+        let fallbackQuery = supabase
           .from('property_inspections')
           .select('*')
-          .eq('property_id', propertyId)
+          .eq('property_id', propertyId);
+        if (skipCompleted) {
+          fallbackQuery = fallbackQuery.eq('inspection_status', 'in_progress');
+        }
+        const { data: allInspections, error: allError } = await fallbackQuery
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -225,7 +235,7 @@ export function useSupabaseInspection(
     } finally {
       setLoading(false);
     }
-  }, [propertyId, inspectionType, supabase, enabled]);
+  }, [propertyId, inspectionType, supabase, enabled, skipCompleted]);
 
   // Limpiar datos cuando inspectionType cambia para evitar usar datos del tipo incorrecto
   useEffect(() => {
