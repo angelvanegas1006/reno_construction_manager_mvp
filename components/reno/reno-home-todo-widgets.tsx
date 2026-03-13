@@ -62,12 +62,16 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
       });
     };
 
-    // 1. Definir Visita Estimada - ordenar por daysToVisit
+    // 1. Definir Visita Estimada - solo propiedades con daysToVisit entre -7 y 0
+    const isVisitUrgent = (prop: Property) => {
+      const d = prop.daysToVisit;
+      return d != null && d >= -7 && d <= 0;
+    };
     const pendingEstimatedVisitProps = sortByDays([
       ...(propertiesByPhase['upcoming-settlements'] || [])
-        .filter(prop => !prop.estimatedVisitDate || prop.estimatedVisitDate.trim() === ''),
+        .filter(prop => (!prop.estimatedVisitDate || prop.estimatedVisitDate.trim() === '') && isVisitUrgent(prop)),
       ...(propertiesByPhase['initial-check'] || [])
-        .filter(prop => !prop.estimatedVisitDate || prop.estimatedVisitDate.trim() === '')
+        .filter(prop => (!prop.estimatedVisitDate || prop.estimatedVisitDate.trim() === '') && isVisitUrgent(prop))
     ], 'daysToVisit');
 
     // 2. Check Inicial - ordenar por daysToVisit
