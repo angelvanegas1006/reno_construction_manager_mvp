@@ -30,7 +30,7 @@ function verifyCronRequest(request: NextRequest): boolean {
   return process.env.NODE_ENV === 'development';
 }
 
-const ALLOWED_MANUAL_SYNC_ROLES = ['admin', 'construction_manager', 'maduration_analyst'];
+const ALLOWED_MANUAL_SYNC_ROLES = ['admin', 'construction_manager', 'maturation_analyst', 'foreman'];
 
 /**
  * Verifica que el usuario tiene permiso para ejecutar el sync manualmente (admin o construction_manager).

@@ -155,7 +155,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   const [csvExportOpen, setCsvExportOpen] = useState(false);
   const [csvExportMode, setCsvExportMode] = useState<"property" | "project">("property");
 
-  type ProjectSortCol = "name" | "projectId" | "type" | "investmentType" | "area" | "renovator" | "status" | "propertiesCount" | "projectStartDate" | "settlementDate" | "scouter" | "architect" | "excludedEcu" | "measurementDate" | "measurementLimit" | "preliminaryDate" | "preliminaryLimit" | "ecuUploadDate" | "ecuEstEndDate" | "adjustmentStartDate" | "adjustmentLimit";
+  type ProjectSortCol = "name" | "projectId" | "type" | "investmentType" | "area" | "renovator" | "status" | "propertiesCount" | "projectStartDate" | "settlementDate" | "scouter" | "architect" | "excludedEcu" | "measurementDate" | "measurementLimit" | "preliminaryDate" | "preliminaryLimit" | "ecuUploadDate" | "ecuEstEndDate" | "adjustmentStartDate" | "adjustmentLimit" | "ecuContact" | "estProperties" | "propertiesToConvert" | "arrasDeadline" | "draftOrderDate" | "projectDraftDate" | "draftValidationDate" | "projectEndDate" | "projectArchitectDate" | "ecuFirstStartDate" | "ecuFirstEndDate" | "ecuFinalStartDate" | "ecuFinalEndDate" | "ecuDeliveryDate" | "definitiveValidationDate" | "architectFee" | "renovationSpend" | "lead" | "operationName" | "estimatedSettlementDate" | "estRenoStartDateProj" | "renovationExecutor";
   const [projectSortCol, setProjectSortCol] = useState<ProjectSortCol | null>(null);
   const [projectSortDir, setProjectSortDir] = useState<"asc" | "desc" | null>(null);
   const isArchitectView = fromParam === "architect-kanban";
@@ -189,6 +189,33 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       { key: "projectStartDate", label: "Inicio Proyecto", defaultVisible: false, category: "popular" as const },
       { key: "settlementDate", label: "Fecha Liquidación", defaultVisible: false, category: "popular" as const },
       { key: "status", label: "Estado", defaultVisible: false },
+      // Grupo 1 - Campos solicitados
+      { key: "ecuContact", label: "Contacto ECU", defaultVisible: false, category: "popular" as const },
+      { key: "estProperties", label: "Est. Propiedades", defaultVisible: false, category: "popular" as const },
+      { key: "propertiesToConvert", label: "Props. a Convertir", defaultVisible: false, category: "popular" as const },
+      { key: "arrasDeadline", label: "Fecha Arras", defaultVisible: false, category: "popular" as const },
+      // Grupo 2 - Fechas clave maduración
+      { key: "draftOrderDate", label: "Encargo Anteproyecto", defaultVisible: false, category: "popular" as const },
+      { key: "measurementDate" as ProjectSortCol, label: "Fecha Medición", defaultVisible: false, category: "popular" as const },
+      { key: "projectDraftDate", label: "Fecha Anteproyecto", defaultVisible: false },
+      { key: "draftValidationDate", label: "Validación Anteproyecto", defaultVisible: false },
+      { key: "projectEndDate", label: "Fecha Proyecto", defaultVisible: false },
+      { key: "projectArchitectDate", label: "Fecha Arquitecto", defaultVisible: false },
+      // Grupo 3 - Fechas ECU
+      { key: "ecuFirstStartDate", label: "ECU Inicio 1ª Val.", defaultVisible: false },
+      { key: "ecuFirstEndDate", label: "ECU Fin 1ª Val.", defaultVisible: false },
+      { key: "ecuFinalStartDate", label: "ECU Inicio Final", defaultVisible: false },
+      { key: "ecuFinalEndDate", label: "ECU Fin Final", defaultVisible: false },
+      { key: "ecuDeliveryDate", label: "Entrega ECU", defaultVisible: false },
+      { key: "definitiveValidationDate", label: "Validación Definitiva", defaultVisible: false },
+      // Grupo 4 - Info adicional
+      { key: "architectFee", label: "Honorarios Arquitecto", defaultVisible: false },
+      { key: "renovationSpend", label: "Gasto Reno", defaultVisible: false },
+      { key: "lead", label: "Lead", defaultVisible: false },
+      { key: "operationName", label: "Nombre Operación", defaultVisible: false },
+      { key: "estimatedSettlementDate", label: "Liquidación Est.", defaultVisible: false },
+      { key: "estRenoStartDateProj", label: "Est. Reno Start", defaultVisible: false },
+      { key: "renovationExecutor", label: "Ejecutor Reno", defaultVisible: false },
     ];
     return base;
   }, [isArchitectView]);
@@ -210,7 +237,23 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       m.set(phase, cols);
       return m;
     });
-  }, []);
+    if (user?.id) {
+      supabase
+        .from('user_column_preferences')
+        .upsert({
+          user_id: user.id,
+          view_type: 'project_kanban_list',
+          phase: phase,
+          visible_columns: Array.from(cols),
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,view_type,phase',
+        })
+        .then(({ error }) => {
+          if (error) console.warn('[RenoKanbanBoard] Error saving project column preferences:', error);
+        });
+    }
+  }, [user?.id, supabase]);
   
   const router = useRouter();
   
@@ -231,6 +274,53 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Load saved column preferences from Supabase
+  useEffect(() => {
+    if (!user?.id) { setIsLoadingColumns(false); return; }
+    (async () => {
+      try {
+        // Load property column preferences
+        const { data: propPrefs } = await supabase
+          .from('user_column_preferences')
+          .select('phase, visible_columns')
+          .eq('user_id', user.id)
+          .eq('view_type', 'reno_kanban_list');
+        if (propPrefs && propPrefs.length > 0) {
+          setVisibleColumnsByPhase(prev => {
+            const m = new Map(prev);
+            propPrefs.forEach(row => {
+              if (row.visible_columns && row.visible_columns.length > 0) {
+                m.set(row.phase as RenoKanbanPhase, new Set(row.visible_columns as SortColumn[]));
+              }
+            });
+            return m;
+          });
+        }
+        // Load project column preferences
+        const { data: projPrefs } = await supabase
+          .from('user_column_preferences')
+          .select('phase, visible_columns')
+          .eq('user_id', user.id)
+          .eq('view_type', 'project_kanban_list');
+        if (projPrefs && projPrefs.length > 0) {
+          setVisibleProjectColsByPhase(prev => {
+            const m = new Map(prev);
+            projPrefs.forEach(row => {
+              if (row.visible_columns && row.visible_columns.length > 0) {
+                m.set(row.phase as RenoKanbanPhase, new Set(row.visible_columns as ProjectSortCol[]));
+              }
+            });
+            return m;
+          });
+        }
+      } catch (err) {
+        console.warn('[RenoKanbanBoard] Error loading column preferences:', err);
+      } finally {
+        setIsLoadingColumns(false);
+      }
+    })();
+  }, [user?.id]);
 
   // Load properties from shared context (no duplicate fetch)
   const { propertiesByPhase: supabasePropertiesByPhase, loading: supabaseLoading, error: supabaseError, refetchProperties } = useRenoProperties();
@@ -1669,6 +1759,29 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           projectStartDate: pa.project_start_date ? fmtDate(pa.project_start_date) : "",
           settlementDate: pa.settlement_date ? fmtDate(pa.settlement_date) : "",
           status: pa.project_status || "",
+          ecuContact: pa.ecu_contact || "",
+          estProperties: pa.est_properties || "",
+          propertiesToConvert: pa.properties_to_convert || "",
+          arrasDeadline: pa.arras_deadline ? fmtDate(pa.arras_deadline) : "",
+          draftOrderDate: pa.draft_order_date ? fmtDate(pa.draft_order_date) : "",
+          measurementDate: pa.measurement_date ? fmtDate(pa.measurement_date) : "",
+          projectDraftDate: pa.project_draft_date ? fmtDate(pa.project_draft_date) : "",
+          draftValidationDate: pa.draft_validation_date ? fmtDate(pa.draft_validation_date) : "",
+          projectEndDate: pa.project_end_date ? fmtDate(pa.project_end_date) : "",
+          projectArchitectDate: pa.project_architect_date ? fmtDate(pa.project_architect_date) : "",
+          ecuFirstStartDate: pa.ecu_first_start_date ? fmtDate(pa.ecu_first_start_date) : "",
+          ecuFirstEndDate: pa.ecu_first_end_date ? fmtDate(pa.ecu_first_end_date) : "",
+          ecuFinalStartDate: pa.ecu_final_start_date ? fmtDate(pa.ecu_final_start_date) : "",
+          ecuFinalEndDate: pa.ecu_final_end_date ? fmtDate(pa.ecu_final_end_date) : "",
+          ecuDeliveryDate: pa.ecu_delivery_date ? fmtDate(pa.ecu_delivery_date) : "",
+          definitiveValidationDate: pa.definitive_validation_date ? fmtDate(pa.definitive_validation_date) : "",
+          architectFee: pa.architect_fee != null ? Number(pa.architect_fee) : "",
+          renovationSpend: pa.renovation_spend != null ? Number(pa.renovation_spend) : "",
+          lead: pa.lead || "",
+          operationName: pa.operation_name || "",
+          estimatedSettlementDate: pa.estimated_settlement_date ? fmtDate(pa.estimated_settlement_date) : "",
+          estRenoStartDateProj: pa.est_reno_start_date ? fmtDate(pa.est_reno_start_date) : "",
+          renovationExecutor: pa.renovation_executor || "",
         });
       });
     });
@@ -2471,6 +2584,28 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           case "ecuUploadDate": { const da = (a as any).ecu_first_start_date; const db = (b as any).ecu_first_start_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
           case "adjustmentStartDate": { const da = (a as any).ecu_first_end_date; const db = (b as any).ecu_first_end_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
           case "measurementLimit": case "preliminaryLimit": case "ecuEstEndDate": case "adjustmentLimit": break;
+          case "ecuContact": aVal = ((a as any).ecu_contact ?? "").toLowerCase(); bVal = ((b as any).ecu_contact ?? "").toLowerCase(); break;
+          case "estProperties": aVal = Number((a as any).est_properties) || 0; bVal = Number((b as any).est_properties) || 0; break;
+          case "propertiesToConvert": aVal = Number((a as any).properties_to_convert) || 0; bVal = Number((b as any).properties_to_convert) || 0; break;
+          case "arrasDeadline": { const da = (a as any).arras_deadline; const db = (b as any).arras_deadline; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "draftOrderDate": { const da = (a as any).draft_order_date; const db = (b as any).draft_order_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "projectDraftDate": { const da = (a as any).project_draft_date; const db = (b as any).project_draft_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "draftValidationDate": { const da = (a as any).draft_validation_date; const db = (b as any).draft_validation_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "projectEndDate": { const da = (a as any).project_end_date; const db = (b as any).project_end_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "projectArchitectDate": { const da = (a as any).project_architect_date; const db = (b as any).project_architect_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "ecuFirstStartDate": { const da = (a as any).ecu_first_start_date; const db = (b as any).ecu_first_start_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "ecuFirstEndDate": { const da = (a as any).ecu_first_end_date; const db = (b as any).ecu_first_end_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "ecuFinalStartDate": { const da = (a as any).ecu_final_start_date; const db = (b as any).ecu_final_start_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "ecuFinalEndDate": { const da = (a as any).ecu_final_end_date; const db = (b as any).ecu_final_end_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "ecuDeliveryDate": { const da = (a as any).ecu_delivery_date; const db = (b as any).ecu_delivery_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "definitiveValidationDate": { const da = (a as any).definitive_validation_date; const db = (b as any).definitive_validation_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "architectFee": aVal = Number((a as any).architect_fee) || 0; bVal = Number((b as any).architect_fee) || 0; break;
+          case "renovationSpend": aVal = Number((a as any).renovation_spend) || 0; bVal = Number((b as any).renovation_spend) || 0; break;
+          case "lead": aVal = ((a as any).lead ?? "").toLowerCase(); bVal = ((b as any).lead ?? "").toLowerCase(); break;
+          case "operationName": aVal = ((a as any).operation_name ?? "").toLowerCase(); bVal = ((b as any).operation_name ?? "").toLowerCase(); break;
+          case "estimatedSettlementDate": { const da = (a as any).estimated_settlement_date; const db = (b as any).estimated_settlement_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "estRenoStartDateProj": { const da = (a as any).est_reno_start_date; const db = (b as any).est_reno_start_date; aVal = da ? new Date(da).getTime() : 0; bVal = db ? new Date(db).getTime() : 0; break; }
+          case "renovationExecutor": aVal = ((a as any).renovation_executor ?? "").toLowerCase(); bVal = ((b as any).renovation_executor ?? "").toLowerCase(); break;
           default: break;
         }
         if (aVal < bVal) return projectSortDir === "asc" ? -1 : 1;
@@ -2624,6 +2759,28 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                               {vc.has("projectStartDate") && <th className={thCls} onClick={() => handleProjectSort("projectStartDate")}><div className="flex items-center gap-2">Inicio Proyecto {renderProjectSortIcon("projectStartDate")}</div></th>}
                               {vc.has("settlementDate") && <th className={thCls} onClick={() => handleProjectSort("settlementDate")}><div className="flex items-center gap-2">Fecha Liquidación {renderProjectSortIcon("settlementDate")}</div></th>}
                               {vc.has("status") && <th className={thCls} onClick={() => handleProjectSort("status")}><div className="flex items-center gap-2">Estado {renderProjectSortIcon("status")}</div></th>}
+                              {vc.has("ecuContact") && <th className={thCls} onClick={() => handleProjectSort("ecuContact")}><div className="flex items-center gap-2">Contacto ECU {renderProjectSortIcon("ecuContact")}</div></th>}
+                              {vc.has("estProperties") && <th className={thCls} onClick={() => handleProjectSort("estProperties")}><div className="flex items-center gap-2">Est. Propiedades {renderProjectSortIcon("estProperties")}</div></th>}
+                              {vc.has("propertiesToConvert") && <th className={thCls} onClick={() => handleProjectSort("propertiesToConvert")}><div className="flex items-center gap-2">Props. a Convertir {renderProjectSortIcon("propertiesToConvert")}</div></th>}
+                              {vc.has("arrasDeadline") && <th className={thCls} onClick={() => handleProjectSort("arrasDeadline")}><div className="flex items-center gap-2">Fecha Arras {renderProjectSortIcon("arrasDeadline")}</div></th>}
+                              {vc.has("draftOrderDate") && <th className={thCls} onClick={() => handleProjectSort("draftOrderDate")}><div className="flex items-center gap-2">Encargo Anteproyecto {renderProjectSortIcon("draftOrderDate")}</div></th>}
+                              {vc.has("projectDraftDate") && <th className={thCls} onClick={() => handleProjectSort("projectDraftDate")}><div className="flex items-center gap-2">Fecha Anteproyecto {renderProjectSortIcon("projectDraftDate")}</div></th>}
+                              {vc.has("draftValidationDate") && <th className={thCls} onClick={() => handleProjectSort("draftValidationDate")}><div className="flex items-center gap-2">Val. Anteproyecto {renderProjectSortIcon("draftValidationDate")}</div></th>}
+                              {vc.has("projectEndDate") && <th className={thCls} onClick={() => handleProjectSort("projectEndDate")}><div className="flex items-center gap-2">Fecha Proyecto {renderProjectSortIcon("projectEndDate")}</div></th>}
+                              {vc.has("projectArchitectDate") && <th className={thCls} onClick={() => handleProjectSort("projectArchitectDate")}><div className="flex items-center gap-2">Fecha Arquitecto {renderProjectSortIcon("projectArchitectDate")}</div></th>}
+                              {vc.has("ecuFirstStartDate") && <th className={thCls} onClick={() => handleProjectSort("ecuFirstStartDate")}><div className="flex items-center gap-2">ECU Inicio 1ª Val. {renderProjectSortIcon("ecuFirstStartDate")}</div></th>}
+                              {vc.has("ecuFirstEndDate") && <th className={thCls} onClick={() => handleProjectSort("ecuFirstEndDate")}><div className="flex items-center gap-2">ECU Fin 1ª Val. {renderProjectSortIcon("ecuFirstEndDate")}</div></th>}
+                              {vc.has("ecuFinalStartDate") && <th className={thCls} onClick={() => handleProjectSort("ecuFinalStartDate")}><div className="flex items-center gap-2">ECU Inicio Final {renderProjectSortIcon("ecuFinalStartDate")}</div></th>}
+                              {vc.has("ecuFinalEndDate") && <th className={thCls} onClick={() => handleProjectSort("ecuFinalEndDate")}><div className="flex items-center gap-2">ECU Fin Final {renderProjectSortIcon("ecuFinalEndDate")}</div></th>}
+                              {vc.has("ecuDeliveryDate") && <th className={thCls} onClick={() => handleProjectSort("ecuDeliveryDate")}><div className="flex items-center gap-2">Entrega ECU {renderProjectSortIcon("ecuDeliveryDate")}</div></th>}
+                              {vc.has("definitiveValidationDate") && <th className={thCls} onClick={() => handleProjectSort("definitiveValidationDate")}><div className="flex items-center gap-2">Val. Definitiva {renderProjectSortIcon("definitiveValidationDate")}</div></th>}
+                              {vc.has("architectFee") && <th className={thCls} onClick={() => handleProjectSort("architectFee")}><div className="flex items-center gap-2">Honorarios Arq. {renderProjectSortIcon("architectFee")}</div></th>}
+                              {vc.has("renovationSpend") && <th className={thCls} onClick={() => handleProjectSort("renovationSpend")}><div className="flex items-center gap-2">Gasto Reno {renderProjectSortIcon("renovationSpend")}</div></th>}
+                              {vc.has("lead") && <th className={thCls} onClick={() => handleProjectSort("lead")}><div className="flex items-center gap-2">Lead {renderProjectSortIcon("lead")}</div></th>}
+                              {vc.has("operationName") && <th className={thCls} onClick={() => handleProjectSort("operationName")}><div className="flex items-center gap-2">Nombre Operación {renderProjectSortIcon("operationName")}</div></th>}
+                              {vc.has("estimatedSettlementDate") && <th className={thCls} onClick={() => handleProjectSort("estimatedSettlementDate")}><div className="flex items-center gap-2">Liquidación Est. {renderProjectSortIcon("estimatedSettlementDate")}</div></th>}
+                              {vc.has("estRenoStartDateProj") && <th className={thCls} onClick={() => handleProjectSort("estRenoStartDateProj")}><div className="flex items-center gap-2">Est. Reno Start {renderProjectSortIcon("estRenoStartDateProj")}</div></th>}
+                              {vc.has("renovationExecutor") && <th className={thCls} onClick={() => handleProjectSort("renovationExecutor")}><div className="flex items-center gap-2">Ejecutor Reno {renderProjectSortIcon("renovationExecutor")}</div></th>}
                               {isArchitectView && ARCHITECT_PHASE_DATE_COLS[column.key]?.cols.map((dc) => (
                                 <th key={dc.key} className={thCls} onClick={() => handleProjectSort(dc.key)}>
                                   <div className="flex items-center gap-2">{dc.label} {renderProjectSortIcon(dc.key)}</div>
@@ -2670,6 +2827,28 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                     {vc.has("projectStartDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).project_start_date ? formatDate((proj as any).project_start_date) : "—"}</span></td>}
                                     {vc.has("settlementDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).settlement_date ? formatDate((proj as any).settlement_date) : "—"}</span></td>}
                                     {vc.has("status") && <td className={tdCls}><Badge variant="outline" className="text-xs">{(proj as any).project_status || "—"}</Badge></td>}
+                                    {vc.has("ecuContact") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).ecu_contact || "—"}</span></td>}
+                                    {vc.has("estProperties") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).est_properties || "—"}</span></td>}
+                                    {vc.has("propertiesToConvert") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).properties_to_convert || "—"}</span></td>}
+                                    {vc.has("arrasDeadline") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).arras_deadline ? formatDate((proj as any).arras_deadline) : "—"}</span></td>}
+                                    {vc.has("draftOrderDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).draft_order_date ? formatDate((proj as any).draft_order_date) : "—"}</span></td>}
+                                    {vc.has("projectDraftDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).project_draft_date ? formatDate((proj as any).project_draft_date) : "—"}</span></td>}
+                                    {vc.has("draftValidationDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).draft_validation_date ? formatDate((proj as any).draft_validation_date) : "—"}</span></td>}
+                                    {vc.has("projectEndDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).project_end_date ? formatDate((proj as any).project_end_date) : "—"}</span></td>}
+                                    {vc.has("projectArchitectDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).project_architect_date ? formatDate((proj as any).project_architect_date) : "—"}</span></td>}
+                                    {vc.has("ecuFirstStartDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).ecu_first_start_date ? formatDate((proj as any).ecu_first_start_date) : "—"}</span></td>}
+                                    {vc.has("ecuFirstEndDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).ecu_first_end_date ? formatDate((proj as any).ecu_first_end_date) : "—"}</span></td>}
+                                    {vc.has("ecuFinalStartDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).ecu_final_start_date ? formatDate((proj as any).ecu_final_start_date) : "—"}</span></td>}
+                                    {vc.has("ecuFinalEndDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).ecu_final_end_date ? formatDate((proj as any).ecu_final_end_date) : "—"}</span></td>}
+                                    {vc.has("ecuDeliveryDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).ecu_delivery_date ? formatDate((proj as any).ecu_delivery_date) : "—"}</span></td>}
+                                    {vc.has("definitiveValidationDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).definitive_validation_date ? formatDate((proj as any).definitive_validation_date) : "—"}</span></td>}
+                                    {vc.has("architectFee") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).architect_fee != null ? `${Number((proj as any).architect_fee).toLocaleString("es-ES")} €` : "—"}</span></td>}
+                                    {vc.has("renovationSpend") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).renovation_spend != null ? `${Number((proj as any).renovation_spend).toLocaleString("es-ES")} €` : "—"}</span></td>}
+                                    {vc.has("lead") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).lead || "—"}</span></td>}
+                                    {vc.has("operationName") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).operation_name || "—"}</span></td>}
+                                    {vc.has("estimatedSettlementDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).estimated_settlement_date ? formatDate((proj as any).estimated_settlement_date) : "—"}</span></td>}
+                                    {vc.has("estRenoStartDateProj") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).est_reno_start_date ? formatDate((proj as any).est_reno_start_date) : "—"}</span></td>}
+                                    {vc.has("renovationExecutor") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).renovation_executor || "—"}</span></td>}
                                     {isArchitectView && ARCHITECT_PHASE_DATE_COLS[column.key]?.cols.map((dc) => {
                                       const val = getArchitectDateValue(proj, dc);
                                       const isPast = dc.isLimit && isDatePastLimit(val);

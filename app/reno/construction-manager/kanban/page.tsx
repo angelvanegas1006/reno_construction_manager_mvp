@@ -88,7 +88,7 @@ export default function RenoConstructionManagerKanbanPage() {
     setSyncAirtableLoading(true);
     try {
       // 1. Sync propiedades Airtable → Supabase
-      const res = await fetch('/api/cron/sync-airtable', { method: 'POST' });
+      const res = await fetch('/api/sync-properties', { method: 'POST' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || data.message || 'Error al sincronizar');
