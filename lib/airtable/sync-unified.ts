@@ -625,6 +625,11 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
       'arch-obra-empezar': 0,
       'arch-obra-en-progreso': 0,
       'arch-completed': 0,
+      'wip-reno-due-diligence': 0,
+      'wip-admin-licencias': 0,
+      'wip-pendiente-presupuesto': 0,
+      'wip-obra-a-empezar': 0,
+      'wip-obra-en-progreso': 0,
     },
     details: [],
   };
@@ -858,6 +863,11 @@ export async function syncAllPhasesUnified(): Promise<UnifiedSyncResult> {
         'arch-obra-empezar': 0,
         'arch-obra-en-progreso': 0,
         'arch-completed': 0,
+        'wip-reno-due-diligence': 0,
+        'wip-admin-licencias': 0,
+        'wip-pendiente-presupuesto': 0,
+        'wip-obra-a-empezar': 0,
+        'wip-obra-en-progreso': 0,
       };
 
       finalCounts.forEach(p => {

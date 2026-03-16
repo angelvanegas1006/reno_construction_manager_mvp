@@ -114,6 +114,11 @@ export function getSetUpStatusForPhase(phase: RenoKanbanPhase): string {
     'arch-obra-empezar': 'Reno to Start',
     'arch-obra-en-progreso': 'Reno in progress',
     'arch-completed': 'Completed',
+    'wip-reno-due-diligence': 'WIP Reno Due Diligence',
+    'wip-admin-licencias': 'WIP Admin Licencias',
+    'wip-pendiente-presupuesto': 'WIP Pendiente Presupuesto',
+    'wip-obra-a-empezar': 'WIP Obra a Empezar',
+    'wip-obra-en-progreso': 'WIP Obra en Progreso',
   };
 
   return phaseToStatusMap[phase] || phase;

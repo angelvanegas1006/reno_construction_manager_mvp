@@ -17,7 +17,8 @@ import { KanbanFilters } from "./reno-kanban-filters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Columns, Settings, AlertTriangle } from "lucide-react";
+import { MapPin, Calendar, User, Wrench, Clock, ChevronDown, ChevronUp, ArrowUpDown, Columns, Settings, AlertTriangle, Download } from "lucide-react";
+import { CsvExportDialog, type CsvColumn } from "./csv-export-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -151,6 +152,8 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
   const [selectedPhaseFilter, setSelectedPhaseFilter] = useState<RenoKanbanPhase | "all">("all");
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [selectedProjectRow, setSelectedProjectRow] = useState<ProjectRow | null>(null);
+  const [csvExportOpen, setCsvExportOpen] = useState(false);
+  const [csvExportMode, setCsvExportMode] = useState<"property" | "project">("property");
 
   type ProjectSortCol = "name" | "projectId" | "type" | "investmentType" | "area" | "renovator" | "status" | "propertiesCount" | "projectStartDate" | "settlementDate" | "scouter" | "architect" | "excludedEcu" | "measurementDate" | "measurementLimit" | "preliminaryDate" | "preliminaryLimit" | "ecuUploadDate" | "ecuEstEndDate" | "adjustmentStartDate" | "adjustmentLimit";
   const [projectSortCol, setProjectSortCol] = useState<ProjectSortCol | null>(null);
@@ -331,6 +334,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-obra-empezar": [],
       "arch-obra-en-progreso": [],
       "arch-completed": [],
+      "wip-reno-due-diligence": [],
+      "wip-admin-licencias": [],
+      "wip-pendiente-presupuesto": [],
+      "wip-obra-a-empezar": [],
+      "wip-obra-en-progreso": [],
     };
     }
 
@@ -519,6 +527,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-obra-empezar": [],
       "arch-obra-en-progreso": [],
       "arch-completed": [],
+      "wip-reno-due-diligence": [],
+      "wip-admin-licencias": [],
+      "wip-pendiente-presupuesto": [],
+      "wip-obra-a-empezar": [],
+      "wip-obra-en-progreso": [],
     };
     
     // Debug log removed for production
@@ -791,6 +804,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-obra-empezar": allProperties["arch-obra-empezar"].filter(matchesAll),
       "arch-obra-en-progreso": allProperties["arch-obra-en-progreso"].filter(matchesAll),
       "arch-completed": allProperties["arch-completed"].filter(matchesAll),
+      "wip-reno-due-diligence": (allProperties["wip-reno-due-diligence"] ?? []).filter(matchesAll),
+      "wip-admin-licencias": (allProperties["wip-admin-licencias"] ?? []).filter(matchesAll),
+      "wip-pendiente-presupuesto": (allProperties["wip-pendiente-presupuesto"] ?? []).filter(matchesAll),
+      "wip-obra-a-empezar": (allProperties["wip-obra-a-empezar"] ?? []).filter(matchesAll),
+      "wip-obra-en-progreso": (allProperties["wip-obra-en-progreso"] ?? []).filter(matchesAll),
     };
     
     // Debug: Check filtered results (only in development and when filters are active)
@@ -977,6 +995,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-obra-empezar": filtered["arch-obra-empezar"] || [],
       "arch-obra-en-progreso": filtered["arch-obra-en-progreso"] || [],
       "arch-completed": filtered["arch-completed"] || [],
+      "wip-reno-due-diligence": filtered["wip-reno-due-diligence"] || [],
+      "wip-admin-licencias": filtered["wip-admin-licencias"] || [],
+      "wip-pendiente-presupuesto": filtered["wip-pendiente-presupuesto"] || [],
+      "wip-obra-a-empezar": filtered["wip-obra-a-empezar"] || [],
+      "wip-obra-en-progreso": filtered["wip-obra-en-progreso"] || [],
     };
 
     return sorted;
@@ -1122,6 +1145,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       "arch-obra-empezar": [],
       "arch-obra-en-progreso": [],
       "arch-completed": [],
+      "wip-reno-due-diligence": [],
+      "wip-admin-licencias": [],
+      "wip-pendiente-presupuesto": [],
+      "wip-obra-a-empezar": [],
+      "wip-obra-en-progreso": [],
     };
 
     for (const col of visibleColumns) {
@@ -1295,6 +1323,11 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       'arch-obra-empezar': [],
       'arch-obra-en-progreso': [],
       'arch-completed': [],
+      'wip-reno-due-diligence': [],
+      'wip-admin-licencias': [],
+      'wip-pendiente-presupuesto': [],
+      'wip-obra-a-empezar': [],
+      'wip-obra-en-progreso': [],
     };
 
     visibleColumns.forEach((column) => {
@@ -1533,6 +1566,122 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     });
   }, []);
 
+  // ─── CSV Export helpers (must be before early returns) ──────────────
+  const csvPropertyColumns = useMemo((): CsvColumn[] => {
+    const cols: CsvColumn[] = [
+      { key: "phase", label: "Fase" },
+    ];
+    columnConfigWithTranslations.forEach((c) => cols.push({ key: c.key, label: c.label }));
+    return cols;
+  }, [columnConfigWithTranslations]);
+
+  const csvPropertyRows = useMemo((): Record<string, unknown>[] => {
+    const rows: Record<string, unknown>[] = [];
+    const fmtDate = (v?: string | null) => {
+      if (!v) return "";
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("es-ES", { year: "numeric", month: "2-digit", day: "2-digit" });
+    };
+    const phasesForList = selectedPhaseFilter === "all"
+      ? visibleColumns
+      : visibleColumns.filter((c) => c.key === selectedPhaseFilter);
+
+    phasesForList.forEach((col) => {
+      const phaseLabel = PROJECT_KANBAN_PHASE_LABELS[col.key] ?? MATURATION_PHASE_LABELS[col.key] ?? t.kanban[col.translationKey] ?? col.key;
+      const properties = filteredProperties[col.key] || [];
+      properties.forEach((p) => {
+        const a = p as any;
+        rows.push({
+          phase: phaseLabel,
+          id: a.uniqueIdFromEngagements || a.id,
+          address: a.address || "",
+          region: a.region || "",
+          renovador: a.renovador || "",
+          renoType: a.renoType || "",
+          estimatedVisit: a.estimatedVisitDate ? fmtDate(a.estimatedVisitDate) : "",
+          proximaActualizacion: a.nextUpdate ? fmtDate(a.nextUpdate) : "",
+          daysToVisit: a.daysToVisit ?? "",
+          daysToStartRenoSinceRSD: a.daysToStartRenoSinceRSD ?? "",
+          renoDuration: a.renoDuration ?? "",
+          daysToPropertyReady: a.daysToPropertyReady ?? "",
+          progress: a.progress != null ? `${Math.round(a.progress)}%` : "",
+          status: a.status || "",
+          budgetPhReadyDate: a.budgetPhReadyDate ? fmtDate(a.budgetPhReadyDate) : "",
+          renovatorBudgetApprovalDate: a.renovatorBudgetApprovalDate ? fmtDate(a.renovatorBudgetApprovalDate) : "",
+          initialVisitDate: a.initialVisitDate ? fmtDate(a.initialVisitDate) : "",
+          estRenoStartDate: a.estRenoStartDate ? fmtDate(a.estRenoStartDate) : "",
+          renoStartDate: a.renoStartDate ? fmtDate(a.renoStartDate) : "",
+          renoEstimatedEndDate: a.renoEstimatedEndDate ? fmtDate(a.renoEstimatedEndDate) : "",
+          renoEndDate: a.renoEndDate ? fmtDate(a.renoEndDate) : "",
+        });
+      });
+    });
+    return rows;
+  }, [visibleColumns, filteredProperties, selectedPhaseFilter, t.kanban, columnConfigWithTranslations]);
+
+  const csvProjectColumns = useMemo((): CsvColumn[] => {
+    const cols: CsvColumn[] = [{ key: "phase", label: "Fase" }];
+    PROJECT_COL_CONFIG.forEach((c) => cols.push({ key: c.key, label: c.label }));
+    return cols;
+  }, [PROJECT_COL_CONFIG]);
+
+  const csvProjectRows = useMemo((): Record<string, unknown>[] => {
+    const rows: Record<string, unknown>[] = [];
+    const fmtDate = (v?: string | null) => {
+      if (!v) return "";
+      const d = new Date(v);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("es-ES", { year: "numeric", month: "2-digit", day: "2-digit" });
+    };
+    const parseAreaCsv = (raw: string | null | undefined): string => {
+      if (!raw) return "";
+      try {
+        const parsed = JSON.parse(raw.replace(/'/g, '"'));
+        if (Array.isArray(parsed)) return parsed.join(", ");
+      } catch { /* ignore */ }
+      return raw.replace(/^\[|\]$/g, "").replace(/"/g, "").trim();
+    };
+    if (!filteredProjectsByPhase) return rows;
+    const phasesForList = selectedPhaseFilter === "all"
+      ? visibleColumns
+      : visibleColumns.filter((c) => c.key === selectedPhaseFilter);
+
+    phasesForList.forEach((col) => {
+      const phaseLabel = PROJECT_KANBAN_PHASE_LABELS[col.key] ?? MATURATION_PHASE_LABELS[col.key] ?? ARCHITECT_PHASE_LABELS[col.key] ?? t.kanban[col.translationKey] ?? col.key;
+      const projects = filteredProjectsByPhase[col.key] || [];
+      projects.forEach((proj) => {
+        const pa = proj as any;
+        const ptc = pa.properties_to_convert;
+        const ptcS = ptc != null ? String(ptc).trim() : "";
+        rows.push({
+          phase: phaseLabel,
+          projectId: proj.project_unique_id || proj.id?.slice(0, 8) || "",
+          name: proj.name || "",
+          propertiesCount: ptcS && ptcS !== "0" ? ptcS : (pa.est_properties ?? ""),
+          scouter: pa.scouter || "",
+          architect: pa.architect || "",
+          excludedEcu: pa.excluded_from_ecu === true ? "Sin ECU" : "Con ECU",
+          type: pa.type || "",
+          investmentType: pa.investment_type || "",
+          area: parseAreaCsv(pa.area_cluster),
+          renovator: pa.renovator || "",
+          projectStartDate: pa.project_start_date ? fmtDate(pa.project_start_date) : "",
+          settlementDate: pa.settlement_date ? fmtDate(pa.settlement_date) : "",
+          status: pa.project_status || "",
+        });
+      });
+    });
+    return rows;
+  }, [visibleColumns, filteredProjectsByPhase, selectedPhaseFilter, t.kanban, PROJECT_COL_CONFIG]);
+
+  const canExportCsv = fromParam === "maturation-kanban" || fromParam === "maturation-wip-kanban" || fromParam === "kanban-projects";
+
+  const handleOpenCsvExport = useCallback((mode: "property" | "project") => {
+    setCsvExportMode(mode);
+    setCsvExportOpen(true);
+  }, []);
+
   // Show error message if Supabase fails
   if (supabaseError) {
     return (
@@ -1665,6 +1814,16 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", filteredPhases.every(c => collapsedPhases.has(c.key)) && "-rotate-90")} />
               <span className="hidden sm:inline">{filteredPhases.every(c => collapsedPhases.has(c.key)) ? "Expandir" : "Colapsar"}</span>
             </button>
+            {canExportCsv && (
+              <button
+                onClick={() => handleOpenCsvExport("property")}
+                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-md hover:bg-accent/50 flex-shrink-0 whitespace-nowrap"
+                title="Exportar CSV"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Exportar</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -2392,6 +2551,16 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", projectFilteredPhases.every(c => collapsedPhases.has(c.key)) && "-rotate-90")} />
               <span className="hidden sm:inline">{projectFilteredPhases.every(c => collapsedPhases.has(c.key)) ? "Expandir" : "Colapsar"}</span>
             </button>
+            {canExportCsv && (
+              <button
+                onClick={() => handleOpenCsvExport("project")}
+                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded-md hover:bg-accent/50 flex-shrink-0 whitespace-nowrap"
+                title="Exportar CSV"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Exportar</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -2679,6 +2848,15 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
           reorderOnly={isArchitectView}
         />
       )}
+
+      {/* CSV Export Dialog */}
+      <CsvExportDialog
+        open={csvExportOpen}
+        onOpenChange={setCsvExportOpen}
+        columns={csvExportMode === "project" ? csvProjectColumns : csvPropertyColumns}
+        rows={csvExportMode === "project" ? csvProjectRows : csvPropertyRows}
+        filenamePrefix={csvExportMode === "project" ? "proyectos" : "propiedades"}
+      />
     </>
   );
 }

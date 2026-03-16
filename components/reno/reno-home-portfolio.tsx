@@ -76,6 +76,11 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "arch-obra-empezar": 0,
       "arch-obra-en-progreso": 0,
       "arch-completed": 0,
+      "wip-reno-due-diligence": 0,
+      "wip-admin-licencias": 0,
+      "wip-pendiente-presupuesto": 0,
+      "wip-obra-a-empezar": 0,
+      "wip-obra-en-progreso": 0,
     };
 
     // Use propertiesByPhase directly from Supabase hook
@@ -153,6 +158,11 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
       "arch-obra-empezar": "Obra por Empezar",
       "arch-obra-en-progreso": "Obra en Progreso",
       "arch-completed": "Finalizados",
+      "wip-reno-due-diligence": "Reno Due Diligence",
+      "wip-admin-licencias": "Administración de Licencias",
+      "wip-pendiente-presupuesto": "Pendiente de Presupuesto",
+      "wip-obra-a-empezar": "Obra a Empezar",
+      "wip-obra-en-progreso": "Obra en Progreso",
     };
     return stageMap[stage];
   };

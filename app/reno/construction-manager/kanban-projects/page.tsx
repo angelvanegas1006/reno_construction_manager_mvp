@@ -144,6 +144,11 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
       "arch-obra-empezar": [],
       "arch-obra-en-progreso": [],
       "arch-completed": [],
+      "wip-reno-due-diligence": [],
+      "wip-admin-licencias": [],
+      "wip-pendiente-presupuesto": [],
+      "wip-obra-a-empezar": [],
+      "wip-obra-en-progreso": [],
     };
     if (!rawPropertiesByPhase) return empty;
     const allowedTypes = ["project", "wip"];

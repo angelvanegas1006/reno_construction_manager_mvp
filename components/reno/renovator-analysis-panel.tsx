@@ -15,7 +15,6 @@ import {
   ArrowLeft,
   Building2,
   MapPin,
-  Wrench,
   Users,
   Home,
   Timer,
@@ -24,6 +23,8 @@ import {
   Hammer,
   Clock,
   CalendarCheck,
+  TrendingUp,
+  HardHat,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Property } from "@/lib/property-storage";
@@ -32,6 +33,26 @@ const TIME_LIMITS = {
   renoDuration: 90,
   daysToStart: 30,
   daysToReady: 120,
+};
+
+const PHASE_LABELS: Record<string, string> = {
+  "upcoming-settlements": "Próximas Reformas",
+  "initial-check": "Revisión Inicial",
+  "reno-budget-renovator": "Pendiente Presupuesto (Reformista)",
+  "reno-budget-client": "Pendiente Presupuesto (Cliente)",
+  "reno-budget-start": "Obra a Empezar",
+  "reno-budget": "Presupuesto de Renovación",
+  "upcoming": "Próximas propiedades",
+  "reno-in-progress": "Obras en Proceso",
+  "furnishing": "Amueblamiento",
+  "final-check": "Revisión Final",
+  "pendiente-suministros": "Pendiente de Suministros",
+  "final-check-post-suministros": "Final Check Post Suministros",
+  "cleaning": "Limpieza",
+  "furnishing-cleaning": "Limpieza y amueblamiento",
+  "reno-fixes": "Reparaciones reno",
+  "done": "Hecho",
+  "orphaned": "Sin fase",
 };
 
 function avg(values: number[]): number | null {
@@ -52,6 +73,20 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
+function daysBetween(a: string, b: string): number | null {
+  const da = new Date(a);
+  const db = new Date(b);
+  if (isNaN(da.getTime()) || isNaN(db.getTime())) return null;
+  return Math.round((db.getTime() - da.getTime()) / 86_400_000);
+}
+
+interface RenoTypeBreakdown {
+  light: number;
+  medium: number;
+  major: number;
+  other: number;
+}
+
 interface RenovatorMetrics {
   name: string;
   activeWorks: number;
@@ -62,10 +97,14 @@ interface RenovatorMetrics {
   avgCompletion: number | null;
   zones: string[];
   properties: Property[];
+  renoTypeBreakdown: RenoTypeBreakdown;
+  avgDeviation: number | null;
+  associatedForemen: string[];
 }
 
 interface RenovatorAnalysisPanelProps {
   propertiesByPhase?: Record<string, Property[]>;
+  role?: string;
 }
 
 const ACTIVE_PHASES = [
@@ -78,13 +117,53 @@ const ACTIVE_PHASES = [
   "final-check-post-suministros",
 ];
 
+const RENO_TYPE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  light: {
+    bg: "bg-green-600 dark:bg-green-600",
+    text: "text-white dark:text-white",
+    dot: "bg-white/70",
+  },
+  medium: {
+    bg: "bg-green-100 dark:bg-green-900/30",
+    text: "text-green-800 dark:text-green-300",
+    dot: "bg-green-600 dark:bg-green-400",
+  },
+  major: {
+    bg: "bg-yellow-200 dark:bg-yellow-900/30",
+    text: "text-yellow-900 dark:text-yellow-200",
+    dot: "bg-yellow-600 dark:bg-yellow-400",
+  },
+  other: {
+    bg: "bg-gray-700 dark:bg-gray-800",
+    text: "text-white dark:text-gray-100",
+    dot: "bg-white/50",
+  },
+};
+
+function classifyRenoType(raw: string | null | undefined): keyof RenoTypeBreakdown {
+  if (!raw) return "other";
+  const lower = raw.toLowerCase();
+  if (lower.includes("light")) return "light";
+  if (lower.includes("medium")) return "medium";
+  if (lower.includes("major") || lower.includes("full")) return "major";
+  return "other";
+}
+
+function getPhaseLabel(phase: string | null | undefined): string {
+  if (!phase) return "—";
+  return PHASE_LABELS[phase] ?? phase;
+}
+
 export function RenovatorAnalysisPanel({
   propertiesByPhase,
+  role,
 }: RenovatorAnalysisPanelProps) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRenovator, setSelectedRenovator] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const showForemanColumn = role !== "foreman";
 
   const renovators = useMemo(() => {
     if (!propertiesByPhase) return [];
@@ -116,7 +195,10 @@ export function RenovatorAnalysisPanel({
       const daysToStart: number[] = [];
       const daysToReady: number[] = [];
       const completions: number[] = [];
+      const deviations: number[] = [];
       const zonesSet = new Set<string>();
+      const foremenSet = new Set<string>();
+      const breakdown: RenoTypeBreakdown = { light: 0, medium: 0, major: 0, other: 0 };
 
       for (const p of all) {
         if (p.renoDuration != null && p.renoDuration > 0)
@@ -133,6 +215,30 @@ export function RenovatorAnalysisPanel({
           const cleaned = cleanZone(String(zone));
           if (cleaned) zonesSet.add(cleaned);
         }
+
+        const rt = classifyRenoType(p.renoType);
+        breakdown[rt]++;
+
+        const sp = (p as any).supabaseProperty;
+
+        // Desviación: días de retraso respecto al arranque estimado
+        // Comparar inicio real (start_date) vs inicio estimado (est_reno_start_date)
+        // Positivo = empezó tarde, negativo = empezó antes
+        const realStart = p.inicio;
+        const estStart = p.estRenoStartDate;
+        if (realStart && estStart) {
+          const diff = daysBetween(estStart, realStart);
+          if (diff !== null) {
+            deviations.push(diff);
+          }
+        }
+
+        const foreman =
+          sp?.["Technical construction"] ||
+          (p as any).foremanName;
+        if (foreman && typeof foreman === "string" && foreman.trim()) {
+          foremenSet.add(foreman.trim());
+        }
       }
 
       result.push({
@@ -145,6 +251,9 @@ export function RenovatorAnalysisPanel({
         avgCompletion: avg(completions),
         zones: Array.from(zonesSet).sort(),
         properties: all,
+        renoTypeBreakdown: breakdown,
+        avgDeviation: avg(deviations),
+        associatedForemen: Array.from(foremenSet).sort(),
       });
     }
 
@@ -152,7 +261,9 @@ export function RenovatorAnalysisPanel({
   }, [propertiesByPhase]);
 
   const INITIAL_ROWS = 6;
-  const displayed = isExpanded ? renovators : renovators.slice(0, INITIAL_ROWS);
+  const displayed = isExpanded
+    ? renovators
+    : renovators.slice(0, INITIAL_ROWS);
   const hasMore = renovators.length > INITIAL_ROWS;
 
   const selectedData = useMemo(() => {
@@ -168,7 +279,9 @@ export function RenovatorAnalysisPanel({
   const handleBackToList = () => setSelectedRenovator(null);
 
   const handlePropertyClick = (property: Property) => {
-    router.push(`/reno/construction-manager/property/${property.id}?from=home`);
+    router.push(
+      `/reno/construction-manager/property/${property.id}?from=home`
+    );
     setIsModalOpen(false);
     setSelectedRenovator(null);
   };
@@ -205,6 +318,87 @@ export function RenovatorAnalysisPanel({
     );
   };
 
+  const renderDeviationBadge = (value: number | null) => {
+    if (value === null)
+      return <span className="text-xs text-muted-foreground">Sin datos</span>;
+    const isNegative = value <= 0;
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold tabular-nums",
+          isNegative
+            ? "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400"
+            : "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400"
+        )}
+      >
+        {value > 0 ? "+" : ""}
+        {value} días
+      </span>
+    );
+  };
+
+  const renderRenoBreakdownMini = (breakdown: RenoTypeBreakdown) => {
+    const entries = [
+      { key: "light" as const, label: "Light", count: breakdown.light },
+      { key: "medium" as const, label: "Medium", count: breakdown.medium },
+      { key: "major" as const, label: "Major", count: breakdown.major },
+    ].filter((e) => e.count > 0);
+
+    if (entries.length === 0 && breakdown.other > 0) {
+      return (
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+            RENO_TYPE_COLORS.other.bg,
+            RENO_TYPE_COLORS.other.text
+          )}
+        >
+          {breakdown.other} otros
+        </span>
+      );
+    }
+    if (entries.length === 0) {
+      return <span className="text-xs text-muted-foreground">—</span>;
+    }
+
+    return (
+      <div className="flex flex-col items-start gap-1">
+        {entries.map((e) => (
+          <span
+            key={e.key}
+            className={cn(
+              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
+              RENO_TYPE_COLORS[e.key].bg,
+              RENO_TYPE_COLORS[e.key].text
+            )}
+          >
+            {e.label} ({e.count})
+          </span>
+        ))}
+        {breakdown.other > 0 && (
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+              RENO_TYPE_COLORS.other.bg,
+              RENO_TYPE_COLORS.other.text
+            )}
+          >
+            Otro ({breakdown.other})
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const getDeviationStatus = (
+    value: number | null
+  ): "ok" | "warn" | "over" | undefined => {
+    if (value === null) return undefined;
+    if (value <= 0) return "ok";
+    if (value <= 14) return "warn";
+    return "over";
+  };
+
   return (
     <>
       <Card className="bg-card">
@@ -212,7 +406,7 @@ export function RenovatorAnalysisPanel({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Wrench className="h-5 w-5 text-muted-foreground" />
+                <HardHat className="h-5 w-5 text-muted-foreground" />
                 Análisis de Reformistas
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
@@ -243,43 +437,38 @@ export function RenovatorAnalysisPanel({
           ) : (
             <>
               <div className="overflow-x-auto -mx-6 px-6">
-                <table className="w-full text-sm min-w-[850px]">
+                <table className={cn("w-full text-sm", showForemanColumn ? "min-w-[1100px]" : "min-w-[900px]")}>
                   <thead>
                     <tr className="border-b-2 border-border">
-                      <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider min-w-[180px]">
+                      <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider min-w-[170px]">
                         Reformista
                       </th>
-                      <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[90px]">
+                      <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[70px]">
                         Activas
                       </th>
-                      <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[90px]">
+                      <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[70px]">
                         Totales
                       </th>
-                      <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[130px]">
+                      <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[110px]">
+                        Tipo Reno
+                      </th>
+                      <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[120px]">
+                        Duración obra
+                      </th>
+                      <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[120px]">
                         <div>
-                          <span>Duración obra</span>
+                          <span>Desviación</span>
                           <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/70 mt-0.5">
-                            límite {TIME_LIMITS.renoDuration} días
+                            inicio real vs estimado
                           </span>
                         </div>
                       </th>
-                      <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[130px]">
-                        <div>
-                          <span>Días para empezar</span>
-                          <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/70 mt-0.5">
-                            límite {TIME_LIMITS.daysToStart} días
-                          </span>
-                        </div>
-                      </th>
-                      <th className="text-center py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[130px]">
-                        <div>
-                          <span>Días hasta lista</span>
-                          <span className="block text-[9px] font-normal normal-case tracking-normal text-muted-foreground/70 mt-0.5">
-                            límite {TIME_LIMITS.daysToReady} días
-                          </span>
-                        </div>
-                      </th>
-                      <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {showForemanColumn && (
+                        <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider min-w-[140px]">
+                          Jefe de obra
+                        </th>
+                      )}
+                      <th className="text-left py-3 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider min-w-[130px]">
                         Zonas
                       </th>
                       <th className="w-[36px]" />
@@ -297,8 +486,8 @@ export function RenovatorAnalysisPanel({
                       >
                         <td className="py-3.5 px-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                              <span className="text-xs font-bold text-orange-700 dark:text-orange-400">
+                            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-bold text-muted-foreground">
                                 {getInitials(reno.name)}
                               </span>
                             </div>
@@ -308,7 +497,7 @@ export function RenovatorAnalysisPanel({
                           </div>
                         </td>
                         <td className="text-center py-3.5 px-3">
-                          <span className="inline-flex items-center justify-center min-w-[32px] h-7 rounded-full bg-orange-100 dark:bg-orange-900/30 text-sm font-bold text-orange-700 dark:text-orange-400 px-2">
+                          <span className="text-sm font-bold text-foreground">
                             {reno.activeWorks}
                           </span>
                         </td>
@@ -318,23 +507,33 @@ export function RenovatorAnalysisPanel({
                           </span>
                         </td>
                         <td className="text-center py-3.5 px-3">
-                          {renderTimeBadge(
-                            reno.avgRenoDuration,
-                            TIME_LIMITS.renoDuration
-                          )}
+                          {renderRenoBreakdownMini(reno.renoTypeBreakdown)}
                         </td>
                         <td className="text-center py-3.5 px-3">
-                          {renderTimeBadge(
-                            reno.avgDaysToStart,
-                            TIME_LIMITS.daysToStart
-                          )}
+                          {renderTimeBadge(reno.avgRenoDuration, TIME_LIMITS.renoDuration)}
                         </td>
                         <td className="text-center py-3.5 px-3">
-                          {renderTimeBadge(
-                            reno.avgDaysToReady,
-                            TIME_LIMITS.daysToReady
-                          )}
+                          {renderDeviationBadge(reno.avgDeviation)}
                         </td>
+                        {showForemanColumn && (
+                          <td className="py-3.5 px-3">
+                            <div className="flex flex-wrap gap-1.5">
+                              {reno.associatedForemen.length > 0 ? (
+                                reno.associatedForemen.map((f) => (
+                                  <span
+                                    key={f}
+                                    className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:text-violet-400"
+                                  >
+                                    <Users className="h-2.5 w-2.5" />
+                                    {f}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </td>
+                        )}
                         <td className="py-3.5 px-3">
                           <div className="flex flex-wrap gap-1.5">
                             {reno.zones.length > 0 ? (
@@ -348,9 +547,7 @@ export function RenovatorAnalysisPanel({
                                 </span>
                               ))
                             ) : (
-                              <span className="text-xs text-muted-foreground">
-                                —
-                              </span>
+                              <span className="text-xs text-muted-foreground">—</span>
                             )}
                           </div>
                         </td>
@@ -391,7 +588,7 @@ export function RenovatorAnalysisPanel({
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={handleModalClose}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             {selectedData ? (
               <div className="flex items-center gap-3">
@@ -404,8 +601,8 @@ export function RenovatorAnalysisPanel({
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-orange-700 dark:text-orange-400">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-muted-foreground">
                       {getInitials(selectedData.name)}
                     </span>
                   </div>
@@ -414,7 +611,7 @@ export function RenovatorAnalysisPanel({
               </div>
             ) : (
               <DialogTitle className="flex items-center gap-2">
-                <Wrench className="h-5 w-5 text-muted-foreground" />
+                <HardHat className="h-5 w-5 text-muted-foreground" />
                 Todos los Reformistas
               </DialogTitle>
             )}
@@ -422,7 +619,8 @@ export function RenovatorAnalysisPanel({
 
           {selectedData ? (
             <div className="space-y-5 mt-2">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {/* KPIs */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <MetricCard
                   icon={Hammer}
                   label="Obras activas"
@@ -441,16 +639,7 @@ export function RenovatorAnalysisPanel({
                       ? `${selectedData.avgRenoDuration} días`
                       : "Sin datos"
                   }
-                  status={
-                    selectedData.avgRenoDuration !== null
-                      ? selectedData.avgRenoDuration <= TIME_LIMITS.renoDuration
-                        ? "ok"
-                        : selectedData.avgRenoDuration <=
-                          TIME_LIMITS.renoDuration * 1.5
-                        ? "warn"
-                        : "over"
-                      : undefined
-                  }
+                  status={getTimeLimitStatus(selectedData.avgRenoDuration, TIME_LIMITS.renoDuration)}
                 />
                 <MetricCard
                   icon={CalendarCheck}
@@ -460,16 +649,7 @@ export function RenovatorAnalysisPanel({
                       ? `${selectedData.avgDaysToStart} días`
                       : "Sin datos"
                   }
-                  status={
-                    selectedData.avgDaysToStart !== null
-                      ? selectedData.avgDaysToStart <= TIME_LIMITS.daysToStart
-                        ? "ok"
-                        : selectedData.avgDaysToStart <=
-                          TIME_LIMITS.daysToStart * 1.5
-                        ? "warn"
-                        : "over"
-                      : undefined
-                  }
+                  status={getTimeLimitStatus(selectedData.avgDaysToStart, TIME_LIMITS.daysToStart)}
                 />
                 <MetricCard
                   icon={Clock}
@@ -479,16 +659,17 @@ export function RenovatorAnalysisPanel({
                       ? `${selectedData.avgDaysToReady} días`
                       : "Sin datos"
                   }
-                  status={
-                    selectedData.avgDaysToReady !== null
-                      ? selectedData.avgDaysToReady <= TIME_LIMITS.daysToReady
-                        ? "ok"
-                        : selectedData.avgDaysToReady <=
-                          TIME_LIMITS.daysToReady * 1.5
-                        ? "warn"
-                        : "over"
-                      : undefined
+                  status={getTimeLimitStatus(selectedData.avgDaysToReady, TIME_LIMITS.daysToReady)}
+                />
+                <MetricCard
+                  icon={TrendingUp}
+                  label="Desviación arranque"
+                  value={
+                    selectedData.avgDeviation !== null
+                      ? `${selectedData.avgDeviation > 0 ? "+" : ""}${selectedData.avgDeviation} días`
+                      : "Sin datos"
                   }
+                  status={getDeviationStatus(selectedData.avgDeviation)}
                 />
                 {selectedData.avgCompletion !== null && (
                   <MetricCard
@@ -499,6 +680,53 @@ export function RenovatorAnalysisPanel({
                 )}
               </div>
 
+              {/* Desglose tipo de reno */}
+              {(selectedData.renoTypeBreakdown.light > 0 ||
+                selectedData.renoTypeBreakdown.medium > 0 ||
+                selectedData.renoTypeBreakdown.major > 0 ||
+                selectedData.renoTypeBreakdown.other > 0) && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    Desglose por tipo de reforma
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedData.renoTypeBreakdown.light > 0 && (
+                      <RenoTypeTag label="Light Reno" count={selectedData.renoTypeBreakdown.light} colorKey="light" />
+                    )}
+                    {selectedData.renoTypeBreakdown.medium > 0 && (
+                      <RenoTypeTag label="Medium Reno" count={selectedData.renoTypeBreakdown.medium} colorKey="medium" />
+                    )}
+                    {selectedData.renoTypeBreakdown.major > 0 && (
+                      <RenoTypeTag label="Major Reno" count={selectedData.renoTypeBreakdown.major} colorKey="major" />
+                    )}
+                    {selectedData.renoTypeBreakdown.other > 0 && (
+                      <RenoTypeTag label="Otro" count={selectedData.renoTypeBreakdown.other} colorKey="other" />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Jefes de obra */}
+              {selectedData.associatedForemen.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    Jefes de obra
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedData.associatedForemen.map((foreman) => (
+                      <span
+                        key={foreman}
+                        className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-900/30 px-2.5 py-1 text-xs font-medium text-violet-700 dark:text-violet-400"
+                      >
+                        <Users className="h-3 w-3" />
+                        {foreman}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Zonas */}
               {selectedData.zones.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -518,53 +746,68 @@ export function RenovatorAnalysisPanel({
                 </div>
               )}
 
+              {/* Lista de propiedades */}
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Propiedades ({selectedData.properties.length})
                 </p>
                 <div className="space-y-1.5">
-                  {selectedData.properties.map((property) => (
-                    <div
-                      key={property.id}
-                      onClick={() => handlePropertyClick(property)}
-                      className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer group"
-                    >
-                      <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {property.address ||
-                            property.fullAddress ||
-                            property.id}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                          {property.renoType && (
-                            <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                              {property.renoType}
-                            </span>
-                          )}
-                          {property.renoPhase && (
-                            <span className="text-xs text-muted-foreground">
-                              {property.renoPhase}
-                            </span>
-                          )}
-                          {property.completion != null &&
-                            property.completion > 0 && (
+                  {selectedData.properties.map((property) => {
+                    const sp = (property as any).supabaseProperty;
+                    const foreman = sp?.["Technical construction"];
+                    const phase = property.renoPhase || sp?.reno_phase;
+                    return (
+                      <div
+                        key={property.id}
+                        onClick={() => handlePropertyClick(property)}
+                        className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer group"
+                      >
+                        <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {property.address || property.fullAddress || property.id}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            {property.renoType && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+                                  RENO_TYPE_COLORS[classifyRenoType(property.renoType)].bg,
+                                  RENO_TYPE_COLORS[classifyRenoType(property.renoType)].text
+                                )}
+                              >
+                                {property.renoType}
+                              </span>
+                            )}
+                            {phase && (
+                              <span className="text-xs text-muted-foreground">
+                                {getPhaseLabel(phase)}
+                              </span>
+                            )}
+                            {showForemanColumn && foreman && (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-violet-600 dark:text-violet-400">
+                                <Users className="h-2.5 w-2.5" />
+                                {foreman}
+                              </span>
+                            )}
+                            {property.completion != null && property.completion > 0 && (
                               <span className="text-[10px] text-muted-foreground">
                                 {property.completion}% completado
                               </span>
                             )}
+                          </div>
                         </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
           ) : (
             <div className="space-y-4 mt-2">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className={cn("w-full text-sm", showForemanColumn ? "min-w-[950px]" : "min-w-[750px]")}>
                   <thead>
                     <tr className="border-b-2 border-border">
                       <th className="text-left py-2.5 px-3 text-xs font-semibold text-muted-foreground">
@@ -577,14 +820,19 @@ export function RenovatorAnalysisPanel({
                         Totales
                       </th>
                       <th className="text-center py-2.5 px-3 text-xs font-semibold text-muted-foreground">
+                        Tipo Reno
+                      </th>
+                      <th className="text-center py-2.5 px-3 text-xs font-semibold text-muted-foreground">
                         Duración obra
                       </th>
                       <th className="text-center py-2.5 px-3 text-xs font-semibold text-muted-foreground">
-                        Días para empezar
+                        Desviación
                       </th>
-                      <th className="text-center py-2.5 px-3 text-xs font-semibold text-muted-foreground">
-                        Días hasta lista
-                      </th>
+                      {showForemanColumn && (
+                        <th className="text-left py-2.5 px-3 text-xs font-semibold text-muted-foreground">
+                          Jefe de obra
+                        </th>
+                      )}
                       <th className="text-left py-2.5 px-3 text-xs font-semibold text-muted-foreground">
                         Zonas
                       </th>
@@ -602,8 +850,8 @@ export function RenovatorAnalysisPanel({
                       >
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                              <span className="text-[10px] font-bold text-orange-700 dark:text-orange-400">
+                            <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                              <span className="text-[10px] font-bold text-muted-foreground">
                                 {getInitials(reno.name)}
                               </span>
                             </div>
@@ -619,23 +867,33 @@ export function RenovatorAnalysisPanel({
                           {reno.totalProperties}
                         </td>
                         <td className="text-center py-3 px-3">
-                          {renderTimeBadge(
-                            reno.avgRenoDuration,
-                            TIME_LIMITS.renoDuration
-                          )}
+                          {renderRenoBreakdownMini(reno.renoTypeBreakdown)}
                         </td>
                         <td className="text-center py-3 px-3">
-                          {renderTimeBadge(
-                            reno.avgDaysToStart,
-                            TIME_LIMITS.daysToStart
-                          )}
+                          {renderTimeBadge(reno.avgRenoDuration, TIME_LIMITS.renoDuration)}
                         </td>
                         <td className="text-center py-3 px-3">
-                          {renderTimeBadge(
-                            reno.avgDaysToReady,
-                            TIME_LIMITS.daysToReady
-                          )}
+                          {renderDeviationBadge(reno.avgDeviation)}
                         </td>
+                        {showForemanColumn && (
+                          <td className="py-3 px-3">
+                            <div className="flex flex-wrap gap-1">
+                              {reno.associatedForemen.length > 0 ? (
+                                reno.associatedForemen.map((f) => (
+                                  <span
+                                    key={f}
+                                    className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-[10px] font-medium text-violet-700 dark:text-violet-400"
+                                  >
+                                    <Users className="h-2.5 w-2.5" />
+                                    {f}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </td>
+                        )}
                         <td className="py-3 px-3">
                           <div className="flex flex-wrap gap-1">
                             {reno.zones.length > 0 ? (
@@ -648,9 +906,7 @@ export function RenovatorAnalysisPanel({
                                 </span>
                               ))
                             ) : (
-                              <span className="text-xs text-muted-foreground">
-                                —
-                              </span>
+                              <span className="text-xs text-muted-foreground">—</span>
                             )}
                           </div>
                         </td>
@@ -664,6 +920,45 @@ export function RenovatorAnalysisPanel({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function getTimeLimitStatus(value: number | null, limit: number): "ok" | "warn" | "over" | undefined {
+  if (value === null) return undefined;
+  if (value <= limit) return "ok";
+  if (value <= limit * 1.5) return "warn";
+  return "over";
+}
+
+function getDeviationStatus(value: number | null): "ok" | "warn" | "over" | undefined {
+  if (value === null) return undefined;
+  if (value <= 0) return "ok";
+  if (value <= 14) return "warn";
+  return "over";
+}
+
+function RenoTypeTag({
+  label,
+  count,
+  colorKey,
+}: {
+  label: string;
+  count: number;
+  colorKey: keyof typeof RENO_TYPE_COLORS;
+}) {
+  const colors = RENO_TYPE_COLORS[colorKey];
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",
+        colors.bg,
+        colors.text
+      )}
+    >
+      <span className={cn("w-2 h-2 rounded-full", colors.dot)} />
+      {label}
+      <span className="font-bold">{count}</span>
+    </span>
   );
 }
 

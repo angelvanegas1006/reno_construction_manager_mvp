@@ -100,6 +100,8 @@ function convertSupabasePropertyToKanbanProperty(
     ultimaActualizacion: supabaseProperty.last_update || undefined,
     inicio: supabaseProperty.start_date || undefined,
     finEst: supabaseProperty.estimated_end_date || undefined,
+    estRenoStartDate: supabaseProperty.est_reno_start_date || undefined,
+    renoEndDate: supabaseProperty.reno_end_date || undefined,
     region: supabaseProperty.area_cluster || undefined,
     renoType: supabaseProperty.renovation_type || undefined,
     renovador: supabaseProperty['Renovator name'] || undefined,
@@ -403,6 +405,11 @@ export function useSupabaseKanbanProperties() {
         'arch-obra-empezar': [],
         'arch-obra-en-progreso': [],
         'arch-completed': [],
+        'wip-reno-due-diligence': [],
+        'wip-admin-licencias': [],
+        'wip-pendiente-presupuesto': [],
+        'wip-obra-a-empezar': [],
+        'wip-obra-en-progreso': [],
       } as Record<RenoKanbanPhase, Property[]>;
     }
 
@@ -454,6 +461,11 @@ export function useSupabaseKanbanProperties() {
       'arch-obra-empezar': [],
       'arch-obra-en-progreso': [],
       'arch-completed': [],
+      'wip-reno-due-diligence': [],
+      'wip-admin-licencias': [],
+      'wip-pendiente-presupuesto': [],
+      'wip-obra-a-empezar': [],
+      'wip-obra-en-progreso': [],
     };
 
     let convertedCount = 0;

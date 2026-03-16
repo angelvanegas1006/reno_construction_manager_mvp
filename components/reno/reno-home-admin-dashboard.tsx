@@ -74,10 +74,10 @@ const HIDDEN_NAMES_PATTERN = /manu\s*prueba/i;
 
 const CHART_COLORS = {
   unit: "#3b82f6",
-  building: "#1d4ed8",
-  project: "#60a5fa",
-  wip: "#93c5fd",
-  lot: "#1e3a5f",
+  building: "#f59e0b",
+  project: "#10b981",
+  wip: "#8b5cf6",
+  lot: "#ef4444",
 };
 
 export function RenoHomeAdminDashboard({
@@ -98,6 +98,7 @@ export function RenoHomeAdminDashboard({
     pending: number;
     avgDays: number | null;
   }>({ completed: 0, pending: 0, avgDays: null });
+  const [renovatorAssignments, setRenovatorAssignments] = useState<{ name: string; count: number }[]>([]);
 
   const isAllowed = role === "admin" || role === "construction_manager";
 
@@ -120,6 +121,31 @@ export function RenoHomeAdminDashboard({
       setProjectTypesMap(map);
     }
     fetchProjectTypes();
+  }, [isAllowed]);
+
+  // --- Renovator assignments from app ---
+  useEffect(() => {
+    if (!isAllowed) return;
+    async function fetchRenovatorAssignments() {
+      const { data } = await supabase
+        .from("properties")
+        .select("\"Technical construction\", renovator_assigned_from_app")
+        .eq("renovator_assigned_from_app", true);
+      const countMap: Record<string, number> = {};
+      (data || []).forEach((p: any) => {
+        const tc = p["Technical construction"];
+        if (!tc) return;
+        const email = getForemanEmailFromName(tc) || tc;
+        const name = getShortName(email);
+        if (isHiddenUser(email, name)) return;
+        countMap[name] = (countMap[name] || 0) + 1;
+      });
+      const sorted = Object.entries(countMap)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+      setRenovatorAssignments(sorted);
+    }
+    fetchRenovatorAssignments();
   }, [isAllowed]);
 
   // --- Works per foreman (derived from propertiesByPhase + projectTypesMap) ---
@@ -465,6 +491,38 @@ export function RenoHomeAdminDashboard({
               <Bar dataKey="lot" name="Lot" stackId="a" fill={CHART_COLORS.lot} radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* Renovadores asignados desde la app */}
+      <div className="bg-card border rounded-lg p-4">
+        <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+          <ClipboardCheck className="h-4 w-4 text-emerald-500" />
+          Renovadores rellenados desde la app
+        </h3>
+        {renovatorAssignments.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            Aún no hay renovadores asignados desde la app
+          </p>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-muted-foreground font-medium uppercase tracking-wider px-1 pb-1 border-b">
+              <span>Jefe de obra</span>
+              <span>Desde la app</span>
+            </div>
+            {renovatorAssignments.map((item) => (
+              <div key={item.name} className="flex items-center justify-between py-1.5 px-1 rounded hover:bg-muted/40 transition-colors">
+                <span className="text-sm font-medium">{item.name}</span>
+                <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                  {item.count}
+                </span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between pt-2 border-t px-1">
+              <span className="text-xs text-muted-foreground font-medium">Total</span>
+              <span className="text-sm font-bold">{renovatorAssignments.reduce((s, i) => s + i.count, 0)}</span>
+            </div>
+          </div>
         )}
       </div>
 

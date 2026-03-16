@@ -150,8 +150,10 @@ export interface Property {
   // Reno Construction Manager fields
   ultimaActualizacion?: string; // ISO date string
   proximaActualizacion?: string; // ISO date string
-  inicio?: string; // ISO date string - start of renovation
-  finEst?: string; // ISO date string - estimated end date
+  inicio?: string; // ISO date string - start of renovation (Reno Start Date)
+  finEst?: string; // ISO date string - estimated end date (Est. Reno End Date)
+  estRenoStartDate?: string; // ISO date string - estimated start date (Est. reno start date)
+  renoEndDate?: string; // ISO date string - real end date of renovation (Reno end date)
   region?: string; // e.g., "Vega Baja" - region info (not a tag)
   renoType?: string; // e.g., "Light Reno"
   renovador?: string; // e.g., "LyR"

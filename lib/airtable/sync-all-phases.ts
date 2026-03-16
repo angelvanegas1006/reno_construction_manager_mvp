@@ -9,7 +9,7 @@
 
 import { syncAllPhasesUnified, type UnifiedSyncResult } from './sync-unified';
 import { syncBudgetsForAllProperties, type SyncBudgetsResult } from './sync-budget-from-transactions';
-import { syncProjectsFromAirtable, syncMaturationProjectsFromAirtable } from './sync-projects';
+import { syncProjectsFromAirtable, syncMaturationProjectsFromAirtable, syncWipProjectsFromAirtable } from './sync-projects';
 
 export interface SyncResult {
   phase: string;
@@ -64,6 +64,17 @@ export async function syncAllPhasesFromAirtable(): Promise<AllPhasesSyncResult> 
   } catch (matErr: unknown) {
     const message = matErr instanceof Error ? matErr.message : String(matErr);
     console.error('[Airtable Sync] Maturation Projects sync failed:', message);
+  }
+
+  // 2c. Sincronizar proyectos WIP (view viw0RIZxndGlhHjYK)
+  try {
+    const wipResult = await syncWipProjectsFromAirtable();
+    if (!wipResult.skipped && (wipResult.created > 0 || wipResult.updated > 0)) {
+      console.log('[Airtable Sync] WIP Projects:', { created: wipResult.created, updated: wipResult.updated });
+    }
+  } catch (wipErr: unknown) {
+    const message = wipErr instanceof Error ? wipErr.message : String(wipErr);
+    console.error('[Airtable Sync] WIP Projects sync failed:', message);
   }
 
   // 3. Sincronizar budget_pdf_url desde Airtable Transactions para TODAS las propiedades del kanban

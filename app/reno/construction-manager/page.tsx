@@ -8,7 +8,6 @@ import { RenoHomeIndicators } from "@/components/reno/reno-home-indicators";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RenoHomeTodoWidgets } from "@/components/reno/reno-home-todo-widgets";
 import { VisitsCalendar } from "@/components/reno/visits-calendar";
-import { RenoHomeRecentProperties } from "@/components/reno/reno-home-recent-properties";
 import { RenoHomePortfolio } from "@/components/reno/reno-home-portfolio";
 import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { RenoHomeUpdateRequests } from "@/components/reno/reno-home-update-requests";
@@ -566,12 +565,8 @@ export default function RenoConstructionManagerHomePage() {
                       <RenoHomeAdminDashboard propertiesByPhase={propertiesByPhase} />
                     )}
 
-                    {/* Análisis de Reformistas (admin) / Obras activas por reformista (otros) */}
-                    {role === 'admin' ? (
-                      <RenovatorAnalysisPanel propertiesByPhase={propertiesByPhase} />
-                    ) : (
-                      <RenoHomeRecentProperties properties={properties} propertiesByPhase={propertiesByPhase} />
-                    )}
+                    {/* Análisis de Reformistas - visible para admin, construction_manager y foreman */}
+                    <RenovatorAnalysisPanel propertiesByPhase={propertiesByPhase} role={role ?? undefined} />
 
                     {/* Donut Charts - solo admin */}
                     {role === 'admin' && (

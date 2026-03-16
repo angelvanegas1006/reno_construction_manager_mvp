@@ -13,6 +13,7 @@ import { ChevronRight, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { sendArchitectEmailAlert } from "@/lib/webhook/architect-email-alert";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import { PHASES_KANBAN_MATURATION } from "@/lib/reno-kanban-config";
@@ -64,7 +65,7 @@ export function MaturationTodoWidgets({
   };
 
   const handleArchitectSelect = useCallback(
-    async ({ name }: { id: string; name: string }) => {
+    async ({ name, email, fee }: { id: string; name: string; email?: string | null; fee?: number | null }) => {
       if (!selectedProject) return;
       const supabase = createClient();
       const updates: Record<string, unknown> = {
@@ -73,6 +74,9 @@ export function MaturationTodoWidgets({
       };
       if (!(selectedProject as any).draft_order_date) {
         updates.draft_order_date = new Date().toISOString();
+      }
+      if (fee != null) {
+        updates.architect_fee = fee;
       }
       const { error } = await supabase
         .from("projects")
@@ -83,6 +87,18 @@ export function MaturationTodoWidgets({
       } else {
         toast.success(`Arquitecto ${name} asignado`);
         onRefetch?.();
+
+        const result = await sendArchitectEmailAlert({
+          alertType: "new_project",
+          architectName: name,
+          architectEmail: email,
+          projectName: selectedProject.name || selectedProject.project_unique_id || "",
+          areaCluster: (selectedProject as any).area_cluster,
+          architectFee: fee,
+        });
+        if (!result.success) {
+          toast.error(result.error ?? "Error al enviar email al arquitecto");
+        }
       }
     },
     [selectedProject, onRefetch]

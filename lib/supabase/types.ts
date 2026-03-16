@@ -52,6 +52,35 @@ export type Database = {
           },
         ]
       }
+      architect_reminder_log: {
+        Row: {
+          id: string
+          project_id: string | null
+          reminder_type: string
+          sent_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id?: string | null
+          reminder_type: string
+          sent_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string | null
+          reminder_type?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "architect_reminder_log_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_tasks: {
         Row: {
           activity_id: string
@@ -467,6 +496,7 @@ export type Database = {
           town_hall_receipt: unknown | null
           town_hall_fees: unknown | null
           is_maturation_project: boolean | null
+          is_wip_project: boolean | null
           check_pro_data: unknown | null
           check_pro_report_url: string | null
           project_architect_date: string | null
@@ -478,6 +508,7 @@ export type Database = {
           arch_safety_doc: unknown | null
           arch_approval_doc: unknown | null
           arch_correction_date: string | null
+          architect_fee: number | null
         }
         Insert: {
           id?: string
@@ -554,6 +585,7 @@ export type Database = {
           town_hall_receipt?: unknown | null
           town_hall_fees?: unknown | null
           is_maturation_project?: boolean | null
+          is_wip_project?: boolean | null
           check_pro_data?: unknown | null
           check_pro_report_url?: string | null
           project_architect_date?: string | null
@@ -565,6 +597,7 @@ export type Database = {
           arch_safety_doc?: unknown | null
           arch_approval_doc?: unknown | null
           arch_correction_date?: string | null
+          architect_fee?: number | null
         }
         Update: {
           id?: string
@@ -641,6 +674,7 @@ export type Database = {
           town_hall_receipt?: unknown | null
           town_hall_fees?: unknown | null
           is_maturation_project?: boolean | null
+          is_wip_project?: boolean | null
           check_pro_data?: unknown | null
           check_pro_report_url?: string | null
           project_architect_date?: string | null
@@ -652,6 +686,7 @@ export type Database = {
           arch_safety_doc?: unknown | null
           arch_approval_doc?: unknown | null
           arch_correction_date?: string | null
+          architect_fee?: number | null
         }
         Relationships: []
       }
