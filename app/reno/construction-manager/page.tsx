@@ -319,6 +319,7 @@ export default function RenoConstructionManagerHomePage() {
     projectsByPhase: matProjectsByPhase,
     allProjects: matAllProjects,
     loading: matLoading,
+    refetch: matRefetch,
   } = useMaturationProjects();
 
   const {
@@ -344,7 +345,19 @@ export default function RenoConstructionManagerHomePage() {
     });
   }, [matAllProjects, matSelectedQuarter]);
 
-  const matTotalProjects = matFilteredProjects.length;
+  const MAT_ACTIVE_PHASES = new Set([
+    "get-project-draft",
+    "pending-to-validate",
+    "pending-to-reserve-arras",
+    "technical-project-in-progress",
+    "ecuv-first-validation",
+    "technical-project-fine-tuning",
+    "ecuv-final-validation",
+  ]);
+
+  const matTotalProjects = matFilteredProjects.filter(
+    (p) => MAT_ACTIVE_PHASES.has(p.reno_phase ?? "")
+  ).length;
   const archTotalProjects = archAllProjects.length;
 
   const matAvgDays = useMemo(() => {
@@ -654,22 +667,23 @@ export default function RenoConstructionManagerHomePage() {
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <CheckCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Pendientes de validación</CardTitle>
+                            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Pendiente de ECU</CardTitle>
                           </div>
                         </CardHeader>
                         <CardContent>
                           <div className="text-xl md:text-2xl font-bold text-foreground">
-                            {(matProjectsByPhase["pending-to-validate"] || []).length +
-                              (matProjectsByPhase["ecuv-first-validation"] || []).length +
-                              (matProjectsByPhase["ecuv-final-validation"] || []).length}
+                            {[
+                              ...(matProjectsByPhase["ecuv-first-validation"] || []),
+                              ...(matProjectsByPhase["ecuv-final-validation"] || []),
+                            ].filter((p) => (p as any).excluded_from_ecu !== true).length}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Proyectos pendientes de validación o validación ECU</p>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Proyectos con ECU en fase de validación</p>
                         </CardContent>
                       </Card>
                     </div>
 
                     {/* Todo Widgets */}
-                    <MaturationTodoWidgets allProjects={matAllProjects} projectsByPhase={matProjectsByPhase} />
+                    <MaturationTodoWidgets allProjects={matAllProjects} projectsByPhase={matProjectsByPhase} onRefetch={matRefetch} />
 
                     {/* Quarter filter + KPIs de tiempos medios */}
                     <div className="space-y-3">

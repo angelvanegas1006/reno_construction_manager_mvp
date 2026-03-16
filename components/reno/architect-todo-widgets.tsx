@@ -9,10 +9,7 @@ import { ChevronRight, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
-import {
-  PHASES_KANBAN_ARCHITECT,
-  ARCHITECT_PHASE_LABELS,
-} from "@/lib/reno-kanban-config";
+import { PHASES_KANBAN_ARCHITECT } from "@/lib/reno-kanban-config";
 
 interface TodoWidget {
   id: string;
@@ -109,22 +106,21 @@ export function ArchitectTodoWidgets({
   };
 
   const renderProjectInfo = (project: ProjectRow) => {
-    const phase = project.reno_phase
-      ? ARCHITECT_PHASE_LABELS[project.reno_phase] || project.reno_phase
-      : "—";
+    const rawZone = (project as any).area_cluster;
+    const zone = rawZone
+      ? String(rawZone).replace(/[\[\]"]/g, "").trim()
+      : null;
+
     return (
       <div className="space-y-1.5 min-w-0 w-full">
         <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
           {project.name || "Sin nombre"}
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
-          <span className="whitespace-nowrap truncate max-w-full">{phase}</span>
-          {project.investment_type && (
-            <span className="whitespace-nowrap truncate max-w-full">
-              • {project.investment_type}
-            </span>
-          )}
-        </div>
+        {zone && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
+            <span className="whitespace-nowrap truncate max-w-full">{zone}</span>
+          </div>
+        )}
       </div>
     );
   };
