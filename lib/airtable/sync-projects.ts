@@ -772,6 +772,7 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
     pageRecords.forEach((rec: any) => {
       const f = rec.fields ?? {};
       scouterIds.push(...extractLinkedRecordIds(f[F.SCOUTER]).filter((id) => id.startsWith('rec')));
+      scouterIds.push(...extractLinkedRecordIds(f[F.LEAD]).filter((id) => id.startsWith('rec')));
       b2bIds.push(...extractLinkedRecordIds(f[F.ARCHITECT]).filter((id) => id.startsWith('rec')));
       b2bIds.push(...extractLinkedRecordIds(f[F.ECU_CONTACT]).filter((id) => id.startsWith('rec')));
     });
@@ -793,6 +794,7 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
       if (!reno_phase) reno_phase = 'get-project-draft';
 
       const rawScouter = getField(f, F.SCOUTER);
+      const rawLead = getField(f, F.LEAD);
       const rawArchitect = getField(f, F.ARCHITECT);
       const rawEcuContact = getField(f, F.ECU_CONTACT);
 
@@ -824,7 +826,7 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
         operation_name: getField<string>(f, F.OPERATION_NAME) ?? null,
         opportunity_stage: getField<string>(f, F.OPPORTUNITY_STAGE) ?? null,
         scouter: linkedIdsToNames(rawScouter, linkedNameMap) ?? (typeof rawScouter === 'string' ? rawScouter : null),
-        lead: getField<string>(f, F.LEAD) ?? null,
+        lead: linkedIdsToNames(rawLead, linkedNameMap) ?? (typeof rawLead === 'string' ? rawLead : null),
         est_properties: getField<string>(f, F.EST_PROPERTIES) ?? null,
         architect: linkedIdsToNames(rawArchitect, linkedNameMap) ?? (typeof rawArchitect === 'string' ? rawArchitect : null),
         excluded_from_ecu: parseBool(getField(f, F.EXCLUDED_FROM_ECU)),
@@ -1073,6 +1075,7 @@ export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult>
     pageRecords.forEach((rec: any) => {
       const f = rec.fields ?? {};
       scouterIds.push(...extractLinkedRecordIds(f[F.SCOUTER]).filter((id) => id.startsWith('rec')));
+      scouterIds.push(...extractLinkedRecordIds(f[F.LEAD]).filter((id) => id.startsWith('rec')));
       b2bIds.push(...extractLinkedRecordIds(f[F.ARCHITECT]).filter((id) => id.startsWith('rec')));
     });
 
@@ -1094,6 +1097,7 @@ export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult>
       }
 
       const rawScouter = getField(f, F.SCOUTER);
+      const rawLead = getField(f, F.LEAD);
       const rawArchitect = getField(f, F.ARCHITECT);
 
       records.push({
@@ -1124,7 +1128,7 @@ export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult>
         operation_name: getField<string>(f, F.OPERATION_NAME) ?? null,
         opportunity_stage: getField<string>(f, F.OPPORTUNITY_STAGE) ?? null,
         scouter: linkedIdsToNames(rawScouter, linkedNameMap) ?? (typeof rawScouter === 'string' ? rawScouter : null),
-        lead: getField<string>(f, F.LEAD) ?? null,
+        lead: linkedIdsToNames(rawLead, linkedNameMap) ?? (typeof rawLead === 'string' ? rawLead : null),
         est_properties: getField<string>(f, F.EST_PROPERTIES) ?? null,
         architect: linkedIdsToNames(rawArchitect, linkedNameMap) ?? (typeof rawArchitect === 'string' ? rawArchitect : null),
         excluded_from_ecu: parseBool(getField(f, F.EXCLUDED_FROM_ECU)),
