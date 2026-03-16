@@ -11,17 +11,21 @@ import type { ArchitectFilters } from "@/components/reno/architect-kanban-filter
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { useSupabaseAuthContext } from "@/lib/auth/supabase-auth-context";
 import { useArchitectProjects } from "@/hooks/useArchitectProjects";
+import { useArchitectWipProjects } from "@/hooks/useWipProjects";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   visibleRenoKanbanColumnsArchitect,
+  visibleRenoKanbanColumnsWip,
   PHASES_KANBAN_ARCHITECT,
+  PHASES_KANBAN_WIP,
 } from "@/lib/reno-kanban-config";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import { trackEventWithDevice } from "@/lib/mixpanel";
 
 type ViewMode = "kanban" | "list";
+type KanbanMode = "projects" | "wips";
 
 const PHASE_DAY_CONFIG: Partial<Record<RenoKanbanPhase, { field: string; limitDays: number }>> = {
   "arch-pending-measurement": { field: "draft_order_date", limitDays: 7 },
@@ -66,13 +70,14 @@ function enrichAndSort(
 function applyFilters(
   byPhase: Record<RenoKanbanPhase, ProjectRow[]>,
   filters: ArchitectFilters,
+  phases: RenoKanbanPhase[],
 ): Record<RenoKanbanPhase, ProjectRow[]> {
   const out: Record<string, ProjectRow[]> = {};
-  for (const phase of PHASES_KANBAN_ARCHITECT) {
+  for (const phase of phases) {
     out[phase] = [];
   }
 
-  for (const phase of PHASES_KANBAN_ARCHITECT) {
+  for (const phase of phases) {
     if (filters.phase && filters.phase !== phase) continue;
     const projects = byPhase[phase] ?? [];
     for (const p of projects) {
@@ -109,6 +114,7 @@ export default function ArchitectKanbanPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
+  const [kanbanMode, setKanbanMode] = useState<KanbanMode>("projects");
   const [filters, setFilters] = useState<ArchitectFilters>(DEFAULT_ARCHITECT_FILTERS);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
@@ -129,12 +135,22 @@ export default function ArchitectKanbanPage() {
     refetch: refetchProjects,
   } = useArchitectProjects(architectName, isAdminView);
 
+  const {
+    projectsByPhase: wipByPhase,
+    allProjects: allWipProjects,
+    refetch: refetchWip,
+  } = useArchitectWipProjects(architectName, isAdminView);
+
   const [syncLoading, setSyncLoading] = useState(false);
 
-  const filteredByPhase = useMemo(
-    () => enrichAndSort(applyFilters(projectsByPhase, filters)),
-    [projectsByPhase, filters],
-  );
+  const activePhases = kanbanMode === "wips" ? PHASES_KANBAN_WIP : PHASES_KANBAN_ARCHITECT;
+
+  const filteredByPhase = useMemo(() => {
+    if (kanbanMode === "wips") {
+      return applyFilters(wipByPhase, filters, activePhases);
+    }
+    return enrichAndSort(applyFilters(projectsByPhase, filters, activePhases));
+  }, [kanbanMode, projectsByPhase, wipByPhase, filters, activePhases]);
 
   const filterBadgeCount = getArchitectFilterBadgeCount(filters);
 
@@ -171,7 +187,7 @@ export default function ArchitectKanbanPage() {
           ? `Sincronizado: ${data.totalUpdated ?? 0} actualizadas, ${data.totalCreated ?? 0} creadas`
           : "Sincronización completada con errores"
       );
-      await refetchProjects();
+      await Promise.all([refetchProjects(), refetchWip()]);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Error al sincronizar con Airtable";
@@ -179,11 +195,17 @@ export default function ArchitectKanbanPage() {
     } finally {
       setSyncLoading(false);
     }
-  }, [refetchProjects]);
+  }, [refetchProjects, refetchWip]);
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     trackEventWithDevice("Architect View Mode Changed", { to: mode });
     setViewMode(mode);
+  }, []);
+
+  const handleKanbanModeChange = useCallback((mode: KanbanMode) => {
+    trackEventWithDevice("Architect Kanban Mode Changed", { to: mode });
+    setKanbanMode(mode);
+    setFilters(DEFAULT_ARCHITECT_FILTERS);
   }, []);
 
   return (
@@ -218,22 +240,57 @@ export default function ArchitectKanbanPage() {
           )}
           data-scroll-container
         >
+          {/* Toggle Proyectos / WIPs */}
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-muted/60 dark:bg-[var(--prophero-gray-800)] rounded-lg p-1">
+              <button
+                onClick={() => handleKanbanModeChange("projects")}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                  kanbanMode === "projects"
+                    ? "bg-[var(--prophero-blue-500)] text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Proyectos
+              </button>
+              <button
+                onClick={() => handleKanbanModeChange("wips")}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                  kanbanMode === "wips"
+                    ? "bg-[var(--prophero-blue-500)] text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                WIPs
+              </button>
+            </div>
+          </div>
+
           <RenoKanbanBoard
             searchQuery={searchQuery}
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
             viewLevel="project"
             projectsByPhaseOverride={filteredByPhase}
-            visibleColumnsOverride={visibleRenoKanbanColumnsArchitect}
-            fromParam="architect-kanban"
+            visibleColumnsOverride={
+              kanbanMode === "wips"
+                ? visibleRenoKanbanColumnsWip
+                : visibleRenoKanbanColumnsArchitect
+            }
+            fromParam={
+              kanbanMode === "wips"
+                ? "architect-wip-kanban"
+                : "architect-kanban"
+            }
           />
         </div>
 
-        {/* Filters Dialog */}
         <ArchitectKanbanFilters
           open={isFiltersOpen}
           onOpenChange={setIsFiltersOpen}
-          allProjects={allProjects}
+          allProjects={kanbanMode === "wips" ? allWipProjects : allProjects}
           filters={filters}
           onFiltersChange={setFilters}
         />

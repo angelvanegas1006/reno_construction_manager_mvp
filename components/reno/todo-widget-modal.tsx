@@ -305,6 +305,8 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
       const supabaseUpdates: Record<string, any> = {
         'Renovator name': valueToUpdate || null,
         updated_at: new Date().toISOString(),
+        renovator_assigned_from_app: true,
+        renovator_assigned_at: new Date().toISOString(),
       };
       
       // Si la propiedad está en reno-budget-renovator o reno-budget-client y se está guardando un renovador,

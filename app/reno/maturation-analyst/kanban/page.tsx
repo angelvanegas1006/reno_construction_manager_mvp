@@ -10,28 +10,33 @@ import { MaturationKanbanFilters, DEFAULT_MATURATION_FILTERS, getMaturationFilte
 import type { MaturationFilters } from "@/components/reno/maturation-kanban-filters";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { useMaturationProjects } from "@/hooks/useMaturationProjects";
+import { useWipProjects } from "@/hooks/useWipProjects";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   visibleRenoKanbanColumnsMaturation,
+  visibleRenoKanbanColumnsWip,
   PHASES_KANBAN_MATURATION,
+  PHASES_KANBAN_WIP,
 } from "@/lib/reno-kanban-config";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import { trackEventWithDevice } from "@/lib/mixpanel";
 
 type ViewMode = "kanban" | "list";
+type KanbanMode = "projects" | "wips";
 
 function applyMaturationFilters(
   byPhase: Record<RenoKanbanPhase, ProjectRow[]>,
   filters: MaturationFilters,
+  phases: RenoKanbanPhase[],
 ): Record<RenoKanbanPhase, ProjectRow[]> {
   const out: Record<string, ProjectRow[]> = {};
-  for (const phase of PHASES_KANBAN_MATURATION) {
+  for (const phase of phases) {
     out[phase] = [];
   }
 
-  for (const phase of PHASES_KANBAN_MATURATION) {
+  for (const phase of phases) {
     if (filters.phase && filters.phase !== phase) continue;
     const projects = byPhase[phase] ?? [];
     for (const p of projects) {
@@ -72,6 +77,7 @@ export default function MaturationAnalystKanbanPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
+  const [kanbanMode, setKanbanMode] = useState<KanbanMode>("projects");
   const [filters, setFilters] = useState<MaturationFilters>(DEFAULT_MATURATION_FILTERS);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
@@ -81,11 +87,23 @@ export default function MaturationAnalystKanbanPage() {
     refetch: refetchProjects,
   } = useMaturationProjects();
 
+  const {
+    projectsByPhase: wipByPhase,
+    allProjects: allWipProjects,
+    refetch: refetchWip,
+  } = useWipProjects();
+
   const [syncLoading, setSyncLoading] = useState(false);
 
+  const activePhases = kanbanMode === "wips" ? PHASES_KANBAN_WIP : PHASES_KANBAN_MATURATION;
+
   const filteredByPhase = useMemo(
-    () => applyMaturationFilters(projectsByPhase, filters),
-    [projectsByPhase, filters],
+    () => applyMaturationFilters(
+      kanbanMode === "wips" ? wipByPhase : projectsByPhase,
+      filters,
+      activePhases,
+    ),
+    [kanbanMode, projectsByPhase, wipByPhase, filters, activePhases],
   );
 
   const filterBadgeCount = getMaturationFilterBadgeCount(filters);
@@ -123,7 +141,7 @@ export default function MaturationAnalystKanbanPage() {
           ? `Sincronizado: ${data.totalUpdated ?? 0} actualizadas, ${data.totalCreated ?? 0} creadas`
           : "Sincronización completada con errores"
       );
-      await refetchProjects();
+      await Promise.all([refetchProjects(), refetchWip()]);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Error al sincronizar con Airtable";
@@ -131,11 +149,17 @@ export default function MaturationAnalystKanbanPage() {
     } finally {
       setSyncLoading(false);
     }
-  }, [refetchProjects]);
+  }, [refetchProjects, refetchWip]);
 
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     trackEventWithDevice("Maturation View Mode Changed", { to: mode });
     setViewMode(mode);
+  }, []);
+
+  const handleKanbanModeChange = useCallback((mode: KanbanMode) => {
+    trackEventWithDevice("Maturation Kanban Mode Changed", { to: mode });
+    setKanbanMode(mode);
+    setFilters(DEFAULT_MATURATION_FILTERS);
   }, []);
 
   return (
@@ -170,22 +194,57 @@ export default function MaturationAnalystKanbanPage() {
           )}
           data-scroll-container
         >
+          {/* Toggle Proyectos / WIPs */}
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-muted/60 dark:bg-[var(--prophero-gray-800)] rounded-lg p-1">
+              <button
+                onClick={() => handleKanbanModeChange("projects")}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                  kanbanMode === "projects"
+                    ? "bg-[var(--prophero-blue-500)] text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Proyectos
+              </button>
+              <button
+                onClick={() => handleKanbanModeChange("wips")}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
+                  kanbanMode === "wips"
+                    ? "bg-[var(--prophero-blue-500)] text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                WIPs
+              </button>
+            </div>
+          </div>
+
           <RenoKanbanBoard
             searchQuery={searchQuery}
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
             viewLevel="project"
             projectsByPhaseOverride={filteredByPhase}
-            visibleColumnsOverride={visibleRenoKanbanColumnsMaturation}
-            fromParam="maturation-kanban"
+            visibleColumnsOverride={
+              kanbanMode === "wips"
+                ? visibleRenoKanbanColumnsWip
+                : visibleRenoKanbanColumnsMaturation
+            }
+            fromParam={
+              kanbanMode === "wips"
+                ? "maturation-wip-kanban"
+                : "maturation-kanban"
+            }
           />
         </div>
 
-        {/* Filters Dialog */}
         <MaturationKanbanFilters
           open={isFiltersOpen}
           onOpenChange={setIsFiltersOpen}
-          allProjects={allProjects}
+          allProjects={kanbanMode === "wips" ? allWipProjects : allProjects}
           filters={filters}
           onFiltersChange={setFilters}
         />

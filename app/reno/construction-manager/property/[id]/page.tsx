@@ -1534,6 +1534,11 @@ function getRenoPhaseLabel(phase: RenoKanbanPhase | null, t: ReturnType<typeof u
     "arch-obra-empezar": "Obra por Empezar",
     "arch-obra-en-progreso": "Obra en Progreso",
     "arch-completed": "Finalizados",
+    "wip-reno-due-diligence": "Reno Due Diligence",
+    "wip-admin-licencias": "Administración de Licencias",
+    "wip-pendiente-presupuesto": "Pendiente de Presupuesto",
+    "wip-obra-a-empezar": "Obra a Empezar",
+    "wip-obra-en-progreso": "Obra en Progreso",
   };
   
   return phaseLabels[phase] || phase;

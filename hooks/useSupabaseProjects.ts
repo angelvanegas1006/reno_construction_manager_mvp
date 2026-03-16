@@ -137,6 +137,11 @@ const EMPTY_BY_PHASE: Record<RenoKanbanPhase, ProjectRow[]> = {
   "arch-obra-empezar": [],
   "arch-obra-en-progreso": [],
   "arch-completed": [],
+  "wip-reno-due-diligence": [],
+  "wip-admin-licencias": [],
+  "wip-pendiente-presupuesto": [],
+  "wip-obra-a-empezar": [],
+  "wip-obra-en-progreso": [],
 };
 
 function mapProjectPhaseForKanban(reno_phase: string | null): RenoKanbanPhase {

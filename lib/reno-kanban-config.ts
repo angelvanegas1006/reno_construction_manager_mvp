@@ -47,7 +47,13 @@ export type RenoKanbanPhase =
   | "arch-ecu-final-validation"
   | "arch-obra-empezar"
   | "arch-obra-en-progreso"
-  | "arch-completed";
+  | "arch-completed"
+  // Fases Kanban WIP (Maduración + Arquitecto)
+  | "wip-reno-due-diligence"
+  | "wip-admin-licencias"
+  | "wip-pendiente-presupuesto"
+  | "wip-obra-a-empezar"
+  | "wip-obra-en-progreso";
 
 export interface RenoKanbanColumn {
   key: RenoKanbanPhase;
@@ -342,6 +348,39 @@ export const visibleRenoKanbanColumnsArchitect: RenoKanbanColumn[] = PHASES_KANB
     stage: key,
     translationKey: "renoInProgress" as const,
     label: ARCHITECT_PHASE_LABELS[key] ?? key,
+  })
+);
+
+// ─── WIP Kanban ─────────────────────────────────────────────────────────────
+
+export const AIRTABLE_WIP_PROJECTS_VIEW_ID = "viw0RIZxndGlhHjYK";
+
+export const PHASES_KANBAN_WIP: RenoKanbanPhase[] = [
+  "wip-reno-due-diligence",
+  "wip-admin-licencias",
+  "wip-pendiente-presupuesto",
+  "wip-obra-a-empezar",
+  "wip-obra-en-progreso",
+];
+
+export const WIP_PHASE_LABELS: Record<string, string> = {
+  "wip-reno-due-diligence": "Reno Due Diligence",
+  "wip-admin-licencias": "Administración de Licencias",
+  "wip-pendiente-presupuesto": "Pendiente de Presupuesto",
+  "wip-obra-a-empezar": "Obra a Empezar",
+  "wip-obra-en-progreso": "Obra en Progreso",
+};
+
+export const WIP_PROJECT_STATUS_TO_PHASE: Record<string, RenoKanbanPhase> = {
+  // Will be populated when the user defines phase mapping rules
+};
+
+export const visibleRenoKanbanColumnsWip: RenoKanbanColumn[] = PHASES_KANBAN_WIP.map(
+  (key) => ({
+    key,
+    stage: key,
+    translationKey: "renoInProgress" as const,
+    label: WIP_PHASE_LABELS[key] ?? key,
   })
 );
 

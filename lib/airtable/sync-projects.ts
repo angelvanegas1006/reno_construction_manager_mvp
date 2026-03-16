@@ -80,6 +80,9 @@ import {
   AIRTABLE_MATURATION_PROJECTS_VIEW_ID,
   MATURATION_PROJECT_STATUS_TO_PHASE,
   PHASES_KANBAN_MATURATION,
+  AIRTABLE_WIP_PROJECTS_VIEW_ID,
+  WIP_PROJECT_STATUS_TO_PHASE,
+  PHASES_KANBAN_WIP,
 } from '@/lib/reno-kanban-config';
 import { persistAttachmentArray, clearFolderCache } from '@/lib/airtable/persist-attachment';
 
@@ -386,12 +389,12 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
 
   const { data: existing } = await supabase
     .from('projects')
-    .select('id, airtable_project_id, is_maturation_project')
+    .select('id, airtable_project_id, is_maturation_project, is_wip_project')
     .in('airtable_project_id', records.map((r) => r.id));
 
-  const byAirtableId = new Map<string | null, { id: string; is_maturation_project: boolean | null }>();
-  existing?.forEach((row: { id: string; airtable_project_id: string | null; is_maturation_project: boolean | null }) => {
-    if (row.airtable_project_id) byAirtableId.set(row.airtable_project_id, { id: row.id, is_maturation_project: row.is_maturation_project });
+  const byAirtableId = new Map<string | null, { id: string; is_maturation_project: boolean | null; is_wip_project: boolean | null }>();
+  existing?.forEach((row: { id: string; airtable_project_id: string | null; is_maturation_project: boolean | null; is_wip_project: boolean | null }) => {
+    if (row.airtable_project_id) byAirtableId.set(row.airtable_project_id, { id: row.id, is_maturation_project: row.is_maturation_project, is_wip_project: row.is_wip_project });
   });
 
   const now = new Date().toISOString();
@@ -433,9 +436,8 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
   for (const rec of records) {
     const existingRow = byAirtableId.get(rec.id);
     if (existingRow) {
-      // Skip maturation projects — they are managed by syncMaturationProjectsFromAirtable
-      // which has richer data (resolved linked records, extra fields)
-      if (existingRow.is_maturation_project) {
+      // Skip maturation/WIP projects — they are managed by their dedicated sync functions
+      if (existingRow.is_maturation_project || existingRow.is_wip_project) {
         continue;
       }
       const { error } = await supabase
@@ -468,17 +470,18 @@ export async function syncProjectsFromAirtable(): Promise<SyncProjectsResult> {
   }
 
   // Proyectos que están en Supabase pero NO en la vista actual de Airtable → reno_phase = 'orphaned'
-  // Excluir proyectos marcados como maduración (se gestionan en syncMaturationProjectsFromAirtable)
+  // Excluir proyectos marcados como maduración o WIP (se gestionan en sus sync dedicados)
   const airtableIdsInView = new Set(records.map((r) => r.id));
   const { data: allSupabase } = await supabase
     .from('projects')
-    .select('id, airtable_project_id, reno_phase, is_maturation_project')
+    .select('id, airtable_project_id, reno_phase, is_maturation_project, is_wip_project')
     .not('airtable_project_id', 'is', null);
   const toOrphan = (allSupabase ?? []).filter(
-    (row: { id: string; airtable_project_id: string | null; reno_phase: string | null; is_maturation_project: boolean | null }) =>
+    (row: { id: string; airtable_project_id: string | null; reno_phase: string | null; is_maturation_project: boolean | null; is_wip_project: boolean | null }) =>
       row.airtable_project_id &&
       !airtableIdsInView.has(row.airtable_project_id) &&
-      !row.is_maturation_project
+      !row.is_maturation_project &&
+      !row.is_wip_project
   );
   if (toOrphan.length > 0) {
     const ids = toOrphan.map((r: { id: string }) => r.id);
@@ -991,5 +994,241 @@ export async function syncMaturationProjectsFromAirtable(): Promise<SyncProjects
   }
 
   console.log('[Sync Maturation Projects] Done:', { created: result.created, updated: result.updated, errors: result.errors });
+  return result;
+}
+
+// ─── WIP Projects Sync ─────────────────────────────────────────────────────
+
+/**
+ * Sincroniza proyectos WIP desde Airtable (view viw0RIZxndGlhHjYK) a Supabase.
+ * Marca los registros con is_wip_project = true.
+ * De momento todos se asignan a la fase wip-reno-due-diligence.
+ */
+export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult> {
+  const tableId = process.env.AIRTABLE_PROJECTS_TABLE_ID;
+  const result: SyncProjectsResult = { created: 0, updated: 0, errors: 0, skipped: false };
+
+  if (!tableId || tableId.trim() === '') {
+    result.skipped = true;
+    return result;
+  }
+
+  const base = getAirtableBase();
+  const supabase = createAdminClient();
+  if (!base) {
+    result.skipped = true;
+    return result;
+  }
+
+  type WipRecord = {
+    id: string;
+    name: string | null;
+    reno_phase: RenoKanbanPhase;
+    investment_type: string | null;
+    properties_to_convert: string | null;
+    project_start_date: string | null;
+    renovation_spend: number | null;
+    project_unique_id: string | null;
+    estimated_settlement_date: string | null;
+    project_status: string | null;
+    drive_folder: string | null;
+    area_cluster: string | null;
+    project_set_up_team_notes: string | null;
+    project_keys_location: string | null;
+    renovator: string | null;
+    est_reno_start_date: string | null;
+    reno_start_date: string | null;
+    reno_end_date: string | null;
+    est_reno_end_date: string | null;
+    type: string | null;
+    reno_duration: number | null;
+    project_address: string | null;
+    settlement_date: string | null;
+    already_tenanted: string | null;
+    operation_name: string | null;
+    opportunity_stage: string | null;
+    scouter: string | null;
+    lead: string | null;
+    est_properties: string | null;
+    architect: string | null;
+    excluded_from_ecu: boolean | null;
+    renovation_executor: string | null;
+  };
+
+  const records: WipRecord[] = [];
+  const viewId = AIRTABLE_WIP_PROJECTS_VIEW_ID;
+
+  try {
+    const pageRecords = await base(tableId)
+      .select({ maxRecords: 500, view: viewId })
+      .all();
+
+    if (pageRecords.length > 0) {
+      console.log('[Sync WIP Projects] First record field keys:', Object.keys((pageRecords[0] as any).fields ?? {}));
+    }
+
+    const scouterIds: string[] = [];
+    const b2bIds: string[] = [];
+
+    pageRecords.forEach((rec: any) => {
+      const f = rec.fields ?? {};
+      scouterIds.push(...extractLinkedRecordIds(f[F.SCOUTER]).filter((id) => id.startsWith('rec')));
+      b2bIds.push(...extractLinkedRecordIds(f[F.ARCHITECT]).filter((id) => id.startsWith('rec')));
+    });
+
+    const [scouterNameMap, b2bNameMap] = await Promise.all([
+      resolveLinkedRecordNames([...new Set(scouterIds)], LINKED_TABLE_SCOUTER),
+      resolveLinkedRecordNames([...new Set(b2bIds)], LINKED_TABLE_B2B),
+    ]);
+    const linkedNameMap = new Map<string, string>([...scouterNameMap, ...b2bNameMap]);
+
+    pageRecords.forEach((rec: any) => {
+      const f = rec.fields ?? {};
+      const name = getField<string>(f, F.PROJECT_NAME) ?? null;
+      const statusRaw = getField<string>(f, F.PROJECT_STATUS) ?? null;
+
+      let reno_phase: RenoKanbanPhase = 'wip-reno-due-diligence';
+      if (statusRaw) {
+        const mapped = WIP_PROJECT_STATUS_TO_PHASE[statusRaw];
+        if (mapped) reno_phase = mapped;
+      }
+
+      const rawScouter = getField(f, F.SCOUTER);
+      const rawArchitect = getField(f, F.ARCHITECT);
+
+      records.push({
+        id: rec.id,
+        name: name != null ? String(name) : null,
+        reno_phase,
+        investment_type: getField<string>(f, F.INVESTMENT_TYPE) ?? null,
+        properties_to_convert: getField<string>(f, F.PROPERTIES_TO_CONVERT) ?? null,
+        project_start_date: parseDate(getField(f, F.PROJECT_START_DATE)),
+        renovation_spend: parseNumber(getField(f, F.RENOVATION_SPEND)),
+        project_unique_id: getField<string>(f, F.PROJECT_UNIQUE_ID) ?? null,
+        estimated_settlement_date: parseDate(getField(f, F.ESTIMATED_SETTLEMENT_DATE)),
+        project_status: statusRaw,
+        drive_folder: getField<string>(f, F.DRIVE_FOLDER) ?? null,
+        area_cluster: getField<string>(f, F.AREA_CLUSTER) ?? null,
+        project_set_up_team_notes: getField<string>(f, F.PROJECT_SETUP_TEAM_NOTES) ?? null,
+        project_keys_location: getField<string>(f, F.PROJECT_KEYS_LOCATION) ?? null,
+        renovator: getField<string>(f, F.RENOVATOR) ?? null,
+        est_reno_start_date: parseDate(getField(f, F.EST_RENO_START_DATE)),
+        reno_start_date: parseDate(getField(f, F.RENO_START_DATE)),
+        reno_end_date: parseDate(getField(f, F.RENO_END_DATE)),
+        est_reno_end_date: parseDate(getField(f, F.EST_RENO_END_DATE)),
+        type: getField<string>(f, F.TYPE) ?? null,
+        reno_duration: parseNumber(getField(f, F.RENO_DURATION)),
+        project_address: getField<string>(f, F.PROJECT_ADDRESS) ?? null,
+        settlement_date: parseDate(getField(f, F.SETTLEMENT_DATE)),
+        already_tenanted: (() => { const v = getField(f, F.ALREADY_TENANTED); return v != null && v !== '' ? String(v) : null; })(),
+        operation_name: getField<string>(f, F.OPERATION_NAME) ?? null,
+        opportunity_stage: getField<string>(f, F.OPPORTUNITY_STAGE) ?? null,
+        scouter: linkedIdsToNames(rawScouter, linkedNameMap) ?? (typeof rawScouter === 'string' ? rawScouter : null),
+        lead: getField<string>(f, F.LEAD) ?? null,
+        est_properties: getField<string>(f, F.EST_PROPERTIES) ?? null,
+        architect: linkedIdsToNames(rawArchitect, linkedNameMap) ?? (typeof rawArchitect === 'string' ? rawArchitect : null),
+        excluded_from_ecu: parseBool(getField(f, F.EXCLUDED_FROM_ECU)),
+        renovation_executor: getField<string>(f, F.RENOVATION_EXECUTOR) ?? null,
+      });
+    });
+
+    console.log(`[Sync WIP Projects] Fetched ${records.length} records from view ${viewId}`);
+    if (records.length > 0) {
+      const phaseCounts: Record<string, number> = {};
+      records.forEach((r) => { phaseCounts[r.reno_phase ?? 'null'] = (phaseCounts[r.reno_phase ?? 'null'] || 0) + 1; });
+      console.log('[Sync WIP Projects] Phase distribution:', phaseCounts);
+    }
+  } catch (e: unknown) {
+    console.error('[Sync WIP Projects] Error fetching from Airtable:', e);
+    result.errors++;
+    return result;
+  }
+
+  const { data: existing } = await supabase
+    .from('projects')
+    .select('id, airtable_project_id')
+    .in('airtable_project_id', records.map((r) => r.id));
+
+  const byAirtableId = new Map<string | null, { id: string }>();
+  existing?.forEach((row: { id: string; airtable_project_id: string | null }) => {
+    if (row.airtable_project_id) byAirtableId.set(row.airtable_project_id, { id: row.id });
+  });
+
+  const now = new Date().toISOString();
+
+  const toPayload = (rec: WipRecord) => ({
+    name: rec.name,
+    reno_phase: rec.reno_phase,
+    investment_type: rec.investment_type,
+    properties_to_convert: rec.properties_to_convert,
+    project_start_date: rec.project_start_date,
+    renovation_spend: rec.renovation_spend,
+    project_unique_id: rec.project_unique_id,
+    estimated_settlement_date: rec.estimated_settlement_date,
+    project_status: rec.project_status,
+    drive_folder: rec.drive_folder,
+    area_cluster: rec.area_cluster,
+    project_set_up_team_notes: rec.project_set_up_team_notes,
+    project_keys_location: rec.project_keys_location,
+    renovator: rec.renovator,
+    est_reno_start_date: rec.est_reno_start_date,
+    reno_start_date: rec.reno_start_date,
+    reno_end_date: rec.reno_end_date,
+    est_reno_end_date: rec.est_reno_end_date,
+    type: rec.type,
+    reno_duration: rec.reno_duration,
+    project_address: rec.project_address,
+    settlement_date: rec.settlement_date,
+    already_tenanted: rec.already_tenanted,
+    operation_name: rec.operation_name,
+    opportunity_stage: rec.opportunity_stage,
+    scouter: rec.scouter,
+    lead: rec.lead,
+    est_properties: rec.est_properties,
+    architect: rec.architect,
+    excluded_from_ecu: rec.excluded_from_ecu,
+    renovation_executor: rec.renovation_executor,
+    is_wip_project: true,
+    updated_at: now,
+  });
+
+  for (const rec of records) {
+    const existingRow = byAirtableId.get(rec.id);
+    if (existingRow) {
+      const { error } = await supabase
+        .from('projects')
+        .update(toPayload(rec))
+        .eq('id', existingRow.id);
+      if (error) { console.error(`[Sync WIP] Update error for ${rec.name}:`, error.message); result.errors++; } else { result.updated++; }
+    } else {
+      const payload = {
+        airtable_project_id: rec.id,
+        ...toPayload(rec),
+        created_at: now,
+      };
+      const { error } = await supabase.from('projects').insert(payload);
+      if (error) { console.error(`[Sync WIP] Insert error for ${rec.name}:`, error.message); result.errors++; } else { result.created++; }
+    }
+  }
+
+  // Unflag projects no longer in the WIP view
+  const wipAirtableIds = new Set(records.map((r) => r.id));
+  const { data: currentWip } = await supabase
+    .from('projects')
+    .select('id, airtable_project_id')
+    .eq('is_wip_project', true);
+  const toUnflag = (currentWip ?? []).filter(
+    (row: { id: string; airtable_project_id: string | null }) =>
+      row.airtable_project_id && !wipAirtableIds.has(row.airtable_project_id)
+  );
+  if (toUnflag.length > 0) {
+    await supabase
+      .from('projects')
+      .update({ is_wip_project: false, updated_at: now })
+      .in('id', toUnflag.map((r: { id: string }) => r.id));
+    console.log(`[Sync WIP Projects] Unflagged ${toUnflag.length} projects no longer in WIP view`);
+  }
+
+  console.log('[Sync WIP Projects] Done:', { created: result.created, updated: result.updated, errors: result.errors });
   return result;
 }

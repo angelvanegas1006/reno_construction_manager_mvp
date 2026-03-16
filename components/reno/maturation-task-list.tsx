@@ -19,6 +19,7 @@ import { EcuContactSelectorModal } from "@/components/reno/ecu-contact-selector-
 import { PdfViewer } from "@/components/reno/pdf-viewer";
 import { cn } from "@/lib/utils";
 import { insertArchitectNotification } from "@/hooks/useArchitectNotifications";
+import { sendArchitectEmailAlert } from "@/lib/webhook/architect-email-alert";
 
 /* ------------------------------------------------------------------ */
 /*  Task definitions                                                   */
@@ -326,6 +327,18 @@ function RequestProjectButton({
           type: "phase_advance",
           message: `El proyecto "${project.name || project.project_unique_id}" ha pasado a Proyecto Técnico en Progreso. ¡Es tu turno!`,
         }).catch(() => {});
+
+        const deadlineDate28 = new Date(Date.now() + 28 * 86400000).toISOString().split("T")[0];
+        sendArchitectEmailAlert({
+          alertType: "project_confirmation",
+          architectName: p.architect,
+          projectName: project.name || project.project_unique_id || "",
+          areaCluster: p.area_cluster,
+          architectFee: p.architect_fee ?? null,
+          deadlineDate: deadlineDate28,
+        }).then((r) => {
+          if (!r.success) toast.error(r.error ?? "Error al enviar email al arquitecto");
+        });
       }
 
       toast.success("Proyecto solicitado al arquitecto");
@@ -678,6 +691,15 @@ function EcuValidationFlow({
           type: "phase_advance",
           message: `El proyecto "${project.name || project.project_unique_id}" requiere ajustes técnicos. PropHero ha enviado notas de corrección.`,
         }).catch(() => {});
+
+        sendArchitectEmailAlert({
+          alertType: "ecu_repairs",
+          architectName: p.architect,
+          projectName: project.name || project.project_unique_id || "",
+          areaCluster: p.area_cluster,
+        }).then((r) => {
+          if (!r.success) toast.error(r.error ?? "Error al enviar email al arquitecto");
+        });
       }
 
       toast.success("Proyecto enviado a Ajuste Proyecto Técnico");
@@ -717,6 +739,18 @@ function EcuValidationFlow({
             field_value: "Pending to budget (from renovator)",
           }),
         }).catch(() => console.warn("Airtable sync failed"));
+      }
+
+      if (p.architect) {
+        sendArchitectEmailAlert({
+          alertType: "ecu_certificates_received",
+          architectName: p.architect,
+          projectName: project.name || project.project_unique_id || "",
+          areaCluster: p.area_cluster,
+          architectFee: p.architect_fee ?? null,
+        }).then((r) => {
+          if (!r.success) toast.error(r.error ?? "Error al enviar email al arquitecto");
+        });
       }
 
       toast.success("Proyecto aprobado — Pendiente Presupuesto Renovador");
@@ -911,6 +945,15 @@ function EcuFirstValidationBlock({
           type: "phase_advance",
           message: `El proyecto "${project.name || project.project_unique_id}" requiere ajustes técnicos tras la primera validación ECU. PropHero ha enviado notas de corrección.`,
         }).catch(() => {});
+
+        sendArchitectEmailAlert({
+          alertType: "ecu_repairs",
+          architectName: p.architect,
+          projectName: project.name || project.project_unique_id || "",
+          areaCluster: p.area_cluster,
+        }).then((r) => {
+          if (!r.success) toast.error(r.error ?? "Error al enviar email al arquitecto");
+        });
       }
 
       toast.success("Proyecto enviado a Ajuste Proyecto Técnico");
@@ -950,6 +993,18 @@ function EcuFirstValidationBlock({
             field_value: "Pending to budget (from renovator)",
           }),
         }).catch(() => console.warn("Airtable sync failed"));
+      }
+
+      if (p.architect) {
+        sendArchitectEmailAlert({
+          alertType: "ecu_certificates_received",
+          architectName: p.architect,
+          projectName: project.name || project.project_unique_id || "",
+          areaCluster: p.area_cluster,
+          architectFee: p.architect_fee ?? null,
+        }).then((r) => {
+          if (!r.success) toast.error(r.error ?? "Error al enviar email al arquitecto");
+        });
       }
 
       toast.success("Proyecto aprobado — Pendiente Presupuesto Renovador");
@@ -1655,8 +1710,21 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
         onOpenChange={setArchitectModalOpen}
         currentArchitect={(getFieldValue(project, "architect") as string) ?? null}
         airtableProjectId={project.airtable_project_id ?? null}
-        onSelect={async ({ name }) => {
+        onSelect={async ({ name, email, fee }) => {
           await saveField("architect", name);
+          if (fee != null) {
+            await supabase.from("projects").update({ architect_fee: fee }).eq("id", project.id);
+          }
+          sendArchitectEmailAlert({
+            alertType: "new_project",
+            architectName: name,
+            architectEmail: email,
+            projectName: project.name || project.project_unique_id || "",
+            areaCluster: (project as any).area_cluster,
+            architectFee: fee,
+          }).then((r) => {
+            if (!r.success) toast.error(r.error ?? "Error al enviar email al arquitecto");
+          });
         }}
       />
 
