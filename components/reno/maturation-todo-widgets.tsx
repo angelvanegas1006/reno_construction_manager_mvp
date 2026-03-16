@@ -1,18 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
-import {
-  PHASES_KANBAN_MATURATION,
-  MATURATION_PHASE_LABELS,
-} from "@/lib/reno-kanban-config";
+import { PHASES_KANBAN_MATURATION } from "@/lib/reno-kanban-config";
+import { ArchitectSelectorModal } from "@/components/reno/architect-selector-modal";
 
 interface TodoWidget {
   id: string;
@@ -33,14 +37,22 @@ function phaseIndex(p: ProjectRow): number {
 interface MaturationTodoWidgetsProps {
   allProjects: ProjectRow[];
   projectsByPhase: Record<RenoKanbanPhase, ProjectRow[]>;
+  onRefetch?: () => void;
 }
 
 export function MaturationTodoWidgets({
   allProjects,
   projectsByPhase,
+  onRefetch,
 }: MaturationTodoWidgetsProps) {
   const router = useRouter();
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
+
+  // Architect modal state
+  const [architectModalOpen, setArchitectModalOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<ProjectRow | null>(
+    null
+  );
 
   const toggleItem = (id: string) => {
     setOpenItems((prev) => {
@@ -51,10 +63,36 @@ export function MaturationTodoWidgets({
     });
   };
 
+  const handleArchitectSelect = useCallback(
+    async ({ name }: { id: string; name: string }) => {
+      if (!selectedProject) return;
+      const supabase = createClient();
+      const updates: Record<string, unknown> = {
+        architect: name,
+        updated_at: new Date().toISOString(),
+      };
+      if (!(selectedProject as any).draft_order_date) {
+        updates.draft_order_date = new Date().toISOString();
+      }
+      const { error } = await supabase
+        .from("projects")
+        .update(updates)
+        .eq("id", selectedProject.id);
+      if (error) {
+        toast.error("Error al asignar arquitecto");
+      } else {
+        toast.success(`Arquitecto ${name} asignado`);
+        onRefetch?.();
+      }
+    },
+    [selectedProject, onRefetch]
+  );
+
   const todoWidgets = useMemo((): TodoWidget[] => {
     const sortDesc = (a: ProjectRow, b: ProjectRow) =>
       phaseIndex(b) - phaseIndex(a);
 
+    // 1. Definir Arquitecto — proyectos sin arquitecto asignado
     const noArchitect = allProjects
       .filter((p) => {
         const arch = (p as any).architect;
@@ -62,19 +100,67 @@ export function MaturationTodoWidgets({
       })
       .sort(sortDesc);
 
-    const noEstEnd = allProjects
-      .filter((p) => {
-        const val = (p as any).estimated_project_end_date;
-        return !val;
-      })
-      .sort(sortDesc);
+    // 2. Revisión de Anteproyecto — proyectos en "pending-to-validate"
+    //    donde el arquitecto ya ha enviado (project_architect_date existe)
+    //    y falta revisión (project_review_done o financial_review_done es false)
+    const pendingValidation = (
+      projectsByPhase["pending-to-validate" as RenoKanbanPhase] || []
+    ).filter((p) => {
+      const pa = p as any;
+      const architectSent = !!pa.project_architect_date;
+      const reviewPending =
+        !pa.project_review_done || !pa.financial_review_done;
+      return architectSent && reviewPending;
+    });
 
-    const noEnd = allProjects
-      .filter((p) => {
-        const val = (p as any).project_end_date;
-        return !val;
-      })
-      .sort(sortDesc);
+    // 3. Revisión de Proyecto — proyectos en "technical-project-in-progress"
+    //    donde el arquitecto ha subido el proyecto técnico y el analista aún
+    //    no ha marcado si se ha subido a la ECU (ecu_uploaded = false/null)
+    const projectReview = (
+      projectsByPhase["technical-project-in-progress" as RenoKanbanPhase] || []
+    ).filter((p) => {
+      const pa = p as any;
+      const hasDoc =
+        !!pa.arch_project_doc ||
+        !!pa.technical_project_doc ||
+        !!pa.project_end_date;
+      const notUploadedToEcu = !pa.ecu_uploaded;
+      return hasDoc && notUploadedToEcu;
+    });
+
+    // 4. Presupuesto Reformista — proyectos desde ECU Primera Validación
+    //    hasta Pendiente Presupuesto Renovador que aún no tienen presupuesto,
+    //    ordenados por cercanía a la fase final (pending-budget primero)
+    const budgetPhases: RenoKanbanPhase[] = [
+      "ecuv-first-validation" as RenoKanbanPhase,
+      "technical-project-fine-tuning" as RenoKanbanPhase,
+      "ecuv-final-validation" as RenoKanbanPhase,
+      "pending-budget-from-renovator" as RenoKanbanPhase,
+    ];
+    const budgetPhaseOrder: Record<string, number> = {};
+    budgetPhases.forEach((p, i) => {
+      budgetPhaseOrder[p] = i;
+    });
+    const pendingBudget: ProjectRow[] = [];
+    for (const phase of budgetPhases) {
+      const projects = projectsByPhase[phase] || [];
+      for (const p of projects) {
+        const pa = p as any;
+        const hasBudget =
+          (Array.isArray(pa.renovator_budget_doc) &&
+            pa.renovator_budget_doc.length > 0) ||
+          (typeof pa.renovator_budget_doc === "string" &&
+            pa.renovator_budget_doc.trim() !== "");
+        if (!hasBudget) {
+          pendingBudget.push(p);
+        }
+      }
+    }
+    pendingBudget.sort((a, b) => {
+      const ai = budgetPhaseOrder[a.reno_phase ?? ""] ?? -1;
+      const bi = budgetPhaseOrder[b.reno_phase ?? ""] ?? -1;
+      return bi - ai;
+    });
 
     return [
       {
@@ -84,45 +170,64 @@ export function MaturationTodoWidgets({
         projects: noArchitect,
       },
       {
-        id: "est-end-date",
-        title: "Definir Fecha Est. Fin de Proyecto",
-        count: noEstEnd.length,
-        projects: noEstEnd,
+        id: "review-draft",
+        title: "Revisión de Anteproyecto",
+        count: pendingValidation.length,
+        projects: pendingValidation,
       },
       {
-        id: "end-date",
-        title: "Definir Fecha Fin de Proyecto",
-        count: noEnd.length,
-        projects: noEnd,
+        id: "review-project",
+        title: "Revisión de Proyecto",
+        count: projectReview.length,
+        projects: projectReview,
+      },
+      {
+        id: "pending-budget",
+        title: "Presupuesto Reformista",
+        count: pendingBudget.length,
+        projects: pendingBudget,
       },
     ];
-  }, [allProjects]);
+  }, [allProjects, projectsByPhase]);
 
   const totalCount = todoWidgets.reduce((s, w) => s + w.count, 0);
 
-  const handleProjectClick = (project: ProjectRow) => {
+  const handleProjectClick = (project: ProjectRow, widgetId: string) => {
+    if (widgetId === "architect") {
+      setSelectedProject(project);
+      setArchitectModalOpen(true);
+      return;
+    }
     router.push(
       `/reno/maturation-analyst/project/${project.id}?from=maturation-home`
     );
   };
 
-  const renderProjectInfo = (project: ProjectRow) => {
-    const phase = project.reno_phase
-      ? MATURATION_PHASE_LABELS[project.reno_phase] || project.reno_phase
-      : "—";
+  const renderProjectInfo = (project: ProjectRow, widgetId: string) => {
+    const pa = project as any;
+    const rawZone = pa.area_cluster;
+    const zone = rawZone
+      ? String(rawZone).replace(/[\[\]"]/g, "").trim()
+      : null;
+
+    const details: string[] = [];
+    if (zone) details.push(zone);
+    if (pa.architect && widgetId !== "architect") details.push(pa.architect);
+
     return (
       <div className="space-y-1.5 min-w-0 w-full">
         <div className="text-sm font-medium text-foreground line-clamp-2 leading-snug break-words min-w-0">
           {project.name || "Sin nombre"}
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap min-w-0">
-          <span className="whitespace-nowrap truncate max-w-full">{phase}</span>
-          {project.investment_type && (
-            <span className="whitespace-nowrap truncate max-w-full">
-              • {project.investment_type}
-            </span>
-          )}
-        </div>
+        {details.length > 0 && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap min-w-0">
+            {details.map((d, i) => (
+              <span key={i} className="whitespace-nowrap truncate max-w-full">
+                {i > 0 ? `• ${d}` : d}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -166,7 +271,7 @@ export function MaturationTodoWidgets({
               {widget.projects.map((project) => (
                 <div
                   key={project.id}
-                  onClick={() => handleProjectClick(project)}
+                  onClick={() => handleProjectClick(project, widget.id)}
                   className={cn(
                     "p-3 rounded-lg cursor-pointer transition-all duration-150",
                     "bg-white dark:bg-[#0a0a0a]",
@@ -178,7 +283,7 @@ export function MaturationTodoWidgets({
                 >
                   <div className="flex items-start gap-2 min-w-0">
                     <div className="flex-1 min-w-0">
-                      {renderProjectInfo(project)}
+                      {renderProjectInfo(project, widget.id)}
                     </div>
                   </div>
                 </div>
@@ -219,8 +324,8 @@ export function MaturationTodoWidgets({
         </Badge>
       </div>
 
-      {/* Desktop: 3-column grid */}
-      <div className="hidden md:grid md:grid-cols-3 gap-5 lg:gap-6 xl:gap-7 min-h-[400px]">
+      {/* Desktop: 4-column grid */}
+      <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 xl:gap-6 min-h-[400px]">
         {todoWidgets.map((widget) => (
           <WidgetCard key={widget.id} widget={widget} />
         ))}
@@ -277,7 +382,9 @@ export function MaturationTodoWidgets({
                         {widget.projects.map((project) => (
                           <div
                             key={project.id}
-                            onClick={() => handleProjectClick(project)}
+                            onClick={() =>
+                              handleProjectClick(project, widget.id)
+                            }
                             className={cn(
                               "p-3 rounded-lg cursor-pointer transition-all duration-150",
                               "bg-white dark:bg-[#0a0a0a]",
@@ -287,7 +394,7 @@ export function MaturationTodoWidgets({
                               "border-border/60 hover:border-border"
                             )}
                           >
-                            {renderProjectInfo(project)}
+                            {renderProjectInfo(project, widget.id)}
                           </div>
                         ))}
                       </div>
@@ -314,6 +421,19 @@ export function MaturationTodoWidgets({
           </div>
         </CardContent>
       </Card>
+
+      {/* Architect selector modal */}
+      <ArchitectSelectorModal
+        open={architectModalOpen}
+        onOpenChange={setArchitectModalOpen}
+        currentArchitect={
+          selectedProject
+            ? ((selectedProject as any).architect as string) ?? null
+            : null
+        }
+        airtableProjectId={selectedProject?.airtable_project_id ?? null}
+        onSelect={handleArchitectSelect}
+      />
     </div>
   );
 }

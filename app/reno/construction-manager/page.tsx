@@ -20,10 +20,10 @@ import { toast } from "sonner";
 import { useRenoProperties } from "@/contexts/reno-properties-context";
 import { useRenoFilters } from "@/hooks/useRenoFilters";
 import type { RenoKanbanPhase } from "@/lib/reno-kanban-config";
-import { createClient } from "@/lib/supabase/client";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
-import { getTechnicalConstructionNamesFromForemanEmail } from "@/lib/supabase/user-name-utils";
+import { getTechnicalConstructionNamesFromForemanEmail, matchesTechnicalConstruction } from "@/lib/supabase/user-name-utils";
 import { useAssignedProjectsForForeman } from "@/hooks/useAssignedProjectsForForeman";
+import { needsUpdateThisWeek, calculateNextUpdateDate } from "@/lib/reno/update-calculator";
 import { MyAssignedProjectsModal } from "@/components/reno/my-assigned-projects-modal";
 import { RenoHomeAdminDashboard } from "@/components/reno/reno-home-admin-dashboard";
 import { RenovatorAnalysisPanel } from "@/components/reno/renovator-analysis-panel";
@@ -65,8 +65,6 @@ export default function RenoConstructionManagerHomePage() {
     setDashboardView(view);
     trackEventWithDevice("Dashboard View Toggled", { view });
   };
-  const supabase = createClient();
-
   const { projects: assignedProjects, loading: assignedProjectsLoading } =
     useAssignedProjectsForForeman(role === "foreman" ? (user?.email ?? null) : null);
 
@@ -125,44 +123,36 @@ export default function RenoConstructionManagerHomePage() {
     return filtered;
   }, [rawPropertiesByPhase, selectedForemanEmails, role]);
   
-  // Load work updates for this week (only from reno-in-progress properties with next_update)
-  const [updatesForThisWeek, setUpdatesForThisWeek] = useState<number>(0);
-  const [loadingUpdates, setLoadingUpdates] = useState(true);
-  
-  useEffect(() => {
-    const calculateUpdatesForThisWeek = async () => {
-      try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const endOfWeek = new Date(today);
-        endOfWeek.setDate(endOfWeek.getDate() + 7);
-        endOfWeek.setHours(23, 59, 59, 999);
-        
-        // Get all properties in reno-in-progress with next_update within this week
-        const { data: workUpdates, error: workUpdatesError } = await supabase
-          .from("properties")
-          .select("id, next_update, reno_phase")
-          .eq("reno_phase", "reno-in-progress")
-          .not("next_update", "is", null)
-          .gte("next_update", today.toISOString().split('T')[0])
-          .lte("next_update", endOfWeek.toISOString().split('T')[0]);
-        
-        if (workUpdatesError) {
-          console.error("Error fetching work updates for this week:", workUpdatesError);
-          setUpdatesForThisWeek(0);
-        } else {
-          setUpdatesForThisWeek(workUpdates?.length || 0);
-        }
-      } catch (error) {
-        console.error("Error calculating updates for this week:", error);
-        setUpdatesForThisWeek(0);
-      } finally {
-        setLoadingUpdates(false);
+  // Compute work updates for this week using the same logic as the todo widget
+  const updatesForThisWeek = useMemo(() => {
+    if (!propertiesByPhase) return 0;
+
+    const allRenoInProgress = propertiesByPhase['reno-in-progress'] || [];
+
+    const filtered = role === 'foreman' && user?.email
+      ? allRenoInProgress.filter(prop => {
+          const tc = (prop as any).supabaseProperty?.["Technical construction"];
+          return matchesTechnicalConstruction(tc, user.email);
+        })
+      : allRenoInProgress;
+
+    return filtered.filter(prop => {
+      let proxima = prop.proximaActualizacion;
+      if (!proxima) {
+        const renoStart = prop.inicio
+          || (prop as any).supabaseProperty?.["Reno Start Date"]
+          || (prop as any).supabaseProperty?.start_date;
+        proxima = calculateNextUpdateDate(null, prop.renoType, renoStart) || undefined;
       }
-    };
-    
-    calculateUpdatesForThisWeek();
-  }, [supabase]);
+
+      const needsTracking = (prop as any).supabaseProperty?.needs_foreman_notification || false;
+
+      if (role === 'foreman' || role === 'construction_manager' || role === 'admin') {
+        return needsTracking || needsUpdateThisWeek(proxima);
+      }
+      return needsUpdateThisWeek(proxima);
+    }).length;
+  }, [propertiesByPhase, role, user?.email]);
 
   // Convert Supabase properties to Property format for home page
   const properties = useMemo(() => {
@@ -329,6 +319,7 @@ export default function RenoConstructionManagerHomePage() {
     projectsByPhase: matProjectsByPhase,
     allProjects: matAllProjects,
     loading: matLoading,
+    refetch: matRefetch,
   } = useMaturationProjects();
 
   const {
@@ -354,7 +345,19 @@ export default function RenoConstructionManagerHomePage() {
     });
   }, [matAllProjects, matSelectedQuarter]);
 
-  const matTotalProjects = matFilteredProjects.length;
+  const MAT_ACTIVE_PHASES = new Set([
+    "get-project-draft",
+    "pending-to-validate",
+    "pending-to-reserve-arras",
+    "technical-project-in-progress",
+    "ecuv-first-validation",
+    "technical-project-fine-tuning",
+    "ecuv-final-validation",
+  ]);
+
+  const matTotalProjects = matFilteredProjects.filter(
+    (p) => MAT_ACTIVE_PHASES.has(p.reno_phase ?? "")
+  ).length;
   const archTotalProjects = archAllProjects.length;
 
   const matAvgDays = useMemo(() => {
@@ -664,22 +667,23 @@ export default function RenoConstructionManagerHomePage() {
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <CheckCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Pendientes de validación</CardTitle>
+                            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Pendiente de ECU</CardTitle>
                           </div>
                         </CardHeader>
                         <CardContent>
                           <div className="text-xl md:text-2xl font-bold text-foreground">
-                            {(matProjectsByPhase["pending-to-validate"] || []).length +
-                              (matProjectsByPhase["ecuv-first-validation"] || []).length +
-                              (matProjectsByPhase["ecuv-final-validation"] || []).length}
+                            {[
+                              ...(matProjectsByPhase["ecuv-first-validation"] || []),
+                              ...(matProjectsByPhase["ecuv-final-validation"] || []),
+                            ].filter((p) => (p as any).excluded_from_ecu !== true).length}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Proyectos pendientes de validación o validación ECU</p>
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Proyectos con ECU en fase de validación</p>
                         </CardContent>
                       </Card>
                     </div>
 
                     {/* Todo Widgets */}
-                    <MaturationTodoWidgets allProjects={matAllProjects} projectsByPhase={matProjectsByPhase} />
+                    <MaturationTodoWidgets allProjects={matAllProjects} projectsByPhase={matProjectsByPhase} onRefetch={matRefetch} />
 
                     {/* Quarter filter + KPIs de tiempos medios */}
                     <div className="space-y-3">

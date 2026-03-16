@@ -30,6 +30,7 @@ export default function MaturationAnalystHomePage() {
     projectsByPhase,
     allProjects,
     loading: projectsLoading,
+    refetch: refetchMaturationProjects,
   } = useMaturationProjects();
 
   useEffect(() => {
@@ -69,7 +70,19 @@ export default function MaturationAnalystHomePage() {
     });
   }, [allProjects, selectedQuarter]);
 
-  const totalProjects = filteredProjects.length;
+  const MATURATION_ACTIVE_PHASES = new Set([
+    "get-project-draft",
+    "pending-to-validate",
+    "pending-to-reserve-arras",
+    "technical-project-in-progress",
+    "ecuv-first-validation",
+    "technical-project-fine-tuning",
+    "ecuv-final-validation",
+  ]);
+
+  const totalProjects = filteredProjects.filter(
+    (p) => MATURATION_ACTIVE_PHASES.has(p.reno_phase ?? "")
+  ).length;
 
   const avgDays = useMemo(() => {
     const diff = (a: string | null | undefined, b: string | null | undefined): number | null => {
@@ -183,22 +196,23 @@ export default function MaturationAnalystHomePage() {
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <CheckCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Pendientes de validación</CardTitle>
+                      <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">Pendiente de ECU</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="text-xl md:text-2xl font-bold text-foreground">
-                      {(projectsByPhase["pending-to-validate"] || []).length +
-                        (projectsByPhase["ecuv-first-validation"] || []).length +
-                        (projectsByPhase["ecuv-final-validation"] || []).length}
+                      {[
+                        ...(projectsByPhase["ecuv-first-validation"] || []),
+                        ...(projectsByPhase["ecuv-final-validation"] || []),
+                      ].filter((p) => (p as any).excluded_from_ecu !== true).length}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Proyectos pendientes de validación o validación ECU</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">Proyectos con ECU en fase de validación</p>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Todo Widgets */}
-              <MaturationTodoWidgets allProjects={allProjects} projectsByPhase={projectsByPhase} />
+              <MaturationTodoWidgets allProjects={allProjects} projectsByPhase={projectsByPhase} onRefetch={refetchMaturationProjects} />
 
               {/* Quarter filter + KPIs de tiempos medios */}
               <div className="space-y-3">
