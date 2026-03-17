@@ -430,7 +430,12 @@ export function useSupabaseInspection(
 
     // Obtener usuario actual como quien completa (no sobrescribir created_by = quien inició)
     const { data: { user } } = await supabase.auth.getUser();
-    const updates: { inspection_status: string; completed_at: string; completed_by?: string } = {
+    const updates: {
+      inspection_status: string;
+      completed_at: string;
+      completed_by?: string;
+      reno_phase_at_creation?: string;
+    } = {
       inspection_status: 'completed',
       completed_at: new Date().toISOString(),
     };
@@ -438,8 +443,20 @@ export function useSupabaseInspection(
       updates.completed_by = user.id;
     }
 
+    // For final checks, record the property's current phase at completion time
+    if ((inspection as any).inspection_type === 'final') {
+      const { data: prop } = await supabase
+        .from('properties')
+        .select('reno_phase')
+        .eq('id', inspection.property_id)
+        .single();
+      if (prop?.reno_phase) {
+        updates.reno_phase_at_creation = prop.reno_phase;
+      }
+    }
+
     return await updateInspection(updates);
-  }, [inspection, updateInspection, supabase.auth]);
+  }, [inspection, updateInspection, supabase]);
 
   const createZone = useCallback(async (zoneData: ZoneInsert): Promise<InspectionZone | null> => {
     if (!inspection) return null;

@@ -336,6 +336,8 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
       let basePath: string;
       if (fromParam === "maturation-kanban") {
         basePath = `/reno/maturation-analyst/project/${project.id}`;
+      } else if (fromParam === "maturation-wip-kanban") {
+        basePath = `/reno/maturation-analyst/wip/${project.id}`;
       } else if (fromParam === "architect-kanban") {
         basePath = `/reno/architect/project/${project.id}`;
       } else {

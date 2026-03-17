@@ -75,6 +75,10 @@ const F = {
   LICENSES_NOTES:             'Licenses Notes',           // fldboWsKQLnCi1DAG
   CT_TRANS_CENTER:            'CT (Trans. Center)',       // fldnzCbUdToFeUmQa
   RENOVATOR_BUDGET_DOC:       'Renovator budget doc',     // (used for WIP budget check)
+  LICENSES_OK:                'Licenses',                 // fld9ljc2rACWe1aN1
+  UTILITIES_OK:               'Utilities',                // fldSUzGbZXtzYndwj
+  CONSTRUCTION_ESTIMATE_OK:   'Construction Estimate',    // flduSDUbEyfpcCHm9
+  BUDGET_ATTACHMENT:          'Budget attachment',        // fldpIcucg5O2DnTof
 } as const;
 
 // Linked record tables
@@ -1072,6 +1076,10 @@ export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult>
     utility_status_notes: string | null;
     licenses_notes: string | null;
     ct_trans_center: string | null;
+    licenses_ok: boolean | null;
+    utilities_ok: boolean | null;
+    construction_estimate_ok: boolean | null;
+    construction_estimate_attachment: { url: string; filename: string }[] | null;
   };
 
   const records: WipRecord[] = [];
@@ -1167,6 +1175,10 @@ export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult>
         utility_status_notes: getField<string>(f, F.UTILITY_STATUS_NOTES) ?? null,
         licenses_notes: getField<string>(f, F.LICENSES_NOTES) ?? null,
         ct_trans_center: getField<string>(f, F.CT_TRANS_CENTER) ?? null,
+        licenses_ok: parseBool(getField(f, F.LICENSES_OK)),
+        utilities_ok: parseBool(getField(f, F.UTILITIES_OK)),
+        construction_estimate_ok: parseBool(getField(f, F.CONSTRUCTION_ESTIMATE_OK)),
+        construction_estimate_attachment: parseAttachments(getField(f, F.BUDGET_ATTACHMENT)),
       });
     });
 
@@ -1233,6 +1245,10 @@ export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult>
     utility_status_notes: rec.utility_status_notes,
     licenses_notes: rec.licenses_notes,
     ct_trans_center: rec.ct_trans_center,
+    licenses_ok: rec.licenses_ok,
+    utilities_ok: rec.utilities_ok,
+    construction_estimate_ok: rec.construction_estimate_ok,
+    construction_estimate_attachment: rec.construction_estimate_attachment,
     is_wip_project: true,
     updated_at: now,
   });

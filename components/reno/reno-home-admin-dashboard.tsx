@@ -15,6 +15,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import {
   Users,
@@ -27,6 +30,7 @@ import {
   CheckCircle2,
   Timer,
   Hourglass,
+  PieChart as PieChartIcon,
 } from "lucide-react";
 
 interface ForemanWorkData {
@@ -83,6 +87,18 @@ const CHART_COLORS = {
   lot: "#ef4444",
 };
 
+const FINAL_CHECK_PHASE_CONFIG: Record<string, { label: string; color: string; order: number }> = {
+  "furnishing": { label: "Furnishing", color: "#8b5cf6", order: 1 },
+  "amueblamiento": { label: "Furnishing", color: "#8b5cf6", order: 1 },
+  "final-check": { label: "Final Check", color: "#10b981", order: 2 },
+  "check-final": { label: "Final Check", color: "#10b981", order: 2 },
+  "cleaning": { label: "Cleaning", color: "#3b82f6", order: 3 },
+  "furnishing-cleaning": { label: "Cleaning", color: "#3b82f6", order: 3 },
+  "pendiente-suministros": { label: "Pte. Suministros", color: "#f59e0b", order: 4 },
+  "final-check-post-suministros": { label: "Post Suministros", color: "#ef4444", order: 5 },
+  "reno-in-progress": { label: "Obra en progreso", color: "#6366f1", order: 0 },
+};
+
 export function RenoHomeAdminDashboard({
   propertiesByPhase,
 }: {
@@ -103,6 +119,7 @@ export function RenoHomeAdminDashboard({
   }>({ completed: 0, pending: 0, avgDays: null });
   const [renovatorAssignments, setRenovatorAssignments] = useState<{ name: string; count: number }[]>([]);
   const [foremanStats, setForemanStats] = useState<Record<string, { initialChecks: number; finalChecks: number; renovatorsApp: number; obraUpdates: number }>>({});
+  const [finalChecksByPhase, setFinalChecksByPhase] = useState<{ phase: string; label: string; count: number; color: string }[]>([]);
 
   const isAllowed = role === "admin" || role === "construction_manager";
 
@@ -363,7 +380,7 @@ export function RenoHomeAdminDashboard({
         // 1) Final checks: all final inspections (completed + pending/in_progress)
         const { data: allFinalInspections } = await supabase
           .from("property_inspections")
-          .select("id, property_id, inspection_type, inspection_status, completed_at, created_at")
+          .select("id, property_id, inspection_type, inspection_status, completed_at, created_at, reno_phase_at_creation")
           .eq("inspection_type", "final")
           .order("completed_at", { ascending: false });
 
@@ -373,6 +390,32 @@ export function RenoHomeAdminDashboard({
         const pendingInspections = (allFinalInspections || []).filter(
           (i: any) => i.inspection_status !== "completed"
         );
+
+        // Count completed final checks by phase (only those with a recorded phase)
+        const phaseCountMap: Record<string, number> = {};
+        (allFinalInspections || [])
+          .filter((i: any) => i.inspection_status === "completed" && i.reno_phase_at_creation)
+          .forEach((i: any) => {
+            const rawPhase = i.reno_phase_at_creation;
+            const config = FINAL_CHECK_PHASE_CONFIG[rawPhase];
+            const label = config?.label || rawPhase;
+            phaseCountMap[label] = (phaseCountMap[label] || 0) + 1;
+          });
+
+        const phaseData = Object.entries(phaseCountMap)
+          .map(([label, count]) => {
+            const configEntry = Object.values(FINAL_CHECK_PHASE_CONFIG).find((c) => c.label === label);
+            return {
+              phase: label,
+              label,
+              count,
+              color: configEntry?.color || "#94a3b8",
+              order: configEntry?.order ?? 99,
+            };
+          })
+          .sort((a, b) => a.order - b.order);
+
+        setFinalChecksByPhase(phaseData);
 
         const durations = inspections
           .map((i: any) => {
@@ -648,6 +691,73 @@ export function RenoHomeAdminDashboard({
             <p className="text-xs text-muted-foreground">Media días para completar</p>
           </div>
         </div>
+      </div>
+
+      {/* Final Checks por fase — donut chart */}
+      <div className="bg-card border rounded-lg p-4">
+        <h3 className="text-sm font-medium mb-1 flex items-center gap-2">
+          <PieChartIcon className="h-4 w-4 text-indigo-500" />
+          Final Checks por fase de ejecución
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">
+          Fase en la que el jefe de obra completó el final check (datos disponibles desde ahora en adelante)
+        </p>
+        {finalChecksByPhase.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            Aún no hay datos — se registrarán con los próximos Final Checks completados
+          </p>
+        ) : (
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-[220px] h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={finalChecksByPhase}
+                    dataKey="count"
+                    nameKey="label"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={90}
+                    paddingAngle={3}
+                    strokeWidth={2}
+                    stroke="hsl(var(--background))"
+                  >
+                    {finalChecksByPhase.map((entry, idx) => (
+                      <Cell key={idx} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "white",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: 12,
+                      color: "#1f2937",
+                      boxShadow: "0 4px 6px -1px rgba(0,0,0,.1)",
+                    }}
+                    formatter={(value: any, name: any) => [`${value}`, name]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 space-y-2">
+              {finalChecksByPhase.map((item) => (
+                <div key={item.label} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/40 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums">{item.count}</span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between pt-2 border-t px-2">
+                <span className="text-xs text-muted-foreground font-medium">Total</span>
+                <span className="text-sm font-bold tabular-nums">{finalChecksByPhase.reduce((s, i) => s + i.count, 0)}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Final Checks completados — property_inspections */}
