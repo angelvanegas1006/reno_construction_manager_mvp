@@ -66,9 +66,12 @@ export default function ProjectFinalCheckPage() {
     []
   );
 
+  const localStateRef = useRef(localState);
+  localStateRef.current = localState;
+
   const handleSaveDwelling = useCallback(
     async (dwellingId: string) => {
-      const local = localState[dwellingId];
+      const local = localStateRef.current[dwellingId];
       if (!local) return;
       setSavingId(dwellingId);
       await saveDwelling(dwellingId, {
@@ -84,7 +87,7 @@ export default function ProjectFinalCheckPage() {
       setSavedId(dwellingId);
       setTimeout(() => setSavedId(null), 2000);
     },
-    [localState, saveDwelling]
+    [saveDwelling]
   );
 
   const handleSaveAll = useCallback(async () => {
