@@ -107,9 +107,16 @@ function getTasksForPhase(phase: RenoKanbanPhase, project: ProjectRow): TaskDef[
     case "ecuv-final-validation":
       return [];
 
+    case "wip-reno-due-diligence":
+      return [];
+
     default:
       return [];
   }
+}
+
+function shouldShowWipDueDiligence(phase: RenoKanbanPhase): boolean {
+  return phase === "wip-reno-due-diligence";
 }
 
 function shouldShowTechnicalProjectDocs(phase: RenoKanbanPhase): boolean {
@@ -1392,6 +1399,181 @@ function BudgetReformBlock({
 }
 
 /* ------------------------------------------------------------------ */
+/*  WIP Due Diligence Block (Reno Due Diligence phase)                 */
+/* ------------------------------------------------------------------ */
+
+const AIRTABLE_WIP_FIELD_IDS: Record<string, string> = {
+  licenses_ok: 'fld9ljc2rACWe1aN1',
+  utilities_ok: 'fldSUzGbZXtzYndwj',
+  construction_estimate_ok: 'flduSDUbEyfpcCHm9',
+  licenses_notes: 'fldboWsKQLnCi1DAG',
+  utility_status_notes: 'fld5xZ5FECYrDRTLa',
+  construction_estimate_notes: 'fldjdRi8sYTSeI2Gr',
+};
+
+const AIRTABLE_WIP_FIELD_NAMES: Record<string, string> = {
+  licenses_ok: 'Licenses',
+  utilities_ok: 'Utilities',
+  construction_estimate_ok: 'Construction Estimate',
+  licenses_notes: 'Licenses Notes',
+  utility_status_notes: 'Utility Status Notes',
+  construction_estimate_notes: 'Construction Estimate Notes',
+};
+
+function WipDueDiligenceBlock({ project, onRefetch }: { project: ProjectRow; onRefetch: () => Promise<void> }) {
+  const p = project as any;
+  const supabase = createClient();
+  const [saving, setSaving] = useState<string | null>(null);
+  const [localNotes, setLocalNotes] = useState<Record<string, string>>({
+    licenses_notes: p.licenses_notes ?? '',
+    utility_status_notes: p.utility_status_notes ?? '',
+    construction_estimate_notes: p.construction_estimate_notes ?? '',
+  });
+
+  const saveWipField = useCallback(async (field: string, value: unknown) => {
+    setSaving(field);
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ [field]: value, updated_at: new Date().toISOString() })
+        .eq('id', project.id);
+      if (error) throw new Error(error.message);
+
+      // Sync boolean and notes fields to Airtable
+      const airtableFieldName = AIRTABLE_WIP_FIELD_NAMES[field];
+      if (airtableFieldName && project.airtable_project_id) {
+        fetch('/api/airtable/projects/update-field', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            airtable_project_id: project.airtable_project_id,
+            field_name: airtableFieldName,
+            field_value: value,
+          }),
+        }).catch(() => console.warn(`[WipDueDiligenceBlock] Airtable sync failed for ${field}`));
+      }
+
+      await onRefetch();
+      toast.success('Guardado');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar');
+    } finally {
+      setSaving(null);
+    }
+  }, [supabase, project.id, project.airtable_project_id, onRefetch]);
+
+  type SectionConfig = {
+    title: string;
+    checkField: 'licenses_ok' | 'utilities_ok' | 'construction_estimate_ok';
+    notesField: 'licenses_notes' | 'utility_status_notes' | 'construction_estimate_notes';
+    notesPlaceholder: string;
+    showAttachment?: boolean;
+  };
+
+  const sections: SectionConfig[] = [
+    {
+      title: 'Licencias',
+      checkField: 'licenses_ok',
+      notesField: 'licenses_notes',
+      notesPlaceholder: 'Notas sobre el estado de licencias...',
+    },
+    {
+      title: 'Suministros',
+      checkField: 'utilities_ok',
+      notesField: 'utility_status_notes',
+      notesPlaceholder: 'Notas sobre el estado de suministros...',
+    },
+    {
+      title: 'Presupuesto de Obra',
+      checkField: 'construction_estimate_ok',
+      notesField: 'construction_estimate_notes',
+      notesPlaceholder: 'Notas sobre el presupuesto de construcción...',
+      showAttachment: true,
+    },
+  ];
+
+  return (
+    <div className="divide-y">
+      {sections.map((section) => {
+        const isOk = p[section.checkField] === true;
+        const isSavingCheck = saving === section.checkField;
+        const isSavingNotes = saving === section.notesField;
+
+        return (
+          <div key={section.checkField} className="px-6 py-5 space-y-4">
+            {/* Section header */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-sm font-semibold text-foreground">{section.title}</h3>
+                <span className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                  isOk
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-muted text-muted-foreground'
+                )}>
+                  {isOk ? (
+                    <><CheckCircle2 className="h-3 w-3" /> Completado</>
+                  ) : (
+                    'Pendiente'
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {isSavingCheck && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                <Checkbox
+                  checked={isOk}
+                  onCheckedChange={(checked) => saveWipField(section.checkField, checked === true)}
+                  disabled={!!saving}
+                />
+              </div>
+            </div>
+
+            {/* Notes textarea */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Notas</label>
+              <div className="relative">
+                <Textarea
+                  className="text-sm min-h-[72px] resize-none"
+                  placeholder={section.notesPlaceholder}
+                  value={localNotes[section.notesField]}
+                  onChange={(e) => setLocalNotes((prev) => ({ ...prev, [section.notesField]: e.target.value }))}
+                  onBlur={() => {
+                    const newVal = localNotes[section.notesField].trim() || null;
+                    const current = p[section.notesField] ?? null;
+                    if (newVal !== current) {
+                      saveWipField(section.notesField, newVal);
+                    }
+                  }}
+                  disabled={!!saving}
+                />
+                {isSavingNotes && (
+                  <div className="absolute top-2 right-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Budget attachment (only for Presupuesto de Obra section) */}
+            {section.showAttachment && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Adjunto del presupuesto</label>
+                <AttachmentUploadField
+                  projectId={project.id}
+                  field="construction_estimate_attachment"
+                  value={p.construction_estimate_attachment}
+                  onRefetch={onRefetch}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -1414,6 +1596,7 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
   const showTechDocs = shouldShowTechnicalProjectDocs(phase);
   const showEcuFirst = shouldShowEcuFirstBlock(phase);
   const showFineTuning = shouldShowFineTuningBlock(phase);
+  const showWipDueDiligence = shouldShowWipDueDiligence(phase);
 
   const saveField = useCallback(
     async (field: string, value: unknown) => {
@@ -1473,7 +1656,7 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
     [supabase, project.id, project.airtable_project_id, onRefetch, project.reno_phase, project.draft_order_date]
   );
 
-  const hasContent = tasks.length > 0 || showBudget || showEcuFlow || showTechDocs || showEcuFirst || showFineTuning || showEcuContactTask;
+  const hasContent = tasks.length > 0 || showBudget || showEcuFlow || showTechDocs || showEcuFirst || showFineTuning || showEcuContactTask || showWipDueDiligence;
 
   if (!hasContent) {
     return (
@@ -1497,6 +1680,11 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
       {/* Architect deliverables (Pendiente de Validación) */}
       {showArchitectDeliverables && (
         <ArchitectDeliverablesBlock project={project} />
+      )}
+
+      {/* WIP Due Diligence task blocks (Reno Due Diligence phase) */}
+      {showWipDueDiligence && (
+        <WipDueDiligenceBlock project={project} onRefetch={onRefetch} />
       )}
 
       {/* Technical project docs (Proyecto Técnico en Progreso) */}

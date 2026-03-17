@@ -65,12 +65,15 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
   const ecuContact = ((p.ecu_contact as string | null) ?? "").replace(/[\[\]"]/g, "").trim() || null;
   const architect = p.architect as string | null;
   const scouter = (p.scouter as string | null)?.trim() || null;
+  const lead = (p.lead as string | null)?.trim() || null;
   const excludedFromEcu = p.excluded_from_ecu === true;
   const renovationExecutor = (p.renovation_executor as string | null)?.trim() || null;
 
   const PRE_ECU_PHASES = ["get-project-draft", "pending-to-validate", "pending-to-reserve-arras", "technical-project-in-progress"];
+  const WIP_SCOUTER_LEAD_PHASES = ["wip-reno-due-diligence", "wip-admin-licencias"];
   const phase = (project.reno_phase ?? "") as string;
-  const showScouter = scouter && PRE_ECU_PHASES.includes(phase);
+  const showScouter = scouter && (PRE_ECU_PHASES.includes(phase) || WIP_SCOUTER_LEAD_PHASES.includes(phase));
+  const showLead = lead && WIP_SCOUTER_LEAD_PHASES.includes(phase);
 
   const showDaysBadge = phaseElapsedDays != null;
   const isOverLimit = showDaysBadge && phaseLimitDays != null && phaseElapsedDays! > phaseLimitDays;
@@ -154,12 +157,17 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
         </span>
       </div>
 
-      {/* Scouter (pre-ECU phases) + ECU Contact (only if ECU) + Architect */}
-      {!isArchitectVariant && (showScouter || (!excludedFromEcu && ecuContact) || architect) && (
+      {/* Scouter (pre-ECU + WIP early phases) + Lead (WIP early phases) + ECU Contact + Architect */}
+      {!isArchitectVariant && (showScouter || showLead || (!excludedFromEcu && ecuContact) || architect) && (
         <div className="mt-2 pt-2 border-t border-border/50 space-y-1">
           {showScouter && (
             <p className="text-xs text-muted-foreground truncate">
               <span className="font-medium text-foreground">Scouter:</span> {scouter}
+            </p>
+          )}
+          {showLead && (
+            <p className="text-xs text-muted-foreground truncate">
+              <span className="font-medium text-foreground">Supply Lead:</span> {lead}
             </p>
           )}
           {!excludedFromEcu && ecuContact && (

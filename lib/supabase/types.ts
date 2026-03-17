@@ -516,6 +516,10 @@ export type Database = {
           utility_status_notes: string | null
           licenses_notes: string | null
           ct_trans_center: string | null
+          licenses_ok: boolean | null
+          utilities_ok: boolean | null
+          construction_estimate_ok: boolean | null
+          construction_estimate_attachment: unknown | null
         }
         Insert: {
           id?: string
@@ -612,6 +616,10 @@ export type Database = {
           utility_status_notes?: string | null
           licenses_notes?: string | null
           ct_trans_center?: string | null
+          licenses_ok?: boolean | null
+          utilities_ok?: boolean | null
+          construction_estimate_ok?: boolean | null
+          construction_estimate_attachment?: unknown | null
         }
         Update: {
           id?: string
@@ -708,6 +716,10 @@ export type Database = {
           utility_status_notes?: string | null
           licenses_notes?: string | null
           ct_trans_center?: string | null
+          licenses_ok?: boolean | null
+          utilities_ok?: boolean | null
+          construction_estimate_ok?: boolean | null
+          construction_estimate_attachment?: unknown | null
         }
         Relationships: []
       }
@@ -956,6 +968,7 @@ export type Database = {
           pdf_url: string | null
           property_id: string
           public_link_id: string | null
+          reno_phase_at_creation: string | null
         }
         Insert: {
           completed_at?: string | null
@@ -970,6 +983,7 @@ export type Database = {
           pdf_url?: string | null
           property_id: string
           public_link_id?: string | null
+          reno_phase_at_creation?: string | null
         }
         Update: {
           completed_at?: string | null
@@ -984,6 +998,7 @@ export type Database = {
           pdf_url?: string | null
           property_id?: string
           public_link_id?: string | null
+          reno_phase_at_creation?: string | null
         }
         Relationships: [
           {
