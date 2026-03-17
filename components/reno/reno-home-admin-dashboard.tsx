@@ -69,8 +69,11 @@ interface AdditionalKPI {
 
 const HIDDEN_FROM_DASHBOARD: string[] = [
   "miguel.pertusa@prophero.com",
+  "santiago.figueiredo@prophero.com",
+  "manuelgv8@gmail.com",
+  "marina.erustes@prophero.com",
 ];
-const HIDDEN_NAMES_PATTERN = /manu\s*prueba/i;
+const HIDDEN_NAMES_PATTERN = /manu\s*prueba|santiago\s*figueiredo|manuel\s*g[oó]mez|marina\s*erustes/i;
 
 const CHART_COLORS = {
   unit: "#3b82f6",
@@ -99,6 +102,7 @@ export function RenoHomeAdminDashboard({
     avgDays: number | null;
   }>({ completed: 0, pending: 0, avgDays: null });
   const [renovatorAssignments, setRenovatorAssignments] = useState<{ name: string; count: number }[]>([]);
+  const [foremanStats, setForemanStats] = useState<Record<string, { initialChecks: number; finalChecks: number; renovatorsApp: number; obraUpdates: number }>>({});
 
   const isAllowed = role === "admin" || role === "construction_manager";
 
@@ -146,6 +150,93 @@ export function RenoHomeAdminDashboard({
       setRenovatorAssignments(sorted);
     }
     fetchRenovatorAssignments();
+  }, [isAllowed]);
+
+  // --- Per-foreman stats: initial checks, renovators from app, obra updates ---
+  useEffect(() => {
+    if (!isAllowed) return;
+    async function fetchForemanStats() {
+      const stats: Record<string, { initialChecks: number; finalChecks: number; renovatorsApp: number; obraUpdates: number }> = {};
+
+      const ensure = (email: string) => {
+        if (!stats[email]) stats[email] = { initialChecks: 0, finalChecks: 0, renovatorsApp: 0, obraUpdates: 0 };
+      };
+
+      // 1) Initial + Final checks completed — join via property_id -> properties."Technical construction"
+      const { data: allInspections } = await supabase
+        .from("property_inspections")
+        .select("property_id, inspection_type")
+        .eq("inspection_status", "completed")
+        .in("inspection_type", ["initial", "final"]);
+
+      if (allInspections && allInspections.length > 0) {
+        const propIds = [...new Set(allInspections.map((i: any) => i.property_id))];
+        const { data: props } = await supabase
+          .from("properties")
+          .select('id, "Technical construction"')
+          .in("id", propIds);
+
+        const propForemanMap: Record<string, string> = {};
+        (props || []).forEach((p: any) => {
+          if (p["Technical construction"]) propForemanMap[p.id] = p["Technical construction"];
+        });
+
+        allInspections.forEach((i: any) => {
+          const tc = propForemanMap[i.property_id];
+          if (!tc) return;
+          const email = getForemanEmailFromName(tc) || tc;
+          if (isHiddenUser(email, getShortName(email))) return;
+          ensure(email);
+          if (i.inspection_type === "initial") stats[email].initialChecks++;
+          else if (i.inspection_type === "final") stats[email].finalChecks++;
+        });
+      }
+
+      // 2) Renovators assigned from app
+      const { data: renoProps } = await supabase
+        .from("properties")
+        .select('"Technical construction"')
+        .eq("renovator_assigned_from_app", true);
+
+      (renoProps || []).forEach((p: any) => {
+        const tc = p["Technical construction"];
+        if (!tc) return;
+        const email = getForemanEmailFromName(tc) || tc;
+        if (isHiddenUser(email, getShortName(email))) return;
+        ensure(email);
+        stats[email].renovatorsApp++;
+      });
+
+      // 3) Obra updates (property_activities count per foreman)
+      const { data: activities } = await supabase
+        .from("property_activities")
+        .select("property_id");
+
+      if (activities && activities.length > 0) {
+        const actPropIds = [...new Set(activities.map((a: any) => a.property_id).filter(Boolean))];
+        const { data: actProps } = await supabase
+          .from("properties")
+          .select('id, "Technical construction"')
+          .in("id", actPropIds);
+
+        const actPropForemanMap: Record<string, string> = {};
+        (actProps || []).forEach((p: any) => {
+          if (p["Technical construction"]) actPropForemanMap[p.id] = p["Technical construction"];
+        });
+
+        activities.forEach((a: any) => {
+          const tc = actPropForemanMap[a.property_id];
+          if (!tc) return;
+          const email = getForemanEmailFromName(tc) || tc;
+          if (isHiddenUser(email, getShortName(email))) return;
+          ensure(email);
+          stats[email].obraUpdates++;
+        });
+      }
+
+      setForemanStats(stats);
+    }
+    fetchForemanStats();
   }, [isAllowed]);
 
   // --- Works per foreman (derived from propertiesByPhase + projectTypesMap) ---
@@ -654,6 +745,10 @@ export function RenoHomeAdminDashboard({
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="pb-2 pr-4 font-medium">Jefe de obra</th>
                   <th className="pb-2 pr-4 font-medium">Última conexión</th>
+                  <th className="pb-2 pr-2 font-medium text-center">Initial Checks</th>
+                  <th className="pb-2 pr-2 font-medium text-center">Final Checks</th>
+                  <th className="pb-2 pr-2 font-medium text-center">Renovadores app</th>
+                  <th className="pb-2 pr-2 font-medium text-center">Updates obra</th>
                   <th className="pb-2 pr-4 font-medium text-right">
                     Sesiones (semana)
                   </th>
@@ -667,7 +762,10 @@ export function RenoHomeAdminDashboard({
                   .sort(
                     (a, b) => b.totalMinutesThisWeek - a.totalMinutesThisWeek
                   )
-                  .map((f) => (
+                  .map((f) => {
+                    const fEmail = f.email.toLowerCase().trim();
+                    const st = foremanStats[fEmail] || foremanStats[f.email] || { initialChecks: 0, finalChecks: 0, renovatorsApp: 0, obraUpdates: 0 };
+                    return (
                     <tr key={f.email} className="border-b last:border-0">
                       <td className="py-2 pr-4">
                         <div className="font-medium">{f.name}</div>
@@ -680,6 +778,42 @@ export function RenoHomeAdminDashboard({
                           ? formatRelativeDate(f.lastSignIn)
                           : "Nunca"}
                       </td>
+                      <td className="py-2 pr-2 text-center tabular-nums">
+                        {st.initialChecks > 0 ? (
+                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold">
+                            {st.initialChecks}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">0</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-2 text-center tabular-nums">
+                        {st.finalChecks > 0 ? (
+                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold">
+                            {st.finalChecks}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">0</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-2 text-center tabular-nums">
+                        {st.renovatorsApp > 0 ? (
+                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                            {st.renovatorsApp}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">0</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-2 text-center tabular-nums">
+                        {st.obraUpdates > 0 ? (
+                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 text-xs font-bold">
+                            {st.obraUpdates}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">0</span>
+                        )}
+                      </td>
                       <td className="py-2 pr-4 text-right tabular-nums">
                         {f.sessionsThisWeek}
                       </td>
@@ -687,7 +821,8 @@ export function RenoHomeAdminDashboard({
                         {formatMinutes(f.totalMinutesThisWeek)}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
               </tbody>
             </table>
           </div>

@@ -372,7 +372,18 @@ export const WIP_PHASE_LABELS: Record<string, string> = {
 };
 
 export const WIP_PROJECT_STATUS_TO_PHASE: Record<string, RenoKanbanPhase> = {
-  // Will be populated when the user defines phase mapping rules
+  "Analysis Supply": "wip-reno-due-diligence",
+  "analysis supply": "wip-reno-due-diligence",
+  "Due Diligence Reno": "wip-reno-due-diligence",
+  "due diligence reno": "wip-reno-due-diligence",
+  "Licenses Administration": "wip-admin-licencias",
+  "licenses administration": "wip-admin-licencias",
+  "Reno to start": "wip-obra-a-empezar",
+  "Reno To Start": "wip-obra-a-empezar",
+  "reno to start": "wip-obra-a-empezar",
+  "Reno in progress": "wip-obra-en-progreso",
+  "Reno In Progress": "wip-obra-en-progreso",
+  "reno in progress": "wip-obra-en-progreso",
 };
 
 export const visibleRenoKanbanColumnsWip: RenoKanbanColumn[] = PHASES_KANBAN_WIP.map(

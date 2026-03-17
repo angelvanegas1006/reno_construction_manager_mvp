@@ -223,32 +223,29 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
         />
 
         {/* Toggle Proyectos L1 / Unidades L2 */}
-        <div className="flex items-center gap-2 px-4 md:px-3 lg:px-4 py-2 border-b bg-card/50">
-          <span className="text-sm text-muted-foreground">Vista:</span>
-          <div className="flex items-center gap-1 bg-accent dark:bg-[var(--prophero-gray-800)] rounded-lg p-1">
+        <div className="mb-3 flex items-center gap-2 px-4 md:px-3 lg:px-4 pt-2">
+          <div className="flex items-center gap-1 bg-muted/60 dark:bg-[var(--prophero-gray-800)] rounded-lg p-1">
             <button
               onClick={() => setViewLevel("project")}
               className={cn(
-                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                 viewLevel === "project"
-                  ? "bg-[var(--prophero-blue-500)] text-white"
+                  ? "bg-[var(--prophero-blue-500)] text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
-              aria-label="Proyectos L1"
             >
-              Proyectos L1
+              Proyectos
             </button>
             <button
               onClick={() => setViewLevel("property")}
               className={cn(
-                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                 viewLevel === "property"
-                  ? "bg-[var(--prophero-blue-500)] text-white"
+                  ? "bg-[var(--prophero-blue-500)] text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
-              aria-label="Unidades L2"
             >
-              Unidades L2
+              Unidades
             </button>
           </div>
         </div>

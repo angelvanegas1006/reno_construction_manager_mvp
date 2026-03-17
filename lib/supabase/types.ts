@@ -509,6 +509,13 @@ export type Database = {
           arch_approval_doc: unknown | null
           arch_correction_date: string | null
           architect_fee: number | null
+          wip_status: string | null
+          vpo_project: string | null
+          wip_completion_pct: string | null
+          construction_estimate_notes: string | null
+          utility_status_notes: string | null
+          licenses_notes: string | null
+          ct_trans_center: string | null
         }
         Insert: {
           id?: string
@@ -598,6 +605,13 @@ export type Database = {
           arch_approval_doc?: unknown | null
           arch_correction_date?: string | null
           architect_fee?: number | null
+          wip_status?: string | null
+          vpo_project?: string | null
+          wip_completion_pct?: string | null
+          construction_estimate_notes?: string | null
+          utility_status_notes?: string | null
+          licenses_notes?: string | null
+          ct_trans_center?: string | null
         }
         Update: {
           id?: string
@@ -687,6 +701,13 @@ export type Database = {
           arch_approval_doc?: unknown | null
           arch_correction_date?: string | null
           architect_fee?: number | null
+          wip_status?: string | null
+          vpo_project?: string | null
+          wip_completion_pct?: string | null
+          construction_estimate_notes?: string | null
+          utility_status_notes?: string | null
+          licenses_notes?: string | null
+          ct_trans_center?: string | null
         }
         Relationships: []
       }

@@ -65,6 +65,16 @@ const F = {
   TECHNICAL_PROJECT_DOC:      'Technical project doc',    // fldqmIliUeNEjIQUO
   FINAL_PLAN:                 'Final plan',               // fldz5e4HkJWDByrtj
   LICENSE_ATTACHMENT:          'License attachment',       // fldpOMBUKylokMJ0E
+
+  // WIP-specific fields
+  WIP_STATUS:                 'WIP status',               // fldmlZHKCyuhTYxJw
+  VPO_PROJECT:                'VPO Project',              // fldlIRuPN4UOxSTnx
+  WIP_COMPLETION:             'WIP % of Completion',      // fldJEVnbCU2OCjVSd
+  CONSTRUCTION_ESTIMATE_NOTES:'Construction Estimate Notes',// fldjdRi8sYTSeI2Gr
+  UTILITY_STATUS_NOTES:       'Utility Status Notes',     // fld5xZ5FECYrDRTLa
+  LICENSES_NOTES:             'Licenses Notes',           // fldboWsKQLnCi1DAG
+  CT_TRANS_CENTER:            'CT (Trans. Center)',       // fldnzCbUdToFeUmQa
+  RENOVATOR_BUDGET_DOC:       'Renovator budget doc',     // (used for WIP budget check)
 } as const;
 
 // Linked record tables
@@ -1055,6 +1065,13 @@ export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult>
     architect: string | null;
     excluded_from_ecu: boolean | null;
     renovation_executor: string | null;
+    wip_status: string | null;
+    vpo_project: string | null;
+    wip_completion_pct: string | null;
+    construction_estimate_notes: string | null;
+    utility_status_notes: string | null;
+    licenses_notes: string | null;
+    ct_trans_center: string | null;
   };
 
   const records: WipRecord[] = [];
@@ -1089,11 +1106,21 @@ export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult>
       const f = rec.fields ?? {};
       const name = getField<string>(f, F.PROJECT_NAME) ?? null;
       const statusRaw = getField<string>(f, F.PROJECT_STATUS) ?? null;
+      const wipStatusRaw = getField<string>(f, F.WIP_STATUS) ?? null;
 
       let reno_phase: RenoKanbanPhase = 'wip-reno-due-diligence';
-      if (statusRaw) {
-        const mapped = WIP_PROJECT_STATUS_TO_PHASE[statusRaw];
+      if (wipStatusRaw) {
+        const mapped = WIP_PROJECT_STATUS_TO_PHASE[wipStatusRaw];
         if (mapped) reno_phase = mapped;
+      }
+
+      // "Reno to start" without renovator_budget_doc -> "wip-pendiente-presupuesto"
+      if (reno_phase === 'wip-obra-a-empezar') {
+        const budgetDoc = getField(f, F.RENOVATOR_BUDGET_DOC);
+        const hasBudgetInAirtable = budgetDoc != null && (Array.isArray(budgetDoc) ? budgetDoc.length > 0 : true);
+        if (!hasBudgetInAirtable) {
+          reno_phase = 'wip-pendiente-presupuesto';
+        }
       }
 
       const rawScouter = getField(f, F.SCOUTER);
@@ -1133,6 +1160,13 @@ export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult>
         architect: linkedIdsToNames(rawArchitect, linkedNameMap) ?? (typeof rawArchitect === 'string' ? rawArchitect : null),
         excluded_from_ecu: parseBool(getField(f, F.EXCLUDED_FROM_ECU)),
         renovation_executor: getField<string>(f, F.RENOVATION_EXECUTOR) ?? null,
+        wip_status: wipStatusRaw,
+        vpo_project: getField<string>(f, F.VPO_PROJECT) ?? null,
+        wip_completion_pct: (() => { const v = getField(f, F.WIP_COMPLETION); return v != null ? String(v) : null; })(),
+        construction_estimate_notes: getField<string>(f, F.CONSTRUCTION_ESTIMATE_NOTES) ?? null,
+        utility_status_notes: getField<string>(f, F.UTILITY_STATUS_NOTES) ?? null,
+        licenses_notes: getField<string>(f, F.LICENSES_NOTES) ?? null,
+        ct_trans_center: getField<string>(f, F.CT_TRANS_CENTER) ?? null,
       });
     });
 
@@ -1192,6 +1226,13 @@ export async function syncWipProjectsFromAirtable(): Promise<SyncProjectsResult>
     architect: rec.architect,
     excluded_from_ecu: rec.excluded_from_ecu,
     renovation_executor: rec.renovation_executor,
+    wip_status: rec.wip_status,
+    vpo_project: rec.vpo_project,
+    wip_completion_pct: rec.wip_completion_pct,
+    construction_estimate_notes: rec.construction_estimate_notes,
+    utility_status_notes: rec.utility_status_notes,
+    licenses_notes: rec.licenses_notes,
+    ct_trans_center: rec.ct_trans_center,
     is_wip_project: true,
     updated_at: now,
   });
