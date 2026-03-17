@@ -4,7 +4,13 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import { cn } from "@/lib/utils";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, Pencil, Loader2 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -73,7 +79,8 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
   const origin = parseDate(p.draft_order_date);
   if (!origin) return null;
 
-  const dayFrom = (d: Date | null) => (d ? daysBetween(origin, d) : null);
+  // Projects going through Ayuntamiento (Town Hall) instead of ECU
+  const isAyto = p.excluded_from_ecu === true;
 
   const phases: TimelinePhase[] = [];
   let cursor = 0;
@@ -91,7 +98,6 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
   cursor += 7;
 
   // 2. Anteproyecto — 14 days
-  // Starts when measurement is done, ends when architect sends to PropHero
   const measurementReal = parseDate(p.measurement_date);
   const anteStart = measurementReal ?? addDays(origin, 7);
   const anteEnd = parseDate(p.project_architect_date) ?? parseDate(p.project_draft_date);
@@ -106,7 +112,7 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
   });
   cursor += 14;
 
-  // HITO: Validación Draft (cuando el analista valida y solicita proyecto técnico)
+  // HITO: Validación Draft
   const draftValidationDate = parseDate(p.draft_validation_date);
   phases.push({
     id: "milestone-draft",
@@ -131,10 +137,10 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
     type: "phase",
   });
 
-  // Paralelo: Asignación ECUV
+  // Paralelo: Asignación ECUV / Contacto con Ayuntamiento
   phases.push({
     id: "ecuv-assignment",
-    label: "Asignación y gestión ECUV",
+    label: isAyto ? "Contacto con Ayuntamiento" : "Asignación y gestión ECUV",
     plannedStartDay: cursor,
     plannedDuration: 28,
     actualStartDate: techStart,
@@ -156,13 +162,13 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
     milestoneStyle: "major",
   });
 
-  // 4. 1ª Validación ECU — 28 days
+  // 4. 1ª Validación ECU / Primera Entrega Ayuntamiento — 28 days
   const ecuFirstStart = parseDate(p.ecu_first_start_date);
   const ecuFirstEnd = parseDate(p.ecu_first_end_date);
   const ecuStartFallback = parseDate(p.project_end_date) ?? parseDate(p.estimated_project_end_date);
   phases.push({
     id: "ecu-first-validation",
-    label: "1ª Validación ECU",
+    label: isAyto ? "Primera Entrega al Ayuntamiento" : "1ª Validación ECU",
     plannedStartDay: cursor,
     plannedDuration: 28,
     actualStartDate: ecuFirstStart ?? ecuStartFallback ?? addDays(origin, cursor),
@@ -171,12 +177,12 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
   });
   cursor += 28;
 
-  // 5. Reparos / Ajuste Proyecto Técnico — 5 days
+  // 5. Reparos — 5 days
   const repairsStart = ecuFirstEnd ?? addDays(origin, cursor);
   const archCorrDate = parseDate(p.arch_correction_date);
   phases.push({
     id: "repairs",
-    label: "Reparos",
+    label: isAyto ? "Reparos Ayuntamiento" : "Reparos",
     plannedStartDay: cursor,
     plannedDuration: 5,
     actualStartDate: repairsStart,
@@ -185,12 +191,12 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
   });
   cursor += 5;
 
-  // 6. Validación Final ECU — 21 days
+  // 6. Validación Final ECU / Validación Final Ayuntamiento — 21 days
   const ecuFinalStart = parseDate(p.ecu_final_start_date);
   const ecuFinalEnd = parseDate(p.ecu_final_end_date);
   phases.push({
     id: "ecu-final-validation",
-    label: "Validación Final ECU",
+    label: isAyto ? "Validación Final / Espera Ayuntamiento" : "Validación Final ECU",
     plannedStartDay: cursor,
     plannedDuration: 21,
     actualStartDate: ecuFinalStart ?? archCorrDate ?? addDays(origin, cursor),
@@ -223,16 +229,18 @@ function buildPhases(project: ProjectRow): { phases: TimelinePhase[]; originDate
   });
   cursor += 21;
 
-  // 7. Gestión Licencia Ayuntamiento — open-ended, show 30 days as baseline
-  phases.push({
-    id: "license-management",
-    label: "Gestión Licencia Ayuntamiento",
-    plannedStartDay: cursor,
-    plannedDuration: 30,
-    actualStartDate: null,
-    actualEndDate: null,
-    type: "phase",
-  });
+  // 7. Gestión Licencia Ayuntamiento — open-ended, 30 days baseline (only for ECU projects)
+  if (!isAyto) {
+    phases.push({
+      id: "license-management",
+      label: "Gestión Licencia Ayuntamiento",
+      plannedStartDay: cursor,
+      plannedDuration: 30,
+      actualStartDate: null,
+      actualEndDate: null,
+      type: "phase",
+    });
+  }
 
   return { phases, originDate: origin };
 }
@@ -295,9 +303,162 @@ function PhaseTooltip({ data, originDate }: { data: TooltipData; originDate: Dat
 /*  Component: ProjectTimeline                                         */
 /* ------------------------------------------------------------------ */
 
-export function ProjectTimeline({ project }: { project: ProjectRow | Record<string, any> }) {
+/* ------------------------------------------------------------------ */
+/*  Date fields config for the edit sheet                             */
+/* ------------------------------------------------------------------ */
+
+interface DateFieldConfig {
+  key: string;
+  label: string;
+  group: string;
+}
+
+const DATE_FIELD_CONFIGS: DateFieldConfig[] = [
+  // Medición
+  { key: "draft_order_date", label: "Fecha de Encargo (origen)", group: "Medición" },
+  { key: "measurement_date", label: "Fecha de Medición", group: "Medición" },
+  // Anteproyecto
+  { key: "project_architect_date", label: "Entrega Arquitecto", group: "Anteproyecto" },
+  { key: "project_draft_date", label: "Anteproyecto recibido", group: "Anteproyecto" },
+  // Proyecto Técnico
+  { key: "draft_validation_date", label: "Validación Draft", group: "Proyecto Técnico" },
+  { key: "estimated_project_end_date", label: "Fin estimado Proyecto Técnico", group: "Proyecto Técnico" },
+  { key: "project_end_date", label: "Fin real Proyecto Técnico", group: "Proyecto Técnico" },
+  // ECU / Ayuntamiento
+  { key: "ecu_delivery_date", label: "Entrega ECUV / Contacto Ayuntamiento", group: "ECU / Ayuntamiento" },
+  { key: "ecu_first_start_date", label: "Inicio 1ª Validación / 1ª Entrega Ayto.", group: "ECU / Ayuntamiento" },
+  { key: "ecu_first_end_date", label: "Fin 1ª Validación / 1ª Entrega Ayto.", group: "ECU / Ayuntamiento" },
+  // Reparos
+  { key: "arch_correction_date", label: "Corrección Arquitecto (fin reparos)", group: "Reparos" },
+  // Validación Final
+  { key: "ecu_final_start_date", label: "Inicio Validación Final", group: "Validación Final" },
+  { key: "ecu_final_end_date", label: "Fin Validación Final", group: "Validación Final" },
+];
+
+function toInputDate(v: string | null | undefined): string {
+  if (!v) return "";
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component: TimelineEditSheet                                       */
+/* ------------------------------------------------------------------ */
+
+function TimelineEditSheet({
+  open,
+  onOpenChange,
+  project,
+  onRefetch,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  project: ProjectRow | Record<string, any>;
+  onRefetch: () => Promise<void>;
+}) {
+  const p = project as any;
+  const supabase = createClient();
+  const [saving, setSaving] = useState(false);
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    DATE_FIELD_CONFIGS.forEach((f) => { init[f.key] = toInputDate(p[f.key]); });
+    return init;
+  });
+
+  // Reset values when project changes
+  useEffect(() => {
+    const init: Record<string, string> = {};
+    DATE_FIELD_CONFIGS.forEach((f) => { init[f.key] = toInputDate(p[f.key]); });
+    setValues(init);
+  }, [project]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const updates: Record<string, string | null> = { updated_at: new Date().toISOString() };
+      DATE_FIELD_CONFIGS.forEach((f) => {
+        updates[f.key] = values[f.key] ? values[f.key] : null;
+      });
+      const { error } = await supabase.from("projects").update(updates).eq("id", p.id);
+      if (error) throw new Error(error.message);
+      toast.success("Fechas del timeline actualizadas");
+      onOpenChange(false);
+      await onRefetch();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Group fields by group label
+  const groups = DATE_FIELD_CONFIGS.reduce<Record<string, DateFieldConfig[]>>((acc, f) => {
+    if (!acc[f.group]) acc[f.group] = [];
+    acc[f.group].push(f);
+    return acc;
+  }, {});
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader className="mb-4">
+          <SheetTitle>Editar fechas del timeline</SheetTitle>
+          <p className="text-xs text-muted-foreground">
+            Ajusta manualmente las fechas si los datos importados no son correctos. Los cambios solo se guardan en la base de datos local.
+          </p>
+        </SheetHeader>
+
+        <div className="space-y-6">
+          {Object.entries(groups).map(([groupName, fields]) => (
+            <div key={groupName}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{groupName}</p>
+              <div className="space-y-3">
+                {fields.map((f) => (
+                  <div key={f.key} className="space-y-1">
+                    <Label className="text-sm">{f.label}</Label>
+                    <Input
+                      type="date"
+                      value={values[f.key]}
+                      onChange={(e) => setValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <SheetFooter className="mt-6 flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button className="flex-1" onClick={handleSave} disabled={saving}>
+            {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Guardando...</> : "Guardar cambios"}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component: ProjectTimeline                                         */
+/* ------------------------------------------------------------------ */
+
+export function ProjectTimeline({
+  project,
+  canEdit,
+  onRefetch,
+}: {
+  project: ProjectRow | Record<string, any>;
+  canEdit?: boolean;
+  onRefetch?: () => Promise<void>;
+}) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const toggleFullscreen = useCallback(() => setIsFullscreen(prev => !prev), []);
 
   useEffect(() => {
@@ -425,13 +586,25 @@ export function ProjectTimeline({ project }: { project: ProjectRow | Record<stri
         <div>
           <h2 className="text-lg font-semibold">Timeline del proyecto</h2>
         </div>
-        <button
-          onClick={toggleFullscreen}
-          className="p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
-          title={fullscreen ? "Salir de pantalla completa (Esc)" : "Ver en pantalla completa"}
-        >
-          {fullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-2">
+          {canEdit && onRefetch && (
+            <button
+              onClick={() => setIsEditOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border border-border hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+              title="Editar fechas del timeline"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Editar fechas</span>
+            </button>
+          )}
+          <button
+            onClick={toggleFullscreen}
+            className="p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+            title={fullscreen ? "Salir de pantalla completa (Esc)" : "Ver en pantalla completa"}
+          >
+            {fullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Legend */}
@@ -672,6 +845,14 @@ export function ProjectTimeline({ project }: { project: ProjectRow | Record<stri
           {timelineContent(true)}
         </>,
         document.body,
+      )}
+      {canEdit && onRefetch && (
+        <TimelineEditSheet
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          project={project}
+          onRefetch={onRefetch}
+        />
       )}
     </>
   );

@@ -77,7 +77,9 @@ export default function MaturationAnalystKanbanPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
-  const [kanbanMode, setKanbanMode] = useState<KanbanMode>("projects");
+  const [kanbanMode, setKanbanMode] = useState<KanbanMode>(
+    unwrappedSearchParams?.get("kanbanMode") === "wips" ? "wips" : "projects"
+  );
   const [filters, setFilters] = useState<MaturationFilters>(DEFAULT_MATURATION_FILTERS);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 

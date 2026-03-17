@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import { cn } from "@/lib/utils";
 import { MATURATION_PHASE_LABELS } from "@/lib/reno-kanban-config";
-import { Clock, ArrowRight, AlertTriangle, CheckCircle2, Timer } from "lucide-react";
+import { Clock, ArrowRight, AlertTriangle, CheckCircle2, Timer, ChevronDown, ChevronUp, X } from "lucide-react";
+
+const INITIAL_VISIBLE = 6;
 
 /* ------------------------------------------------------------------ */
 /*  Phase definitions                                                  */
@@ -192,9 +194,21 @@ function CompactTooltip({ phases, x, y }: { phases: CompactPhase[]; x: number; y
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
+function parseAreaCluster(raw: string | null | undefined): string | null {
+  const s = (raw ?? "").toString().trim();
+  if (!s || ["[]", '[""]', "['']"].includes(s.replace(/\s/g, ""))) return null;
+  return s.replace(/^\[|\]$/g, "").replace(/['"]/g, "").trim();
+}
+
 export function ProjectTimelineOverview({ allProjects, getProjectUrl }: { allProjects: ProjectRow[]; getProjectUrl?: (project: ProjectRow) => string }) {
   const router = useRouter();
   const [tooltipData, setTooltipData] = useState<{ phases: CompactPhase[]; x: number; y: number } | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  // Filters
+  const [filterCluster, setFilterCluster] = useState<string>("");
+  const [filterArchitect, setFilterArchitect] = useState<string>("");
+  const [filterHealth, setFilterHealth] = useState<string>("");
 
   const projectsWithTimeline = useMemo(() => {
     return allProjects
@@ -225,16 +239,52 @@ export function ProjectTimelineOverview({ allProjects, getProjectUrl }: { allPro
     });
   }, [projectsWithTimeline]);
 
-  const noTimeline = allProjects.length - projectsWithTimeline.length;
+  // Filter options derived from data
+  const clusterOptions = useMemo(() => {
+    const set = new Set<string>();
+    projectsWithTimeline.forEach(({ project }) => {
+      const c = parseAreaCluster(project.area_cluster);
+      if (c) set.add(c);
+    });
+    return Array.from(set).sort();
+  }, [projectsWithTimeline]);
+
+  const architectOptions = useMemo(() => {
+    const set = new Set<string>();
+    projectsWithTimeline.forEach(({ project }) => {
+      const p = project as any;
+      if (p.architect) set.add(p.architect);
+    });
+    return Array.from(set).sort();
+  }, [projectsWithTimeline]);
+
+  // Apply filters
+  const filtered = useMemo(() => {
+    return sorted.filter(({ project, health }) => {
+      if (filterCluster) {
+        const c = parseAreaCluster(project.area_cluster);
+        if (c !== filterCluster) return false;
+      }
+      if (filterArchitect) {
+        const p = project as any;
+        if (p.architect !== filterArchitect) return false;
+      }
+      if (filterHealth && health !== filterHealth) return false;
+      return true;
+    });
+  }, [sorted, filterCluster, filterArchitect, filterHealth]);
+
+  const visible = expanded ? filtered : filtered.slice(0, INITIAL_VISIBLE);
+  const hasMore = filtered.length > INITIAL_VISIBLE;
+  const activeFilters = [filterCluster, filterArchitect, filterHealth].filter(Boolean).length;
+
+  const delayedCount = projectsWithTimeline.filter(({ health }) => health === "delayed" || health === "slight-delay").length;
+  const delayedOnlyCount = projectsWithTimeline.filter(({ health }) => health === "delayed").length;
 
   if (projectsWithTimeline.length === 0) {
     return (
-      <div className="bg-card border rounded-lg p-4">
-        <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-          <Clock className="h-4 w-4 text-blue-500" />
-          Timeline de proyectos
-        </h3>
-        <p className="text-sm text-muted-foreground text-center py-4">
+      <div className="bg-card border rounded-lg p-6 text-center">
+        <p className="text-sm text-muted-foreground">
           No hay proyectos con fecha de encargo anteproyecto para mostrar el timeline.
         </p>
       </div>
@@ -242,110 +292,281 @@ export function ProjectTimelineOverview({ allProjects, getProjectUrl }: { allPro
   }
 
   return (
-    <div className="bg-card border rounded-lg p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <Clock className="h-4 w-4 text-blue-500" />
-          Timeline de proyectos
-          <span className="text-xs text-muted-foreground font-normal">({projectsWithTimeline.length} proyectos)</span>
-        </h3>
-        {noTimeline > 0 && (
-          <span className="text-xs text-muted-foreground">
-            {noTimeline} sin fecha de encargo
+    <div className="space-y-0">
+      {/* White box: title + KPI + filters + legend + grid */}
+      <div className="bg-card border rounded-lg p-4 space-y-4">
+        {/* Header inside box */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <Clock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+              Timeline de proyectos
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Haz clic en un proyecto para ver el detalle completo
+            </p>
+          </div>
+          <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full font-medium flex-shrink-0">
+            {filtered.length}{filtered.length !== projectsWithTimeline.length ? ` / ${projectsWithTimeline.length}` : ""} proyectos
           </span>
-        )}
-      </div>
+        </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-3 mb-3 text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> En tiempo
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> En progreso
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Retraso leve
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Retrasado
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full bg-muted border" /> Pendiente
-        </span>
-      </div>
-
-      {/* Project rows */}
-      <div className="space-y-1">
-        {sorted.map(({ project, phases, activeIdx, health }) => {
-          const badge = HEALTH_BADGE[health] || HEALTH_BADGE["not-started"];
-          const BadgeIcon = badge.icon;
-          const activePhaseName = activeIdx >= 0 ? phases[activeIdx].label : phases.every(p => p.status !== "pending") ? "Completado" : "—";
-
-          return (
-            <div
-              key={project.id}
-              className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/40 transition-colors cursor-pointer group"
-              onClick={() => router.push(getProjectUrl ? getProjectUrl(project) : `/reno/maturation-analyst/project/${project.id}?viewMode=kanban&from=maturation-home&tab=timeline`)}
+        {/* KPI: proyectos retrasados */}
+        {delayedCount > 0 && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setFilterHealth(filterHealth === "delayed" ? "" : "delayed")}
+              className={cn(
+                "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+                filterHealth === "delayed"
+                  ? "border-red-400 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300"
+                  : "border-red-200 bg-red-50/60 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+              )}
             >
-              {/* Project info */}
-              <div className="w-44 flex-shrink-0 min-w-0">
-                <p className="text-xs font-medium truncate text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  {project.name || "Sin nombre"}
-                </p>
-                <p className="text-[10px] text-muted-foreground truncate">
-                  {project.project_unique_id || (project.reno_phase ? MATURATION_PHASE_LABELS[project.reno_phase] : "—")}
-                </p>
-              </div>
-
-              {/* Timeline bar */}
-              <div
-                className="flex-1 flex h-5 rounded-full overflow-hidden bg-muted/30 border border-border/50"
-                onMouseEnter={(e) => {
-                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  setTooltipData({ phases, x: rect.left + rect.width / 2, y: rect.top });
-                }}
-                onMouseLeave={() => setTooltipData(null)}
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <span className="text-sm font-bold">{delayedOnlyCount}</span>
+              <span>proyectos retrasados</span>
+              {filterHealth === "delayed" && <X className="h-3 w-3 ml-1" />}
+            </button>
+            {delayedCount > delayedOnlyCount && (
+              <button
+                onClick={() => setFilterHealth(filterHealth === "slight-delay" ? "" : "slight-delay")}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+                  filterHealth === "slight-delay"
+                    ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300"
+                    : "border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                )}
               >
-                {phases.map((ph) => {
-                  const widthPct = (ph.plannedDays / TOTAL_PLANNED_DAYS) * 100;
-                  const isActive = ph.status === "in-progress" || ph.status === "in-progress-late";
-                  return (
-                    <div
-                      key={ph.id}
-                      className={cn(
-                        "h-full transition-all relative",
-                        STATUS_COLORS[ph.status],
-                        ph.status === "pending" && "opacity-30",
-                        isActive && "animate-pulse",
+                <Timer className="h-3.5 w-3.5" />
+                <span className="text-sm font-bold">{delayedCount - delayedOnlyCount}</span>
+                <span>con retraso leve</span>
+                {filterHealth === "slight-delay" && <X className="h-3 w-3 ml-1" />}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Filters row */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Cluster filter */}
+          <div className="relative">
+            <select
+              value={filterCluster}
+              onChange={(e) => { setFilterCluster(e.target.value); setExpanded(false); }}
+              className={cn(
+                "h-8 rounded-md border border-input bg-background px-3 pr-8 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
+                filterCluster && "border-blue-400 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300"
+              )}
+            >
+              <option value="">Área cluster</option>
+              {clusterOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          </div>
+
+          {/* Architect filter */}
+          <div className="relative">
+            <select
+              value={filterArchitect}
+              onChange={(e) => { setFilterArchitect(e.target.value); setExpanded(false); }}
+              className={cn(
+                "h-8 rounded-md border border-input bg-background px-3 pr-8 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
+                filterArchitect && "border-blue-400 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300"
+              )}
+            >
+              <option value="">Arquitecto</option>
+              {architectOptions.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          </div>
+
+          {/* Health/status filter */}
+          <div className="relative">
+            <select
+              value={filterHealth}
+              onChange={(e) => { setFilterHealth(e.target.value); setExpanded(false); }}
+              className={cn(
+                "h-8 rounded-md border border-input bg-background px-3 pr-8 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
+                filterHealth && "border-blue-400 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300"
+              )}
+            >
+              <option value="">Estado</option>
+              <option value="delayed">Retrasado</option>
+              <option value="slight-delay">Retraso leve</option>
+              <option value="on-track">En tiempo</option>
+              <option value="not-started">Sin iniciar</option>
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          </div>
+
+          {/* Clear filters */}
+          {activeFilters > 0 && (
+            <button
+              onClick={() => { setFilterCluster(""); setFilterArchitect(""); setFilterHealth(""); setExpanded(false); }}
+              className="h-8 flex items-center gap-1.5 rounded-md px-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <X className="h-3 w-3" />
+              Limpiar ({activeFilters})
+            </button>
+          )}
+
+          {/* Legend — pushed to the right */}
+          <div className="ml-auto hidden lg:flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> En tiempo</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500" /> En progreso</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500" /> Retraso leve</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" /> Retrasado</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-muted border border-border" /> Pendiente</span>
+          </div>
+        </div>
+
+        {/* Empty filtered state */}
+        {filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            No hay proyectos que coincidan con los filtros seleccionados.
+          </p>
+        )}
+
+        {/* Cards grid */}
+        {filtered.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {visible.map(({ project, phases, activeIdx, health, completedCount }) => {
+              const badge = HEALTH_BADGE[health] || HEALTH_BADGE["not-started"];
+              const BadgeIcon = badge.icon;
+              const activePhaseName = activeIdx >= 0
+                ? phases[activeIdx].label
+                : phases.every(p => p.status !== "pending")
+                  ? "Completado"
+                  : "—";
+
+              const completedPhases = phases.filter(
+                p => p.status === "completed" || p.status === "completed-late"
+              );
+              const totalPhases = phases.length;
+              const cluster = parseAreaCluster(project.area_cluster);
+              const p = project as any;
+
+              return (
+                <div
+                  key={project.id}
+                  className="group relative rounded-lg border border-border bg-card p-4 cursor-pointer transition-all hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700"
+                  onClick={() => router.push(getProjectUrl ? getProjectUrl(project) : `/reno/maturation-analyst/project/${project.id}?viewMode=kanban&from=maturation-home&tab=timeline`)}
+                >
+                  {/* Top row: badge + arrow */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                      badge.className
+                    )}>
+                      <BadgeIcon className="h-2.5 w-2.5" />
+                      {badge.label}
+                    </span>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-blue-500 transition-colors" />
+                  </div>
+
+                  {/* Project name + meta */}
+                  <div className="mb-3 min-w-0">
+                    <p className="text-sm font-semibold truncate text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
+                      {project.name || "Sin nombre"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {[project.project_unique_id, activePhaseName !== "—" ? activePhaseName : null]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
+                    </p>
+                    {(cluster || p.architect) && (
+                      <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
+                        {[cluster, p.architect].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Progress bar + phase count */}
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-muted-foreground">
+                        {completedCount} de {totalPhases} fases
+                      </span>
+                      {activeIdx >= 0 && phases[activeIdx].actualDays != null && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {phases[activeIdx].actualDays}d / {phases[activeIdx].plannedDays}d plan.
+                        </span>
                       )}
-                      style={{ width: `${widthPct}%` }}
-                    >
-                      {/* Separator between segments */}
-                      <div className="absolute right-0 top-0 bottom-0 w-px bg-background/50" />
                     </div>
-                  );
-                })}
-              </div>
+                    <div
+                      className="flex h-2.5 rounded-full overflow-hidden bg-muted/40 border border-border/40"
+                      onMouseEnter={(e) => {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setTooltipData({ phases, x: rect.left + rect.width / 2, y: rect.top });
+                      }}
+                      onMouseLeave={() => setTooltipData(null)}
+                    >
+                      {phases.map((ph) => {
+                        const widthPct = (ph.plannedDays / TOTAL_PLANNED_DAYS) * 100;
+                        const isActive = ph.status === "in-progress" || ph.status === "in-progress-late";
+                        return (
+                          <div
+                            key={ph.id}
+                            className={cn(
+                              "h-full transition-all relative",
+                              STATUS_COLORS[ph.status],
+                              ph.status === "pending" && "opacity-20",
+                              isActive && "animate-pulse",
+                            )}
+                            style={{ width: `${widthPct}%` }}
+                          >
+                            <div className="absolute right-0 top-0 bottom-0 w-px bg-background/60" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
-              {/* Current phase */}
-              <div className="w-32 flex-shrink-0 text-right hidden sm:block">
-                <span className="text-[10px] text-muted-foreground">{activePhaseName}</span>
-              </div>
+                  {/* Completed phase labels */}
+                  {completedPhases.length > 0 && (
+                    <div className="flex flex-wrap gap-x-1 gap-y-0.5 mt-2">
+                      {completedPhases.map((ph, i) => (
+                        <span key={ph.id} className="text-[10px]">
+                          <span className={cn(
+                            ph.status === "completed-late" ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"
+                          )}>
+                            {ph.label}
+                          </span>
+                          {i < completedPhases.length - 1 && (
+                            <span className="text-muted-foreground/50 ml-1">·</span>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-              {/* Health badge */}
-              <div className="w-24 flex-shrink-0 hidden md:flex justify-end">
-                <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", badge.className)}>
-                  <BadgeIcon className="h-2.5 w-2.5" />
-                  {badge.label}
-                </span>
-              </div>
-
-              {/* Arrow */}
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-blue-500 transition-colors flex-shrink-0" />
-            </div>
-          );
-        })}
+        {/* Show more / less button */}
+        {hasMore && (
+          <div className="flex justify-center pt-1">
+            <button
+              onClick={() => setExpanded(prev => !prev)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-4 py-2 rounded-md hover:bg-muted"
+            >
+              {expanded ? (
+                <>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                  Ver menos
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                  Ver {filtered.length - INITIAL_VISIBLE} proyectos más
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tooltip */}
