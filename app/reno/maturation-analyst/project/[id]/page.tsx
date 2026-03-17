@@ -92,7 +92,7 @@ export default function MaturationProjectDetailPage() {
   })();
 
   const { t, language } = useI18n();
-  const { user, role, isLoading: authLoading } = useAppAuth();
+  const { user, role, isAdmin, isLoading: authLoading } = useAppAuth();
   const { project, properties, loading, error, refetch } =
     useSupabaseProject(projectId);
   const initialTab = unwrappedSearchParams?.get("tab") || "tareas";
@@ -185,7 +185,14 @@ export default function MaturationProjectDetailPage() {
         return <MaturationTaskList project={project} onRefetch={refetch} />;
 
       case "timeline":
-        return <ProjectTimeline project={project} />;
+        return (
+          <ProjectTimeline
+            key={`timeline-${role ?? "loading"}`}
+            project={project}
+            canEdit={role === "maduration_analyst" || role === "construction_manager" || isAdmin}
+            onRefetch={refetch}
+          />
+        );
 
       case "documentacion":
         return <ProjectDocumentationTab project={project} />;

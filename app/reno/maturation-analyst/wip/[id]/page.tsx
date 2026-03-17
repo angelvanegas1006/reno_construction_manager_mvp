@@ -88,7 +88,7 @@ export default function WipDetailPage() {
   })();
 
   const { language } = useI18n();
-  const { user, role, isLoading: authLoading } = useAppAuth();
+  const { user, role, isAdmin, isLoading: authLoading } = useAppAuth();
   const { project, properties, loading, error, refetch } =
     useSupabaseProject(projectId);
   const initialTab = unwrappedSearchParams?.get("tab") || "tareas";
@@ -165,7 +165,14 @@ export default function WipDetailPage() {
         return <MaturationTaskList project={project} onRefetch={refetch} />;
 
       case "timeline":
-        return <ProjectTimeline project={project} />;
+        return (
+          <ProjectTimeline
+            key={`timeline-${role ?? "loading"}`}
+            project={project}
+            canEdit={role === "maduration_analyst" || role === "construction_manager" || isAdmin}
+            onRefetch={refetch}
+          />
+        );
 
       case "documentacion":
         return <ProjectDocumentationTab project={project} />;
@@ -349,11 +356,9 @@ export default function WipDetailPage() {
           <Button
             variant="outline"
             onClick={() => {
-              const url =
-                viewMode === "list"
-                  ? "/reno/maturation-analyst/kanban?viewMode=list"
-                  : "/reno/maturation-analyst/kanban";
-              router.push(url);
+              const params = new URLSearchParams({ kanbanMode: "wips" });
+              if (viewMode === "list") params.set("viewMode", "list");
+              router.push(`/reno/maturation-analyst/kanban?${params.toString()}`);
             }}
           >
             Volver al Kanban
@@ -374,11 +379,10 @@ export default function WipDetailPage() {
                 variant="ghost"
                 onClick={() => {
                   const base = "/reno/maturation-analyst/kanban";
-                  const params = new URLSearchParams();
+                  const params = new URLSearchParams({ kanbanMode: "wips" });
                   if (viewMode === "list") params.set("viewMode", "list");
                   if (sourcePage) params.set("from", sourcePage);
-                  const qs = params.toString();
-                  router.push(qs ? `${base}?${qs}` : base);
+                  router.push(`${base}?${params.toString()}`);
                 }}
                 className="flex items-center gap-1 md:gap-2 flex-shrink-0"
               >
