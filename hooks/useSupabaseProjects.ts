@@ -70,6 +70,13 @@ export interface ProjectRow {
   ecu_final_end_date?: string | null;
   project_architect_date?: string | null;
   architect_fee?: number | null;
+  wip_status?: string | null;
+  vpo_project?: string | null;
+  wip_completion_pct?: string | null;
+  construction_estimate_notes?: string | null;
+  utility_status_notes?: string | null;
+  licenses_notes?: string | null;
+  ct_trans_center?: string | null;
 }
 
 /** Mapea Project status (Airtable) → fase Kanban; prioridad sobre reno_phase */

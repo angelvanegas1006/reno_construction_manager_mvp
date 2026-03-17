@@ -109,10 +109,20 @@ export function useProjectFinalCheck(projectId: string | null) {
         .from("project_final_check_dwellings")
         .update(data)
         .eq("id", dwellingId);
-      if (!error) await fetchFinalCheck();
+      if (!error) {
+        setFinalCheck((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            dwellings: prev.dwellings.map((d) =>
+              d.id === dwellingId ? { ...d, ...data } : d
+            ),
+          };
+        });
+      }
       return error;
     },
-    [fetchFinalCheck]
+    []
   );
 
   return { finalCheck, loading, refetch: fetchFinalCheck, startFinalCheck, saveDwelling };

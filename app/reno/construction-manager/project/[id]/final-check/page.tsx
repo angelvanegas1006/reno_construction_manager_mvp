@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useCallback, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Building2, FileDown, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, Building2, FileDown, ClipboardCheck, Save, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,8 @@ import { useProjectFinalCheck } from "@/hooks/useProjectFinalCheck";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+type LocalDwellingState = Record<string, { estado_vivienda: string; estado_mobiliario: string }>;
 
 export default function ProjectFinalCheckPage() {
   const paramsPromise = useParams();
@@ -27,27 +29,75 @@ export default function ProjectFinalCheckPage() {
   const { project, properties, loading: projectLoading } = useSupabaseProject(projectId);
   const { finalCheck, loading: checkLoading, saveDwelling, refetch, startFinalCheck } = useProjectFinalCheck(projectId);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
   const [startingCheck, setStartingCheck] = useState(false);
+  const [dirtyIds, setDirtyIds] = useState<Set<string>>(new Set());
+  const [localState, setLocalState] = useState<LocalDwellingState>({});
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!finalCheck?.dwellings || initializedRef.current) return;
+    const state: LocalDwellingState = {};
+    finalCheck.dwellings.forEach((d) => {
+      state[d.id] = {
+        estado_vivienda: d.estado_vivienda ?? "",
+        estado_mobiliario: d.estado_mobiliario ?? "",
+      };
+    });
+    setLocalState(state);
+    initializedRef.current = true;
+  }, [finalCheck?.dwellings]);
 
   const propertyById = useCallback(
     (id: string) => properties.find((p) => p.id === id),
     [properties]
   );
 
-  const handleSave = useCallback(
-    async (
-      dwellingId: string,
-      field: "estado_vivienda" | "estado_mobiliario",
-      value: string
-    ) => {
-      setSavingId(dwellingId);
-      await saveDwelling(dwellingId, { [field]: value || null });
-      setSavingId(null);
+  const handleFieldChange = useCallback(
+    (dwellingId: string, field: "estado_vivienda" | "estado_mobiliario", value: string) => {
+      setLocalState((prev) => ({
+        ...prev,
+        [dwellingId]: { ...prev[dwellingId], [field]: value },
+      }));
+      setDirtyIds((prev) => new Set(prev).add(dwellingId));
     },
-    [saveDwelling]
+    []
   );
+
+  const handleSaveDwelling = useCallback(
+    async (dwellingId: string) => {
+      const local = localState[dwellingId];
+      if (!local) return;
+      setSavingId(dwellingId);
+      await saveDwelling(dwellingId, {
+        estado_vivienda: local.estado_vivienda || null,
+        estado_mobiliario: local.estado_mobiliario || null,
+      });
+      setSavingId(null);
+      setDirtyIds((prev) => {
+        const next = new Set(prev);
+        next.delete(dwellingId);
+        return next;
+      });
+      setSavedId(dwellingId);
+      setTimeout(() => setSavedId(null), 2000);
+    },
+    [localState, saveDwelling]
+  );
+
+  const handleSaveAll = useCallback(async () => {
+    const ids = Array.from(dirtyIds);
+    if (ids.length === 0) {
+      toast.info("No hay cambios pendientes");
+      return;
+    }
+    for (const id of ids) {
+      await handleSaveDwelling(id);
+    }
+    toast.success("Todos los cambios guardados");
+  }, [dirtyIds, handleSaveDwelling]);
 
   const handleCompleteAndDownload = useCallback(async () => {
     if (!finalCheck?.id) return;
@@ -180,14 +230,26 @@ export default function ProjectFinalCheckPage() {
               </div>
             </div>
             {!isCompleted && (
-              <Button
-                onClick={handleCompleteAndDownload}
-                disabled={completing}
-                className="flex items-center gap-2"
-              >
-                <FileDown className="h-4 w-4" />
-                {completing ? "Generando..." : "Finalizar y generar informe"}
-              </Button>
+              <div className="flex items-center gap-2">
+                {dirtyIds.size > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveAll}
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    Guardar todo ({dirtyIds.size})
+                  </Button>
+                )}
+                <Button
+                  onClick={handleCompleteAndDownload}
+                  disabled={completing}
+                  className="flex items-center gap-2"
+                >
+                  <FileDown className="h-4 w-4" />
+                  {completing ? "Generando..." : "Finalizar y generar informe"}
+                </Button>
+              </div>
             )}
             {isCompleted && (
               <Button
@@ -248,6 +310,10 @@ export default function ProjectFinalCheckPage() {
             {dwellings.map((d) => {
               const prop = propertyById(d.property_id);
               const address = prop?.address ?? prop?.name ?? d.property_id;
+              const local = localState[d.id];
+              const isDirty = dirtyIds.has(d.id);
+              const isSaving = savingId === d.id;
+              const justSaved = savedId === d.id;
               return (
                 <div
                   key={d.id}
@@ -261,8 +327,13 @@ export default function ProjectFinalCheckPage() {
                     <h2 className="text-lg font-semibold text-foreground">
                       {address}
                     </h2>
-                    {savingId === d.id && (
+                    {isSaving && (
                       <span className="text-xs text-muted-foreground">Guardando...</span>
+                    )}
+                    {justSaved && !isSaving && (
+                      <span className="text-xs text-emerald-600 flex items-center gap-1">
+                        <Check className="h-3 w-3" /> Guardado
+                      </span>
                     )}
                   </div>
                   <div className="space-y-4">
@@ -274,9 +345,10 @@ export default function ProjectFinalCheckPage() {
                         id={`vivienda-${d.id}`}
                         className="mt-1 min-h-[100px]"
                         placeholder="Describe el estado de la vivienda..."
-                        defaultValue={d.estado_vivienda ?? ""}
-                        onBlur={(e) =>
-                          handleSave(d.id, "estado_vivienda", e.target.value)
+                        value={local?.estado_vivienda ?? d.estado_vivienda ?? ""}
+                        disabled={isCompleted}
+                        onChange={(e) =>
+                          handleFieldChange(d.id, "estado_vivienda", e.target.value)
                         }
                       />
                     </div>
@@ -288,12 +360,27 @@ export default function ProjectFinalCheckPage() {
                         id={`mobiliario-${d.id}`}
                         className="mt-1 min-h-[100px]"
                         placeholder="Describe el estado del mobiliario..."
-                        defaultValue={d.estado_mobiliario ?? ""}
-                        onBlur={(e) =>
-                          handleSave(d.id, "estado_mobiliario", e.target.value)
+                        value={local?.estado_mobiliario ?? d.estado_mobiliario ?? ""}
+                        disabled={isCompleted}
+                        onChange={(e) =>
+                          handleFieldChange(d.id, "estado_mobiliario", e.target.value)
                         }
                       />
                     </div>
+                    {!isCompleted && (
+                      <div className="flex justify-end">
+                        <Button
+                          size="sm"
+                          variant={isDirty ? "default" : "outline"}
+                          disabled={!isDirty || isSaving}
+                          onClick={() => handleSaveDwelling(d.id)}
+                          className="flex items-center gap-1.5"
+                        >
+                          <Save className="h-3.5 w-3.5" />
+                          {isSaving ? "Guardando..." : "Guardar"}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

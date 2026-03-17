@@ -17,27 +17,32 @@ function mapWipPhase(reno_phase: string | null): RenoKanbanPhase {
 }
 
 function mapWipStatusToPhase(
-  project_status: string | null | undefined
+  wip_status: string | null | undefined,
+  hasBudgetDoc?: boolean
 ): RenoKanbanPhase | null {
-  if (!project_status || typeof project_status !== "string") return null;
-  const raw = project_status.trim();
+  if (!wip_status || typeof wip_status !== "string") return null;
+  const raw = wip_status.trim();
   if (!raw) return null;
-  const mapped = WIP_PROJECT_STATUS_TO_PHASE[raw];
-  if (mapped) return mapped;
-  const normalized = raw
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  for (const [k, v] of Object.entries(WIP_PROJECT_STATUS_TO_PHASE)) {
-    const keyNorm = k
+  let mapped = WIP_PROJECT_STATUS_TO_PHASE[raw] ?? null;
+  if (!mapped) {
+    const normalized = raw
       .toLowerCase()
       .replace(/\s+/g, " ")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
-    if (keyNorm === normalized) return v;
+    for (const [k, v] of Object.entries(WIP_PROJECT_STATUS_TO_PHASE)) {
+      const keyNorm = k
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      if (keyNorm === normalized) { mapped = v; break; }
+    }
   }
-  return null;
+  if (mapped === "wip-obra-a-empezar" && !hasBudgetDoc) {
+    return "wip-pendiente-presupuesto";
+  }
+  return mapped;
 }
 
 interface UseWipProjectsReturn {
@@ -82,8 +87,11 @@ export function useWipProjects(): UseWipProjectsReturn {
     }
     const seenInPhase = new Map<string, Set<string>>();
     for (const p of rows) {
+      const hasBudget = Array.isArray((p as any).renovator_budget_doc)
+        ? (p as any).renovator_budget_doc.length > 0
+        : !!(p as any).renovator_budget_doc;
       const phase =
-        mapWipStatusToPhase(p.project_status) ?? mapWipPhase(p.reno_phase);
+        mapWipStatusToPhase((p as any).wip_status, hasBudget) ?? mapWipPhase(p.reno_phase);
       if (PHASES_KANBAN_WIP.includes(phase)) {
         const id = p.id ?? "";
         if (!seenInPhase.has(phase)) seenInPhase.set(phase, new Set());
@@ -150,8 +158,11 @@ export function useArchitectWipProjects(
     }
     const seenInPhase = new Map<string, Set<string>>();
     for (const p of rows) {
+      const hasBudget = Array.isArray((p as any).renovator_budget_doc)
+        ? (p as any).renovator_budget_doc.length > 0
+        : !!(p as any).renovator_budget_doc;
       const phase =
-        mapWipStatusToPhase(p.project_status) ?? mapWipPhase(p.reno_phase);
+        mapWipStatusToPhase((p as any).wip_status, hasBudget) ?? mapWipPhase(p.reno_phase);
       if (PHASES_KANBAN_WIP.includes(phase)) {
         const id = p.id ?? "";
         if (!seenInPhase.has(phase)) seenInPhase.set(phase, new Set());
