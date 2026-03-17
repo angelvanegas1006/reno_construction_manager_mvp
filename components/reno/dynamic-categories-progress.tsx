@@ -1579,7 +1579,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                           <>
                             <input
                               type="range"
-                              min={getMinAllowedValue(firstCategoryId)}
+                              min={0}
                               max={100}
                               step={1}
                               value={Math.max(getMinAllowedValue(firstCategoryId), Math.min(100, averagePercentage))}
@@ -1655,7 +1655,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                                   />
                                   <input
                                     type="range"
-                                    min={categoryMinAllowed}
+                                    min={0}
                                     max={100}
                                     step={1}
                                     value={Math.max(categoryMinAllowed, Math.min(100, categoryPercentage))}
