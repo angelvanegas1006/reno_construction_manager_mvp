@@ -207,7 +207,7 @@ export function PropertyStatusSidebar({
         {/* Status Section */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-neutral-700 dark:text-neutral-200">
               {getPhaseLabel()}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -365,7 +365,7 @@ export function PropertyStatusSidebar({
               href={driveFolderUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              className="text-sm text-blue-600 dark:text-neutral-400 hover:underline flex items-center gap-1"
             >
               Abrir carpeta
             </a>

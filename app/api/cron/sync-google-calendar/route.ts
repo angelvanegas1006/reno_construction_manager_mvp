@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getGoogleCalendarSyncService } from '@/lib/google-calendar/sync-service';
+import { sendCronAlert } from '@/lib/n8n/cron-alert';
 
 function verifyCronRequest(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
@@ -101,6 +102,7 @@ async function runSync() {
     });
   } catch (error: any) {
     console.error('[sync-google-calendar] Error:', error);
+    await sendCronAlert('sync-google-calendar', error);
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

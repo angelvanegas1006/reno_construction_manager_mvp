@@ -7,6 +7,7 @@ import { RenoHomeHeader } from "@/components/reno/reno-home-header";
 import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { useAppAuth } from "@/lib/auth/app-auth-context";
 import { useMaturationProjects } from "@/hooks/useMaturationProjects";
+import { useWipProjects } from "@/hooks/useWipProjects";
 import { toast } from "sonner";
 import { Building2, TrendingUp, CheckCircle, Clock, Ruler, FileText, Hammer, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,8 @@ export default function MaturationAnalystHomePage() {
     loading: projectsLoading,
     refetch: refetchMaturationProjects,
   } = useMaturationProjects();
+
+  const { allProjects: allWipProjects } = useWipProjects();
 
   useEffect(() => {
     if (isLoading) return;
@@ -303,8 +306,8 @@ export default function MaturationAnalystHomePage() {
               {/* Calendario de fechas */}
               <MaturationCalendar allProjects={allProjects} />
 
-              {/* Timeline compacto de todos los proyectos */}
-              <ProjectTimelineOverview allProjects={allProjects} />
+              {/* Timeline compacto de todos los proyectos + WIPs */}
+              <ProjectTimelineOverview allProjects={allProjects} allWipProjects={allWipProjects} />
 
               {/* Proyectos recientes — solo visible para admin/CM */}
               {(role === "admin" || role === "construction_manager") && (

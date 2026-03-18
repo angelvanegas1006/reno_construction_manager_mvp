@@ -1513,7 +1513,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                               const saved = savedPercentages[cat.id] ?? cat.percentage ?? 0;
                               return pct !== saved;
                             }) && (
-                              <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700">
+                              <Badge variant="outline" className="text-xs text-blue-600 dark:text-neutral-400 border-blue-300 dark:border-neutral-600">
                                 Sin guardar
                               </Badge>
                             )}
@@ -1636,7 +1636,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                                       Presupuesto {budgetIndex}
                                     </Badge>
                                     {categoryHasChanged && (
-                                      <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400">
+                                      <Badge variant="outline" className="text-xs text-blue-600 dark:text-neutral-400">
                                         Sin guardar
                                       </Badge>
                                     )}

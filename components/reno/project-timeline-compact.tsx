@@ -4,10 +4,33 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ProjectRow } from "@/hooks/useSupabaseProjects";
 import { cn } from "@/lib/utils";
-import { MATURATION_PHASE_LABELS } from "@/lib/reno-kanban-config";
-import { Clock, ArrowRight, AlertTriangle, CheckCircle2, Timer, ChevronDown, ChevronUp, X } from "lucide-react";
+import { MATURATION_PHASE_LABELS, WIP_PHASE_LABELS } from "@/lib/reno-kanban-config";
+import { Clock, ArrowRight, AlertTriangle, CheckCircle2, Timer, ChevronDown, ChevronUp, X, Building2 } from "lucide-react";
+import { buildWipCompactBlocks, type WipBlock } from "@/lib/reno/wip-timeline-logic";
 
 const INITIAL_VISIBLE = 6;
+
+/* ------------------------------------------------------------------ */
+/*  WIP compact block colours                                         */
+/* ------------------------------------------------------------------ */
+
+const WIP_BLOCK_COLORS: Record<WipBlock, { bar: string; bg: string; text: string }> = {
+  maduracion: {
+    bar: "bg-violet-500",
+    bg: "bg-violet-100 dark:bg-violet-900/30",
+    text: "text-violet-700 dark:text-violet-300",
+  },
+  obra: {
+    bar: "bg-orange-500",
+    bg: "bg-orange-100 dark:bg-orange-900/30",
+    text: "text-orange-700 dark:text-orange-300",
+  },
+  "post-obra": {
+    bar: "bg-emerald-500",
+    bg: "bg-emerald-100 dark:bg-emerald-900/30",
+    text: "text-emerald-700 dark:text-emerald-300",
+  },
+};
 
 /* ------------------------------------------------------------------ */
 /*  Phase definitions                                                  */
@@ -200,10 +223,19 @@ function parseAreaCluster(raw: string | null | undefined): string | null {
   return s.replace(/^\[|\]$/g, "").replace(/['"]/g, "").trim();
 }
 
-export function ProjectTimelineOverview({ allProjects, getProjectUrl }: { allProjects: ProjectRow[]; getProjectUrl?: (project: ProjectRow) => string }) {
+export function ProjectTimelineOverview({
+  allProjects,
+  getProjectUrl,
+  allWipProjects,
+}: {
+  allProjects: ProjectRow[];
+  getProjectUrl?: (project: ProjectRow) => string;
+  allWipProjects?: ProjectRow[];
+}) {
   const router = useRouter();
   const [tooltipData, setTooltipData] = useState<{ phases: CompactPhase[]; x: number; y: number } | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [timelineMode, setTimelineMode] = useState<"proyectos" | "wips">("proyectos");
 
   // Filters
   const [filterCluster, setFilterCluster] = useState<string>("");
@@ -281,7 +313,26 @@ export function ProjectTimelineOverview({ allProjects, getProjectUrl }: { allPro
   const delayedCount = projectsWithTimeline.filter(({ health }) => health === "delayed" || health === "slight-delay").length;
   const delayedOnlyCount = projectsWithTimeline.filter(({ health }) => health === "delayed").length;
 
-  if (projectsWithTimeline.length === 0) {
+  // WIP compact data
+  const wipCards = useMemo(() => {
+    if (!allWipProjects || allWipProjects.length === 0) return [];
+    return allWipProjects.map((project) => {
+      const blocks = buildWipCompactBlocks(project);
+      const activeBlock = blocks.find((b) => b.status === "in-progress") ?? blocks[0];
+      return { project, blocks, activeBlock };
+    });
+  }, [allWipProjects]);
+
+  const wipFiltered = useMemo(() => {
+    return wipCards; // No filters on WIP side (can expand later)
+  }, [wipCards]);
+
+  const wipVisible = expanded ? wipFiltered : wipFiltered.slice(0, INITIAL_VISIBLE);
+  const wipHasMore = wipFiltered.length > INITIAL_VISIBLE;
+
+  const hasWips = allWipProjects && allWipProjects.length > 0;
+
+  if (projectsWithTimeline.length === 0 && !hasWips) {
     return (
       <div className="bg-card border rounded-lg p-6 text-center">
         <p className="text-sm text-muted-foreground">
@@ -306,10 +357,47 @@ export function ProjectTimelineOverview({ allProjects, getProjectUrl }: { allPro
               Haz clic en un proyecto para ver el detalle completo
             </p>
           </div>
-          <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full font-medium flex-shrink-0">
-            {filtered.length}{filtered.length !== projectsWithTimeline.length ? ` / ${projectsWithTimeline.length}` : ""} proyectos
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full font-medium">
+              {timelineMode === "proyectos"
+                ? `${filtered.length}${filtered.length !== projectsWithTimeline.length ? ` / ${projectsWithTimeline.length}` : ""} proyectos`
+                : `${wipFiltered.length} WIPs`}
+            </span>
+          </div>
         </div>
+
+        {/* Toggle Proyectos / WIPs — solo si hay WIPs */}
+        {hasWips && (
+          <div className="flex items-center">
+            <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 gap-0.5">
+              <button
+                onClick={() => { setTimelineMode("proyectos"); setExpanded(false); }}
+                className={cn(
+                  "px-3 py-1 rounded-md text-xs font-medium transition-all",
+                  timelineMode === "proyectos"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Proyectos
+              </button>
+              <button
+                onClick={() => { setTimelineMode("wips"); setExpanded(false); }}
+                className={cn(
+                  "px-3 py-1 rounded-md text-xs font-medium transition-all",
+                  timelineMode === "wips"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                WIPs
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ---- PROYECTOS MODE ---- */}
+        {timelineMode === "proyectos" && <>
 
         {/* KPI: proyectos retrasados */}
         {delayedCount > 0 && (
@@ -546,7 +634,7 @@ export function ProjectTimelineOverview({ allProjects, getProjectUrl }: { allPro
           </div>
         )}
 
-        {/* Show more / less button */}
+        {/* Show more / less button — proyectos */}
         {hasMore && (
           <div className="flex justify-center pt-1">
             <button
@@ -567,6 +655,166 @@ export function ProjectTimelineOverview({ allProjects, getProjectUrl }: { allPro
             </button>
           </div>
         )}
+
+        </> /* end proyectos mode */}
+
+        {/* ---- WIPS MODE ---- */}
+        {timelineMode === "wips" && <>
+
+          {/* WIP Legend */}
+          <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-violet-500" /> Maduración</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-500" /> Obra</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Post-Obra</span>
+          </div>
+
+          {/* WIP Cards grid */}
+          {wipFiltered.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              No hay WIPs disponibles.
+            </p>
+          )}
+
+          {wipFiltered.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {wipVisible.map(({ project, blocks, activeBlock }) => {
+                const pw = project as any;
+                const cluster = parseAreaCluster(project.area_cluster);
+                const activeBlockColors = activeBlock ? WIP_BLOCK_COLORS[activeBlock.id] : null;
+                const phaseName = pw.reno_phase
+                  ? (WIP_PHASE_LABELS[pw.reno_phase as string] ?? pw.reno_phase)
+                  : "—";
+
+                return (
+                  <div
+                    key={project.id}
+                    className="group relative rounded-lg border border-border bg-card p-4 cursor-pointer transition-all hover:shadow-md hover:border-violet-300 dark:hover:border-violet-700"
+                    onClick={() =>
+                      router.push(
+                        `/reno/maturation-analyst/wip/${project.id}?viewMode=kanban&from=maturation-home&tab=timeline`
+                      )
+                    }
+                  >
+                    {/* Top row: block badge + arrow */}
+                    <div className="flex items-center justify-between mb-3">
+                      {activeBlock && activeBlockColors ? (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                            activeBlockColors.bg,
+                            activeBlockColors.text
+                          )}
+                        >
+                          <Building2 className="h-2.5 w-2.5" />
+                          {activeBlock.label}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted">
+                          Sin iniciar
+                        </span>
+                      )}
+                      <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-violet-500 transition-colors" />
+                    </div>
+
+                    {/* Project name + meta */}
+                    <div className="mb-3 min-w-0">
+                      <p className="text-sm font-semibold truncate text-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors leading-tight">
+                        {project.name || "Sin nombre"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {[project.project_unique_id, phaseName].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                      {cluster && (
+                        <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5">
+                          {cluster}
+                          {pw.wip_completion_pct ? ` · ${pw.wip_completion_pct}% avance` : ""}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* 3-block progress bar */}
+                    <div className="mb-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-muted-foreground">
+                          {blocks.filter((b) => b.status === "completed").length} de{" "}
+                          {blocks.filter((b) => b.status !== "not-applicable").length} bloques
+                        </span>
+                      </div>
+                      <div className="flex h-2.5 rounded-full overflow-hidden bg-muted/40 border border-border/40 gap-0.5">
+                        {blocks.map((block) => {
+                          const colors = WIP_BLOCK_COLORS[block.id];
+                          return (
+                            <div
+                              key={block.id}
+                              className={cn(
+                                "h-full flex-1 transition-all",
+                                block.status === "not-applicable"
+                                  ? "bg-muted/20"
+                                  : block.status === "completed"
+                                  ? colors.bar
+                                  : block.status === "in-progress"
+                                  ? cn(colors.bar, "opacity-60 animate-pulse")
+                                  : "bg-muted/40"
+                              )}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Block status labels */}
+                    <div className="flex flex-wrap gap-x-1 gap-y-0.5 mt-2">
+                      {blocks
+                        .filter((b) => b.status !== "not-applicable")
+                        .map((block, i, arr) => (
+                          <span key={block.id} className="text-[10px]">
+                            <span
+                              className={cn(
+                                block.status === "completed"
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : block.status === "in-progress"
+                                  ? WIP_BLOCK_COLORS[block.id].text
+                                  : "text-muted-foreground/50"
+                              )}
+                            >
+                              {block.label}
+                            </span>
+                            {i < arr.length - 1 && (
+                              <span className="text-muted-foreground/50 ml-1">·</span>
+                            )}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Show more / less button — WIPs */}
+          {wipHasMore && (
+            <div className="flex justify-center pt-1">
+              <button
+                onClick={() => setExpanded(prev => !prev)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-4 py-2 rounded-md hover:bg-muted"
+              >
+                {expanded ? (
+                  <>
+                    <ChevronUp className="h-3.5 w-3.5" />
+                    Ver menos
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                    Ver {wipFiltered.length - INITIAL_VISIBLE} WIPs más
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+        </> /* end wips mode */}
+
       </div>
 
       {/* Tooltip */}

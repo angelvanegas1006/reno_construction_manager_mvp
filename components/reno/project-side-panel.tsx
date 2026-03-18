@@ -120,15 +120,15 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
   const typeBadge = useMemo(() => {
     if (!typeRaw) return null;
     if (typeLower === "project") return { cls: "bg-blue-600 text-white", label: typeRaw };
-    if (typeLower === "wip") return { cls: "bg-sky-200 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200 border border-sky-300 dark:border-sky-700/50", label: typeRaw };
-    if (typeLower === "new build") return { cls: "bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/50", label: typeRaw };
+    if (typeLower === "wip") return { cls: "bg-sky-200 dark:bg-neutral-700/40 text-sky-800 dark:text-neutral-200 border border-sky-300 dark:border-neutral-600/50", label: typeRaw };
+    if (typeLower === "new build") return { cls: "bg-blue-200 dark:bg-neutral-700/40 text-blue-800 dark:text-neutral-200 border border-blue-200 dark:border-neutral-600/50", label: typeRaw };
     return { cls: "bg-muted text-muted-foreground border border-border", label: typeRaw };
   }, [typeRaw, typeLower]);
 
   const investBadge = useMemo(() => {
     if (isArchitect) return null;
     if (investType.includes("flip")) return { cls: "border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30", label: "Flip" };
-    if (investType.includes("yield")) return { cls: "border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30", label: "Yield" };
+    if (investType.includes("yield")) return { cls: "border-blue-600 text-blue-700 dark:text-neutral-400 bg-blue-50 dark:bg-white/10", label: "Yield" };
     if (p.investment_type) return { cls: "border-border text-muted-foreground", label: p.investment_type };
     return null;
   }, [investType, p.investment_type, isArchitect]);
@@ -361,8 +361,8 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
             </div>
             {!isArchitect && isUrl(p.drive_folder) && (
               <a href={String(p.drive_folder)} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-border/60 bg-card px-3 py-2 flex items-center gap-2 hover:bg-accent/60 transition-colors">
-                <FolderOpen className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Carpeta Drive</span>
+                <FolderOpen className="h-4 w-4 text-blue-600 dark:text-neutral-400" />
+                <span className="text-xs font-medium text-blue-600 dark:text-neutral-400">Carpeta Drive</span>
                 <ExternalLink className="h-3 w-3 text-blue-500/60 ml-auto" />
               </a>
             )}
@@ -395,7 +395,7 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
           {p.excluded_from_ecu === true ? (
             <Badge variant="outline" className="text-[11px] h-5 border-amber-500 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">Ayto</Badge>
           ) : p.excluded_from_ecu === false ? (
-            <Badge variant="outline" className="text-[11px] h-5 border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">ECU</Badge>
+            <Badge variant="outline" className="text-[11px] h-5 border-blue-500 text-blue-700 dark:text-neutral-400 bg-blue-50 dark:bg-white/10">ECU</Badge>
           ) : null}
         </div>
         <Link href={detailUrl}>
@@ -489,7 +489,7 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
               <tbody>
                 {timeline.map((item, idx) => {
                   const isLate = item.status === "completed-late" || item.status === "in-progress-late";
-                  const rowBg = item.isCurrent ? "bg-blue-50/60 dark:bg-blue-950/20" : "";
+                  const rowBg = item.isCurrent ? "bg-blue-50/60 dark:bg-white/[0.08]" : "";
                   const dotColor =
                     item.status === "completed-on-time" ? "bg-green-500" :
                     item.status === "completed-late" ? "bg-red-500" :
@@ -510,7 +510,7 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
                             {item.phaseLabel}
                           </span>
                           {item.isCurrent && (
-                            <span className="text-[8px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1 py-px rounded-full font-medium leading-none flex-shrink-0">Actual</span>
+                            <span className="text-[8px] bg-blue-100 dark:bg-neutral-700/40 text-blue-700 dark:text-neutral-300 px-1 py-px rounded-full font-medium leading-none flex-shrink-0">Actual</span>
                           )}
                         </div>
                       </td>
@@ -560,7 +560,7 @@ export function ProjectSidePanel({ project, viewMode = "list", fromParam = "kanb
           <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Documentos</h3>
           <div className="grid grid-cols-2 gap-1.5">
             {docs.map((d) => (
-              <a key={d.url} href={d.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline truncate">
+              <a key={d.url} href={d.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-neutral-400 hover:underline truncate">
                 {d.label.toLowerCase().includes("drive") ? <FolderOpen className="h-3 w-3 flex-shrink-0" /> : <FileText className="h-3 w-3 flex-shrink-0" />}
                 <span className="truncate">{d.label}</span>
               </a>

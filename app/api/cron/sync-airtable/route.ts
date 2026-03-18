@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { syncAllPhasesFromAirtable } from '@/lib/airtable/sync-all-phases';
+import { sendCronAlert } from '@/lib/n8n/cron-alert';
 
 /**
  * Verifica que la request viene de Vercel Cron.
@@ -98,6 +99,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Airtable Sync Cron] Error:', error);
+    await sendCronAlert('sync-airtable', error);
     return NextResponse.json(
       {
         success: false,

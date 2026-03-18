@@ -50,9 +50,9 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
   const showTypeTag = isProject || isWIP || isNewBuild || typeRaw;
 
   const getTypeTagStyles = () => {
-    if (isProject) return "bg-blue-600 dark:bg-blue-700 text-white dark:text-white";
-    if (isWIP) return "bg-sky-200 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200 border border-sky-300 dark:border-sky-700/50";
-    if (isNewBuild) return "bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/50";
+    if (isProject) return "bg-blue-600 dark:bg-neutral-600 text-white dark:text-white";
+    if (isWIP) return "bg-sky-200 dark:bg-neutral-700/40 text-sky-800 dark:text-neutral-200 border border-sky-300 dark:border-neutral-600/50";
+    if (isNewBuild) return "bg-blue-200 dark:bg-neutral-700/40 text-blue-800 dark:text-neutral-200 border border-blue-200 dark:border-neutral-600/50";
     if (typeRaw) return "bg-muted text-muted-foreground border border-border";
     return "";
   };
@@ -101,7 +101,7 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
               Ayto
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 px-1.5 py-0.5 text-[10px] font-semibold">
+            <span className="inline-flex items-center rounded-full bg-sky-100 dark:bg-neutral-700/30 text-sky-700 dark:text-neutral-400 px-1.5 py-0.5 text-[10px] font-semibold">
               ECU
             </span>
           )}
@@ -111,7 +111,7 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
             </Badge>
           )}
           {!isArchitectVariant && isYield && (
-            <Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">
+            <Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-neutral-400 bg-blue-50 dark:bg-white/10">
               Yield
             </Badge>
           )}
@@ -143,7 +143,7 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
             <span className={cn(
               "inline-flex items-center rounded-full text-xs font-medium px-2 py-1",
               renovationExecutor.toLowerCase() === "prophero"
-                ? "bg-blue-800 dark:bg-blue-900 text-white dark:text-white"
+                ? "bg-blue-800 dark:bg-neutral-700 text-white dark:text-white"
                 : renovationExecutor.toLowerCase() === "other"
                   ? "bg-gray-700 dark:bg-gray-800 text-white dark:text-gray-100"
                   : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700/50"
