@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ProjectRow } from "@/hooks/useSupabaseProjects";
+import type { ProjectRow } from "@/hooks/useSupabaseProject";
 import { cn } from "@/lib/utils";
 import { Pencil, Loader2, Info } from "lucide-react";
 import {

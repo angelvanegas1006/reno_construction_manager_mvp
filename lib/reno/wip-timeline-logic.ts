@@ -5,7 +5,8 @@
  * Builds a list of WipTimelinePhase[] for a given WIP project.
  */
 
-import type { ProjectRow } from "@/hooks/useSupabaseProjects";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ProjectRow = Record<string, any>;
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
