@@ -13,7 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const BUCKET = "airtable-attachments";
 const CONCURRENCY = 5;
-const DOWNLOAD_TIMEOUT_MS = 15_000;
+const DOWNLOAD_TIMEOUT_MS = 8_000;
 
 export interface AttachmentMeta {
   url: string;
@@ -69,6 +69,23 @@ function addToFolderCache(folder: string, fileName: string) {
 }
 
 /**
+ * Returns auth headers for URLs that require HTTP Basic Authentication.
+ * The portfolio API (api.portfolio.prod.prophero.com) requires Basic Auth
+ * using AWS_S3_USERNAME / AWS_S3_PASSWORD env vars.
+ */
+function buildAuthHeaders(url: string): HeadersInit {
+  if (url.includes("api.portfolio.prod.prophero.com")) {
+    const user = process.env.AWS_S3_USERNAME;
+    const pass = process.env.AWS_S3_PASSWORD;
+    if (user && pass) {
+      const credentials = Buffer.from(`${user}:${pass}`).toString("base64");
+      return { Authorization: `Basic ${credentials}` };
+    }
+  }
+  return {};
+}
+
+/**
  * Download a file from a remote URL with a timeout that covers the entire
  * operation (connect + body read). The AbortController stays active until
  * the full body has been read.
@@ -80,7 +97,10 @@ async function downloadFile(
   const timer = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
 
   try {
-    const res = await fetch(sourceUrl, { signal: controller.signal });
+    const res = await fetch(sourceUrl, {
+      signal: controller.signal,
+      headers: buildAuthHeaders(sourceUrl),
+    });
 
     if (!res.ok) {
       clearTimeout(timer);

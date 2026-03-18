@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { PropertyTabs } from "@/components/layout/property-tabs";
 import { VistralLogoLoader } from "@/components/reno/vistral-logo-loader";
 import { MaturationTaskList } from "@/components/reno/maturation-task-list";
-import { ProjectTimeline } from "@/components/reno/project-timeline";
+import { WipProjectTimeline } from "@/components/reno/wip-project-timeline";
 import { EcuPageTab } from "@/components/reno/ecu-page-tab";
 import { ProjectDocumentationTab } from "@/components/reno/project-documentation-tab";
 
@@ -166,8 +166,8 @@ export default function WipDetailPage() {
 
       case "timeline":
         return (
-          <ProjectTimeline
-            key={`timeline-${role ?? "loading"}`}
+          <WipProjectTimeline
+            key={`wip-timeline-${role ?? "loading"}`}
             project={project}
             canEdit={role === "maduration_analyst" || role === "construction_manager" || isAdmin}
             onRefetch={refetch}

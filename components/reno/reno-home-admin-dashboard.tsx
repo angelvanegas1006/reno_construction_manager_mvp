@@ -108,6 +108,7 @@ export function RenoHomeAdminDashboard({
   const supabase = createClient();
 
   const [finalChecksData, setFinalChecksData] = useState<FinalCheckReport[]>([]);
+  const [initialChecksData, setInitialChecksData] = useState<FinalCheckReport[]>([]);
   const [activityData, setActivityData] = useState<ForemanActivityData[]>([]);
   const [additionalKPIs, setAdditionalKPIs] = useState<AdditionalKPI[]>([]);
   const [projectTypesMap, setProjectTypesMap] = useState<Record<string, string>>({});
@@ -481,6 +482,56 @@ export function RenoHomeAdminDashboard({
 
         setFinalChecksData(reports);
 
+        // 1b) Initial checks completados
+        const { data: allInitialInspections } = await supabase
+          .from("property_inspections")
+          .select("id, property_id, inspection_type, inspection_status, completed_at, created_at")
+          .eq("inspection_type", "initial")
+          .eq("inspection_status", "completed")
+          .order("completed_at", { ascending: false });
+
+        const initialInspections = allInitialInspections || [];
+
+        const initialPropIds = [...new Set(initialInspections.map((i: any) => i.property_id))];
+        let initialPropsMap: Record<string, { name: string | null; address: string | null; foreman: string | null }> = {};
+
+        if (initialPropIds.length > 0) {
+          const { data: initProps } = await supabase
+            .from("properties")
+            .select('id, name, address, "Technical construction", "Unique ID From Engagements"')
+            .in("id", initialPropIds);
+
+          (initProps || []).forEach((p: any) => {
+            initialPropsMap[p.id] = {
+              name: p["Unique ID From Engagements"] || p.name || p.address || p.id,
+              address: p.address,
+              foreman: p["Technical construction"],
+            };
+          });
+        }
+
+        const initialReports: FinalCheckReport[] = initialInspections
+          .map((i: any) => {
+            const prop = initialPropsMap[i.property_id] || { name: null, address: null, foreman: null };
+            const foremanRaw = prop.foreman || "";
+            const email = getForemanEmailFromName(foremanRaw) || foremanRaw;
+            const name = getShortName(email || foremanRaw);
+            return {
+              id: i.id,
+              propertyId: i.property_id,
+              propertyName: prop.name || i.property_id,
+              propertyAddress: prop.address,
+              foremanName: name,
+              foremanEmail: email,
+              completedAt: i.completed_at,
+              createdAt: i.created_at,
+              publicUrl: `/checklist-public/${i.property_id}/initial`,
+            };
+          })
+          .filter((r: FinalCheckReport) => !isHiddenUser(r.foremanEmail, r.foremanName));
+
+        setInitialChecksData(initialReports);
+
         // 2) Activity: fetch users via admin API, then sessions
         const usersRes = await fetch("/api/admin/users");
         const usersJson = await usersRes.json();
@@ -681,7 +732,7 @@ export function RenoHomeAdminDashboard({
           </div>
         </div>
         <div className="bg-card border rounded-lg p-4 flex items-center gap-3">
-          <div className="text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2">
+          <div className="text-blue-600 bg-blue-50 dark:bg-white/5 rounded-lg p-2">
             <Timer className="h-4 w-4" />
           </div>
           <div>
@@ -760,78 +811,153 @@ export function RenoHomeAdminDashboard({
         )}
       </div>
 
-      {/* Final Checks completados — property_inspections */}
-      <div className="bg-card border rounded-lg p-4">
-        <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-          <ClipboardCheck className="h-4 w-4 text-emerald-500" />
-          Informes de Final Check completados
-          {!loading && finalChecksData.length > 0 && (
-            <span className="ml-auto text-xs font-normal text-muted-foreground">
-              {finalChecksData.length} informe{finalChecksData.length !== 1 ? "s" : ""}
-            </span>
-          )}
-        </h3>
-        {loading ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            Cargando...
-          </p>
-        ) : finalChecksData.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            No hay Final Checks completados
-          </p>
-        ) : (
-          <div className="overflow-x-auto max-h-[420px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-card z-10">
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="pb-2 pr-4 font-medium">Propiedad</th>
-                  <th className="pb-2 pr-4 font-medium">Jefe de obra</th>
-                  <th className="pb-2 pr-4 font-medium">Fecha completado</th>
-                  <th className="pb-2 font-medium text-center">Informe HTML</th>
-                </tr>
-              </thead>
-              <tbody>
-                {finalChecksData.map((fc) => (
-                  <tr key={fc.id} className="border-b last:border-0">
-                    <td className="py-2.5 pr-4">
-                      <div className="font-medium max-w-[220px] truncate" title={fc.propertyName}>
-                        {fc.propertyName}
-                      </div>
-                      {fc.propertyAddress && (
-                        <div className="text-xs text-muted-foreground max-w-[220px] truncate" title={fc.propertyAddress}>
-                          {fc.propertyAddress}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-2.5 pr-4">
-                      <div>{fc.foremanName}</div>
-                      {fc.foremanEmail && (
-                        <div className="text-xs text-muted-foreground">{fc.foremanEmail}</div>
-                      )}
-                    </td>
-                    <td className="py-2.5 pr-4 text-xs">
-                      {fc.completedAt
-                        ? new Date(fc.completedAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
-                        : fc.createdAt
-                        ? new Date(fc.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
-                        : "—"}
-                    </td>
-                    <td className="py-2.5 text-center">
-                      <button
-                        onClick={() => window.open(fc.publicUrl, "_blank")}
-                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20 transition-colors"
-                        title="Ver informe HTML público"
-                      >
-                        <FileDown className="h-3.5 w-3.5" />
-                        Ver informe
-                      </button>
-                    </td>
+      {/* Informes de checks completados — grid 2 col */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        {/* Initial Checks completados */}
+        <div className="bg-card border rounded-lg p-4">
+          <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4 text-blue-500" />
+            Informes de Initial Check completados
+            {!loading && initialChecksData.length > 0 && (
+              <span className="ml-auto text-xs font-normal text-muted-foreground">
+                {initialChecksData.length} informe{initialChecksData.length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </h3>
+          {loading ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">Cargando...</p>
+          ) : initialChecksData.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No hay Initial Checks completados
+            </p>
+          ) : (
+            <div className="overflow-x-auto max-h-[420px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">Propiedad</th>
+                    <th className="pb-2 pr-4 font-medium">Jefe de obra</th>
+                    <th className="pb-2 pr-4 font-medium">Fecha</th>
+                    <th className="pb-2 font-medium text-center">Informe</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {initialChecksData.map((ic) => (
+                    <tr key={ic.id} className="border-b last:border-0">
+                      <td className="py-2.5 pr-4">
+                        <div className="font-medium max-w-[180px] truncate" title={ic.propertyName}>
+                          {ic.propertyName}
+                        </div>
+                        {ic.propertyAddress && (
+                          <div className="text-xs text-muted-foreground max-w-[180px] truncate" title={ic.propertyAddress}>
+                            {ic.propertyAddress}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <div>{ic.foremanName}</div>
+                        {ic.foremanEmail && (
+                          <div className="text-xs text-muted-foreground">{ic.foremanEmail}</div>
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-4 text-xs">
+                        {ic.completedAt
+                          ? new Date(ic.completedAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
+                          : ic.createdAt
+                          ? new Date(ic.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
+                          : "—"}
+                      </td>
+                      <td className="py-2.5 text-center">
+                        <button
+                          onClick={() => window.open(ic.publicUrl, "_blank")}
+                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 dark:text-neutral-400 dark:hover:bg-white/5 transition-colors"
+                          title="Ver informe HTML público"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                          Ver informe
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Final Checks completados */}
+        <div className="bg-card border rounded-lg p-4">
+          <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4 text-emerald-500" />
+            Informes de Final Check completados
+            {!loading && finalChecksData.length > 0 && (
+              <span className="ml-auto text-xs font-normal text-muted-foreground">
+                {finalChecksData.length} informe{finalChecksData.length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </h3>
+          {loading ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              Cargando...
+            </p>
+          ) : finalChecksData.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No hay Final Checks completados
+            </p>
+          ) : (
+            <div className="overflow-x-auto max-h-[420px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-card z-10">
+                  <tr className="border-b text-left text-muted-foreground">
+                    <th className="pb-2 pr-4 font-medium">Propiedad</th>
+                    <th className="pb-2 pr-4 font-medium">Jefe de obra</th>
+                    <th className="pb-2 pr-4 font-medium">Fecha</th>
+                    <th className="pb-2 font-medium text-center">Informe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {finalChecksData.map((fc) => (
+                    <tr key={fc.id} className="border-b last:border-0">
+                      <td className="py-2.5 pr-4">
+                        <div className="font-medium max-w-[180px] truncate" title={fc.propertyName}>
+                          {fc.propertyName}
+                        </div>
+                        {fc.propertyAddress && (
+                          <div className="text-xs text-muted-foreground max-w-[180px] truncate" title={fc.propertyAddress}>
+                            {fc.propertyAddress}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <div>{fc.foremanName}</div>
+                        {fc.foremanEmail && (
+                          <div className="text-xs text-muted-foreground">{fc.foremanEmail}</div>
+                        )}
+                      </td>
+                      <td className="py-2.5 pr-4 text-xs">
+                        {fc.completedAt
+                          ? new Date(fc.completedAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
+                          : fc.createdAt
+                          ? new Date(fc.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
+                          : "—"}
+                      </td>
+                      <td className="py-2.5 text-center">
+                        <button
+                          onClick={() => window.open(fc.publicUrl, "_blank")}
+                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 dark:text-neutral-400 dark:hover:bg-white/5 transition-colors"
+                          title="Ver informe HTML público"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                          Ver informe
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Activity table */}
@@ -890,7 +1016,7 @@ export function RenoHomeAdminDashboard({
                       </td>
                       <td className="py-2 pr-2 text-center tabular-nums">
                         {st.initialChecks > 0 ? (
-                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold">
+                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-blue-100 dark:bg-white/10 text-blue-700 dark:text-neutral-400 text-xs font-bold">
                             {st.initialChecks}
                           </span>
                         ) : (

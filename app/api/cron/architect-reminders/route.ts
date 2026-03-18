@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendArchitectEmailAlertServer } from "@/lib/webhook/architect-email-alert";
+import { sendCronAlert } from "@/lib/n8n/cron-alert";
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
 
@@ -223,6 +224,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, ...stats });
   } catch (err: any) {
     console.error("architect-reminders cron error:", err);
+    await sendCronAlert("architect-reminders", err);
     return NextResponse.json(
       { error: err.message || "Internal error" },
       { status: 500 }
@@ -240,6 +242,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, ...stats });
   } catch (err: any) {
     console.error("architect-reminders cron error:", err);
+    await sendCronAlert("architect-reminders", err);
     return NextResponse.json(
       { error: err.message || "Internal error" },
       { status: 500 }

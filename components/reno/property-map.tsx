@@ -40,6 +40,18 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
   // Obtener API key - en Next.js las variables NEXT_PUBLIC_* están disponibles en el cliente
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+  // Construir la query de geocodificación enriquecida con ciudad y país cuando falta contexto
+  const lowerAddr = address.toLowerCase();
+  const hasCountry = lowerAddr.includes("españa") || lowerAddr.includes("spain") || lowerAddr.endsWith(", es");
+  // Si hay areaCluster (ciudad/zona) y la dirección no lo menciona ya, añadirlo como contexto
+  const clusterCity = areaCluster ? areaCluster.split(/[-–,]/)[0].trim() : null;
+  const hasCity = clusterCity ? lowerAddr.includes(clusterCity.toLowerCase()) : true;
+  const geocodeQuery = hasCountry
+    ? address
+    : clusterCity && !hasCity
+      ? `${address}, ${clusterCity}, España`
+      : `${address}, España`;
+
   useEffect(() => {
     console.log('[PropertyMap] useEffect triggered', { apiKey: apiKey ? 'present' : 'missing', address, hasMapRef: !!mapRef.current });
     
@@ -68,14 +80,14 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
         return;
       }
 
-      console.log('[PropertyMap] Iniciando geocodificación para:', address);
+      console.log('[PropertyMap] Iniciando geocodificación para:', geocodeQuery);
 
       // Geocodificar la dirección para obtener coordenadas
       const geocoder = new window.google.maps.Geocoder();
       
       geocoder.geocode(
         { 
-          address: address,
+          address: geocodeQuery,
           region: 'ES', // Priorizar resultados en España
         },
         (results, status) => {
@@ -272,7 +284,7 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
         // El mapa se limpia automáticamente
       }
     };
-  }, [address, areaCluster, apiKey]);
+  }, [address, areaCluster, apiKey, geocodeQuery]);
 
   // Si no hay API key, mostrar placeholder
   if (!apiKey) {
@@ -289,36 +301,70 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
     );
   }
 
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(geocodeQuery)}`;
+
   // SIEMPRE renderizar el div con el ref, incluso cuando está cargando o hay error
   // Esto asegura que el ref esté disponible cuando el useEffect se ejecute
   return (
-    <div className="aspect-video rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] relative">
-      {/* Div del mapa - siempre presente en el DOM */}
-      <div
-        ref={mapRef}
-        className="w-full h-full"
-        style={{ minHeight: '300px' }}
-      />
-      
-      {/* Overlay de loading */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center z-10">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--prophero-blue-600)] mx-auto mb-2"></div>
-            <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+    <div className="space-y-2">
+      <div className="aspect-video rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] relative">
+        {/* Div del mapa - siempre presente en el DOM */}
+        <div
+          ref={mapRef}
+          className="w-full h-full"
+          style={{ minHeight: '300px' }}
+        />
+        
+        {/* Overlay de loading */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center z-10">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--prophero-blue-600)] mx-auto mb-2"></div>
+              <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Overlay de error */}
-      {error && !isLoading && (
-        <div className="absolute inset-0 bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center z-10">
-          <div className="text-center">
-            <Map className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm font-medium text-muted-foreground">{address}</p>
-            <p className="text-xs text-red-500 mt-1">{error}</p>
+        {/* Overlay de error */}
+        {error && !isLoading && (
+          <div className="absolute inset-0 bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center z-10">
+            <div className="text-center px-4">
+              <Map className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm font-medium text-muted-foreground">{address}</p>
+              <p className="text-xs text-red-500 mt-1">{error}</p>
+              <a
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Abrir en Google Maps
+              </a>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Botón flotante para abrir en Google Maps */}
+        {!isLoading && !error && (
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute bottom-2 right-2 z-10 bg-white dark:bg-neutral-800 border border-border/60 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 shadow-sm transition-colors"
+            title={`Buscar: ${geocodeQuery}`}
+          >
+            <Map className="h-3 w-3" />
+            Abrir en Google Maps
+          </a>
+        )}
+      </div>
+
+      {/* Dirección buscada */}
+      {address && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Map className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate">{address}</span>
+        </p>
       )}
     </div>
   );

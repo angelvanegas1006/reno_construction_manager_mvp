@@ -202,9 +202,9 @@ function ArchitectDeliverablesBlock({ project }: { project: ProjectRow }) {
   );
 
   return (
-    <div className="mx-6 my-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/10">
-      <div className="px-4 py-3 border-b bg-blue-50/80 dark:bg-blue-950/20 rounded-t-lg">
-        <h3 className="text-sm font-semibold flex items-center gap-2 text-blue-800 dark:text-blue-300">
+    <div className="mx-6 my-4 border rounded-lg bg-blue-50/50 dark:bg-white/5">
+      <div className="px-4 py-3 border-b bg-blue-50/80 dark:bg-white/[0.08] rounded-t-lg">
+        <h3 className="text-sm font-semibold flex items-center gap-2 text-blue-800 dark:text-neutral-300">
           <PencilRuler className="h-4 w-4" />
           Documentación del Arquitecto
         </h3>
@@ -457,14 +457,14 @@ function TechnicalProjectDocsBlock({
   };
 
   return (
-    <div className="mx-6 my-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/10">
-      <div className="px-4 py-3 border-b bg-blue-50/80 dark:bg-blue-950/20 rounded-t-lg">
-        <h3 className="text-sm font-semibold flex items-center gap-2 text-blue-800 dark:text-blue-300">
+    <div className="mx-6 my-4 border rounded-lg bg-blue-50/50 dark:bg-white/5">
+      <div className="px-4 py-3 border-b bg-blue-50/80 dark:bg-white/[0.08] rounded-t-lg">
+        <h3 className="text-sm font-semibold flex items-center gap-2 text-blue-800 dark:text-neutral-300">
           <PencilRuler className="h-4 w-4" />
           Documentación del Proyecto Técnico
         </h3>
         {deliveryDate && (
-          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 flex items-center gap-1.5">
+          <p className="text-xs text-blue-600 dark:text-neutral-400 mt-1 flex items-center gap-1.5">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Entregado el {new Date(deliveryDate).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
           </p>
