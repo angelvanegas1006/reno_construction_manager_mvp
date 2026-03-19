@@ -41,7 +41,7 @@ export function NavbarL2({
   onOpenSidebar,
 }: NavbarL2Props) {
   return (
-    <nav className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-3 md:px-4 lg:px-6 py-3 md:py-4">
+    <nav className="border-b bg-card dark:bg-v-gray-900 px-3 md:px-4 lg:px-6 py-3 md:py-4">
       <div className="flex items-center justify-between gap-2 md:gap-4 min-w-0">
         {/* Zona A: Botón de Retroceso - Alineado a la izquierda con espacio para hamburger */}
         <div className="flex items-center gap-2 md:gap-3 min-w-0 pl-12 md:pl-0">
@@ -89,7 +89,7 @@ export function NavbarL2({
                   onClick={action.onClick}
                   className={cn(
                     "flex items-center gap-1 md:gap-2 text-xs md:text-sm",
-                    action.variant === "outline" && "border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:border-amber-300 dark:hover:border-amber-700"
+                    action.variant === "outline" && "border-warning dark:border-warning text-warning dark:text-warning hover:bg-warning-subtle dark:hover:bg-warning/30 hover:border-warning dark:hover:border-warning"
                   )}
                 >
                   {action.icon}

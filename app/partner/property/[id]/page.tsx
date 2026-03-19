@@ -56,7 +56,7 @@ export default function PropertyDetailPage() {
       <PartnerSidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-6 py-4">
+        <header className="border-b bg-card dark:bg-v-gray-900 px-6 py-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -77,10 +77,10 @@ export default function PropertyDetailPage() {
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)]">
+        <div className="flex-1 overflow-y-auto p-6 bg-background dark:bg-v-gray-950">
           <div className="max-w-4xl mx-auto space-y-6">
             {/* Property Information Card */}
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <h2 className="text-lg font-semibold mb-4">Información de la Propiedad</h2>
               
               <div className="space-y-4">
@@ -168,7 +168,7 @@ export default function PropertyDetailPage() {
             </div>
 
             {/* Placeholder for future sections */}
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <h2 className="text-lg font-semibold mb-4">Detalles Adicionales</h2>
               <p className="text-sm text-muted-foreground">
                 Los detalles adicionales de la propiedad se mostrarán aquí.

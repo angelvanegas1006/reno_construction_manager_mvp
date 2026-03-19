@@ -46,7 +46,7 @@ export default function ContactForm() {
             </label>
             <Input id="name" placeholder="Tu nombre" {...register("name")} />
             {errors.name && (
-              <p className="text-sm text-red-600">{errors.name.message}</p>
+              <p className="text-sm text-danger">{errors.name.message}</p>
             )}
           </div>
           <div className="space-y-1.5">
@@ -55,7 +55,7 @@ export default function ContactForm() {
             </label>
             <Input id="email" placeholder="tu@correo.com" {...register("email")} />
             {errors.email && (
-              <p className="text-sm text-red-600">{errors.email.message}</p>
+              <p className="text-sm text-danger">{errors.email.message}</p>
             )}
           </div>
           <Button type="submit" disabled={isSubmitting}>

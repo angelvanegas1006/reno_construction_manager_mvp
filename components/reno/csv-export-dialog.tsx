@@ -110,7 +110,7 @@ export function CsvExportDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
+            <FileSpreadsheet className="h-5 w-5 text-success" />
             Exportar CSV
           </DialogTitle>
         </DialogHeader>
@@ -158,7 +158,7 @@ export function CsvExportDialog({
           <Button
             onClick={handleExport}
             disabled={noneSelected}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="bg-success hover:bg-success text-white"
           >
             <Download className="h-4 w-4 mr-2" />
             Descargar ({selectedColumns.length} columnas)

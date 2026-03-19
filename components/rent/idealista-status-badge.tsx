@@ -16,31 +16,31 @@ export function IdealistaStatusBadge({ status, className }: IdealistaStatusBadge
         return {
           label: 'Borrador',
           variant: 'outline' as const,
-          className: 'border-gray-300 text-gray-700',
+          className: 'border-v-gray-300 text-v-gray-700',
         };
       case 'publishing':
         return {
           label: 'Publicando...',
           variant: 'secondary' as const,
-          className: 'bg-blue-100 text-blue-800 border-blue-300',
+          className: 'bg-brand-100 text-brand-800 border-brand-300',
         };
       case 'published':
         return {
           label: 'Publicada',
           variant: 'default' as const,
-          className: 'bg-green-100 text-green-800 border-green-300',
+          className: 'bg-success-bg text-success border-success',
         };
       case 'paused':
         return {
           label: 'Pausada',
           variant: 'secondary' as const,
-          className: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+          className: 'bg-warning-bg text-warning border-warning',
         };
       case 'error':
         return {
           label: 'Error',
           variant: 'destructive' as const,
-          className: 'bg-red-100 text-red-800 border-red-300',
+          className: 'bg-danger-bg text-danger border-danger',
         };
       default:
         return {

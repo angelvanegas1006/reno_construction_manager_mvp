@@ -75,18 +75,18 @@ const BLOCK_COLORS: Record<WipBlock, { bg: string; text: string; bar: string; ba
     border: "border-violet-200 dark:border-violet-800",
   },
   obra: {
-    bg: "bg-orange-50 dark:bg-orange-950/20",
-    text: "text-orange-700 dark:text-orange-300",
-    bar: "bg-orange-500",
-    barEst: "bg-orange-300 dark:bg-orange-700",
-    border: "border-orange-200 dark:border-orange-800",
+    bg: "bg-warning-subtle dark:bg-warning/20",
+    text: "text-warning dark:text-warning",
+    bar: "bg-warning",
+    barEst: "bg-warning dark:bg-warning",
+    border: "border-warning dark:border-warning",
   },
   "post-obra": {
-    bg: "bg-emerald-50 dark:bg-emerald-950/20",
-    text: "text-emerald-700 dark:text-emerald-300",
-    bar: "bg-emerald-500",
-    barEst: "bg-emerald-300 dark:bg-emerald-700",
-    border: "border-emerald-200 dark:border-emerald-800",
+    bg: "bg-success-subtle dark:bg-success/20",
+    text: "text-success dark:text-success",
+    bar: "bg-success",
+    barEst: "bg-success dark:bg-success",
+    border: "border-success dark:border-success",
   },
 };
 
@@ -243,7 +243,7 @@ function PhaseTooltip({
         <p className="text-muted-foreground mt-1 italic">{phase.note}</p>
       )}
       {phase.isEstimated && (
-        <p className="text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+        <p className="text-warning dark:text-warning mt-1 flex items-center gap-1">
           <Info className="h-3 w-3" />
           Fecha estimada
         </p>
@@ -493,7 +493,7 @@ export function WipProjectTimeline({
                         ? cn(colors.barEst, "border-2 border-dashed", colors.border)
                         : colors.bar,
                       STATUS_OPACITY[phase.status],
-                      isActive && "ring-2 ring-offset-1 ring-orange-400 dark:ring-orange-500"
+                      isActive && "ring-2 ring-offset-1 ring-warning dark:ring-warning"
                     )}
                     style={{ left: barLeft, width: barWidth }}
                     onMouseEnter={(e) => {
@@ -532,10 +532,10 @@ export function WipProjectTimeline({
           {/* Today line */}
           {todayOffset >= 0 && todayOffset < totalDays && (
             <div
-              className="absolute top-0 bottom-0 w-px bg-blue-500 z-10"
+              className="absolute top-0 bottom-0 w-px bg-brand z-10"
               style={{ left: LABEL_W + todayOffset * DAY_W, height: canvasHeight }}
             >
-              <span className="absolute top-1 left-1 text-[9px] text-blue-500 font-medium whitespace-nowrap">
+              <span className="absolute top-1 left-1 text-[9px] text-brand font-medium whitespace-nowrap">
                 Hoy
               </span>
             </div>

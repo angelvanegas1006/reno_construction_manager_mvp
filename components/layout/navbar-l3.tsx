@@ -107,7 +107,7 @@ export function NavbarL3({
 
   return (
     <>
-      <nav className="absolute top-0 left-0 right-0 z-20 border-b bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-3">
+      <nav className="absolute top-0 left-0 right-0 z-20 border-b bg-v-gray-100 dark:bg-v-gray-900 px-4 md:px-6 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Zona A: Botón de Retroceso + Título del Formulario */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -166,7 +166,7 @@ export function NavbarL3({
                 <Button
                   onClick={submitAction.onClick}
                   disabled={submitAction.disabled}
-                  className="flex items-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 rounded-full bg-brand-600 hover:bg-brand-700 text-white disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {submitAction.disabled && (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -191,7 +191,7 @@ export function NavbarL3({
       {isMobile && (
         <div
           className={cn(
-            "fixed bottom-0 left-0 right-0 z-30 md:hidden border-t border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] shadow-[0_-2px_8px_rgba(0,0,0,0.1)] bg-white dark:bg-[var(--prophero-gray-900)] transition-transform duration-200 ease-out",
+            "fixed bottom-0 left-0 right-0 z-30 md:hidden border-t border-v-gray-200 dark:border-v-gray-700 shadow-[0_-2px_8px_rgba(0,0,0,0.1)] bg-card dark:bg-v-gray-900 transition-transform duration-200 ease-out",
             showMobileFooter ? "translate-y-0" : "translate-y-full"
           )}
         >
@@ -201,7 +201,7 @@ export function NavbarL3({
               <Button
                 onClick={submitAction.onClick}
                 disabled={submitAction.disabled}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-9 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white h-9 text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {submitAction.disabled && (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -215,7 +215,7 @@ export function NavbarL3({
               <button
                 onClick={saveAction.onClick}
                 disabled={saveAction.disabled}
-                className="w-full text-center text-[var(--prophero-blue-600)] hover:text-[var(--prophero-blue-700)] disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium py-1.5"
+                className="w-full text-center text-brand-600 hover:text-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium py-1.5"
               >
                 {saveAction.icon}
                 {saveAction.label}

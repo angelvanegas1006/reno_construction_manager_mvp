@@ -382,7 +382,7 @@ export default function MaturationProjectDetailPage() {
     <div className="flex h-screen overflow-hidden">
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-3 md:px-4 lg:px-6 py-4 md:py-6">
+        <header className="border-b bg-card dark:bg-v-gray-900 px-3 md:px-4 lg:px-6 py-4 md:py-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
               <Button
@@ -441,9 +441,9 @@ export default function MaturationProjectDetailPage() {
               <Button
                 variant="outline"
                 onClick={() => setReportProblemOpen(true)}
-                className="flex items-center gap-1 md:gap-2 text-xs md:text-sm border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:border-amber-300 dark:hover:border-amber-700"
+                className="flex items-center gap-1 md:gap-2 text-xs md:text-sm border-warning dark:border-warning text-warning dark:text-warning hover:bg-warning-subtle dark:hover:bg-warning/30 hover:border-warning dark:hover:border-warning"
               >
-                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+                <AlertTriangle className="h-4 w-4 text-warning dark:text-warning" />
                 <span className="hidden sm:inline">Reportar Problema</span>
               </Button>
             </div>
@@ -460,12 +460,12 @@ export default function MaturationProjectDetailPage() {
         {/* Content + Sidebar */}
         <div className="flex flex-1 overflow-hidden pt-2">
           <div className={cn(
-            "flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24",
+            "flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-background dark:bg-background pb-24",
           )}>
             <div className={isFullWidthTab ? "w-full" : "max-w-4xl mx-auto"}>{renderTabContent()}</div>
           </div>
           {!isFullWidthTab && (
-            <div className="hidden lg:block h-full min-h-0 w-[320px] flex-shrink-0 border-l bg-card dark:bg-[var(--prophero-gray-900)] overflow-y-auto">
+            <div className="hidden lg:block h-full min-h-0 w-[320px] flex-shrink-0 border-l bg-card dark:bg-v-gray-900 overflow-y-auto">
               <MaturationProjectSidebar project={project} />
             </div>
           )}
@@ -479,8 +479,8 @@ export default function MaturationProjectDetailPage() {
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
-          <div className="fixed right-0 top-0 h-full w-[85vw] max-w-sm bg-card dark:bg-[var(--prophero-gray-900)] border-l z-50 lg:hidden shadow-xl overflow-y-auto">
-            <div className="sticky top-0 bg-card dark:bg-[var(--prophero-gray-900)] border-b p-4 flex items-center justify-between z-10">
+          <div className="fixed right-0 top-0 h-full w-[85vw] max-w-sm bg-card dark:bg-v-gray-900 border-l z-50 lg:hidden shadow-xl overflow-y-auto">
+            <div className="sticky top-0 bg-card dark:bg-v-gray-900 border-b p-4 flex items-center justify-between z-10">
               <h2 className="text-lg font-semibold">Info del Proyecto</h2>
               <button
                 onClick={() => setIsSidebarOpen(false)}

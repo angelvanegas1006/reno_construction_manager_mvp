@@ -31,8 +31,8 @@ function formatDate(d: string | null | undefined): string {
 function getSupplyIcon(status: string | null | undefined) {
   if (!status) return { color: "text-muted-foreground", label: "Sin datos" };
   const s = status.toLowerCase();
-  if (s.includes("activ") || s.includes("alta") || s.includes("on") || s === "ok") return { color: "text-green-600", label: status };
-  if (s.includes("pendiente") || s.includes("tramit")) return { color: "text-amber-500", label: status };
+  if (s.includes("activ") || s.includes("alta") || s.includes("on") || s === "ok") return { color: "text-success", label: status };
+  if (s.includes("pendiente") || s.includes("tramit")) return { color: "text-warning", label: status };
   return { color: "text-muted-foreground", label: status };
 }
 
@@ -111,17 +111,17 @@ export function PropertySidePanel({ property, viewMode = "list", fromParam = "ka
   const renoTypeBadge = useMemo(() => {
     if (!renoType) return null;
     const tl = renoType.toLowerCase();
-    if (tl.includes("no reno") || tl.includes("no_reno")) return { cls: "bg-gray-700 dark:bg-gray-800 text-white", label: renoType };
-    if (tl.includes("light")) return { cls: "bg-green-600 text-white", label: renoType };
-    if (tl.includes("medium")) return { cls: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/30", label: renoType };
-    if (tl.includes("major")) return { cls: "bg-yellow-200 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-200 border border-yellow-300 dark:border-yellow-800/30", label: renoType };
+    if (tl.includes("no reno") || tl.includes("no_reno")) return { cls: "bg-v-gray-700 dark:bg-v-gray-800 text-white", label: renoType };
+    if (tl.includes("light")) return { cls: "bg-success text-white", label: renoType };
+    if (tl.includes("medium")) return { cls: "bg-success-bg dark:bg-success/30 text-success dark:text-success border border-success dark:border-success/30", label: renoType };
+    if (tl.includes("major")) return { cls: "bg-warning-bg dark:bg-warning/30 text-warning dark:text-warning border border-warning dark:border-warning/30", label: renoType };
     return { cls: "bg-muted text-muted-foreground", label: renoType };
   }, [renoType]);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Header */}
-      <div className={cn("pb-4 mb-4 border-b border-border", isDelayed && "border-l-4 border-l-red-500 pl-3")}>
+      <div className={cn("pb-4 mb-4 border-b border-border", isDelayed && "border-l-4 border-l-danger pl-3")}>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-muted-foreground mb-0.5">
@@ -139,7 +139,7 @@ export function PropertySidePanel({ property, viewMode = "list", fromParam = "ka
               {renoTypeBadge.label}
             </span>
           )}
-          {isDelayed && <Badge className="text-xs bg-red-500 text-white border-0">Retrasada</Badge>}
+          {isDelayed && <Badge className="text-xs bg-danger text-white border-0">Retrasada</Badge>}
         </div>
         <Link href={detailUrl}>
           <Button variant="outline" size="sm" className="mt-3 w-full text-xs gap-1.5">
@@ -155,9 +155,9 @@ export function PropertySidePanel({ property, viewMode = "list", fromParam = "ka
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Métricas</h3>
           <div className="grid grid-cols-2 gap-2">
             {metricsData.map((m) => (
-              <div key={m.label} className={cn("rounded-lg border p-2.5", m.warn ? "border-red-200 dark:border-red-800/40 bg-red-50/50 dark:bg-red-950/10" : "border-border bg-muted/20")}>
+              <div key={m.label} className={cn("rounded-lg border p-2.5", m.warn ? "border-danger dark:border-danger/40 bg-danger-subtle/50 dark:bg-danger/10" : "border-border bg-muted/20")}>
                 <p className="text-[11px] text-muted-foreground mb-0.5">{m.label}</p>
-                <p className={cn("text-sm font-semibold", m.warn ? "text-red-600 dark:text-red-400" : "text-foreground")}>{m.value}</p>
+                <p className={cn("text-sm font-semibold", m.warn ? "text-danger dark:text-danger" : "text-foreground")}>{m.value}</p>
               </div>
             ))}
           </div>
@@ -311,13 +311,13 @@ export function PropertySidePanel({ property, viewMode = "list", fromParam = "ka
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Documentos</h3>
           <div className="space-y-1.5">
             {budgetPdfUrl && (
-              <a href={budgetPdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+              <a href={budgetPdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-brand dark:text-brand-400 hover:underline">
                 <FileText className="h-3.5 w-3.5" />
                 Presupuesto PDF
               </a>
             )}
             {driveFolderUrl && (
-              <a href={driveFolderUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+              <a href={driveFolderUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-brand dark:text-brand-400 hover:underline">
                 <FolderOpen className="h-3.5 w-3.5" />
                 Carpeta Drive
               </a>

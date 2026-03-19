@@ -187,7 +187,7 @@ export function ForemanFilterCombobox({
 
         {/* Dropdown con checkboxes */}
         {open && filteredOptions.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-50 w-full mt-1 bg-card dark:bg-v-gray-800 border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
             {filteredOptions.map((foreman) => {
               const isSelected = selectedForemanEmails.includes(foreman.email);
               
@@ -214,7 +214,7 @@ export function ForemanFilterCombobox({
 
         {/* Empty state */}
         {open && searchQuery && filteredOptions.length === 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-border rounded-md shadow-lg p-4 text-center text-sm text-muted-foreground">
+          <div className="absolute z-50 w-full mt-1 bg-card dark:bg-v-gray-800 border border-border rounded-md shadow-lg p-4 text-center text-sm text-muted-foreground">
             {t.dashboard?.foremanFilter?.noForemenFound || "No se encontraron jefes de obra"}
           </div>
         )}

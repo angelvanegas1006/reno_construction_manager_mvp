@@ -1235,7 +1235,7 @@ export default function RenoPropertyDetailPage() {
       {/* L2: Sin Sidebar - se oculta para enfocar al usuario */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header unificado: Botón atrás + Título + Botón Reportar Problema */}
-        <header className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-3 md:px-4 lg:px-6 py-4 md:py-6">
+        <header className="border-b bg-card dark:bg-v-gray-900 px-3 md:px-4 lg:px-6 py-4 md:py-6">
           <div className="flex items-start justify-between gap-4">
             {/* Izquierda: Botón Atrás + Título */}
             <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
@@ -1282,7 +1282,7 @@ export default function RenoPropertyDetailPage() {
                           fill="none"
                           stroke="currentColor"
                           strokeWidth="3"
-                          className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
+                          className="text-v-gray-200 dark:text-v-gray-700"
                         />
                         <circle
                           cx="18"
@@ -1292,7 +1292,7 @@ export default function RenoPropertyDetailPage() {
                           stroke="currentColor"
                           strokeWidth="3"
                           strokeDasharray={`${averageCategoriesProgress} ${100 - averageCategoriesProgress}`}
-                          className="text-[var(--prophero-blue-500)] transition-all duration-300"
+                          className="text-brand-500 transition-all duration-300"
                         />
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -1330,9 +1330,9 @@ export default function RenoPropertyDetailPage() {
               <Button
                 variant="outline"
                 onClick={() => setReportProblemOpen(true)}
-                className="flex items-center gap-1 md:gap-2 text-xs md:text-sm border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:border-amber-300 dark:hover:border-amber-700"
+                className="flex items-center gap-1 md:gap-2 text-xs md:text-sm border-warning dark:border-warning text-warning dark:text-warning hover:bg-warning-subtle dark:hover:bg-warning/30 hover:border-warning dark:hover:border-warning"
               >
-                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+                <AlertTriangle className="h-4 w-4 text-warning dark:text-warning" />
                 <span className="hidden sm:inline">{t.propertyPage.reportProblem}</span>
               </Button>
             </div>
@@ -1350,7 +1350,7 @@ export default function RenoPropertyDetailPage() {
         <div className="flex flex-1 overflow-hidden pt-2" ref={contentRef}>
           {/* Main Content */}
           <div 
-            className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24"
+            className="flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 bg-background dark:bg-background pb-24"
             onScroll={(e) => {
               const currentScrollY = e.currentTarget.scrollTop;
               // Si hace scroll hacia abajo, ocultar footer; si hace scroll hacia arriba, mostrar
@@ -1386,7 +1386,7 @@ export default function RenoPropertyDetailPage() {
       {getPropertyRenoPhase() === 'reno-in-progress' && (hasUnsavedCategoriesChanges || canFinalizeReno) && (
         <div 
           className={cn(
-            "fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[var(--prophero-gray-900)] px-4 py-4 md:hidden border-t border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] shadow-[0_-2px_8px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out",
+            "fixed bottom-0 left-0 right-0 z-30 bg-card dark:bg-v-gray-900 px-4 py-4 md:hidden border-t border-v-gray-200 dark:border-v-gray-700 shadow-[0_-2px_8px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out",
             showFooter ? "translate-y-0" : "translate-y-full"
           )}
         >
@@ -1395,7 +1395,7 @@ export default function RenoPropertyDetailPage() {
               <>
                 <Button
                   onClick={() => finalizeRenoRef.current?.()}
-                  className="w-full flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white h-12 text-base font-medium"
+                  className="w-full flex items-center justify-center rounded-lg bg-success hover:bg-success text-white h-12 text-base font-medium"
                 >
                   {t.propertyPage.darObraPorFinalizada}
                 </Button>
@@ -1415,7 +1415,7 @@ export default function RenoPropertyDetailPage() {
               <>
                 <Button
                   onClick={() => sendUpdateRef.current?.()}
-                  className="w-full flex items-center justify-center rounded-lg bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white h-12 text-base font-medium"
+                  className="w-full flex items-center justify-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white h-12 text-base font-medium"
                 >
                   Enviar Update a Cliente
                 </Button>
@@ -1445,8 +1445,8 @@ export default function RenoPropertyDetailPage() {
             onClick={() => setIsSidebarOpen(false)}
           />
           {/* Drawer from right */}
-          <div className="fixed right-0 top-0 h-full w-[85vw] max-w-sm bg-card dark:bg-[var(--prophero-gray-900)] border-l z-50 lg:hidden shadow-xl overflow-y-auto">
-            <div className="sticky top-0 bg-card dark:bg-[var(--prophero-gray-900)] border-b p-4 flex items-center justify-between z-10">
+          <div className="fixed right-0 top-0 h-full w-[85vw] max-w-sm bg-card dark:bg-v-gray-900 border-l z-50 lg:hidden shadow-xl overflow-y-auto">
+            <div className="sticky top-0 bg-card dark:bg-v-gray-900 border-b p-4 flex items-center justify-between z-10">
               <h2 className="text-lg font-semibold">{t.propertyPage.property}</h2>
               <button
                 onClick={() => setIsSidebarOpen(false)}

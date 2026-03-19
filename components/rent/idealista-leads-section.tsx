@@ -36,31 +36,31 @@ export function IdealistaLeadsSection({ leads, onLeadStatusChange }: IdealistaLe
       pending_qualification: {
         label: "Pendiente",
         variant: "outline" as const,
-        className: "border-yellow-300 text-yellow-700",
+        className: "border-warning text-warning",
         icon: Clock,
       },
       qualified: {
         label: "Cualificado",
         variant: "default" as const,
-        className: "bg-blue-100 text-blue-800 border-blue-300",
+        className: "bg-brand-100 text-brand-800 border-brand-300",
         icon: CheckCircle,
       },
       contacted: {
         label: "Contactado",
         variant: "secondary" as const,
-        className: "bg-purple-100 text-purple-800 border-purple-300",
+        className: "bg-brand-100 text-brand border-brand-300",
         icon: MessageSquare,
       },
       converted: {
         label: "Convertido",
         variant: "default" as const,
-        className: "bg-green-100 text-green-800 border-green-300",
+        className: "bg-success-bg text-success border-success",
         icon: CheckCircle,
       },
       rejected: {
         label: "Rechazado",
         variant: "destructive" as const,
-        className: "bg-red-100 text-red-800 border-red-300",
+        className: "bg-danger-bg text-danger border-danger",
         icon: XCircle,
       },
     };
@@ -78,9 +78,9 @@ export function IdealistaLeadsSection({ leads, onLeadStatusChange }: IdealistaLe
 
   const getScoreColor = (score?: number | null) => {
     if (!score) return "text-muted-foreground";
-    if (score >= 80) return "text-green-600 font-semibold";
-    if (score >= 60) return "text-yellow-600 font-semibold";
-    return "text-red-600 font-semibold";
+    if (score >= 80) return "text-success font-semibold";
+    if (score >= 60) return "text-warning font-semibold";
+    return "text-danger font-semibold";
   };
 
   const formatDate = (dateString: string) => {

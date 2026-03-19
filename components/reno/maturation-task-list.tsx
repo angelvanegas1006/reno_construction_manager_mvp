@@ -202,9 +202,9 @@ function ArchitectDeliverablesBlock({ project }: { project: ProjectRow }) {
   );
 
   return (
-    <div className="mx-6 my-4 border rounded-lg bg-blue-50/50 dark:bg-white/5">
-      <div className="px-4 py-3 border-b bg-blue-50/80 dark:bg-white/[0.08] rounded-t-lg">
-        <h3 className="text-sm font-semibold flex items-center gap-2 text-blue-800 dark:text-neutral-300">
+    <div className="mx-6 my-4 border rounded-lg bg-brand-50/50 dark:bg-card/5">
+      <div className="px-4 py-3 border-b bg-brand-50/80 dark:bg-card/[0.08] rounded-t-lg">
+        <h3 className="text-sm font-semibold flex items-center gap-2 text-brand-800 dark:text-neutral-300">
           <PencilRuler className="h-4 w-4" />
           Documentación del Arquitecto
         </h3>
@@ -225,8 +225,8 @@ function ArchitectDeliverablesBlock({ project }: { project: ProjectRow }) {
                   className={cn(
                     "inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors",
                     viewingPdf === att.url
-                      ? "bg-blue-100 border-blue-300 text-blue-800"
-                      : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                      ? "bg-brand-100 border-brand-300 text-brand-800"
+                      : "bg-card border-v-gray-200 text-v-gray-700 hover:bg-v-gray-50"
                   )}
                 >
                   <FileText className="h-4 w-4 flex-shrink-0" />
@@ -264,7 +264,7 @@ function ArchitectDeliverablesBlock({ project }: { project: ProjectRow }) {
             </div>
             <button
               onClick={() => window.open(`/api/proxy-html?url=${encodeURIComponent(reportUrl)}`, "_blank")}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-blue-200 bg-white hover:bg-blue-50 text-sm font-medium text-blue-700 transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-brand-200 bg-card hover:bg-brand-50 text-sm font-medium text-brand-700 transition-colors shadow-sm"
             >
               <FileText className="h-4 w-4" />
               Ver informe Check Pro
@@ -368,7 +368,7 @@ function RequestProjectButton({
       <button
         onClick={handleRequest}
         disabled={moving}
-        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all"
+        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-md hover:shadow-lg transition-all"
       >
         {moving ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -457,14 +457,14 @@ function TechnicalProjectDocsBlock({
   };
 
   return (
-    <div className="mx-6 my-4 border rounded-lg bg-blue-50/50 dark:bg-white/5">
-      <div className="px-4 py-3 border-b bg-blue-50/80 dark:bg-white/[0.08] rounded-t-lg">
-        <h3 className="text-sm font-semibold flex items-center gap-2 text-blue-800 dark:text-neutral-300">
+    <div className="mx-6 my-4 border rounded-lg bg-brand-50/50 dark:bg-card/5">
+      <div className="px-4 py-3 border-b bg-brand-50/80 dark:bg-card/[0.08] rounded-t-lg">
+        <h3 className="text-sm font-semibold flex items-center gap-2 text-brand-800 dark:text-neutral-300">
           <PencilRuler className="h-4 w-4" />
           Documentación del Proyecto Técnico
         </h3>
         {deliveryDate && (
-          <p className="text-xs text-blue-600 dark:text-neutral-400 mt-1 flex items-center gap-1.5">
+          <p className="text-xs text-brand dark:text-neutral-400 mt-1 flex items-center gap-1.5">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Entregado el {new Date(deliveryDate).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
           </p>
@@ -498,8 +498,8 @@ function TechnicalProjectDocsBlock({
                       className={cn(
                         "inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors",
                         viewingPdf === att.url
-                          ? "bg-blue-100 border-blue-300 text-blue-800"
-                          : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                          ? "bg-brand-100 border-brand-300 text-brand-800"
+                          : "bg-card border-v-gray-200 text-v-gray-700 hover:bg-v-gray-50"
                       )}
                     >
                       <FileText className="h-4 w-4 flex-shrink-0" />
@@ -524,7 +524,7 @@ function TechnicalProjectDocsBlock({
           <button
             onClick={handleAdvanceToEcu}
             disabled={advancing}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50"
           >
             {advancing ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -624,7 +624,7 @@ function AttachmentUploadField({
       <button
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
-        className="inline-flex items-center gap-1.5 text-xs text-[var(--prophero-blue-500)] hover:text-[var(--prophero-blue-600)] font-medium disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-600 font-medium disabled:opacity-50"
       >
         {uploading ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -799,8 +799,8 @@ function EcuValidationFlow({
                         className={cn(
                           "inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors",
                           viewingPdf === att.url
-                            ? "bg-blue-100 border-blue-300 text-blue-800"
-                            : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                            ? "bg-brand-100 border-brand-300 text-brand-800"
+                            : "bg-card border-v-gray-200 text-v-gray-700 hover:bg-v-gray-50"
                         )}
                       >
                         <FileText className="h-4 w-4 flex-shrink-0" />
@@ -830,8 +830,8 @@ function EcuValidationFlow({
                   className={cn(
                     "flex-1 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all",
                     validationResult === "ok"
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:bg-emerald-50/50"
+                      ? "border-success bg-success-subtle text-success"
+                      : "border-v-gray-200 bg-card text-v-gray-600 hover:border-success hover:bg-success-subtle/50"
                   )}
                 >
                   <CheckCircle2 className="h-4 w-4 inline mr-1.5" />
@@ -842,8 +842,8 @@ function EcuValidationFlow({
                   className={cn(
                     "flex-1 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all",
                     validationResult === "ko"
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-red-300 hover:bg-red-50/50"
+                      ? "border-danger bg-danger-subtle text-danger"
+                      : "border-v-gray-200 bg-card text-v-gray-600 hover:border-danger hover:bg-danger-subtle/50"
                   )}
                 >
                   <AlertTriangle className="h-4 w-4 inline mr-1.5" />
@@ -855,7 +855,7 @@ function EcuValidationFlow({
                 <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
                   <label className="text-sm font-medium text-foreground">Notas para el arquitecto</label>
                   <Textarea
-                    className="text-sm min-h-[80px] bg-white"
+                    className="text-sm min-h-[80px] bg-card"
                     placeholder="Describe los ajustes necesarios..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -863,7 +863,7 @@ function EcuValidationFlow({
                   <button
                     onClick={handleReject}
                     disabled={saving}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-md transition-all disabled:opacity-50"
                   >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Guardar y enviar a Ajuste Proyecto Técnico
@@ -879,7 +879,7 @@ function EcuValidationFlow({
                   <button
                     onClick={handleApprove}
                     disabled={saving}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-md transition-all disabled:opacity-50"
                   >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                     Aprobar y avanzar
@@ -1057,8 +1057,8 @@ function EcuFirstValidationBlock({
                         className={cn(
                           "inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors",
                           viewingPdf === att.url
-                            ? "bg-blue-100 border-blue-300 text-blue-800"
-                            : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                            ? "bg-brand-100 border-brand-300 text-brand-800"
+                            : "bg-card border-v-gray-200 text-v-gray-700 hover:bg-v-gray-50"
                         )}
                       >
                         <FileText className="h-4 w-4 flex-shrink-0" />
@@ -1088,8 +1088,8 @@ function EcuFirstValidationBlock({
                   className={cn(
                     "flex-1 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all",
                     validationResult === "ok"
-                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:bg-emerald-50/50"
+                      ? "border-success bg-success-subtle text-success"
+                      : "border-v-gray-200 bg-card text-v-gray-600 hover:border-success hover:bg-success-subtle/50"
                   )}
                 >
                   <CheckCircle2 className="h-4 w-4 inline mr-1.5" />
@@ -1100,8 +1100,8 @@ function EcuFirstValidationBlock({
                   className={cn(
                     "flex-1 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all",
                     validationResult === "ko"
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-red-300 hover:bg-red-50/50"
+                      ? "border-danger bg-danger-subtle text-danger"
+                      : "border-v-gray-200 bg-card text-v-gray-600 hover:border-danger hover:bg-danger-subtle/50"
                   )}
                 >
                   <AlertTriangle className="h-4 w-4 inline mr-1.5" />
@@ -1113,7 +1113,7 @@ function EcuFirstValidationBlock({
                 <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border">
                   <label className="text-sm font-medium text-foreground">Notas para el arquitecto</label>
                   <Textarea
-                    className="text-sm min-h-[80px] bg-white"
+                    className="text-sm min-h-[80px] bg-card"
                     placeholder="Describe los ajustes necesarios..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -1121,7 +1121,7 @@ function EcuFirstValidationBlock({
                   <button
                     onClick={handleReject}
                     disabled={saving}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-md transition-all disabled:opacity-50"
                   >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Guardar y enviar a Ajuste Proyecto Técnico
@@ -1137,7 +1137,7 @@ function EcuFirstValidationBlock({
                   <button
                     onClick={handleApprove}
                     disabled={saving}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-md transition-all disabled:opacity-50"
                   >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                     Aprobar y avanzar
@@ -1242,8 +1242,8 @@ function FineTuningBlock({
                 className={cn(
                   "inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors",
                   viewingPdf === att.url
-                    ? "bg-blue-100 border-blue-300 text-blue-800"
-                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                    ? "bg-brand-100 border-brand-300 text-brand-800"
+                    : "bg-card border-v-gray-200 text-v-gray-700 hover:bg-v-gray-50"
                 )}
               >
                 <FileText className="h-4 w-4 flex-shrink-0" />
@@ -1290,7 +1290,7 @@ function FineTuningBlock({
               <button
                 onClick={handleAdvance}
                 disabled={saving}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-md transition-all disabled:opacity-50"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Sí, avanzar a ECU Validación Final
@@ -1386,7 +1386,7 @@ function BudgetReformBlock({
             <button
               onClick={handleAdvanceToRenoStart}
               disabled={advancing}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-md transition-all disabled:opacity-50"
             >
               {advancing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               Avanzar a Obra a Empezar
@@ -1508,7 +1508,7 @@ function WipDueDiligenceBlock({ project, onRefetch }: { project: ProjectRow; onR
                 <span className={cn(
                   'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
                   isOk
-                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                    ? 'bg-success-bg dark:bg-success/30 text-success dark:text-success'
                     : 'bg-muted text-muted-foreground'
                 )}>
                   {isOk ? (
@@ -1843,8 +1843,8 @@ export function MaturationTaskList({ project, onRefetch }: MaturationTaskListPro
       {/* ECU Contact task — siempre visible si proyecto tiene ECU y falta el contacto */}
       {showEcuContactTask && (
         <div className="border-t">
-          <div className="px-6 py-3 bg-amber-50/60 dark:bg-amber-950/20 border-b border-amber-200/60 dark:border-amber-800/40">
-            <h3 className="text-sm font-semibold text-amber-800 dark:text-amber-400 flex items-center gap-2">
+          <div className="px-6 py-3 bg-warning-subtle/60 dark:bg-warning/20 border-b border-warning/60 dark:border-warning/40">
+            <h3 className="text-sm font-semibold text-warning dark:text-warning flex items-center gap-2">
               <AlertTriangle className="h-3.5 w-3.5" />
               Contacto ECU pendiente
             </h3>

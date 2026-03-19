@@ -17,7 +17,7 @@ export default function NewPropertyPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-4 md:px-6 py-4">
+        <div className="border-b bg-card dark:bg-v-gray-900 px-4 md:px-6 py-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -34,11 +34,11 @@ export default function NewPropertyPage() {
 
         {/* Content Area */}
         <div 
-          className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)]"
+          className="flex-1 overflow-y-auto p-4 md:p-6 bg-background dark:bg-v-gray-950"
           data-scroll-container
         >
           <div className="max-w-2xl mx-auto">
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <AddPropertyForm 
                 showTitle={false}
                 onSuccess={(propertyId) => {

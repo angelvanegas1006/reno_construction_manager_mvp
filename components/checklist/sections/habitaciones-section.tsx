@@ -1092,13 +1092,13 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
         <div 
           ref={ref} 
           className={cn(
-            "bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
-            hasError && "border-4 border-red-500 bg-red-50 dark:bg-red-900/10"
+            "bg-card dark:bg-v-gray-900 rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
+            hasError && "border-4 border-danger bg-danger-subtle dark:bg-danger/10"
           )}
         >
           {hasError && (
-            <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
-              <p className="text-sm font-medium text-red-900 dark:text-red-100">
+            <div className="mb-4 p-4 bg-danger-bg dark:bg-danger/20 border border-danger dark:border-danger rounded-lg">
+              <p className="text-sm font-medium text-danger dark:text-danger">
                 ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
               </p>
             </div>
@@ -1123,7 +1123,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                   type="button"
                   onClick={() => handleCountChange(-1)}
                   disabled={(dynamicCount as number) === 0}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   aria-label="Decrementar cantidad"
                 >
                   <Minus className="h-4 w-4 text-foreground" />
@@ -1135,10 +1135,10 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                   type="button"
                   onClick={() => handleCountChange(1)}
                   disabled={dynamicCount >= 20}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 hover:bg-brand-200 dark:hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   aria-label="Incrementar cantidad"
                 >
-                  <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+                  <Plus className="h-4 w-4 text-brand-600 dark:text-brand-400" />
                 </button>
               </div>
             </div>
@@ -1285,7 +1285,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                           type="button"
                           onClick={() => handleSingleCarpentryQuantityChange(item.id, -1)}
                           disabled={cantidad === 0}
-                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                           aria-label="Decrementar cantidad"
                         >
                           <Minus className="h-4 w-4 text-foreground" />
@@ -1297,10 +1297,10 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                           type="button"
                           onClick={() => handleSingleCarpentryQuantityChange(item.id, 1)}
                           disabled={cantidad >= MAX_QUANTITY}
-                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 hover:bg-brand-200 dark:hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                           aria-label="Incrementar cantidad"
                         >
-                          <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+                          <Plus className="h-4 w-4 text-brand-600 dark:text-brand-400" />
                         </button>
                       </div>
                     </div>
@@ -1328,7 +1328,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                               const unitRequiresDetails = unit.estado === "necesita_reparacion" || unit.estado === "necesita_reemplazo";
 
                               return (
-                                <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)]">
+                                <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-v-gray-200 dark:border-v-gray-700">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
                                     {t.checklist.sections.habitaciones.carpinteria.items[itemConfig.translationKey]} {index + 1}
                                   </Label>
@@ -1359,8 +1359,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           className={cn(
                                             "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                             isSelected
-                                              ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                              : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                              ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                                              : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-v-gray-900"
                                           )}
                                         >
                                           <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -1434,8 +1434,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                     className={cn(
                                       "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                       isSelected
-                                        ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                        : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                        ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                                        : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-v-gray-900"
                                     )}
                                   >
                                     <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -1657,7 +1657,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                           type="button"
                           onClick={() => handleSingleClimatizationQuantityChange(item.id, -1)}
                           disabled={cantidad === 0}
-                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                           aria-label="Decrementar cantidad"
                         >
                           <Minus className="h-4 w-4 text-foreground" />
@@ -1669,10 +1669,10 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                           type="button"
                           onClick={() => handleSingleClimatizationQuantityChange(item.id, 1)}
                           disabled={cantidad >= MAX_QUANTITY}
-                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 hover:bg-brand-200 dark:hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                           aria-label="Incrementar cantidad"
                         >
-                          <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+                          <Plus className="h-4 w-4 text-brand-600 dark:text-brand-400" />
                         </button>
                       </div>
                     </div>
@@ -1695,7 +1695,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                               const unitRequiresDetails = unit.estado === "necesita_reparacion" || unit.estado === "necesita_reemplazo";
 
                               return (
-                                <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)]">
+                                <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-v-gray-200 dark:border-v-gray-700">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
                                     {t.checklist.sections.habitaciones.climatizacion.items[itemConfig.translationKey]} {index + 1}
                                   </Label>
@@ -1721,8 +1721,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           className={cn(
                                             "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                             isSelected
-                                              ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                              : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                              ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                                              : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-v-gray-900"
                                           )}
                                         >
                                           <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -1740,7 +1740,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       {/* Notes */}
                                       <div className="space-y-2">
                                         <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                          {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                                          {t.checklist.notes} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
                                         </Label>
                                         <Textarea
                                           value={unit.notes || ""}
@@ -1792,8 +1792,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                     className={cn(
                                       "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                       isSelected
-                                        ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                        : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                        ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                                        : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-v-gray-900"
                                     )}
                                   >
                                     <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -1819,7 +1819,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                 {/* Notes */}
                                 <div className="space-y-2">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                    {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                                    {t.checklist.notes} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
                                   </Label>
                                   <Textarea
                                     value={(() => {
@@ -1913,7 +1913,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                 return needsDetails && (
                   <div className="space-y-2">
                     <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                      {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                      {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
                     </Label>
                     <Textarea
                       value={mobiliarioQuestion?.notes || ""}
@@ -1956,7 +1956,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
               <button
                 type="button"
                 onClick={onContinue}
-                className="px-4 py-2 bg-[var(--prophero-blue-500)] text-white rounded-lg hover:bg-[var(--prophero-blue-600)] transition-colors"
+                className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
               >
                 {t.common.continue}
               </button>
@@ -1972,7 +1972,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
       const hasNextHabitacion = habitacionIndex < dynamicCount - 1;
       
       return (
-        <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+        <div ref={ref} className="bg-card dark:bg-v-gray-900 rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
           <div className="space-y-2">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
               {t.checklist.sections.habitaciones.bedroom} {habitacionIndex + 1}
@@ -2060,7 +2060,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                           type="button"
                           onClick={() => handleCarpentryQuantityChange(item.id, -1)}
                           disabled={cantidad === 0}
-                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                           aria-label="Decrementar cantidad"
                         >
                           <Minus className="h-4 w-4 text-foreground" />
@@ -2072,10 +2072,10 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                           type="button"
                           onClick={() => handleCarpentryQuantityChange(item.id, 1)}
                           disabled={cantidad >= MAX_QUANTITY}
-                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 hover:bg-brand-200 dark:hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                           aria-label="Incrementar cantidad"
                         >
-                          <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+                          <Plus className="h-4 w-4 text-brand-600 dark:text-brand-400" />
                         </button>
                       </div>
                     </div>
@@ -2098,7 +2098,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                               const unitRequiresDetails = unit.estado === "necesita_reparacion" || unit.estado === "necesita_reemplazo";
 
                               return (
-                                <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)]">
+                                <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-v-gray-200 dark:border-v-gray-700">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
                                     {t.checklist.sections.habitaciones.carpinteria.items[itemConfig.translationKey]} {index + 1}
                                   </Label>
@@ -2116,8 +2116,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           className={cn(
                                             "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                             isSelected
-                                              ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                              : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                              ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                                              : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-v-gray-900"
                                           )}
                                         >
                                           <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -2200,8 +2200,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                     className={cn(
                                       "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                       isSelected
-                                        ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                        : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                        ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                                        : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-v-gray-900"
                                     )}
                                   >
                                     <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -2357,7 +2357,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                           type="button"
                           onClick={() => handleClimatizationQuantityChange(item.id, -1)}
                           disabled={cantidad === 0}
-                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                           aria-label="Decrementar cantidad"
                         >
                           <Minus className="h-4 w-4 text-foreground" />
@@ -2369,7 +2369,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                           type="button"
                           onClick={() => handleClimatizationQuantityChange(item.id, 1)}
                           disabled={cantidad >= MAX_QUANTITY}
-                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                           aria-label="Incrementar cantidad"
                         >
                           <Plus className="h-4 w-4 text-foreground" />
@@ -2395,7 +2395,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                               const unitRequiresDetails = unit.estado === "necesita_reparacion" || unit.estado === "necesita_reemplazo";
 
                               return (
-                                <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)]">
+                                <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-v-gray-200 dark:border-v-gray-700">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
                                     {t.checklist.sections.habitaciones.climatizacion.items[itemConfig.translationKey]} {index + 1}
                                   </Label>
@@ -2421,8 +2421,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                           className={cn(
                                             "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                             isSelected
-                                              ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                              : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                              ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                                              : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-v-gray-900"
                                           )}
                                         >
                                           <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -2440,7 +2440,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                       {/* Notes */}
                                       <div className="space-y-2">
                                         <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                          {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                                          {t.checklist.notes} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
                                         </Label>
                                         <Textarea
                                           value={unit.notes || ""}
@@ -2506,8 +2506,8 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                     className={cn(
                                       "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                       isSelected
-                                        ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                        : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                        ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                                        : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-v-gray-900"
                                     )}
                                   >
                                     <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -2533,7 +2533,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                                 {/* Notes */}
                                 <div className="space-y-2">
                                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                                    {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                                    {t.checklist.notes} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
                                   </Label>
                                   <Textarea
                                     value={(() => {
@@ -2606,7 +2606,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
               {(mobiliario.question?.status === "buen_estado" || mobiliario.question?.status === "necesita_reparacion" || mobiliario.question?.status === "necesita_reemplazo") && (
                 <div className="space-y-2">
                   <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-                    {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                    {t.checklist.sections.habitaciones.mobiliario.queMobiliarioExiste} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
                   </Label>
                   <Textarea
                     value={mobiliario.question?.notes || ""}
@@ -2643,7 +2643,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                     onNavigateToHabitacion(habitacionIndex + 1);
                   }
                 }}
-                className="px-4 py-2 bg-[var(--prophero-blue-500)] text-white rounded-lg hover:bg-[var(--prophero-blue-600)] transition-colors"
+                className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
               >
                 {t.common.continue} → {t.checklist.sections.habitaciones.bedroom} {habitacionIndex + 2}
               </button>
@@ -2652,7 +2652,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                 <button
                   type="button"
                   onClick={onContinue}
-                  className="px-4 py-2 bg-[var(--prophero-blue-500)] text-white rounded-lg hover:bg-[var(--prophero-blue-600)] transition-colors"
+                  className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
                 >
                   {t.common.continue}
                 </button>
@@ -2665,7 +2665,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
 
     // Main section: Show counter and list of bedrooms (when dynamicCount > 1)
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
+      <div ref={ref} className="bg-card dark:bg-v-gray-900 rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6">
 
         {/* Número de habitaciones */}
         <Card className="p-4 sm:p-6 space-y-4">
@@ -2678,7 +2678,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                 type="button"
                 onClick={() => handleCountChange(-1)}
                   disabled={(dynamicCount as number) === 0}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                 aria-label="Decrementar cantidad"
               >
                 <Minus className="h-4 w-4 text-foreground" />
@@ -2690,10 +2690,10 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                 type="button"
                 onClick={() => handleCountChange(1)}
                 disabled={dynamicCount >= 20}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 hover:bg-brand-200 dark:hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                 aria-label="Incrementar cantidad"
               >
-                <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+                <Plus className="h-4 w-4 text-brand-600 dark:text-brand-400" />
               </button>
             </div>
           </div>
@@ -2727,7 +2727,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                         onNavigateToHabitacion(index);
                       }
                     }}
-                    className="w-full p-4 rounded-lg border-2 transition-colors text-left hover:border-[var(--prophero-blue-300)] dark:hover:border-[var(--prophero-blue-700)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                    className="w-full p-4 rounded-lg border-2 transition-colors text-left hover:border-brand-300 dark:hover:border-brand-700 bg-card dark:bg-v-gray-900"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -2736,7 +2736,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
                             {t.checklist.sections.habitaciones.bedroom} {index + 1}
                           </span>
                           {isComplete && (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-success-bg dark:bg-success text-success dark:text-success">
                               Completada
                             </span>
                           )}
@@ -2769,7 +2769,7 @@ export const HabitacionesSection = forwardRef<HTMLDivElement, HabitacionesSectio
             <button
               type="button"
               onClick={onContinue}
-              className="px-4 py-2 bg-[var(--prophero-blue-500)] text-white rounded-lg hover:bg-[var(--prophero-blue-600)] transition-colors"
+              className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
             >
               {t.common.continue}
             </button>

@@ -289,7 +289,7 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
   // Si no hay API key, mostrar placeholder
   if (!apiKey) {
     return (
-      <div className="aspect-video bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] rounded-lg flex items-center justify-center">
+      <div className="aspect-video bg-v-gray-100 dark:bg-v-gray-800 rounded-lg flex items-center justify-center">
         <div className="text-center">
           <Map className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm font-medium text-muted-foreground">{address}</p>
@@ -307,7 +307,7 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
   // Esto asegura que el ref esté disponible cuando el useEffect se ejecute
   return (
     <div className="space-y-2">
-      <div className="aspect-video rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] relative">
+      <div className="aspect-video rounded-lg overflow-hidden bg-v-gray-100 dark:bg-v-gray-800 border border-v-gray-200 dark:border-v-gray-700 relative">
         {/* Div del mapa - siempre presente en el DOM */}
         <div
           ref={mapRef}
@@ -317,9 +317,9 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
         
         {/* Overlay de loading */}
         {isLoading && (
-          <div className="absolute inset-0 bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-v-gray-100 dark:bg-v-gray-800 flex items-center justify-center z-10">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--prophero-blue-600)] mx-auto mb-2"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto mb-2"></div>
               <p className="text-sm text-muted-foreground">Cargando mapa...</p>
             </div>
           </div>
@@ -327,11 +327,11 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
 
         {/* Overlay de error */}
         {error && !isLoading && (
-          <div className="absolute inset-0 bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-v-gray-100 dark:bg-v-gray-800 flex items-center justify-center z-10">
             <div className="text-center px-4">
               <Map className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm font-medium text-muted-foreground">{address}</p>
-              <p className="text-xs text-red-500 mt-1">{error}</p>
+              <p className="text-xs text-danger mt-1">{error}</p>
               <a
                 href={googleMapsUrl}
                 target="_blank"
@@ -350,7 +350,7 @@ export function PropertyMap({ address, areaCluster }: PropertyMapProps) {
             href={googleMapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute bottom-2 right-2 z-10 bg-white dark:bg-neutral-800 border border-border/60 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 shadow-sm transition-colors"
+            className="absolute bottom-2 right-2 z-10 bg-card dark:bg-neutral-800 border border-border/60 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 shadow-sm transition-colors"
             title={`Buscar: ${geocodeQuery}`}
           >
             <Map className="h-3 w-3" />

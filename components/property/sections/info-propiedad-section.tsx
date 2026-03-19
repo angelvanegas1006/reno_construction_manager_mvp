@@ -43,17 +43,17 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
     }, [formData, updateField]);
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm space-y-6">
+      <div ref={ref} className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm space-y-6">
         <h1 className="text-2xl font-bold text-foreground">{t.property.sections.basicInfo}</h1>
 
         {/* Info Banner */}
-        <div className="flex items-start gap-3 p-4 bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20 border border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)] rounded-lg">
-          <Info className="h-5 w-5 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-brand-50 dark:bg-brand-950/20 border border-brand-200 dark:border-brand-800 rounded-lg">
+          <Info className="h-5 w-5 text-brand-600 dark:text-brand-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-[var(--prophero-blue-900)] dark:text-[var(--prophero-blue-200)]">
+            <p className="text-sm font-semibold text-brand-900 dark:text-brand-200">
               {t.sectionInfo.requiredFields}
             </p>
-            <p className="text-sm text-[var(--prophero-blue-800)] dark:text-[var(--prophero-blue-300)] mt-1">
+            <p className="text-sm text-brand-800 dark:text-brand-300 mt-1">
               {t.sectionInfo.requiredFieldsDescription}
             </p>
           </div>
@@ -63,7 +63,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
           {/* Tipo de propiedad */}
           <div className="space-y-2">
             <Label htmlFor="tipoPropiedad" className="text-sm font-semibold">
-              Tipo de propiedad <span className="text-red-500">*</span>
+              Tipo de propiedad <span className="text-danger">*</span>
             </Label>
             <Select
               value={formData.tipoPropiedad || ""}
@@ -87,7 +87,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
             {/* Superficie construida */}
             <div className="space-y-2">
               <Label htmlFor="superficieConstruida" className="text-sm font-semibold">
-                Superficie construida <span className="text-red-500">*</span>
+                Superficie construida <span className="text-danger">*</span>
               </Label>
               <div className="relative">
                 <Input
@@ -132,7 +132,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
           {/* Año de construcción */}
           <div className="space-y-2">
             <Label htmlFor="anoConstruccion" className="text-sm font-semibold">
-              Año de construcción <span className="text-red-500">*</span>
+              Año de construcción <span className="text-danger">*</span>
             </Label>
             <Input
               id="anoConstruccion"
@@ -150,7 +150,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
           {/* Referencia Catastral */}
           <div className="space-y-2">
             <Label htmlFor="referenciaCatastral" className="text-sm font-semibold">
-              Referencia Catastral <span className="text-red-500">*</span>
+              Referencia Catastral <span className="text-danger">*</span>
             </Label>
             <Input
               id="referenciaCatastral"
@@ -163,7 +163,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
           {/* Orientación */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Orientación del inmueble <span className="text-red-500">*</span>
+              Orientación del inmueble <span className="text-danger">*</span>
             </Label>
             <div className="space-y-3">
               {(["Norte", "Sur", "Este", "Oeste"] as const).map((orientacion) => {
@@ -181,7 +181,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
                           : currentOrientaciones.filter(o => o !== orientacion);
                         updateField("orientacion", updatedOrientaciones.length > 0 ? updatedOrientaciones : undefined);
                       }}
-                      className="h-4 w-4 rounded border-[var(--prophero-gray-300)] text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                      className="h-4 w-4 rounded border-v-gray-300 text-brand-600 focus:ring-brand-500"
                     />
                     <span className="text-sm">{orientacion}</span>
                   </label>
@@ -205,7 +205,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
                   type="button"
                   onClick={() => handleNumberChange("habitaciones", -1)}
                   disabled={(formData.habitaciones || 0) === 0}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   aria-label="Decrementar habitaciones"
                 >
                   <Minus className="h-4 w-4 text-foreground" />
@@ -217,10 +217,10 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
                   type="button"
                   onClick={() => handleNumberChange("habitaciones", 1)}
                   disabled={(formData.habitaciones || 0) === 99}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 hover:bg-brand-200 dark:hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   aria-label="Incrementar habitaciones"
                 >
-                  <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+                  <Plus className="h-4 w-4 text-brand-600 dark:text-brand-400" />
                 </button>
               </div>
             </div>
@@ -238,7 +238,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
                   type="button"
                   onClick={() => handleNumberChange("banos", -1)}
                   disabled={(formData.banos || 0) === 0}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   aria-label="Decrementar baños"
                 >
                   <Minus className="h-4 w-4 text-foreground" />
@@ -250,10 +250,10 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
                   type="button"
                   onClick={() => handleNumberChange("banos", 1)}
                   disabled={(formData.banos || 0) === 99}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 hover:bg-brand-200 dark:hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   aria-label="Incrementar baños"
                 >
-                  <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+                  <Plus className="h-4 w-4 text-brand-600 dark:text-brand-400" />
                 </button>
               </div>
             </div>
@@ -271,7 +271,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
                   type="button"
                   onClick={() => handleNumberChange("plazasAparcamiento", -1)}
                   disabled={(formData.plazasAparcamiento || 0) === 0}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   aria-label="Decrementar plazas de aparcamiento"
                 >
                   <Minus className="h-4 w-4 text-foreground" />
@@ -283,10 +283,10 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
                   type="button"
                   onClick={() => handleNumberChange("plazasAparcamiento", 1)}
                   disabled={(formData.plazasAparcamiento || 0) === 99}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 hover:bg-brand-200 dark:hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                   aria-label="Incrementar plazas de aparcamiento"
                 >
-                  <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+                  <Plus className="h-4 w-4 text-brand-600 dark:text-brand-400" />
                 </button>
               </div>
             </div>
@@ -303,7 +303,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
                   type="checkbox"
                   checked={formData.ascensor || false}
                   onChange={(e) => updateField("ascensor", e.target.checked)}
-                  className="h-4 w-4 rounded border-[var(--prophero-gray-300)] text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 rounded border-v-gray-300 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">Ascensor</span>
               </label>
@@ -312,7 +312,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
                   type="checkbox"
                   checked={formData.balconTerraza || false}
                   onChange={(e) => updateField("balconTerraza", e.target.checked)}
-                  className="h-4 w-4 rounded border-[var(--prophero-gray-300)] text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 rounded border-v-gray-300 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">Balcón o terraza</span>
               </label>
@@ -321,7 +321,7 @@ export const InfoPropiedadSection = forwardRef<HTMLDivElement, InfoPropiedadSect
                   type="checkbox"
                   checked={formData.trastero || false}
                   onChange={(e) => updateField("trastero", e.target.checked)}
-                  className="h-4 w-4 rounded border-[var(--prophero-gray-300)] text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 rounded border-v-gray-300 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">Trastero</span>
               </label>

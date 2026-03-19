@@ -193,9 +193,9 @@ export function AddPropertyForm({ onSuccess, showTitle = false }: AddPropertyFor
 
       {/* Duplicate Warning */}
       {isDuplicate && (
-        <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-          <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+        <div className="flex items-start gap-2 p-3 bg-warning-subtle dark:bg-warning/20 border border-warning dark:border-warning rounded-md">
+          <AlertCircle className="h-5 w-5 text-warning dark:text-warning flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-warning dark:text-warning">
             Ya existe una propiedad con esta dirección exacta subida anteriormente por ti
           </p>
         </div>
@@ -203,16 +203,16 @@ export function AddPropertyForm({ onSuccess, showTitle = false }: AddPropertyFor
 
       {/* General Error */}
       {errors.general && (
-        <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-800 dark:text-red-200">{errors.general}</p>
+        <div className="flex items-start gap-2 p-3 bg-danger-subtle dark:bg-danger/20 border border-danger dark:border-danger rounded-md">
+          <AlertCircle className="h-5 w-5 text-danger dark:text-danger flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-danger dark:text-danger">{errors.general}</p>
         </div>
       )}
 
       {/* Full Address Field */}
       <div className="space-y-2">
         <Label htmlFor="fullAddress" className="text-sm font-semibold">
-          Dirección completa del inmueble <span className="text-red-500">*</span>
+          Dirección completa del inmueble <span className="text-danger">*</span>
         </Label>
         <div className="relative" ref={autocompleteRef}>
           <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -223,19 +223,19 @@ export function AddPropertyForm({ onSuccess, showTitle = false }: AddPropertyFor
             placeholder="Escribe la dirección..."
             className={cn(
               "pl-10",
-              errors.fullAddress && "border-red-500 focus-visible:ring-red-500"
+              errors.fullAddress && "border-danger focus-visible:ring-danger"
             )}
           />
           
           {/* Autocomplete predictions */}
           {showPredictions && predictions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-card dark:bg-[var(--prophero-gray-900)] border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+            <div className="absolute z-10 w-full mt-1 bg-card dark:bg-v-gray-900 border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
               {predictions.map((prediction, index) => (
                 <button
                   key={prediction.placeId}
                   type="button"
                   onClick={() => handleSelectPrediction(prediction)}
-                  className="w-full text-left px-4 py-2 hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] transition-colors first:rounded-t-md last:rounded-b-md"
+                  className="w-full text-left px-4 py-2 hover:bg-muted dark:hover:bg-v-gray-800 transition-colors first:rounded-t-md last:rounded-b-md"
                 >
                   <div className="font-medium text-sm">
                     {prediction.structuredFormatting.mainText}
@@ -249,7 +249,7 @@ export function AddPropertyForm({ onSuccess, showTitle = false }: AddPropertyFor
           )}
         </div>
         {errors.fullAddress && (
-          <p className="text-sm text-red-500">{errors.fullAddress}</p>
+          <p className="text-sm text-danger">{errors.fullAddress}</p>
         )}
       </div>
 
@@ -307,7 +307,7 @@ export function AddPropertyForm({ onSuccess, showTitle = false }: AddPropertyFor
       {/* Property Type */}
       <div className="space-y-2">
         <Label htmlFor="propertyType" className="text-sm font-semibold">
-          Tipo de propiedad <span className="text-red-500">*</span>
+          Tipo de propiedad <span className="text-danger">*</span>
         </Label>
         <Select
           value={propertyType}
@@ -316,7 +316,7 @@ export function AddPropertyForm({ onSuccess, showTitle = false }: AddPropertyFor
           <SelectTrigger
             id="propertyType"
             className={cn(
-              errors.propertyType && "border-red-500 focus:ring-red-500"
+              errors.propertyType && "border-danger focus:ring-danger"
             )}
           >
             <SelectValue placeholder="Selecciona un tipo" />
@@ -330,7 +330,7 @@ export function AddPropertyForm({ onSuccess, showTitle = false }: AddPropertyFor
           </SelectContent>
         </Select>
         {errors.propertyType && (
-          <p className="text-sm text-red-500">{errors.propertyType}</p>
+          <p className="text-sm text-danger">{errors.propertyType}</p>
         )}
       </div>
 

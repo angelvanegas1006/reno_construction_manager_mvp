@@ -354,19 +354,19 @@ export function RenoHomeAdminDashboard({
         label: "Obras tardías",
         value: delayedWorks,
         icon: <AlertTriangle className="h-4 w-4" />,
-        color: "text-red-600",
+        color: "text-danger",
       },
       {
         label: "Updates atrasados",
         value: overdueUpdates,
         icon: <Clock className="h-4 w-4" />,
-        color: "text-red-600",
+        color: "text-danger",
       },
       {
         label: "Media días en obra",
         value: avgDaysInProgress,
         icon: <TrendingUp className="h-4 w-4" />,
-        color: "text-blue-600",
+        color: "text-brand",
       },
     ];
   }, [propertiesByPhase]);
@@ -610,7 +610,7 @@ export function RenoHomeAdminDashboard({
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold flex items-center gap-2">
-        <Activity className="h-5 w-5 text-indigo-600" />
+        <Activity className="h-5 w-5 text-brand" />
         Panel de Gestión
       </h2>
 
@@ -635,7 +635,7 @@ export function RenoHomeAdminDashboard({
       {/* Works per foreman chart */}
       <div className="bg-card border rounded-lg p-4">
         <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-          <Users className="h-4 w-4 text-indigo-500" />
+          <Users className="h-4 w-4 text-brand" />
           Obras activas por jefe de obra
         </h3>
         {worksPerForeman.length === 0 ? (
@@ -682,7 +682,7 @@ export function RenoHomeAdminDashboard({
       {/* Renovadores asignados desde la app */}
       <div className="bg-card border rounded-lg p-4">
         <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-          <ClipboardCheck className="h-4 w-4 text-emerald-500" />
+          <ClipboardCheck className="h-4 w-4 text-success" />
           Renovadores rellenados desde la app
         </h3>
         {renovatorAssignments.length === 0 ? (
@@ -698,7 +698,7 @@ export function RenoHomeAdminDashboard({
             {renovatorAssignments.map((item) => (
               <div key={item.name} className="flex items-center justify-between py-1.5 px-1 rounded hover:bg-muted/40 transition-colors">
                 <span className="text-sm font-medium">{item.name}</span>
-                <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-success-bg dark:bg-success/30 text-success dark:text-success text-xs font-bold">
                   {item.count}
                 </span>
               </div>
@@ -714,7 +714,7 @@ export function RenoHomeAdminDashboard({
       {/* Final Check KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card border rounded-lg p-4 flex items-center gap-3">
-          <div className="text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2">
+          <div className="text-success bg-success-subtle dark:bg-success/20 rounded-lg p-2">
             <CheckCircle2 className="h-4 w-4" />
           </div>
           <div>
@@ -723,7 +723,7 @@ export function RenoHomeAdminDashboard({
           </div>
         </div>
         <div className="bg-card border rounded-lg p-4 flex items-center gap-3">
-          <div className="text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
+          <div className="text-warning bg-warning-subtle dark:bg-warning/20 rounded-lg p-2">
             <Hourglass className="h-4 w-4" />
           </div>
           <div>
@@ -732,7 +732,7 @@ export function RenoHomeAdminDashboard({
           </div>
         </div>
         <div className="bg-card border rounded-lg p-4 flex items-center gap-3">
-          <div className="text-blue-600 bg-blue-50 dark:bg-white/5 rounded-lg p-2">
+          <div className="text-brand bg-brand-50 dark:bg-card/5 rounded-lg p-2">
             <Timer className="h-4 w-4" />
           </div>
           <div>
@@ -747,7 +747,7 @@ export function RenoHomeAdminDashboard({
       {/* Final Checks por fase — donut chart */}
       <div className="bg-card border rounded-lg p-4">
         <h3 className="text-sm font-medium mb-1 flex items-center gap-2">
-          <PieChartIcon className="h-4 w-4 text-indigo-500" />
+          <PieChartIcon className="h-4 w-4 text-brand" />
           Final Checks por fase de ejecución
         </h3>
         <p className="text-xs text-muted-foreground mb-4">
@@ -816,7 +816,7 @@ export function RenoHomeAdminDashboard({
         {/* Initial Checks completados */}
         <div className="bg-card border rounded-lg p-4">
           <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-            <ClipboardCheck className="h-4 w-4 text-blue-500" />
+            <ClipboardCheck className="h-4 w-4 text-brand" />
             Informes de Initial Check completados
             {!loading && initialChecksData.length > 0 && (
               <span className="ml-auto text-xs font-normal text-muted-foreground">
@@ -870,7 +870,7 @@ export function RenoHomeAdminDashboard({
                       <td className="py-2.5 text-center">
                         <button
                           onClick={() => window.open(ic.publicUrl, "_blank")}
-                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 dark:text-neutral-400 dark:hover:bg-white/5 transition-colors"
+                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-brand hover:bg-brand-50 dark:text-neutral-400 dark:hover:bg-card/5 transition-colors"
                           title="Ver informe HTML público"
                         >
                           <FileDown className="h-3.5 w-3.5" />
@@ -888,7 +888,7 @@ export function RenoHomeAdminDashboard({
         {/* Final Checks completados */}
         <div className="bg-card border rounded-lg p-4">
           <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-            <ClipboardCheck className="h-4 w-4 text-emerald-500" />
+            <ClipboardCheck className="h-4 w-4 text-success" />
             Informes de Final Check completados
             {!loading && finalChecksData.length > 0 && (
               <span className="ml-auto text-xs font-normal text-muted-foreground">
@@ -944,7 +944,7 @@ export function RenoHomeAdminDashboard({
                       <td className="py-2.5 text-center">
                         <button
                           onClick={() => window.open(fc.publicUrl, "_blank")}
-                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 dark:text-neutral-400 dark:hover:bg-white/5 transition-colors"
+                          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-brand hover:bg-brand-50 dark:text-neutral-400 dark:hover:bg-card/5 transition-colors"
                           title="Ver informe HTML público"
                         >
                           <FileDown className="h-3.5 w-3.5" />
@@ -1016,7 +1016,7 @@ export function RenoHomeAdminDashboard({
                       </td>
                       <td className="py-2 pr-2 text-center tabular-nums">
                         {st.initialChecks > 0 ? (
-                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-blue-100 dark:bg-white/10 text-blue-700 dark:text-neutral-400 text-xs font-bold">
+                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-brand-100 dark:bg-card/10 text-brand-700 dark:text-neutral-400 text-xs font-bold">
                             {st.initialChecks}
                           </span>
                         ) : (
@@ -1025,7 +1025,7 @@ export function RenoHomeAdminDashboard({
                       </td>
                       <td className="py-2 pr-2 text-center tabular-nums">
                         {st.finalChecks > 0 ? (
-                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold">
+                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-warning-bg dark:bg-warning/30 text-warning dark:text-warning text-xs font-bold">
                             {st.finalChecks}
                           </span>
                         ) : (
@@ -1034,7 +1034,7 @@ export function RenoHomeAdminDashboard({
                       </td>
                       <td className="py-2 pr-2 text-center tabular-nums">
                         {st.renovatorsApp > 0 ? (
-                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                          <span className="inline-flex items-center justify-center min-w-[28px] h-6 rounded-full bg-success-bg dark:bg-success/30 text-success dark:text-success text-xs font-bold">
                             {st.renovatorsApp}
                           </span>
                         ) : (

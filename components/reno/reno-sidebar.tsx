@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Inbox, Send, Landmark, LayoutGrid, Ruler, PencilRuler, CalendarDays, Sparkles } from "lucide-react";
+import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Menu, X, Users, Lock, Building2, Inbox, Send, Landmark, LayoutGrid, Ruler, PencilRuler, CalendarDays, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -291,10 +291,10 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
             {/* Content - same as desktop but mobile optimized */}
             <div className="flex-1 overflow-y-auto p-4">
               <div className="mb-6">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-v-gray-400">
                   {t.sidebar.platform}
                 </p>
-                <nav className="space-y-1">
+                <nav className="space-y-0.5">
                   {navigationItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href || 
@@ -305,26 +305,22 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                         href={item.href}
                         onClick={onMobileToggle}
                         className={cn(
-                          "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                           isActive
-                            ? "bg-primary/20 text-primary dark:text-white"
-                            : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                            ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                            : "text-foreground hover:bg-muted"
                         )}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="relative flex-shrink-0">
-                            <Icon className="h-5 w-5 text-current" />
-                            {item.badge && item.badge > 0 ? (
-                              <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white px-0.5">
-                                {item.badge > 9 ? "9+" : item.badge}
-                              </span>
-                            ) : null}
-                          </div>
-                          <span className="whitespace-nowrap truncate">{item.label}</span>
+                        <div className="relative flex-shrink-0">
+                          <Icon className={cn("h-5 w-5", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                          {item.badge && item.badge > 0 ? (
+                            <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white px-0.5">
+                              {item.badge > 9 ? "9+" : item.badge}
+                            </span>
+                          ) : null}
                         </div>
-                        <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <span className="whitespace-nowrap truncate flex-1">{item.label}</span>
+                        {isActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
                       </Link>
                     );
                   })}
@@ -335,90 +331,93 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                         setMyProjectsModalOpen(true);
                         onMobileToggle?.();
                       }}
-                      className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors w-full text-foreground hover:bg-accent hover:text-accent-foreground"
+                      className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors w-full text-foreground hover:bg-muted"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Building2 className="h-5 w-5 flex-shrink-0 text-current" />
-                        <span className="whitespace-nowrap truncate">{t.nav.kanbanProjects ?? "Mis proyectos"}</span>
-                      </div>
-                      <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <Building2 className="h-5 w-5 flex-shrink-0 text-v-gray-500 group-hover:text-foreground" />
+                      <span className="whitespace-nowrap truncate flex-1">{t.nav.kanbanProjects ?? "Mis proyectos"}</span>
                     </button>
                   )}
-                  {(role === "set_up_analyst" || role === "admin") && (
-                    <Link
-                      href="/reno/setup-analyst/emails"
-                      onClick={onMobileToggle}
-                      className={cn(
-                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors relative",
-                        pathname === "/reno/setup-analyst/emails"
-                          ? "bg-primary/20 text-primary dark:text-white"
-                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Send className="h-5 w-5 flex-shrink-0 text-current" />
-                        <span className="whitespace-nowrap truncate">Bandeja de correos</span>
-                      </div>
-                      {draftEmailCount > 0 && (
-                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold text-white px-1">
-                          {draftEmailCount > 9 ? "9+" : draftEmailCount}
-                        </span>
-                      )}
-                    </Link>
-                  )}
-                  {role !== "architect" && (
-                    <Link
-                      href="/reno/calendar"
-                      onClick={onMobileToggle}
-                      className={cn(
-                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                        pathname === "/reno/calendar"
-                          ? "bg-primary/20 text-primary dark:text-white"
-                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <CalendarDays className="h-5 w-5 flex-shrink-0 text-current" />
-                        <span className="whitespace-nowrap truncate">Calendario</span>
-                      </div>
-                    </Link>
-                  )}
-                  {role !== "architect" && (
-                    <Link
-                      href="/reno/gmail"
-                      onClick={onMobileToggle}
-                      className={cn(
-                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                        pathname === "/reno/gmail"
-                          ? "bg-primary/20 text-primary dark:text-white"
-                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Inbox className="h-5 w-5 flex-shrink-0 text-current" />
-                        <span className="whitespace-nowrap truncate">Gmail</span>
-                      </div>
-                    </Link>
-                  )}
-                  {role !== "architect" && (
-                    <Link
-                      href="/reno/updates"
-                      onClick={onMobileToggle}
-                      className={cn(
-                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                        pathname === "/reno/updates"
-                          ? "bg-primary/20 text-primary dark:text-white"
-                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                      )}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Sparkles className="h-5 w-5 flex-shrink-0 text-current" />
-                        <span className="whitespace-nowrap truncate">Novedades</span>
-                      </div>
-                    </Link>
-                  )}
+                  {(role === "set_up_analyst" || role === "admin") && (() => {
+                    const isEmailActive = pathname === "/reno/setup-analyst/emails";
+                    return (
+                      <Link
+                        href="/reno/setup-analyst/emails"
+                        onClick={onMobileToggle}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors relative",
+                          isEmailActive
+                            ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                            : "text-foreground hover:bg-muted"
+                        )}
+                      >
+                        <Send className={cn("h-5 w-5 flex-shrink-0", isEmailActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                        <span className="whitespace-nowrap truncate flex-1">Bandeja de correos</span>
+                        {draftEmailCount > 0 && (
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning text-[10px] font-semibold text-white px-1">
+                            {draftEmailCount > 9 ? "9+" : draftEmailCount}
+                          </span>
+                        )}
+                        {isEmailActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
+                      </Link>
+                    );
+                  })()}
+                  {role !== "architect" && (() => {
+                    const isCalActive = pathname === "/reno/calendar";
+                    return (
+                      <Link
+                        href="/reno/calendar"
+                        onClick={onMobileToggle}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                          isCalActive
+                            ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                            : "text-foreground hover:bg-muted"
+                        )}
+                      >
+                        <CalendarDays className={cn("h-5 w-5 flex-shrink-0", isCalActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                        <span className="whitespace-nowrap truncate flex-1">Calendario</span>
+                        {isCalActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
+                      </Link>
+                    );
+                  })()}
+                  {role !== "architect" && (() => {
+                    const isGmailActive = pathname === "/reno/gmail";
+                    return (
+                      <Link
+                        href="/reno/gmail"
+                        onClick={onMobileToggle}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                          isGmailActive
+                            ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                            : "text-foreground hover:bg-muted"
+                        )}
+                      >
+                        <Inbox className={cn("h-5 w-5 flex-shrink-0", isGmailActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                        <span className="whitespace-nowrap truncate flex-1">Gmail</span>
+                        {isGmailActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
+                      </Link>
+                    );
+                  })()}
+                  {role !== "architect" && (() => {
+                    const isUpdatesActive = pathname === "/reno/updates";
+                    return (
+                      <Link
+                        href="/reno/updates"
+                        onClick={onMobileToggle}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                          isUpdatesActive
+                            ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                            : "text-foreground hover:bg-muted"
+                        )}
+                      >
+                        <Sparkles className={cn("h-5 w-5 flex-shrink-0", isUpdatesActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                        <span className="whitespace-nowrap truncate flex-1">Novedades</span>
+                        {isUpdatesActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
+                      </Link>
+                    );
+                  })()}
                 </nav>
               </div>
 
@@ -426,10 +425,10 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
               <div className="border-t border-border my-4" />
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-v-gray-400">
                   {t.sidebar.configuration}
                 </p>
-                <nav className="space-y-1">
+                <nav className="space-y-0.5">
                   {settingsItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;
@@ -439,14 +438,14 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                         href={item.href}
                         onClick={onMobileToggle}
                         className={cn(
-                          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors min-w-0",
+                          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors min-w-0",
                           isActive
-                            ? "bg-primary/20 text-primary dark:text-white"
-                            : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                            ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                            : "text-foreground hover:bg-muted",
                           item.comingSoon && "opacity-50 cursor-not-allowed"
                         )}
                       >
-                        <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                        <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
                         <span className="whitespace-nowrap truncate">{item.label}</span>
                         {item.comingSoon && (
                           <span className="ml-auto text-xs text-muted-foreground">{t.sidebar.soon}</span>
@@ -542,7 +541,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                 e.stopPropagation();
                 setCollapsed((prev) => !prev);
               }}
-              className="p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] transition-colors flex-shrink-0"
+              className="p-1.5 rounded-md hover:bg-muted dark:hover:bg-secondary transition-colors flex-shrink-0"
               aria-label="Collapse sidebar"
               type="button"
             >
@@ -556,10 +555,10 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
       <div className="flex-1 overflow-y-auto p-4">
         {!collapsed && (
           <div className="mb-6">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-v-gray-400">
               {t.sidebar.platform}
             </p>
-            <nav className="space-y-1">
+            <nav className="space-y-0.5">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || 
@@ -569,26 +568,22 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-primary/20 text-primary dark:text-white"
-                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                        : "text-foreground hover:bg-muted"
                     )}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="relative flex-shrink-0">
-                        <Icon className="h-5 w-5 text-current" />
-                        {item.badge && item.badge > 0 ? (
-                          <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white px-0.5">
-                            {item.badge > 9 ? "9+" : item.badge}
-                          </span>
-                        ) : null}
-                      </div>
-                      <span className="whitespace-nowrap truncate">{item.label}</span>
+                    <div className="relative flex-shrink-0">
+                      <Icon className={cn("h-5 w-5", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                      {item.badge && item.badge > 0 ? (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white px-0.5">
+                          {item.badge > 9 ? "9+" : item.badge}
+                        </span>
+                      ) : null}
                     </div>
-                    <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    <span className="whitespace-nowrap truncate flex-1">{item.label}</span>
+                    {isActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
                   </Link>
                 );
               })}
@@ -602,80 +597,88 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   <Building2 className="h-5 w-5 flex-shrink-0 text-current" />
                 </button>
               )}
-              {(role === "set_up_analyst" || role === "admin") && (
-                <Link
-                  href="/reno/setup-analyst/emails"
-                  className={cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors relative",
-                    pathname === "/reno/setup-analyst/emails"
-                      ? "bg-primary/20 text-primary dark:text-white"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Send className="h-5 w-5 flex-shrink-0 text-current" />
-                    <span className="whitespace-nowrap truncate">Bandeja de correos</span>
-                  </div>
-                  {draftEmailCount > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold text-white px-1">
-                      {draftEmailCount > 9 ? "9+" : draftEmailCount}
-                    </span>
-                  )}
-                </Link>
-              )}
-              {role !== "architect" && (
-                <Link
-                  href="/reno/calendar"
-                  className={cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    pathname === "/reno/calendar"
-                      ? "bg-primary/20 text-primary dark:text-white"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <CalendarDays className="h-5 w-5 flex-shrink-0 text-current" />
-                    <span className="whitespace-nowrap truncate">Calendario</span>
-                  </div>
-                </Link>
-              )}
-              {role !== "architect" && (
-                <Link
-                  href="/reno/gmail"
-                  className={cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    pathname === "/reno/gmail"
-                      ? "bg-primary/20 text-primary dark:text-white"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Inbox className="h-5 w-5 flex-shrink-0 text-current" />
-                    <span className="whitespace-nowrap truncate">Gmail</span>
-                  </div>
-                </Link>
-              )}
-              {role !== "architect" && (
-                <Link
-                  href="/reno/updates"
-                  className={cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    pathname === "/reno/updates"
-                      ? "bg-primary/20 text-primary dark:text-white"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Sparkles className="h-5 w-5 flex-shrink-0 text-current" />
-                    <span className="whitespace-nowrap truncate">Novedades</span>
-                  </div>
-                </Link>
-              )}
+              {(role === "set_up_analyst" || role === "admin") && (() => {
+                const isEmailActive = pathname === "/reno/setup-analyst/emails";
+                return (
+                  <Link
+                    href="/reno/setup-analyst/emails"
+                    className={cn(
+                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors relative",
+                      isEmailActive
+                        ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <Send className={cn("h-5 w-5 flex-shrink-0", isEmailActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                    <span className="whitespace-nowrap truncate flex-1">Bandeja de correos</span>
+                    {draftEmailCount > 0 && (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-warning text-[10px] font-semibold text-white px-1">
+                        {draftEmailCount > 9 ? "9+" : draftEmailCount}
+                      </span>
+                    )}
+                    {isEmailActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
+                  </Link>
+                );
+              })()}
+              {role !== "architect" && (() => {
+                const isCalActive = pathname === "/reno/calendar";
+                return (
+                  <Link
+                    href="/reno/calendar"
+                    className={cn(
+                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      isCalActive
+                        ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <CalendarDays className={cn("h-5 w-5 flex-shrink-0", isCalActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                    <span className="whitespace-nowrap truncate flex-1">Calendario</span>
+                    {isCalActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
+                  </Link>
+                );
+              })()}
+              {role !== "architect" && (() => {
+                const isGmailActive = pathname === "/reno/gmail";
+                return (
+                  <Link
+                    href="/reno/gmail"
+                    className={cn(
+                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      isGmailActive
+                        ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <Inbox className={cn("h-5 w-5 flex-shrink-0", isGmailActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                    <span className="whitespace-nowrap truncate flex-1">Gmail</span>
+                    {isGmailActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
+                  </Link>
+                );
+              })()}
+              {role !== "architect" && (() => {
+                const isUpdatesActive = pathname === "/reno/updates";
+                return (
+                  <Link
+                    href="/reno/updates"
+                    className={cn(
+                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      isUpdatesActive
+                        ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                        : "text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <Sparkles className={cn("h-5 w-5 flex-shrink-0", isUpdatesActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                    <span className="whitespace-nowrap truncate flex-1">Novedades</span>
+                    {isUpdatesActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
+                  </Link>
+                );
+              })()}
             </nav>
           </div>
         )}
         {collapsed && (
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || 
@@ -685,17 +688,17 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   key={item.href}
                   href={item.href}
                     className={cn(
-                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
+                      "flex items-center justify-center rounded-lg p-2 text-sm font-medium transition-colors w-full relative",
                       isActive
-                        ? "bg-primary/20 text-primary dark:text-white"
-                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                        : "text-foreground hover:bg-muted"
                     )}
                   title={item.label}
                 >
                   <div className="relative">
-                    <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                    <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500")} />
                     {item.badge && item.badge > 0 ? (
-                      <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white px-0.5">
+                      <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger text-[9px] font-bold text-white px-0.5">
                         {item.badge > 9 ? "9+" : item.badge}
                       </span>
                     ) : null}
@@ -718,15 +721,15 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                 href="/reno/setup-analyst/emails"
                 title="Bandeja de correos"
                 className={cn(
-                  "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
+                  "flex items-center justify-center rounded-lg p-2 text-sm font-medium transition-colors w-full relative",
                   pathname === "/reno/setup-analyst/emails"
-                    ? "bg-primary/20 text-primary dark:text-white"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                    : "text-foreground hover:bg-muted"
                 )}
               >
-                <Send className="h-5 w-5 flex-shrink-0 text-current" />
+                <Send className={cn("h-5 w-5 flex-shrink-0", pathname === "/reno/setup-analyst/emails" ? "text-brand dark:text-brand-300" : "text-v-gray-500")} />
                 {draftEmailCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-semibold text-white">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-warning text-[10px] font-semibold text-white">
                     {draftEmailCount > 9 ? "9+" : draftEmailCount}
                   </span>
                 )}
@@ -737,13 +740,13 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                 href="/reno/calendar"
                 title="Calendario"
                 className={cn(
-                  "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
+                  "flex items-center justify-center rounded-lg p-2 text-sm font-medium transition-colors w-full relative",
                   pathname === "/reno/calendar"
-                    ? "bg-primary/20 text-primary dark:text-white"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                    : "text-foreground hover:bg-muted"
                 )}
               >
-                <CalendarDays className="h-5 w-5 flex-shrink-0 text-current" />
+                <CalendarDays className={cn("h-5 w-5 flex-shrink-0", pathname === "/reno/calendar" ? "text-brand dark:text-brand-300" : "text-v-gray-500")} />
               </Link>
             )}
             {role !== "architect" && (
@@ -751,13 +754,13 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                 href="/reno/gmail"
                 title="Gmail"
                 className={cn(
-                  "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
+                  "flex items-center justify-center rounded-lg p-2 text-sm font-medium transition-colors w-full relative",
                   pathname === "/reno/gmail"
-                    ? "bg-primary/20 text-primary dark:text-white"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                    : "text-foreground hover:bg-muted"
                 )}
               >
-                <Inbox className="h-5 w-5 flex-shrink-0 text-current" />
+                <Inbox className={cn("h-5 w-5 flex-shrink-0", pathname === "/reno/gmail" ? "text-brand dark:text-brand-300" : "text-v-gray-500")} />
               </Link>
             )}
             {role !== "architect" && (
@@ -765,13 +768,13 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                 href="/reno/updates"
                 title="Novedades"
                 className={cn(
-                  "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full relative",
+                  "flex items-center justify-center rounded-lg p-2 text-sm font-medium transition-colors w-full relative",
                   pathname === "/reno/updates"
-                    ? "bg-primary/20 text-primary dark:text-white"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                    : "text-foreground hover:bg-muted"
                 )}
               >
-                <Sparkles className="h-5 w-5 flex-shrink-0 text-current" />
+                <Sparkles className={cn("h-5 w-5 flex-shrink-0", pathname === "/reno/updates" ? "text-brand dark:text-brand-300" : "text-v-gray-500")} />
               </Link>
             )}
           </nav>
@@ -782,28 +785,27 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
 
         {/* Settings */}
         {collapsed ? (
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {settingsItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               
-              // Special handling for help item - open modal instead of link
               if (item.label === t.nav.help) {
                 return (
                   <button
                     key={item.href}
                     onClick={() => setIsHelpModalOpen(true)}
                     className={cn(
-                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors relative w-full",
+                      "flex items-center justify-center rounded-lg p-2 text-sm font-medium transition-colors relative w-full",
                       isActive
-                        ? "bg-primary/20 text-primary dark:text-white"
-                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                        : "text-foreground hover:bg-muted"
                     )}
                     title={item.label}
                   >
-                    <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                    <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500")} />
                     {item.badge !== undefined && item.badge > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-[10px] font-semibold text-white">
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-semibold text-white">
                         {item.badge}
                       </span>
                     )}
@@ -816,17 +818,17 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors relative w-full",
+                    "flex items-center justify-center rounded-lg p-2 text-sm font-medium transition-colors relative w-full",
                     isActive
-                      ? "bg-primary/20 text-primary dark:text-white"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                      ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                      : "text-foreground hover:bg-muted",
                     item.comingSoon && "opacity-50 cursor-not-allowed"
                   )}
                   title={item.label}
                 >
-                  <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                  <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500")} />
                   {item.badge !== undefined && item.badge > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-[10px] font-semibold text-white">
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-semibold text-white">
                       {item.badge}
                     </span>
                   )}
@@ -836,26 +838,22 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
           </nav>
         ) : (
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-v-gray-400">
               {t.sidebar.configuration}
             </p>
-            <nav className="space-y-1">
+            <nav className="space-y-0.5">
               {settingsItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
                 
-                // Special handling for help item - open modal instead of link
                 if (item.label === t.nav.help) {
                   return (
                     <button
                       key={item.href}
                       onClick={() => setIsHelpModalOpen(true)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors w-full text-left",
-                        "text-foreground hover:bg-accent hover:text-accent-foreground"
-                      )}
+                      className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors w-full text-left text-foreground hover:bg-muted"
                     >
-                      <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                      <Icon className="h-5 w-5 flex-shrink-0 text-v-gray-500 group-hover:text-foreground" />
                       <span className="whitespace-nowrap truncate">{item.label}</span>
                     </button>
                   );
@@ -866,17 +864,17 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-primary/20 text-primary dark:text-white"
-                        : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                        ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                        : "text-foreground hover:bg-muted",
                       item.comingSoon && "opacity-50 cursor-not-allowed"
                     )}
                   >
-                    <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                    <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
                     <span className="whitespace-nowrap truncate">{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
-                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-xs font-semibold text-white">
+                      <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">
                         {item.badge}
                       </span>
                     )}
@@ -902,7 +900,7 @@ export function RenoSidebar({ isMobileOpen = false, onMobileToggle }: RenoSideba
                 e.stopPropagation();
                 setCollapsed((prev) => !prev);
               }}
-              className="p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] transition-colors"
+              className="p-1.5 rounded-md hover:bg-muted dark:hover:bg-secondary transition-colors"
               aria-label="Expand sidebar"
               type="button"
             >

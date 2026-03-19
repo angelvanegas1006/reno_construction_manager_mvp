@@ -372,7 +372,7 @@ export default function WipDetailPage() {
     <div className="flex h-screen overflow-hidden">
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-3 md:px-4 lg:px-6 py-4 md:py-6">
+        <header className="border-b bg-card dark:bg-v-gray-900 px-3 md:px-4 lg:px-6 py-4 md:py-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
               <Button
@@ -444,7 +444,7 @@ export default function WipDetailPage() {
         {/* Content */}
         <div className="flex flex-1 overflow-hidden pt-2">
           <div className={cn(
-            "flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24",
+            "flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-background dark:bg-background pb-24",
           )}>
             <div className={isFullWidthTab ? "w-full" : "max-w-4xl mx-auto"}>
               {renderTabContent()}
@@ -460,8 +460,8 @@ export default function WipDetailPage() {
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
-          <div className="fixed right-0 top-0 h-full w-[85vw] max-w-sm bg-card dark:bg-[var(--prophero-gray-900)] border-l z-50 lg:hidden shadow-xl overflow-y-auto">
-            <div className="sticky top-0 bg-card dark:bg-[var(--prophero-gray-900)] border-b p-4 flex items-center justify-between z-10">
+          <div className="fixed right-0 top-0 h-full w-[85vw] max-w-sm bg-card dark:bg-v-gray-900 border-l z-50 lg:hidden shadow-xl overflow-y-auto">
+            <div className="sticky top-0 bg-card dark:bg-v-gray-900 border-b p-4 flex items-center justify-between z-10">
               <h2 className="text-lg font-semibold">Info del WIP</h2>
               <button
                 onClick={() => setIsSidebarOpen(false)}

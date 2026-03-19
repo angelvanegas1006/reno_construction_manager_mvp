@@ -27,7 +27,7 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, vi
         <div className="flex items-center gap-2 min-w-0 pl-14 relative">
           <button
             onClick={onMenuToggle}
-            className="absolute left-0 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[#262626] transition-colors flex-shrink-0 z-10"
+            className="absolute left-0 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-secondary hover:bg-v-gray-200 dark:hover:bg-muted transition-colors flex-shrink-0 z-10"
             aria-label="Toggle menu"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -53,7 +53,7 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, vi
             onClick={() => {
               console.log("Filter - Coming soon");
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[#262626] transition-colors flex-shrink-0"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-secondary hover:bg-v-gray-200 dark:hover:bg-muted transition-colors flex-shrink-0"
             aria-label={t.kanban.filterProperties}
           >
             <FilterIcon className="h-4 w-4 text-foreground" />
@@ -61,13 +61,13 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, vi
           
           {/* View Mode Toggle - Mobile */}
           {onViewModeChange && (
-            <div className="flex items-center gap-1 bg-accent dark:bg-[var(--prophero-gray-800)] rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-accent dark:bg-v-gray-800 rounded-lg p-1">
               <button
                 onClick={() => onViewModeChange("kanban")}
                 className={cn(
                   "px-2 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1",
                   viewMode === "kanban"
-                    ? "bg-[var(--prophero-blue-500)] text-white"
+                    ? "bg-brand-500 text-white"
                     : "text-muted-foreground hover:text-foreground"
                 )}
                 aria-label="Kanban view"
@@ -80,7 +80,7 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, vi
                 className={cn(
                   "px-2 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1",
                   viewMode === "list"
-                    ? "bg-[var(--prophero-blue-500)] text-white"
+                    ? "bg-brand-500 text-white"
                     : "text-muted-foreground hover:text-foreground"
                 )}
                 aria-label="List view"
@@ -112,7 +112,7 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, vi
             onClick={() => {
               console.log("Filter - Coming soon");
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[#262626] transition-colors flex-shrink-0"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-secondary hover:bg-v-gray-200 dark:hover:bg-muted transition-colors flex-shrink-0"
             aria-label={t.kanban.filterProperties}
           >
             <FilterIcon className="h-4 w-4 text-foreground" />
@@ -120,13 +120,13 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, vi
           
           {/* View Mode Toggle - Desktop */}
           {onViewModeChange && (
-            <div className="flex items-center gap-1 bg-accent dark:bg-[var(--prophero-gray-800)] rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-accent dark:bg-v-gray-800 rounded-lg p-1">
               <button
                 onClick={() => onViewModeChange("kanban")}
                 className={cn(
                   "px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
                   viewMode === "kanban"
-                    ? "bg-[var(--prophero-blue-500)] text-white"
+                    ? "bg-brand-500 text-white"
                     : "text-muted-foreground hover:text-foreground"
                 )}
                 aria-label="Kanban view"
@@ -139,7 +139,7 @@ export function RenoKanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, vi
                 className={cn(
                   "px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2",
                   viewMode === "list"
-                    ? "bg-[var(--prophero-blue-500)] text-white"
+                    ? "bg-brand-500 text-white"
                     : "text-muted-foreground hover:text-foreground"
                 )}
                 aria-label="List view"

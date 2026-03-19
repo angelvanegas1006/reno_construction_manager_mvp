@@ -68,36 +68,36 @@ export const DatosVendedorSection = forwardRef<HTMLDivElement, DatosVendedorSect
     }, [vendedores, updateField]);
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm space-y-6">
+      <div ref={ref} className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm space-y-6">
         <h1 className="text-2xl font-bold text-foreground">
           {t.property.sections.sellerData || "Datos del vendedor"}
         </h1>
 
         {/* Info Banner */}
-        <div className="flex items-start gap-3 p-4 bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20 border border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)] rounded-lg">
-          <Info className="h-5 w-5 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-brand-50 dark:bg-brand-950/20 border border-brand-200 dark:border-brand-800 rounded-lg">
+          <Info className="h-5 w-5 text-brand-600 dark:text-brand-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-[var(--prophero-blue-900)] dark:text-[var(--prophero-blue-200)]">
+            <p className="text-sm font-semibold text-brand-900 dark:text-brand-200">
               {t.sectionInfo.requiredFields}
             </p>
-            <p className="text-sm text-[var(--prophero-blue-800)] dark:text-[var(--prophero-blue-300)] mt-1">
+            <p className="text-sm text-brand-800 dark:text-brand-300 mt-1">
               {t.property.sections.sellerDataDescription || "Información de contacto directa del propietario de la vivienda o de la persona autorizada para representarle en la operación de venta."}
             </p>
           </div>
         </div>
 
         {/* Quantity Selector */}
-        <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 shadow-sm">
+        <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-semibold text-foreground">
-              Cantidad de propietarios <span className="text-red-500">*</span>
+              Cantidad de propietarios <span className="text-danger">*</span>
             </Label>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => handleQuantityChange(-1)}
                 disabled={vendedores.length <= 1}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                 aria-label="Decrementar cantidad"
               >
                 <Minus className="h-4 w-4 text-foreground" />
@@ -109,10 +109,10 @@ export const DatosVendedorSection = forwardRef<HTMLDivElement, DatosVendedorSect
                 type="button"
                 onClick={() => handleQuantityChange(1)}
                 disabled={vendedores.length >= 10}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 hover:bg-brand-200 dark:hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                 aria-label="Incrementar cantidad"
               >
-                <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+                <Plus className="h-4 w-4 text-brand-600 dark:text-brand-400" />
               </button>
             </div>
           </div>
@@ -121,7 +121,7 @@ export const DatosVendedorSection = forwardRef<HTMLDivElement, DatosVendedorSect
         {/* Vendedores Forms */}
         <div className="space-y-8">
           {vendedores.map((vendedor, index) => (
-            <div key={index} className="space-y-6 p-6 border rounded-lg bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-800)]/50">
+            <div key={index} className="space-y-6 p-6 border rounded-lg bg-background dark:bg-v-gray-800/50">
               <h2 className="text-lg font-semibold text-foreground">
                 Propietario {index + 1}
               </h2>
@@ -130,7 +130,7 @@ export const DatosVendedorSection = forwardRef<HTMLDivElement, DatosVendedorSect
                 {/* Nombre completo */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">
-                    Nombre completo / Nombre legal <span className="text-red-500">*</span>
+                    Nombre completo / Nombre legal <span className="text-danger">*</span>
                   </Label>
                   <Input
                     value={vendedor.nombreCompleto || ""}
@@ -142,7 +142,7 @@ export const DatosVendedorSection = forwardRef<HTMLDivElement, DatosVendedorSect
                 {/* DNI/NIF/CIF */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">
-                    Número de documento de identidad <span className="text-red-500">*</span>
+                    Número de documento de identidad <span className="text-danger">*</span>
                   </Label>
                   <Input
                     value={vendedor.dniNifCif || ""}
@@ -157,7 +157,7 @@ export const DatosVendedorSection = forwardRef<HTMLDivElement, DatosVendedorSect
                 {/* Email */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">
-                    Email <span className="text-red-500">*</span>
+                    Email <span className="text-danger">*</span>
                   </Label>
                   <Input
                     type="email"
@@ -170,7 +170,7 @@ export const DatosVendedorSection = forwardRef<HTMLDivElement, DatosVendedorSect
                 {/* Phone Number */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">
-                    Número de teléfono <span className="text-red-500">*</span>
+                    Número de teléfono <span className="text-danger">*</span>
                   </Label>
                   <CountryPhoneSelector
                     countryCode={vendedor.telefonoPais || "+34"}

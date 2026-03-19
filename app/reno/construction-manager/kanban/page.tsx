@@ -311,7 +311,7 @@ export default function RenoConstructionManagerKanbanPage() {
         {/* Kanban Board - Units, Building, Lot (+ Project/WIP asignados si foreman) */}
         <div 
           className={cn(
-            "flex-1 p-2 md:p-3 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]",
+            "flex-1 p-2 md:p-3 lg:p-6 bg-background dark:bg-background",
             viewMode === "list" ? "overflow-y-auto" : "md:overflow-hidden overflow-y-auto"
           )}
           data-scroll-container

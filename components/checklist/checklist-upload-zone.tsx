@@ -390,9 +390,9 @@ export function ChecklistUploadZone({
           <div className="flex items-center justify-between">
             <Label className="text-sm font-semibold leading-tight">
               {title} {isRequired && (
-                <span className="text-red-500">
-                  <span className="text-red-500">*</span>
-                  <span className="ml-1 text-red-500">{t.formLabels.required}</span>
+                <span className="text-danger">
+                  <span className="text-danger">*</span>
+                  <span className="ml-1 text-danger">{t.formLabels.required}</span>
                 </span>
               )}
             </Label>
@@ -418,8 +418,8 @@ export function ChecklistUploadZone({
         className={cn(
           "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
           (photosHook.isDragOver || videosHook.isDragOver)
-            ? "border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20"
-            : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-white dark:bg-card hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)]"
+            ? "border-brand-500 bg-brand-50 dark:bg-brand-950/20"
+            : "border-v-gray-300 dark:border-v-gray-600 bg-card dark:bg-card hover:border-v-gray-400 dark:hover:border-v-gray-500"
         )}
         onDragOver={(e) => {
           e.preventDefault();
@@ -433,11 +433,11 @@ export function ChecklistUploadZone({
         }}
         onDrop={readOnly ? undefined : handleUnifiedDrop}
       >
-        <Upload className="h-8 w-8 mx-auto text-[var(--prophero-gray-400)] mb-2" />
-        <p className="text-sm text-[var(--prophero-gray-600)] dark:text-[var(--prophero-gray-400)] mb-2">
+        <Upload className="h-8 w-8 mx-auto text-v-gray-400 mb-2" />
+        <p className="text-sm text-v-gray-600 dark:text-v-gray-400 mb-2">
           Arrastra y suelta archivos aquí
         </p>
-        <p className="text-xs text-[var(--prophero-gray-500)] dark:text-[var(--prophero-gray-500)] mb-3">
+        <p className="text-xs text-v-gray-500 dark:text-v-gray-500 mb-3">
           O haz clic para explorar (fotos y videos: sin límite de tamaño)
         </p>
         
@@ -597,7 +597,7 @@ export function ChecklistUploadZone({
               return (
                 <div
                   key={file.id || `photo-${index}`}
-                  className="relative group aspect-square rounded-lg border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+                  className="relative group aspect-square rounded-lg border border-v-gray-300 dark:border-v-gray-600 bg-v-gray-100 dark:bg-v-gray-800"
                 >
                   <div className="w-full h-full rounded-lg overflow-hidden">
                     {file.data ? (
@@ -620,9 +620,9 @@ export function ChecklistUploadZone({
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center flex-col">
-                        <ImageIcon className="h-8 w-8 text-[var(--prophero-gray-400)]" />
-                        <span className="text-xs text-[var(--prophero-gray-400)] mt-2 text-center px-2">{file.name}</span>
-                        <span className="text-xs text-red-500 mt-1">No data</span>
+                        <ImageIcon className="h-8 w-8 text-v-gray-400" />
+                        <span className="text-xs text-v-gray-400 mt-2 text-center px-2">{file.name}</span>
+                        <span className="text-xs text-danger mt-1">No data</span>
                       </div>
                     )}
                   </div>
@@ -630,7 +630,7 @@ export function ChecklistUploadZone({
                     <button
                       type="button"
                       onClick={() => handleRemovePhoto(index)}
-                      className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 text-white rounded-full shadow-md opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-20 border-2 border-white dark:border-gray-800"
+                      className="absolute -top-1.5 -right-1.5 p-1 bg-danger text-white rounded-full shadow-md opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-20 border-2 border-white dark:border-v-gray-800"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -643,9 +643,9 @@ export function ChecklistUploadZone({
             {uploadZone.videos.map((file, index) => (
               <div
                 key={file.id || `video-${index}`}
-                className="relative group aspect-square rounded-lg border border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex items-center justify-center"
+                className="relative group aspect-square rounded-lg border border-v-gray-300 dark:border-v-gray-600 bg-v-gray-100 dark:bg-v-gray-800 flex items-center justify-center"
               >
-                <Video className="h-8 w-8 text-[var(--prophero-gray-400)]" />
+                <Video className="h-8 w-8 text-v-gray-400" />
                 <div className="absolute bottom-2 left-2 right-2">
                   <p className="text-xs text-foreground truncate bg-black/50 text-white px-1 py-0.5 rounded">{file.name}</p>
                 </div>
@@ -653,7 +653,7 @@ export function ChecklistUploadZone({
                   <button
                     type="button"
                     onClick={() => handleRemoveVideo(index)}
-                    className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 text-white rounded-full shadow-md opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-20 border-2 border-white dark:border-gray-800"
+                    className="absolute -top-1.5 -right-1.5 p-1 bg-danger text-white rounded-full shadow-md opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-20 border-2 border-white dark:border-v-gray-800"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -665,7 +665,7 @@ export function ChecklistUploadZone({
       })()}
 
       {localError && (
-        <p className="text-sm text-red-500 mt-2">{localError}</p>
+        <p className="text-sm text-danger mt-2">{localError}</p>
       )}
 
       

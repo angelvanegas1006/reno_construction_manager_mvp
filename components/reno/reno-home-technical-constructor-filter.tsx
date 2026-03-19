@@ -62,7 +62,7 @@ export function RenoHomeTechnicalConstructorFilter({
         <Filter className="h-4 w-4 mr-2" />
         Jefe de obra
         {hasActiveFilters && (
-          <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--prophero-blue-600)] text-xs font-semibold text-white">
+          <span className="ml-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white">
             {selectedConstructors.length}
           </span>
         )}

@@ -256,7 +256,7 @@ export function ArchitectSelectorModal({
                         disabled={!!selecting}
                         className={cn(
                           "w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors flex items-center gap-3",
-                          isCurrentArchitect && "bg-blue-50 dark:bg-blue-950/30"
+                          isCurrentArchitect && "bg-brand-50 dark:bg-brand-900/30"
                         )}
                       >
                         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
@@ -271,7 +271,7 @@ export function ArchitectSelectorModal({
                           <div className="text-sm font-medium truncate">
                             {arch.name}
                             {isCurrentArchitect && (
-                              <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                              <span className="ml-2 text-xs text-brand dark:text-brand-400">
                                 (actual)
                               </span>
                             )}

@@ -155,7 +155,7 @@ export function UpdateEmailInbox() {
           <h2 className="text-base font-semibold text-foreground">Bandeja de emails</h2>
         </div>
         {drafts.length > 0 && (
-          <Badge className="bg-amber-500 text-white text-xs">
+          <Badge className="bg-warning text-white text-xs">
             {drafts.length} pendiente{drafts.length !== 1 ? "s" : ""}
           </Badge>
         )}
@@ -175,7 +175,7 @@ export function UpdateEmailInbox() {
           <Clock className="h-4 w-4" />
           Pendientes de envío
           {drafts.length > 0 && (
-            <span className="ml-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs px-1.5 py-0.5 font-semibold">
+            <span className="ml-1 rounded-full bg-warning-bg dark:bg-warning/30 text-warning dark:text-warning text-xs px-1.5 py-0.5 font-semibold">
               {drafts.length}
             </span>
           )}
@@ -214,9 +214,9 @@ export function UpdateEmailInbox() {
               <div className="flex items-start gap-3 min-w-0 flex-1">
                 <div className="mt-0.5 flex-shrink-0">
                   {email.status === "draft" ? (
-                    <Clock className="h-4 w-4 text-amber-500" />
+                    <Clock className="h-4 w-4 text-warning" />
                   ) : (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                   )}
                 </div>
                 <div className="min-w-0">
@@ -277,7 +277,7 @@ export function UpdateEmailInbox() {
                 {previewEmail.property_address ?? previewEmail.property_unique_id ?? previewEmail.property_id}
               </div>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto border rounded-md bg-white min-h-0">
+            <div className="flex-1 overflow-y-auto border rounded-md bg-card min-h-0">
               <EmailHtmlPreview html={previewEmail.html_content} />
             </div>
             <div className="flex justify-end gap-2 pt-2">

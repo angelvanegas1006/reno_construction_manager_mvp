@@ -489,14 +489,14 @@ export function TodoWidgetModal({ open, onOpenChange, property, widgetType, allP
                       onMouseEnter={(e) => e.stopPropagation()}
                     >
                       <FileSignature 
-                        className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] cursor-help" 
+                        className="h-4 w-4 text-brand-600 dark:text-brand-400 cursor-help" 
                       />
                       {/* Tooltip personalizado */}
                       <div className="absolute left-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
-                        <div className="relative bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-md px-2 py-1.5 whitespace-nowrap shadow-lg">
+                        <div className="relative bg-v-gray-900 dark:bg-v-gray-100 text-white dark:text-v-gray-900 text-xs rounded-md px-2 py-1.5 whitespace-nowrap shadow-lg">
                           Esta vivienda ya está firmada
                           {/* Flecha del tooltip */}
-                          <div className="absolute -top-1 left-3 w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45"></div>
+                          <div className="absolute -top-1 left-3 w-2 h-2 bg-v-gray-900 dark:bg-v-gray-100 rotate-45"></div>
                         </div>
                       </div>
                     </div>

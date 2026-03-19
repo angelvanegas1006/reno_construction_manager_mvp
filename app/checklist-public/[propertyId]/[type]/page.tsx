@@ -72,7 +72,7 @@ export default function PublicChecklistPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--prophero-gray-50)] dark:bg-[#000000] flex items-center justify-center">
+      <div className="min-h-screen bg-background dark:bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Cargando checklist...</p>
@@ -83,9 +83,9 @@ export default function PublicChecklistPage({
 
   if (error || !htmlUrl) {
     return (
-      <div className="min-h-screen bg-[var(--prophero-gray-50)] dark:bg-[#000000] flex items-center justify-center">
+      <div className="min-h-screen bg-background dark:bg-background flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md px-4">
-          <div className="text-red-600 dark:text-red-400 text-6xl mb-4">⚠️</div>
+          <div className="text-danger dark:text-danger text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold">Checklist no disponible</h1>
           <p className="text-muted-foreground">{error || "Checklist no encontrado"}</p>
           <p className="text-sm text-muted-foreground mt-4">
@@ -97,7 +97,7 @@ export default function PublicChecklistPage({
   }
 
   return (
-    <div className="min-h-screen bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+    <div className="min-h-screen bg-background dark:bg-background">
       {/* HTML Viewer - Pantalla completa */}
       <div className="h-screen w-screen">
         <iframe

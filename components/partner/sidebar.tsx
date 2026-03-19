@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X } from "lucide-react";
+import { Home, Grid, Bell, HelpCircle, LogOut, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -106,7 +106,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
         {/* Mobile sidebar */}
         <div
           className={cn(
-            "fixed left-0 top-0 z-50 h-full w-64 flex flex-col border-r bg-sidebar dark:bg-[var(--prophero-gray-900)] transition-transform duration-300 transform md:hidden",
+            "fixed left-0 top-0 z-50 h-full w-64 flex flex-col border-r bg-sidebar dark:bg-v-gray-900 transition-transform duration-300 transform md:hidden",
             isMobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
@@ -132,10 +132,9 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t.sidebar.platform}
               </p>
-              <nav className="space-y-1">
+              <nav className="space-y-0.5">
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
-                  // More specific active check - avoid matching /partner when we want /partner/kanban
                   const isActive = pathname === item.href ||
                     (pathname?.startsWith(item.href + "/") && item.href !== "/partner");
                   return (
@@ -144,19 +143,15 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                       href={item.href}
                       onClick={onMobileToggle}
                       className={cn(
-                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                         isActive
-                          ? "bg-primary/20 text-primary dark:text-white"
-                          : "text-sidebar-foreground hover:bg-accent hover:text-accent-foreground"
+                          ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                          : "text-foreground hover:bg-muted"
                       )}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Icon className="h-4 w-4 flex-shrink-0" />
-                        <span className="whitespace-nowrap truncate">{item.label}</span>
-                      </div>
-                      <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <Icon className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                      <span className="whitespace-nowrap truncate flex-1">{item.label}</span>
+                      {isActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
                     </Link>
                   );
                 })}
@@ -167,7 +162,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {t.sidebar.settings}
               </p>
-              <nav className="space-y-1">
+              <nav className="space-y-0.5">
                 {settingsItems.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -179,15 +174,10 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                         }
                         onMobileToggle?.();
                       }}
-                      className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                      className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                     >
-                      <div className="flex items-center gap-3">
-                        <Icon className="h-4 w-4" />
-                        <span>{item.label}</span>
-                      </div>
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <Icon className="h-4 w-4 text-v-gray-500 group-hover:text-foreground" />
+                      <span>{item.label}</span>
                     </button>
                   );
                 })}
@@ -199,7 +189,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
           <div className="border-t border-sidebar-border p-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-white/10">
+                <button className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-card/10">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent flex-shrink-0">
                     <span className="text-sm font-semibold text-sidebar-foreground">{mockUser.initials}</span>
                   </div>
@@ -216,7 +206,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                     logout();
                     onMobileToggle?.();
                   }}
-                  className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950"
+                  className="text-danger focus:text-danger focus:bg-danger-subtle dark:focus:bg-danger"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   {t.nav.logout}
@@ -231,7 +221,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
 
   // Desktop sidebar
   return (
-    <div className={cn("hidden md:flex h-screen flex-col border-r bg-sidebar dark:bg-[var(--prophero-gray-900)] transition-all duration-300", collapsed ? "w-16" : "w-64")}>
+    <div className={cn("hidden md:flex h-screen flex-col border-r bg-sidebar dark:bg-v-gray-900 transition-all duration-300", collapsed ? "w-16" : "w-64")}>
       {/* Logo */}
       <div className="border-b border-sidebar-border p-4">
         <div className="flex items-center justify-between gap-2">
@@ -265,13 +255,12 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
       <div className="flex-1 overflow-y-auto p-4">
         {!collapsed && (
           <div className="mb-6">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-v-gray-400">
               Plataforma
             </p>
-            <nav className="space-y-1">
+            <nav className="space-y-0.5">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
-                // More specific active check - avoid matching /partner when we want /partner/kanban
                 const isActive = pathname === item.href ||
                   (pathname?.startsWith(item.href + "/") && item.href !== "/partner");
                 return (
@@ -279,19 +268,15 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-primary/20 text-primary dark:text-white"
-                        : "text-sidebar-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                        : "text-foreground hover:bg-muted"
                     )}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <Icon className="h-4 w-4 flex-shrink-0" />
-                      <span className="whitespace-nowrap truncate">{item.label}</span>
-                    </div>
-                    <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    <Icon className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                    <span className="whitespace-nowrap truncate flex-1">{item.label}</span>
+                    {isActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
                   </Link>
                 );
               })}
@@ -299,10 +284,9 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
           </div>
         )}
         {collapsed && (
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {navigationItems.map((item) => {
               const Icon = item.icon;
-              // More specific active check - avoid matching /partner when we want /partner/kanban
               const isActive = pathname === item.href ||
                 (pathname?.startsWith(item.href + "/") && item.href !== "/partner");
               return (
@@ -310,14 +294,14 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center justify-center rounded-md h-10 w-10 transition-colors",
+                    "flex items-center justify-center rounded-lg h-10 w-10 transition-colors",
                     isActive
-                      ? "bg-primary/20 text-primary dark:text-white"
-                      : "text-sidebar-foreground hover:bg-accent hover:text-accent-foreground"
+                      ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                      : "text-foreground hover:bg-muted"
                   )}
                   title={item.label}
                 >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <Icon className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500")} />
                 </Link>
               );
             })}
@@ -327,10 +311,10 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
         {/* Navigation - Ajustes */}
         {!collapsed && (
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-v-gray-400">
               {t.sidebar.settings}
             </p>
-            <nav className="space-y-1">
+            <nav className="space-y-0.5">
               {settingsItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -338,19 +322,13 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                     key={item.href}
                     onClick={() => {
                       if (item.comingSoon) {
-                        // TODO: Show toast/notification
                         console.log("Coming soon");
                       }
                     }}
-                    className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                    className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
                   >
-                    <div className="flex items-center gap-3">
-                      <Icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </div>
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    <Icon className="h-4 w-4 text-v-gray-500 group-hover:text-foreground" />
+                    <span>{item.label}</span>
                   </button>
                 );
               })}
@@ -358,7 +336,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
           </div>
         )}
         {collapsed && (
-          <nav className="space-y-1 mt-4">
+          <nav className="space-y-0.5 mt-4">
             {settingsItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -366,14 +344,13 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                   key={item.href}
                   onClick={() => {
                     if (item.comingSoon) {
-                      // TODO: Show toast/notification
                       console.log("Coming soon");
                     }
                   }}
-                  className="flex items-center justify-center rounded-md h-10 w-10 text-sidebar-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  className="flex items-center justify-center rounded-lg h-10 w-10 text-foreground transition-colors hover:bg-muted"
                   title={item.label}
                 >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <Icon className="h-4 w-4 flex-shrink-0 text-v-gray-500" />
                 </button>
               );
             })}
@@ -406,7 +383,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                 onClick={() => {
                   logout();
                 }}
-                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950"
+                className="text-danger focus:text-danger focus:bg-danger-subtle dark:focus:bg-danger"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 {t.nav.logout}
@@ -441,7 +418,7 @@ export function PartnerSidebar({ isMobileOpen = false, onMobileToggle }: Partner
                 onClick={() => {
                   logout();
                 }}
-                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950"
+                className="text-danger focus:text-danger focus:bg-danger-subtle dark:focus:bg-danger"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 {t.nav.logout}

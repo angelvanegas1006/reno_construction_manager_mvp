@@ -113,14 +113,14 @@ function getStatusLabel(status: string | undefined, translations: any): string {
  */
 function getStatusBadgeClasses(status: string | undefined): string {
   if (!status) {
-    return 'bg-green-50 text-green-800 border-green-200';
+    return 'bg-success-subtle text-success border-success';
   }
   
   const statusClasses: Record<string, string> = {
-    buen_estado: 'bg-green-50 text-green-800 border-green-200',
-    necesita_reparacion: 'bg-yellow-50 text-yellow-800 border-yellow-200',
-    necesita_reemplazo: 'bg-red-50 text-red-800 border-red-200',
-    no_aplica: 'bg-gray-50 text-gray-800 border-gray-200',
+    buen_estado: 'bg-success-subtle text-success border-success',
+    necesita_reparacion: 'bg-warning-subtle text-warning border-warning',
+    necesita_reemplazo: 'bg-danger-subtle text-danger border-danger',
+    no_aplica: 'bg-v-gray-50 text-v-gray-800 border-v-gray-200',
   };
 
   return statusClasses[status] || statusClasses.buen_estado;

@@ -63,19 +63,19 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
     }, [inquilino, updateField]);
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm space-y-6">
+      <div ref={ref} className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm space-y-6">
         <h1 className="text-2xl font-bold text-foreground">
           {t.property.sections.tenantData || "Datos del inquilino"}
         </h1>
 
         {/* Info Banner */}
-        <div className="flex items-start gap-3 p-4 bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20 border border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)] rounded-lg">
-          <Info className="h-5 w-5 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-brand-50 dark:bg-brand-950/20 border border-brand-200 dark:border-brand-800 rounded-lg">
+          <Info className="h-5 w-5 text-brand-600 dark:text-brand-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-[var(--prophero-blue-900)] dark:text-[var(--prophero-blue-200)]">
+            <p className="text-sm font-semibold text-brand-900 dark:text-brand-200">
               {t.sectionInfo.requiredFields}
             </p>
-            <p className="text-sm text-[var(--prophero-blue-800)] dark:text-[var(--prophero-blue-300)] mt-1">
+            <p className="text-sm text-brand-800 dark:text-brand-300 mt-1">
               {t.property.sections.tenantDataDescription || "Información necesaria para evaluar la situación contractual y legal de la vivienda. Incluya la fecha de finalización del contrato vigente."}
             </p>
           </div>
@@ -85,7 +85,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Nombre completo inquilino */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Nombre completo inquilino <span className="text-red-500">*</span>
+              Nombre completo inquilino <span className="text-danger">*</span>
             </Label>
             <Input
               value={inquilino.nombreCompleto || ""}
@@ -97,7 +97,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Email inquilino */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Email inquilino <span className="text-red-500">*</span>
+              Email inquilino <span className="text-danger">*</span>
             </Label>
             <Input
               type="email"
@@ -110,7 +110,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Número de teléfono */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Número de teléfono <span className="text-red-500">*</span>
+              Número de teléfono <span className="text-danger">*</span>
             </Label>
             <CountryPhoneSelector
               countryCode={inquilino.telefonoPais || "+34"}
@@ -146,7 +146,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Fecha de finalización del contrato */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Fecha de finalización del contrato <span className="text-red-500">*</span>
+              Fecha de finalización del contrato <span className="text-danger">*</span>
             </Label>
             <DatePicker
               value={inquilino.fechaFinalizacionContrato}
@@ -158,7 +158,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Periodo de preaviso */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Periodo de preaviso de finalización de contrato <span className="text-red-500">*</span>
+              Periodo de preaviso de finalización de contrato <span className="text-danger">*</span>
             </Label>
             <div className="flex items-center gap-2">
               <Input
@@ -175,7 +175,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Subrogación del contrato */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Subrogación del contrato de arrendamiento <span className="text-red-500">*</span>
+              Subrogación del contrato de arrendamiento <span className="text-danger">*</span>
             </Label>
             <Select
               value={inquilino.subrogacionContrato || ""}
@@ -197,7 +197,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Importe del alquiler a transferir */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Importe del alquiler a transferir (al comprador) <span className="text-red-500">*</span>
+              Importe del alquiler a transferir (al comprador) <span className="text-danger">*</span>
             </Label>
             <div className="flex items-center gap-2">
               <Input
@@ -214,7 +214,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Última actualización del alquiler */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Última actualización del alquiler <span className="text-red-500">*</span>
+              Última actualización del alquiler <span className="text-danger">*</span>
             </Label>
             <DatePicker
               value={inquilino.ultimaActualizacionAlquiler}
@@ -237,7 +237,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Fecha del último recibo */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Fecha del último recibo <span className="text-red-500">*</span>
+              Fecha del último recibo <span className="text-danger">*</span>
             </Label>
             <DatePicker
               value={inquilino.fechaUltimoRecibo}
@@ -272,7 +272,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Fecha de vencimiento del seguro de alquiler */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Fecha de vencimiento del seguro de alquiler <span className="text-red-500">*</span>
+              Fecha de vencimiento del seguro de alquiler <span className="text-danger">*</span>
             </Label>
             <DatePicker
               value={inquilino.fechaVencimientoSeguroAlquiler}
@@ -284,7 +284,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Estado del seguro de alquiler */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Estado del seguro de alquiler <span className="text-red-500">*</span>
+              Estado del seguro de alquiler <span className="text-danger">*</span>
             </Label>
             <Select
               value={inquilino.estadoSeguroAlquiler || ""}
@@ -306,7 +306,7 @@ export const DatosInquilinoSection = forwardRef<HTMLDivElement, DatosInquilinoSe
           {/* Proveedor del seguro de alquiler */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Proveedor del seguro de alquiler <span className="text-red-500">*</span>
+              Proveedor del seguro de alquiler <span className="text-danger">*</span>
             </Label>
             <Input
               value={inquilino.proveedorSeguroAlquiler || ""}

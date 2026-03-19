@@ -43,7 +43,7 @@ export function GoogleCalendarConnect({ origin }: GoogleCalendarConnectProps = {
       <CardContent className="space-y-4">
         {isConnected ? (
           <>
-            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+            <div className="flex items-center gap-2 text-sm text-success dark:text-success">
               <CalendarCheck className="h-4 w-4" />
               <span>Conectado</span>
             </div>

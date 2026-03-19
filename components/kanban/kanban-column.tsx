@@ -63,7 +63,7 @@ export function KanbanColumn({ title, count, stage, properties, onCardClick, hig
       <div className="mb-4 flex-shrink-0">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="md:pointer-events-none flex w-full md:w-auto items-center justify-between md:justify-start gap-2 hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] rounded-md px-2 py-1 -mx-2 md:mx-0 md:hover:bg-transparent transition-colors"
+          className="md:pointer-events-none flex w-full md:w-auto items-center justify-between md:justify-start gap-2 hover:bg-muted dark:hover:bg-v-gray-800 rounded-md px-2 py-1 -mx-2 md:mx-0 md:hover:bg-transparent transition-colors"
         >
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-foreground">{title}</h2>

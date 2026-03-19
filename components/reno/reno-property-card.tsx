@@ -201,16 +201,16 @@ export function RenoPropertyCard({
           ? "cursor-not-allowed opacity-60" 
           : cn(
               "cursor-pointer hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.15)]",
-              "dark:hover:bg-[#1a1a1a] dark:hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.6)]"
+              "dark:hover:bg-secondary dark:hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.6)]"
             ),
         isHighlighted 
-          ? "ring-2 ring-[var(--prophero-blue-500)] shadow-lg border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30" 
+          ? "ring-2 ring-brand-500 shadow-lg border-brand-500 bg-brand-50 dark:bg-brand-950/30" 
           : "",
         showExpiredBadge && "border-l-4 border-l-red-100 dark:border-l-red-900/30",
-        exceedsDurationLimit && stage === "reno-in-progress" && "border-l-4 border-l-red-500",
-        exceedsDaysToStartLimit && "border-l-4 border-l-red-500", // Red left border for budget phases
-        exceedsDaysToVisitLimit && "border-l-4 border-l-red-500", // Red left border for initial-check phase
-        exceedsDaysToPropertyReadyLimit && (stage === "furnishing" || stage === "cleaning" || stage === "final-check" || stage === "pendiente-suministros" || stage === "furnishing-cleaning") && "border-l-4 border-l-red-500" // Red left border for furnishing/cleaning/final-check/pendiente-suministros phases
+        exceedsDurationLimit && stage === "reno-in-progress" && "border-l-4 border-l-danger",
+        exceedsDaysToStartLimit && "border-l-4 border-l-danger", // Red left border for budget phases
+        exceedsDaysToVisitLimit && "border-l-4 border-l-danger", // Red left border for initial-check phase
+        exceedsDaysToPropertyReadyLimit && (stage === "furnishing" || stage === "cleaning" || stage === "final-check" || stage === "pendiente-suministros" || stage === "furnishing-cleaning") && "border-l-4 border-l-danger" // Red left border for furnishing/cleaning/final-check/pendiente-suministros phases
       )}
       onClick={disabled ? undefined : () => {
         track("Property Card Clicked", {
@@ -245,14 +245,14 @@ export function RenoPropertyCard({
                   onMouseEnter={(e) => e.stopPropagation()} // Evitar que el hover active otros eventos
                 >
                   <FileSignature 
-                    className="h-5 w-5 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] cursor-help" 
+                    className="h-5 w-5 text-brand-600 dark:text-brand-400 cursor-help" 
                   />
                   {/* Tooltip personalizado */}
                   <div className="absolute right-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50">
-                    <div className="relative bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-md px-2 py-1.5 whitespace-nowrap shadow-lg">
+                    <div className="relative bg-v-gray-900 dark:bg-v-gray-100 text-white dark:text-v-gray-900 text-xs rounded-md px-2 py-1.5 whitespace-nowrap shadow-lg">
                       Esta vivienda ya está firmada
                       {/* Flecha del tooltip */}
-                      <div className="absolute -top-1 right-3 w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45"></div>
+                      <div className="absolute -top-1 right-3 w-2 h-2 bg-v-gray-900 dark:bg-v-gray-100 rotate-45"></div>
                     </div>
                   </div>
                 </div>
@@ -284,18 +284,18 @@ export function RenoPropertyCard({
         <div className="flex items-center gap-1 flex-shrink-0">
           {/* Solo mostrar badges de actualización en fase reno-in-progress cuando necesita actualización a cliente */}
           {stage === "reno-in-progress" && needsUpdateThisWeekFlag && (
-            <Badge variant="outline" className="text-xs border-blue-500 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30">
+            <Badge variant="outline" className="text-xs border-brand text-brand-700 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30">
               {language === "es" ? "Necesita actualización" : "Need Update"}
             </Badge>
           )}
           {stage === "reno-in-progress" && isOverdue && (
-            <Badge variant="outline" className="text-xs border-red-500 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30">
+            <Badge variant="outline" className="text-xs border-danger text-danger dark:text-danger bg-danger-subtle dark:bg-danger/30">
               {language === "es" ? "Vencida" : "Overdue"}
             </Badge>
           )}
           {/* Solo mostrar expired si NO está en reno-in-progress y la fase usa el tag (no amoblamiento, limpieza, etc.) */}
           {stage !== "reno-in-progress" && showExpiredBadge && (
-            <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 flex-shrink-0 whitespace-nowrap">
+            <span className="rounded-full bg-danger-bg dark:bg-danger/30 px-2 py-1 text-xs font-medium text-danger dark:text-danger flex-shrink-0 whitespace-nowrap">
               {t.propertyCard.expired}
             </span>
           )}
@@ -327,16 +327,16 @@ export function RenoPropertyCard({
 
         const getTypeTagStyles = () => {
           if (isUnit) {
-            return 'bg-blue-700 dark:bg-blue-800 text-white dark:text-white';
+            return 'bg-brand-700 dark:bg-brand-800 text-white dark:text-white';
           }
           if (isBuilding) {
-            return 'bg-blue-200 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/50';
+            return 'bg-brand-200 dark:bg-brand-900/40 text-brand-800 dark:text-brand-200 border border-brand-200 dark:border-brand-800/50';
           }
           if (isLot) {
-            return 'bg-blue-300 dark:bg-blue-800/50 text-blue-900 dark:text-blue-100 border border-blue-400 dark:border-blue-700/50';
+            return 'bg-brand-300 dark:bg-brand-800/50 text-brand-900 dark:text-brand-100 border border-brand-400 dark:border-brand-700/50';
           }
           if (isProject) {
-            return 'bg-blue-600 dark:bg-blue-700 text-white dark:text-white';
+            return 'bg-brand-600 dark:bg-brand-700 text-white dark:text-white';
           }
           if (isWIP) {
             return 'bg-sky-200 dark:bg-sky-900/40 text-sky-800 dark:text-sky-200 border border-sky-300 dark:border-sky-700/50';
@@ -349,18 +349,18 @@ export function RenoPropertyCard({
           if (!renoType) return null;
           const typeLower = renoType.toLowerCase();
           if (typeLower.includes('no reno') || typeLower.includes('no_reno')) {
-            return { bg: 'bg-gray-700 dark:bg-gray-800', text: 'text-white dark:text-gray-100', border: 'border-0', hover: '' };
+            return { bg: 'bg-v-gray-700 dark:bg-v-gray-800', text: 'text-white dark:text-v-gray-100', border: 'border-0', hover: '' };
           }
           if (typeLower.includes('light')) {
-            return { bg: 'bg-green-600 dark:bg-green-600', text: 'text-white dark:text-white', border: 'border-0', hover: '' };
+            return { bg: 'bg-success dark:bg-success', text: 'text-white dark:text-white', border: 'border-0', hover: '' };
           }
           if (typeLower.includes('medium')) {
-            return { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-800 dark:text-green-300', border: 'border border-green-200 dark:border-green-800/30', hover: '' };
+            return { bg: 'bg-success-bg dark:bg-success/30', text: 'text-success dark:text-success', border: 'border border-success dark:border-success/30', hover: '' };
           }
           if (typeLower.includes('major')) {
-            return { bg: 'bg-yellow-200 dark:bg-yellow-900/30', text: 'text-yellow-900 dark:text-yellow-200', border: 'border border-yellow-300 dark:border-yellow-800/30', hover: '' };
+            return { bg: 'bg-warning-bg dark:bg-warning/30', text: 'text-warning dark:text-warning', border: 'border border-warning dark:border-warning/30', hover: '' };
           }
-          return { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-800 dark:text-green-300', border: 'border border-green-200 dark:border-green-800/30', hover: '' };
+          return { bg: 'bg-success-bg dark:bg-success/30', text: 'text-success dark:text-success', border: 'border border-success dark:border-success/30', hover: '' };
         };
 
         const badgeStyles = property.renoType ? getRenoTypeBadgeStyles(property.renoType) : null;
@@ -459,7 +459,7 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700 overflow-hidden">
                 <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
@@ -473,7 +473,7 @@ export function RenoPropertyCard({
               <span>
                 {t.propertyCard.next}: {formatDate(proximaActualizacionCalculada)}
                 {needsUpdateToday && (
-                  <span className="ml-1 text-[var(--prophero-blue-600)] font-medium">({t.propertyCard.today})</span>
+                  <span className="ml-1 text-brand-600 font-medium">({t.propertyCard.today})</span>
                 )}
               </span>
             </div>
@@ -489,7 +489,7 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700 overflow-hidden">
                 <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
@@ -507,7 +507,7 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700 overflow-hidden">
                 <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
@@ -526,7 +526,7 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700">
                 <span className="text-xs font-semibold text-foreground">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
@@ -546,7 +546,7 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700 overflow-hidden">
                 <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>
@@ -562,7 +562,7 @@ export function RenoPropertyCard({
         <div className="space-y-2">
           {showRenoDetails && property.renovador && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] overflow-hidden">
+              <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700 overflow-hidden">
                 <span className="text-xs font-semibold text-foreground leading-none">
                   {property.renovador.length > 2 ? property.renovador.substring(0, 2).toUpperCase() : property.renovador.toUpperCase()}
                 </span>

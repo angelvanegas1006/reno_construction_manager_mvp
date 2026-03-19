@@ -1226,7 +1226,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">Progreso de Obras</h2>
           {hasUnsavedChanges && (
-            <span className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <span className="text-sm text-warning dark:text-warning flex items-center gap-1">
               <Clock className="h-4 w-4" />
               Cambios sin guardar
             </span>
@@ -1434,14 +1434,14 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
             <>
               {/* Mostrar botones de extracción de actividades por PDF (corner cases) */}
               {pdfsNeedingExtraction.size > 0 && (
-                <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 space-y-3 mb-4">
+                <div className="p-4 border rounded-lg bg-warning-subtle dark:bg-warning/20 border-warning dark:border-warning space-y-3 mb-4">
                   <div className="flex items-start gap-2">
-                    <span className="text-yellow-800 dark:text-yellow-200 text-lg">⚠️</span>
+                    <span className="text-warning dark:text-warning text-lg">⚠️</span>
                     <div className="flex-1">
-                      <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium mb-1">
+                      <p className="text-sm text-warning dark:text-warning font-medium mb-1">
                         Algunos presupuestos no tienen actividades extraídas
                       </p>
-                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mb-3">
+                      <p className="text-xs text-warning dark:text-warning mb-3">
                         Las categorías fueron creadas pero algunas actividades no se extrajeron del PDF. Selecciona el presupuesto específico que deseas procesar:
                       </p>
                       <div className="flex flex-col gap-2">
@@ -1451,7 +1451,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                             onClick={() => handleExtractActivitiesForPdf(budgetIndex)}
                             disabled={extractingPdfs.has(budgetIndex)}
                             variant="outline"
-                            className="w-full justify-start border-yellow-300 dark:border-yellow-700 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
+                            className="w-full justify-start border-warning dark:border-warning hover:bg-warning-bg dark:hover:bg-warning/30"
                           >
                             <Download className="mr-2 h-4 w-4" />
                             {extractingPdfs.has(budgetIndex) 
@@ -1513,7 +1513,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                               const saved = savedPercentages[cat.id] ?? cat.percentage ?? 0;
                               return pct !== saved;
                             }) && (
-                              <Badge variant="outline" className="text-xs text-blue-600 dark:text-neutral-400 border-blue-300 dark:border-neutral-600">
+                              <Badge variant="outline" className="text-xs text-brand dark:text-neutral-400 border-brand-300 dark:border-neutral-600">
                                 Sin guardar
                               </Badge>
                             )}
@@ -1567,7 +1567,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                       </div>
                       {/* Slider con promedio si hay múltiples presupuestos */}
                       <div className="relative h-3 overflow-visible rounded-lg" onClick={(e) => e.stopPropagation()}>
-                        <div className="absolute inset-0 h-3 rounded-lg bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]" />
+                        <div className="absolute inset-0 h-3 rounded-lg bg-brand-100 dark:bg-brand-900" />
                         <div 
                           className={`absolute inset-y-0 left-0 bg-primary transition-all duration-150 ease-out ${averagePercentage >= 100 ? 'rounded-lg' : 'rounded-l-lg'}`}
                           style={{
@@ -1596,7 +1596,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                               title={`Mínimo permitido: ${getMinAllowedValue(firstCategoryId)}%`}
                             />
                             <div 
-                              className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white dark:bg-white border-2 border-primary shadow-md z-20 pointer-events-none transition-all duration-150 ease-out"
+                              className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-card dark:bg-card border-2 border-primary shadow-md z-20 pointer-events-none transition-all duration-150 ease-out"
                               style={{
                                 left: averagePercentage > 0 
                                   ? `calc(${Math.min(100, averagePercentage)}% - 10px)` 
@@ -1636,7 +1636,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                                       Presupuesto {budgetIndex}
                                     </Badge>
                                     {categoryHasChanged && (
-                                      <Badge variant="outline" className="text-xs text-blue-600 dark:text-neutral-400">
+                                      <Badge variant="outline" className="text-xs text-brand dark:text-neutral-400">
                                         Sin guardar
                                       </Badge>
                                     )}
@@ -1646,7 +1646,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
                                 
                                 {/* Slider individual para cada presupuesto */}
                                 <div className="relative h-2 overflow-visible rounded-lg" onClick={(e) => e.stopPropagation()}>
-                                  <div className="absolute inset-0 h-2 rounded-lg bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]" />
+                                  <div className="absolute inset-0 h-2 rounded-lg bg-brand-100 dark:bg-brand-900" />
                                   <div 
                                     className={`absolute inset-y-0 left-0 bg-primary transition-all duration-150 ease-out ${categoryPercentage >= 100 ? 'rounded-lg' : 'rounded-l-lg'}`}
                                     style={{
@@ -1815,7 +1815,7 @@ export function DynamicCategoriesProgress({ property, onSaveRef, onSendRef, onHa
             <Button
               onClick={() => setFinalizeModalOpen(true)}
               disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white border-0"
+              className="bg-success hover:bg-success text-white border-0"
             >
               {t.propertyPage.darObraPorFinalizada}
             </Button>

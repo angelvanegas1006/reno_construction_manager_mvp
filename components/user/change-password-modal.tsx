@@ -177,7 +177,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
           </div>
 
           {error && (
-            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 p-3 rounded-md">
+            <div className="text-sm text-danger dark:text-danger bg-danger-subtle dark:bg-danger/50 p-3 rounded-md">
               {error}
             </div>
           )}

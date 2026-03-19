@@ -210,7 +210,7 @@ export function RenovatorCombobox({
         <div
           ref={listRef}
           className={cn(
-            "absolute z-[100] w-full bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-lg max-h-60 overflow-y-auto",
+            "absolute z-[100] w-full bg-card dark:bg-v-gray-800 border border-v-gray-200 dark:border-v-gray-700 rounded-md shadow-lg max-h-60 overflow-y-auto",
             dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
           )}
         >
@@ -225,14 +225,14 @@ export function RenovatorCombobox({
                 onClick={() => handleSelect(renovator)}
                 className={cn(
                   "w-full text-left px-3 py-2 transition-colors flex items-center justify-between",
-                  "hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]",
-                  isHighlighted && "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20",
-                  isSelected && "bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/30"
+                  "hover:bg-muted dark:hover:bg-v-gray-700",
+                  isHighlighted && "bg-brand-50 dark:bg-brand-900/20",
+                  isSelected && "bg-brand-100 dark:bg-brand-900/30"
                 )}
               >
                 <span className="text-sm font-medium text-foreground">{renovator}</span>
                 {isSelected && (
-                  <Check className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] flex-shrink-0" />
+                  <Check className="h-4 w-4 text-brand-600 dark:text-brand-400 flex-shrink-0" />
                 )}
               </button>
             );
@@ -242,7 +242,7 @@ export function RenovatorCombobox({
 
       {open && searchQuery && filteredRenovators.length === 0 && (
         <div className={cn(
-          "absolute z-[100] w-full bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-md",
+          "absolute z-[100] w-full bg-card dark:bg-v-gray-800 border border-v-gray-200 dark:border-v-gray-700 rounded-md shadow-md",
           dropdownPosition === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
         )}>
           <button
@@ -255,7 +255,7 @@ export function RenovatorCombobox({
                 inputRef.current?.blur();
               }
             }}
-            className="w-full text-left px-3 py-2 transition-colors flex items-center justify-between hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]"
+            className="w-full text-left px-3 py-2 transition-colors flex items-center justify-between hover:bg-muted dark:hover:bg-v-gray-700"
           >
             <span className="text-sm text-foreground">
               Crear nuevo: <span className="font-medium">"{searchQuery}"</span>

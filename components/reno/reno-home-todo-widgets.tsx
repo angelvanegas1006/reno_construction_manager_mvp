@@ -404,14 +404,14 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                     onClick={(e) => handlePropertyClick(e, property, widget.id)}
                     className={cn(
                       "p-3 rounded-lg cursor-pointer transition-all duration-150",
-                      "bg-white dark:bg-[#0a0a0a]",
+                      "bg-card dark:bg-background",
                       "hover:bg-muted/40 hover:shadow-sm",
                       "border-2 overflow-hidden",
                       "min-w-0 w-full",
                       isOverdue 
-                        ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
+                        ? "border-danger bg-danger-subtle dark:bg-danger/20 border-l-4" 
                         : needsTracking && widget.id === 'work-update'
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20 border-l-4"
+                        ? "border-brand bg-brand-50 dark:bg-brand-900/20 border-l-4"
                         : "border-border/60 hover:border-border"
                     )}
                   >
@@ -422,7 +422,7 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                       {needsTracking && widget.id === 'work-update' && (
                         <Badge 
                           variant="default" 
-                          className="flex items-center justify-center flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white p-1.5 rounded-full"
+                          className="flex items-center justify-center flex-shrink-0 bg-brand-600 hover:bg-brand-700 text-white p-1.5 rounded-full"
                           title={t.dashboard?.todoWidgets?.needsTracking || "Seguimiento"}
                         >
                           <Bell className="h-3 w-3 w-3.5 h-3.5" />
@@ -532,12 +532,12 @@ export function RenoHomeTodoWidgets({ propertiesByPhase }: RenoHomeTodoWidgetsPr
                               onClick={(e) => handlePropertyClick(e, property, widget.id)}
                               className={cn(
                                 "p-3 rounded-lg cursor-pointer transition-all duration-150",
-                                "bg-white dark:bg-[#0a0a0a]",
+                                "bg-card dark:bg-background",
                                 "hover:bg-muted/40 hover:shadow-sm",
                                 "border-2 overflow-hidden",
                                 "min-w-0 w-full",
                                 isOverdue 
-                                  ? "border-red-500 bg-red-50 dark:bg-red-950/20 border-l-4" 
+                                  ? "border-danger bg-danger-subtle dark:bg-danger/20 border-l-4" 
                                   : "border-border/60 hover:border-border"
                               )}
                             >

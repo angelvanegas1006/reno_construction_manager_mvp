@@ -37,8 +37,8 @@ function isImage(att: AttachmentMeta): boolean {
 }
 
 function FileIcon({ att }: { att: AttachmentMeta }) {
-  if (isPdf(att)) return <FileText className="h-4 w-4 text-red-500 flex-shrink-0" />;
-  if (isImage(att)) return <ImageIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />;
+  if (isPdf(att)) return <FileText className="h-4 w-4 text-danger flex-shrink-0" />;
+  if (isImage(att)) return <ImageIcon className="h-4 w-4 text-brand flex-shrink-0" />;
   return <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />;
 }
 
@@ -52,10 +52,10 @@ function formatFileSize(bytes?: number): string {
 function InlinePreview({ att, onClose }: { att: AttachmentMeta; onClose: () => void }) {
   if (isPdf(att)) {
     return (
-      <div className="mt-2 border rounded-lg overflow-hidden bg-white relative">
+      <div className="mt-2 border rounded-lg overflow-hidden bg-card relative">
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 z-10 bg-white/90 rounded-full p-1 hover:bg-gray-100 shadow-sm"
+          className="absolute top-2 right-2 z-10 bg-card/90 rounded-full p-1 hover:bg-v-gray-100 shadow-sm"
         >
           <X className="h-4 w-4" />
         </button>
@@ -70,10 +70,10 @@ function InlinePreview({ att, onClose }: { att: AttachmentMeta; onClose: () => v
 
   if (isImage(att)) {
     return (
-      <div className="mt-2 border rounded-lg overflow-hidden bg-white relative">
+      <div className="mt-2 border rounded-lg overflow-hidden bg-card relative">
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 z-10 bg-white/90 rounded-full p-1 hover:bg-gray-100 shadow-sm"
+          className="absolute top-2 right-2 z-10 bg-card/90 rounded-full p-1 hover:bg-v-gray-100 shadow-sm"
         >
           <X className="h-4 w-4" />
         </button>
@@ -126,7 +126,7 @@ export function AttachmentViewer({ value, className }: AttachmentViewerProps) {
                     window.open(att.url, "_blank");
                   }
                 }}
-                className="flex-1 min-w-0 text-left text-sm text-[var(--prophero-blue-500)] hover:underline truncate"
+                className="flex-1 min-w-0 text-left text-sm text-brand-500 hover:underline truncate"
                 title={att.filename}
               >
                 {att.filename}
@@ -167,7 +167,7 @@ export function AttachmentViewer({ value, className }: AttachmentViewerProps) {
       {attachments.length > 3 && !showAll && (
         <button
           onClick={() => setShowAll(true)}
-          className="text-xs text-[var(--prophero-blue-500)] hover:underline"
+          className="text-xs text-brand-500 hover:underline"
         >
           +{attachments.length - 3} más
         </button>

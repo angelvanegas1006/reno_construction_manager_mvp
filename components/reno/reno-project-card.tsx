@@ -50,9 +50,9 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
   const showTypeTag = isProject || isWIP || isNewBuild || typeRaw;
 
   const getTypeTagStyles = () => {
-    if (isProject) return "bg-blue-600 dark:bg-neutral-600 text-white dark:text-white";
+    if (isProject) return "bg-brand-600 dark:bg-neutral-600 text-white dark:text-white";
     if (isWIP) return "bg-sky-200 dark:bg-neutral-700/40 text-sky-800 dark:text-neutral-200 border border-sky-300 dark:border-neutral-600/50";
-    if (isNewBuild) return "bg-blue-200 dark:bg-neutral-700/40 text-blue-800 dark:text-neutral-200 border border-blue-200 dark:border-neutral-600/50";
+    if (isNewBuild) return "bg-brand-200 dark:bg-neutral-700/40 text-brand-800 dark:text-neutral-200 border border-brand-200 dark:border-neutral-600/50";
     if (typeRaw) return "bg-muted text-muted-foreground border border-border";
     return "";
   };
@@ -84,10 +84,10 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
       onClick={onClick}
       className={cn(
         "w-full text-left rounded-lg border-2 border-border bg-card p-4 shadow-sm transition-all duration-200",
-        "hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.15)] dark:hover:bg-[#1a1a1a] dark:hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.6)]",
+        "hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.15)] dark:hover:bg-secondary dark:hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.6)]",
         isHighlighted &&
-          "ring-2 ring-[var(--prophero-blue-500)] border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30",
-        isOverLimit && "border-l-4 border-l-red-500"
+          "ring-2 ring-brand-500 border-brand-500 bg-brand-50 dark:bg-brand-950/30",
+        isOverLimit && "border-l-4 border-l-danger"
       )}
     >
       {/* ID + investment type badges */}
@@ -106,12 +106,12 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
             </span>
           )}
           {!isArchitectVariant && isFlip && (
-            <Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">
+            <Badge variant="outline" className="text-xs border-success text-success dark:text-success bg-success-subtle dark:bg-success/30">
               Flip
             </Badge>
           )}
           {!isArchitectVariant && isYield && (
-            <Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-neutral-400 bg-blue-50 dark:bg-white/10">
+            <Badge variant="outline" className="text-xs border-brand text-brand-700 dark:text-neutral-400 bg-brand-50 dark:bg-card/10">
               Yield
             </Badge>
           )}
@@ -143,10 +143,10 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
             <span className={cn(
               "inline-flex items-center rounded-full text-xs font-medium px-2 py-1",
               renovationExecutor.toLowerCase() === "prophero"
-                ? "bg-blue-800 dark:bg-neutral-700 text-white dark:text-white"
+                ? "bg-brand-800 dark:bg-neutral-700 text-white dark:text-white"
                 : renovationExecutor.toLowerCase() === "other"
-                  ? "bg-gray-700 dark:bg-gray-800 text-white dark:text-gray-100"
-                  : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700/50"
+                  ? "bg-v-gray-700 dark:bg-v-gray-800 text-white dark:text-v-gray-100"
+                  : "bg-brand-100 dark:bg-brand/30 text-brand dark:text-brand-300 border border-brand-200 dark:border-brand-700/50"
             )}>
               {renovationExecutor}
             </span>
@@ -191,7 +191,7 @@ export function RenoProjectCard({ project, onClick, isHighlighted, linkedPropert
             {phaseElapsedDays} {phaseElapsedDays === 1 ? "día" : "días"} en esta fase
           </span>
           {phaseLimitDays != null && (
-            <span className={cn("text-xs font-medium", isOverLimit ? "text-red-500" : "text-muted-foreground")}>
+            <span className={cn("text-xs font-medium", isOverLimit ? "text-danger" : "text-muted-foreground")}>
               Límite: {phaseLimitDays}d
             </span>
           )}

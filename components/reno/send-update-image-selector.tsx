@@ -261,8 +261,8 @@ export function SendUpdateImageSelector({
                             className={cn(
                               "relative aspect-square rounded-lg border-2 overflow-hidden transition-all",
                               isSelected
-                                ? "border-[var(--prophero-blue-600)] ring-2 ring-[var(--prophero-blue-600)] ring-offset-2"
-                                : "border-border hover:border-[var(--prophero-blue-400)]"
+                                ? "border-brand-600 ring-2 ring-brand-600 ring-offset-2"
+                                : "border-border hover:border-brand-400"
                             )}
                           >
                             <img
@@ -271,8 +271,8 @@ export function SendUpdateImageSelector({
                               className="w-full h-full object-cover"
                             />
                             {isSelected && (
-                              <div className="absolute inset-0 bg-[var(--prophero-blue-600)]/20 flex items-center justify-center">
-                                <div className="bg-[var(--prophero-blue-600)] rounded-full p-1.5">
+                              <div className="absolute inset-0 bg-brand-600/20 flex items-center justify-center">
+                                <div className="bg-brand-600 rounded-full p-1.5">
                                   <Check className="h-4 w-4 text-white" />
                                 </div>
                               </div>
@@ -291,7 +291,7 @@ export function SendUpdateImageSelector({
               <Button
                 onClick={handleNext}
                 disabled={!hasSelectedImages || loading}
-                className="w-full h-12 text-base font-medium bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)]"
+                className="w-full h-12 text-base font-medium bg-brand-600 hover:bg-brand-700"
               >
                 Continuar
               </Button>
@@ -356,8 +356,8 @@ export function SendUpdateImageSelector({
                         className={cn(
                           "relative aspect-square rounded-lg border-2 overflow-hidden transition-all group",
                           isSelected
-                            ? "border-[var(--prophero-blue-600)] ring-2 ring-[var(--prophero-blue-600)] ring-offset-2"
-                            : "border-border hover:border-[var(--prophero-blue-400)]"
+                            ? "border-brand-600 ring-2 ring-brand-600 ring-offset-2"
+                            : "border-border hover:border-brand-400"
                         )}
                       >
                         <img
@@ -366,8 +366,8 @@ export function SendUpdateImageSelector({
                           className="w-full h-full object-cover"
                         />
                         {isSelected && (
-                          <div className="absolute inset-0 bg-[var(--prophero-blue-600)]/20 flex items-center justify-center">
-                            <div className="bg-[var(--prophero-blue-600)] rounded-full p-1.5">
+                          <div className="absolute inset-0 bg-brand-600/20 flex items-center justify-center">
+                            <div className="bg-brand-600 rounded-full p-1.5">
                               <Check className="h-4 w-4 text-white" />
                             </div>
                           </div>
@@ -388,7 +388,7 @@ export function SendUpdateImageSelector({
           <Button
             onClick={handleNext}
             disabled={!hasSelectedImages || loading}
-            className="bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)]"
+            className="bg-brand-600 hover:bg-brand-700"
           >
             Continuar
           </Button>

@@ -178,7 +178,7 @@ function AttachmentUploadField({
         className={cn(
           "relative flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 cursor-pointer transition-colors",
           isDragging
-            ? "border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20"
+            ? "border-brand-500 bg-brand-50 dark:bg-brand-950/20"
             : "border-border hover:border-muted-foreground/40 hover:bg-muted/30",
           uploading && "pointer-events-none opacity-60",
         )}
@@ -192,7 +192,7 @@ function AttachmentUploadField({
           <>
             <FileUp className="h-8 w-8 text-muted-foreground" />
             <div className="text-center">
-              <span className="text-sm font-medium text-[var(--prophero-blue-500)]">Haz clic para subir</span>
+              <span className="text-sm font-medium text-brand-500">Haz clic para subir</span>
               <span className="text-sm text-muted-foreground"> o arrastra aquí</span>
             </div>
             {description ? (
@@ -421,8 +421,8 @@ function PhaseAnteproyecto({
           disabled={!canSend || sending}
           className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
             canSend
-              ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
-              : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              ? "bg-brand-600 hover:bg-brand-700 text-white shadow-md hover:shadow-lg"
+              : "bg-v-gray-100 text-v-gray-400 cursor-not-allowed"
           }`}
         >
           {sending ? (
@@ -523,7 +523,7 @@ function PhaseProyectoTecnico({
       </div>
       <div className="px-6 py-5">
         {alreadyConfirmed ? (
-          <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+          <div className="flex items-center gap-2 text-sm text-success dark:text-success">
             <CheckCircle2 className="h-4 w-4" />
             <span>
               Proyecto entregado el{" "}
@@ -537,8 +537,8 @@ function PhaseProyectoTecnico({
               disabled={!hasProjectDoc || confirming}
               className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
                 hasProjectDoc
-                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  ? "bg-brand-600 hover:bg-brand-700 text-white shadow-md hover:shadow-lg"
+                  : "bg-v-gray-100 text-v-gray-400 cursor-not-allowed"
               }`}
             >
               {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -600,10 +600,10 @@ function PhaseAjustesTecnicos({
   return (
     <div className="space-y-0 divide-y">
       {(maturationNotes || maturationDocs) && (
-        <div className="px-6 py-4 bg-amber-50/50 dark:bg-amber-950/10">
+        <div className="px-6 py-4 bg-warning-subtle/50 dark:bg-warning/10">
           <div className="flex items-center gap-2 mb-3">
-            <Info className="h-4 w-4 text-amber-600" />
-            <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">Notas del equipo de PropHero</span>
+            <Info className="h-4 w-4 text-warning" />
+            <span className="text-sm font-semibold text-warning dark:text-warning">Notas del equipo de PropHero</span>
           </div>
           {maturationNotes && (
             <p className="text-sm text-foreground/80 whitespace-pre-wrap mb-3">{maturationNotes}</p>
@@ -658,7 +658,7 @@ function PhaseAjustesTecnicos({
 
       <div className="px-6 py-5">
         {alreadySent ? (
-          <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+          <div className="flex items-center gap-2 text-sm text-success dark:text-success">
             <CheckCircle2 className="h-4 w-4" />
             <span>
               Correcciones enviadas el{" "}
@@ -672,8 +672,8 @@ function PhaseAjustesTecnicos({
               disabled={!hasCorrectedDoc || confirming}
               className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm transition-all ${
                 hasCorrectedDoc
-                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  ? "bg-brand-600 hover:bg-brand-700 text-white shadow-md hover:shadow-lg"
+                  : "bg-v-gray-100 text-v-gray-400 cursor-not-allowed"
               }`}
             >
               {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -794,7 +794,7 @@ export function ArchitectTaskList({ project, onRefetch }: ArchitectTaskListProps
           <div className="px-6 py-6">
             <ReadOnlyBanner
               message="Proyecto pendiente de revisión por el equipo de PropHero. ¡Te avisaremos cuando esté revisado!"
-              icon={<Clock className="h-5 w-5 text-amber-500 flex-shrink-0" />}
+              icon={<Clock className="h-5 w-5 text-warning flex-shrink-0" />}
             />
           </div>
         );
@@ -807,7 +807,7 @@ export function ArchitectTaskList({ project, onRefetch }: ArchitectTaskListProps
           <div className="px-6 py-6">
             <ReadOnlyBanner
               message="Proyecto en primera validación ECU. No hay tareas activas para el arquitecto en esta fase."
-              icon={<Clock className="h-5 w-5 text-blue-500 flex-shrink-0" />}
+              icon={<Clock className="h-5 w-5 text-brand flex-shrink-0" />}
             />
           </div>
         );
@@ -827,7 +827,7 @@ export function ArchitectTaskList({ project, onRefetch }: ArchitectTaskListProps
           <div className="px-6 py-6">
             <ReadOnlyBanner
               message="Proyecto en validación final ECU. El estado de la validación se gestiona desde el equipo de PropHero."
-              icon={<Clock className="h-5 w-5 text-blue-500 flex-shrink-0" />}
+              icon={<Clock className="h-5 w-5 text-brand flex-shrink-0" />}
             />
           </div>
         );
@@ -840,7 +840,7 @@ export function ArchitectTaskList({ project, onRefetch }: ArchitectTaskListProps
           <div className="px-6 py-6">
             <ReadOnlyBanner
               message="Obra en progreso. No hay tareas pendientes en esta fase."
-              icon={<Clock className="h-5 w-5 text-blue-500 flex-shrink-0" />}
+              icon={<Clock className="h-5 w-5 text-brand flex-shrink-0" />}
             />
           </div>
         );
@@ -850,7 +850,7 @@ export function ArchitectTaskList({ project, onRefetch }: ArchitectTaskListProps
           <div className="px-6 py-6">
             <ReadOnlyBanner
               message="Proyecto finalizado. No hay tareas pendientes."
-              icon={<CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />}
+              icon={<CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />}
             />
           </div>
         );

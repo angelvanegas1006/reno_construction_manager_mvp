@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Grid, LogOut, ChevronDown, PanelLeftClose, PanelLeftOpen, Menu, X, Lock } from "lucide-react";
+import { Home, Grid, LogOut, ChevronDown, ChevronRight, PanelLeftClose, PanelLeftOpen, Menu, X, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
@@ -135,10 +135,10 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4">
               <div className="mb-6">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-v-gray-400">
                   Plataforma
                 </p>
-                <nav className="space-y-1">
+                <nav className="space-y-0.5">
                   {navigationItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href || 
@@ -149,19 +149,15 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
                         href={item.href}
                         onClick={onMobileToggle}
                         className={cn(
-                          "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                          "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                           isActive
-                            ? "bg-primary/20 text-primary dark:text-white"
-                            : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                            ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                            : "text-foreground hover:bg-muted"
                         )}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Icon className="h-5 w-5 flex-shrink-0 text-current" />
-                          <span className="whitespace-nowrap truncate">{item.label}</span>
-                        </div>
-                        <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                        <span className="whitespace-nowrap truncate flex-1">{item.label}</span>
+                        {isActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
                       </Link>
                     );
                   })}
@@ -251,7 +247,7 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
                   e.stopPropagation();
                   setCollapsed((prev) => !prev);
                 }}
-                className="p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] transition-colors flex-shrink-0"
+                className="p-1.5 rounded-md hover:bg-muted dark:hover:bg-secondary transition-colors flex-shrink-0"
                 aria-label="Collapse sidebar"
                 type="button"
               >
@@ -265,10 +261,10 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
         <div className="flex-1 overflow-y-auto p-4">
           {!collapsed && (
             <div className="mb-6">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--prophero-gray-400)]">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-v-gray-400">
                 Plataforma
               </p>
-              <nav className="space-y-1">
+              <nav className="space-y-0.5">
                 {navigationItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href || 
@@ -278,19 +274,15 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                         isActive
-                          ? "bg-primary/20 text-primary dark:text-white"
-                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                          ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                          : "text-foreground hover:bg-muted"
                       )}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Icon className="h-5 w-5 flex-shrink-0 text-current" />
-                        <span className="whitespace-nowrap truncate">{item.label}</span>
-                      </div>
-                      <svg className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500 group-hover:text-foreground")} />
+                      <span className="whitespace-nowrap truncate flex-1">{item.label}</span>
+                      {isActive && <ChevronRight className="h-4 w-4 flex-shrink-0 text-brand dark:text-brand-300" />}
                     </Link>
                   );
                 })}
@@ -298,7 +290,7 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
             </div>
           )}
           {collapsed && (
-            <nav className="space-y-1">
+            <nav className="space-y-0.5">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || 
@@ -308,14 +300,14 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors w-full",
+                      "flex items-center justify-center rounded-lg p-2 text-sm font-medium transition-colors w-full",
                       isActive
-                        ? "bg-primary/20 text-primary dark:text-white"
-                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-brand-50 text-brand dark:bg-brand/10 dark:text-brand-300"
+                        : "text-foreground hover:bg-muted"
                     )}
                     title={item.label}
                   >
-                    <Icon className="h-5 w-5 flex-shrink-0 text-current" />
+                    <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-brand dark:text-brand-300" : "text-v-gray-500")} />
                   </Link>
                 );
               })}
@@ -337,7 +329,7 @@ export function SettlementsSidebar({ isMobileOpen = false, onMobileToggle }: Set
                   e.stopPropagation();
                   setCollapsed((prev) => !prev);
                 }}
-                className="p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] transition-colors"
+                className="p-1.5 rounded-md hover:bg-muted dark:hover:bg-secondary transition-colors"
                 aria-label="Expand sidebar"
                 type="button"
               >

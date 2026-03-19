@@ -43,18 +43,18 @@ function getRoleBadgeClassName(role: string): string {
   const base = "px-2 py-1 rounded text-xs font-medium ";
   switch (role) {
     case "admin":
-      return base + "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+      return base + "bg-danger-bg text-danger dark:bg-danger/30 dark:text-danger";
     case "construction_manager":
     case "foreman":
-      return base + "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+      return base + "bg-brand-100 text-brand-800 dark:bg-brand-900/30 dark:text-brand-400";
     case "manager_projects":
     case "technical_constructor_projects":
     case "maduration_analyst":
-      return base + "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
+      return base + "bg-warning-bg text-warning dark:bg-warning/30 dark:text-warning";
     case "set_up_analyst":
-      return base + "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
+      return base + "bg-brand-100 text-brand dark:bg-brand/30 dark:text-brand-400";
     default:
-      return base + "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+      return base + "bg-v-gray-100 text-v-gray-800 dark:bg-v-gray-800 dark:text-v-gray-300";
   }
 }
 
@@ -343,7 +343,7 @@ export default function AdminUsersPage() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden w-full md:w-auto">
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-3 md:px-4 lg:px-6 py-3 md:py-4 lg:py-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div className="flex-1 overflow-y-auto px-3 md:px-4 lg:px-6 py-3 md:py-4 lg:py-6 bg-background dark:bg-background">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
               <div>
@@ -538,7 +538,7 @@ export default function AdminUsersPage() {
                       <div className="flex items-center gap-2">
                         {user.name}
                         {user.banned && (
-                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-danger-bg text-danger dark:bg-danger/30 dark:text-danger">
                             Desactivado
                           </span>
                         )}
@@ -551,12 +551,12 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       {user.banned ? (
-                        <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 flex items-center gap-1 w-fit">
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-danger-bg text-danger dark:bg-danger/30 dark:text-danger flex items-center gap-1 w-fit">
                           <UserX className="h-3 w-3" />
                           Desactivado
                         </span>
                       ) : (
-                        <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1 w-fit">
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-success-bg text-success dark:bg-success/30 dark:text-success flex items-center gap-1 w-fit">
                           <UserCheck className="h-3 w-3" />
                           Activo
                         </span>
@@ -564,7 +564,7 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       {user.google_calendar_connected ? (
-                        <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                        <span className="flex items-center gap-1 text-success dark:text-success">
                           <CalendarCheck className="h-4 w-4" />
                           <span className="text-xs">Conectado</span>
                         </span>
@@ -598,9 +598,9 @@ export default function AdminUsersPage() {
                           title={user.banned ? "Activar usuario" : "Desactivar usuario"}
                         >
                           {user.banned ? (
-                            <UserCheck className="h-4 w-4 text-green-600" />
+                            <UserCheck className="h-4 w-4 text-success" />
                           ) : (
-                            <UserX className="h-4 w-4 text-orange-600" />
+                            <UserX className="h-4 w-4 text-warning" />
                           )}
                         </Button>
                         <Button
@@ -629,7 +629,7 @@ export default function AdminUsersPage() {
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-semibold truncate">{user.name || user.email}</h3>
                       {user.banned && (
-                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-danger-bg text-danger dark:bg-danger/30 dark:text-danger">
                           Desactivado
                         </span>
                       )}
@@ -655,9 +655,9 @@ export default function AdminUsersPage() {
                       className="h-8 w-8 p-0"
                     >
                       {user.banned ? (
-                        <UserCheck className="h-4 w-4 text-green-600" />
+                        <UserCheck className="h-4 w-4 text-success" />
                       ) : (
-                        <UserX className="h-4 w-4 text-orange-600" />
+                        <UserX className="h-4 w-4 text-warning" />
                       )}
                     </Button>
                     <Button
@@ -677,7 +677,7 @@ export default function AdminUsersPage() {
                     {t.roles[user.role as keyof typeof t.roles] || user.role}
                   </span>
                   {user.google_calendar_connected ? (
-                    <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                    <span className="flex items-center gap-1 text-xs text-success dark:text-success">
                       <CalendarCheck className="h-3.5 w-3.5" />
                       <span>Conectado</span>
                     </span>

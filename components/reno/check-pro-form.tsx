@@ -132,7 +132,7 @@ function PhotoUploadField({
         type="button"
         onClick={() => fileRef.current?.click()}
         disabled={uploading}
-        className="inline-flex items-center gap-1.5 text-xs text-[var(--prophero-blue-500)] hover:text-[var(--prophero-blue-600)] font-medium disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-600 font-medium disabled:opacity-50"
       >
         {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
         {uploading ? "Subiendo..." : "Subir foto"}

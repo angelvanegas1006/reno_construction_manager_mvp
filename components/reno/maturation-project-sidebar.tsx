@@ -38,7 +38,7 @@ function DriveLink({ url }: { url: string | null }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 text-sm text-[var(--prophero-blue-500)] hover:underline"
+      className="inline-flex items-center gap-2 text-sm text-brand-500 hover:underline"
     >
       Abrir carpeta
       <ExternalLink className="h-3 w-3" />

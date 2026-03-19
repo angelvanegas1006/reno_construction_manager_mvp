@@ -682,17 +682,17 @@ export function VisitsCalendar({
   const getVisitIcon = (type: string) => {
     switch (type) {
       case "initial-check":
-        return <CheckCircle2 className="h-4 w-4 text-blue-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-brand" />;
       case "final-check":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-success" />;
       case "obra-seguimiento":
-        return <Wrench className="h-4 w-4 text-amber-500" />;
+        return <Wrench className="h-4 w-4 text-warning" />;
       case "reminder":
-        return <Bell className="h-4 w-4 text-purple-500" />;
+        return <Bell className="h-4 w-4 text-brand" />;
       case "real-settlement-date":
-        return <FileSignature className="h-4 w-4 text-[var(--prophero-blue-500)]" />;
+        return <FileSignature className="h-4 w-4 text-brand-500" />;
       case "reno-start-date":
-        return <Hammer className="h-4 w-4 text-orange-500" />;
+        return <Hammer className="h-4 w-4 text-warning" />;
       default:
         return <Calendar className="h-4 w-4 text-muted-foreground" />;
     }

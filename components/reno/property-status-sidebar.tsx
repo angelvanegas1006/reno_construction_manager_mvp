@@ -202,12 +202,12 @@ export function PropertyStatusSidebar({
   };
 
   return (
-    <div className="w-full lg:w-80 h-full border-l-0 lg:border-l bg-card dark:bg-[var(--prophero-gray-900)] flex flex-col overflow-hidden min-h-0">
+    <div className="w-full lg:w-80 h-full border-l-0 lg:border-l bg-card dark:bg-v-gray-900 flex flex-col overflow-hidden min-h-0">
       <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Status Section */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-neutral-700 dark:text-neutral-200">
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-brand-100 text-brand-800 dark:bg-neutral-700 dark:text-neutral-200">
               {getPhaseLabel()}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -339,7 +339,7 @@ export function PropertyStatusSidebar({
                 {daysInfo.label}
               </h4>
               {isDelayed && (
-                <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-danger-bg text-danger dark:bg-danger dark:text-danger">
                   <Flag className="h-3 w-3" />
                   Atrasado
                 </span>
@@ -347,7 +347,7 @@ export function PropertyStatusSidebar({
             </div>
             <p className={cn(
               "text-sm font-medium",
-              isDelayed ? "text-red-600 dark:text-red-400" : "text-foreground"
+              isDelayed ? "text-danger dark:text-danger" : "text-foreground"
             )}>
               {daysInfo.value} días
             </p>
@@ -365,7 +365,7 @@ export function PropertyStatusSidebar({
               href={driveFolderUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-blue-600 dark:text-neutral-400 hover:underline flex items-center gap-1"
+              className="text-sm text-brand dark:text-neutral-400 hover:underline flex items-center gap-1"
             >
               Abrir carpeta
             </a>

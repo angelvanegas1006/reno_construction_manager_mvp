@@ -87,7 +87,7 @@ export default function DemoTable() {
               <TableCell className="font-medium">{r.name}</TableCell>
               <TableCell>{r.email}</TableCell>
               <TableCell className="capitalize">{r.role}</TableCell>
-              <TableCell className={r.status === "active" ? "text-[var(--prophero-success)]" : "text-[var(--prophero-gray-500)]"}>
+              <TableCell className={r.status === "active" ? "text-success" : "text-v-gray-500"}>
                 {r.status}
               </TableCell>
             </TableRow>

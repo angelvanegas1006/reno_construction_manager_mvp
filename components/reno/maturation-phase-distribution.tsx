@@ -39,7 +39,7 @@ export function MaturationPhaseDistribution({ projectsByPhase }: MaturationPhase
           </CardTitle>
           <Link
             href="/reno/maturation-analyst/kanban"
-            className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition-colors"
+            className="text-xs text-brand hover:text-brand flex items-center gap-1 transition-colors"
           >
             Ver Kanban <ArrowRight className="h-3 w-3" />
           </Link>
@@ -79,7 +79,7 @@ export function MaturationPhaseDistribution({ projectsByPhase }: MaturationPhase
                       className="h-full rounded-full transition-all duration-300 group-hover:opacity-90 relative overflow-hidden"
                       style={{
                         width: `${width}%`,
-                        backgroundColor: item.count > 0 ? "var(--prophero-blue-400)" : "transparent",
+                        backgroundColor: item.count > 0 ? "var(--vistral-brand-400)" : "transparent",
                         minWidth: item.count > 0 ? "4px" : "0",
                       }}
                     >

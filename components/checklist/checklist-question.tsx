@@ -162,8 +162,8 @@ export function ChecklistQuestion({
               className={cn(
                 "flex flex-col items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2.5 sm:py-2 rounded-lg border-2 transition-colors w-full min-h-[60px] sm:min-h-0",
                 isSelected
-                  ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                  : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-card",
+                  ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                  : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-card",
                 readOnly && "opacity-60 cursor-not-allowed"
               )}
             >
@@ -206,7 +206,7 @@ export function ChecklistQuestion({
       {showNotes && requiresDetails && (
         <div className="space-y-2">
           <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
-            {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+            {t.checklist.notes} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
           </Label>
           <Textarea
             value={question?.notes || ""}

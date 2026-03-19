@@ -52,7 +52,7 @@ export default function InitSettlementsTestDataPage() {
           
           {isComplete && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 text-green-600">
+              <div className="flex items-center gap-3 text-success">
                 <CheckCircle2 className="h-5 w-5" />
                 <span>¡Datos de prueba creados exitosamente!</span>
               </div>

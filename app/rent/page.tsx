@@ -15,7 +15,7 @@ export default function RentHomePage() {
       description: "Inquilinos con contratos activos",
       icon: Users,
       href: "/rent/tenants",
-      color: "text-blue-600",
+      color: "text-brand",
     },
     {
       title: "Propiedades Disponibles",
@@ -23,7 +23,7 @@ export default function RentHomePage() {
       description: "Propiedades disponibles para alquiler",
       icon: Building2,
       href: "/rent/properties",
-      color: "text-green-600",
+      color: "text-success",
     },
     {
       title: "Contratos Activos",
@@ -31,7 +31,7 @@ export default function RentHomePage() {
       description: "Contratos de alquiler vigentes",
       icon: FileText,
       href: "/rent/contracts",
-      color: "text-purple-600",
+      color: "text-brand",
     },
     {
       title: "Tasa de Ocupación",
@@ -39,7 +39,7 @@ export default function RentHomePage() {
       description: "Porcentaje de propiedades ocupadas",
       icon: TrendingUp,
       href: "/rent/properties",
-      color: "text-orange-600",
+      color: "text-warning",
     },
   ];
 

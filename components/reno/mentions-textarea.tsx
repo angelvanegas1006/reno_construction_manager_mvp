@@ -159,10 +159,10 @@ export function MentionsTextarea({
         rows={rows}
         className={cn(
           "resize-none",
-          "border-[var(--prophero-gray-200)] dark:border-[#333333]",
-          "bg-[var(--prophero-gray-50)] dark:bg-[#1a1a1a]",
-          "focus:border-[var(--prophero-blue-400)] dark:focus:border-[var(--prophero-blue-500)]",
-          "focus:ring-1 focus:ring-[var(--prophero-blue-400)] dark:focus:ring-[var(--prophero-blue-500)]",
+          "border-v-gray-200 dark:border-border",
+          "bg-background dark:bg-secondary",
+          "focus:border-brand-400 dark:focus:border-brand-500",
+          "focus:ring-1 focus:ring-brand-400 dark:focus:ring-brand-500",
           "focus:ring-opacity-20",
           "transition-colors",
           className
@@ -174,7 +174,7 @@ export function MentionsTextarea({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute z-50 w-full mt-1 bg-card dark:bg-[#1a1a1a] border border-[var(--prophero-gray-200)] dark:border-[#333333] rounded-md shadow-md max-h-48 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 bg-card dark:bg-secondary border border-v-gray-200 dark:border-border rounded-md shadow-md max-h-48 overflow-y-auto"
         >
           {suggestions.map((user, index) => (
             <button
@@ -183,13 +183,13 @@ export function MentionsTextarea({
               onClick={() => insertMention(user)}
               className={cn(
                 "w-full text-left px-3 py-2 transition-colors",
-                "hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#262626]",
-                index === selectedIndex && "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20"
+                "hover:bg-muted dark:hover:bg-muted",
+                index === selectedIndex && "bg-brand-50 dark:bg-brand-900/20"
               )}
             >
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/30 flex items-center justify-center">
-                  <span className="text-xs font-medium text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]">
+                <div className="w-7 h-7 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
+                  <span className="text-xs font-medium text-brand-600 dark:text-brand-400">
                     {user.email.charAt(0).toUpperCase()}
                   </span>
                 </div>

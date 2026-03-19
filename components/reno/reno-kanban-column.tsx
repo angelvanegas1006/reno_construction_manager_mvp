@@ -121,7 +121,7 @@ export function RenoKanbanColumn({
             }
           }}
           className={cn(
-            "flex w-full md:w-auto items-center justify-between md:justify-start gap-3 bg-card dark:bg-[#000000] border border-border rounded-lg px-4 py-3 md:border-0 md:bg-transparent md:px-2 md:py-1 md:hover:bg-[var(--prophero-gray-100)] dark:md:hover:bg-[#1a1a1a] md:rounded-md md:-mx-2 md:mx-0 transition-colors min-w-0 shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] md:shadow-none",
+            "flex w-full md:w-auto items-center justify-between md:justify-start gap-3 bg-card dark:bg-background border border-border rounded-lg px-4 py-3 md:border-0 md:bg-transparent md:px-2 md:py-1 md:hover:bg-muted dark:md:hover:bg-secondary md:rounded-md md:-mx-2 md:mx-0 transition-colors min-w-0 shadow-[0_1px_2px_0_rgba(0,0,0,0.05)] md:shadow-none",
             isEmpty && emptyExpanded ? "md:pointer-events-auto md:cursor-pointer" : "md:pointer-events-none"
           )}
         >
@@ -167,7 +167,7 @@ export function RenoKanbanColumn({
               />
             ))
           ) : properties.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-8 text-center bg-card dark:bg-[#000000] border border-border rounded-lg md:border-0 md:bg-transparent">
+            <div className="text-sm text-muted-foreground py-8 text-center bg-card dark:bg-background border border-border rounded-lg md:border-0 md:bg-transparent">
               {isProjectMode ? "No hay proyectos en esta fase" : t.kanban.noPropertiesInState}
             </div>
           ) : (

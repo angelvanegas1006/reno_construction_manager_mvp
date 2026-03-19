@@ -54,7 +54,7 @@ export default function NotificationsPage() {
         </div>
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--prophero-blue-600)] mx-auto mb-2"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto mb-2"></div>
             <p className="text-sm text-muted-foreground">{t.notifications.loadingConversations}</p>
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function NotificationsPage() {
               key={conversation.id}
               className={cn(
                 "cursor-pointer transition-all hover:shadow-md",
-                isUnread && "border-[var(--prophero-blue-500)] border-2"
+                isUnread && "border-brand-500 border-2"
               )}
               onClick={() => handleConversationClick(conversation)}
             >
@@ -170,7 +170,7 @@ export default function NotificationsPage() {
                           : t.notifications.generalError}
                       </CardTitle>
                       {isUnread && (
-                        <Badge variant="default" className="bg-[var(--prophero-blue-600)]">
+                        <Badge variant="default" className="bg-brand-600">
                           {t.notifications.new}
                         </Badge>
                       )}
@@ -201,9 +201,9 @@ export default function NotificationsPage() {
 
                   {/* Respuesta */}
                   {hasResponse ? (
-                    <div className="bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20 rounded-lg p-4 border border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]">
+                    <div className="bg-brand-50 dark:bg-brand-900/20 rounded-lg p-4 border border-brand-200 dark:border-brand-800">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-300)]">
+                        <p className="text-xs font-semibold text-brand-700 dark:text-brand-300">
                           {t.notifications.teamResponse}
                         </p>
                         {responseDate && (
@@ -272,10 +272,10 @@ export default function NotificationsPage() {
 
               {selectedConversation.response_message ? (
                 <div>
-                  <p className="text-xs font-semibold text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-300)] mb-2">
+                  <p className="text-xs font-semibold text-brand-700 dark:text-brand-300 mb-2">
                     {t.notifications.teamResponse}
                   </p>
-                  <div className="bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20 rounded-lg p-4 border border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]">
+                  <div className="bg-brand-50 dark:bg-brand-900/20 rounded-lg p-4 border border-brand-200 dark:border-brand-800">
                     <p className="text-sm whitespace-pre-wrap">
                       {selectedConversation.response_message}
                     </p>

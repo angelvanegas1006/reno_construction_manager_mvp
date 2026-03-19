@@ -269,7 +269,7 @@ export function SendUpdateDialog({
           {uploadedImages.length > 0 && (
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                <ImageIcon className="h-4 w-4 text-green-600" />
+                <ImageIcon className="h-4 w-4 text-success" />
                 Imágenes subidas ({uploadedImages.length})
               </Label>
               <div className="grid grid-cols-3 gap-2">

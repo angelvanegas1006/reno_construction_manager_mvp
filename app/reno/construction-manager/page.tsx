@@ -459,7 +459,7 @@ export default function RenoConstructionManagerHomePage() {
         />
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-background dark:bg-background">
           <div className="max-w-[1600px] mx-auto space-y-4 md:space-y-6 px-4 lg:px-8">
             {/* View Toggle - solo admin/construction_manager */}
             {showViewToggle && (
@@ -705,10 +705,10 @@ export default function RenoConstructionManagerHomePage() {
                           const color = kpi.value === null
                             ? "text-muted-foreground"
                             : kpi.value <= kpi.limit
-                              ? "text-green-600 dark:text-green-400"
+                              ? "text-success dark:text-success"
                               : kpi.value <= kpi.limit * 1.5
-                                ? "text-amber-600 dark:text-amber-400"
-                                : "text-red-600 dark:text-red-400";
+                                ? "text-warning dark:text-warning"
+                                : "text-danger dark:text-danger";
                           const Icon = kpi.icon;
                           return (
                             <Card key={kpi.label} className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -797,7 +797,7 @@ export default function RenoConstructionManagerHomePage() {
                                     )}
                                   </td>
                                   <td className="py-2.5 pr-4">
-                                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                    <span className="inline-flex items-center rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
                                       {p.investment_type || (p as any).type || "—"}
                                     </span>
                                   </td>
@@ -845,10 +845,10 @@ function ArchAvgTimeKpi({ label, value, limitDays }: { label: string; value: num
     value === null
       ? "text-foreground"
       : value <= limitDays
-        ? "text-emerald-600 dark:text-emerald-400"
+        ? "text-success dark:text-success"
         : value <= limitDays * 1.5
-          ? "text-amber-500"
-          : "text-red-500";
+          ? "text-warning"
+          : "text-danger";
 
   return (
     <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">

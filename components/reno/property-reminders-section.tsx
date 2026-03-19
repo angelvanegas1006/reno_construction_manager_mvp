@@ -186,26 +186,26 @@ export function PropertyRemindersSection({
             onClick={() => router.push(`/reno/construction-manager/property/${reminder.property_id}`)}
             className={cn(
               "w-full text-left p-3 rounded-lg border transition-colors",
-              "hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a]",
-              upcoming && "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20 border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]",
-              overdue && "bg-[var(--prophero-red-50)] dark:bg-[var(--prophero-red-900)]/20 border-[var(--prophero-red-200)] dark:border-[var(--prophero-red-800)]"
+              "hover:bg-background dark:hover:bg-secondary",
+              upcoming && "bg-brand-50 dark:bg-brand-900/20 border-brand-200 dark:border-brand-800",
+              overdue && "bg-danger-subtle dark:bg-danger/20 border-danger dark:border-danger"
             )}
           >
             <div className="flex items-start gap-3">
               <div className={cn(
                 "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
                 upcoming
-                  ? "bg-[var(--prophero-blue-200)] dark:bg-[var(--prophero-blue-800)]"
+                  ? "bg-brand-200 dark:bg-brand-800"
                   : overdue
-                  ? "bg-[var(--prophero-red-200)] dark:bg-[var(--prophero-red-800)]"
-                  : "bg-[var(--prophero-gray-200)] dark:bg-[#262626]"
+                  ? "bg-danger-bg dark:bg-danger"
+                  : "bg-v-gray-200 dark:bg-muted"
               )}>
                 <Bell className={cn(
                   "h-4 w-4",
                   upcoming
-                    ? "text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]"
+                    ? "text-brand-600 dark:text-brand-400"
                     : overdue
-                    ? "text-[var(--prophero-red-600)] dark:text-[var(--prophero-red-400)]"
+                    ? "text-danger dark:text-danger"
                     : "text-muted-foreground"
                 )} />
               </div>

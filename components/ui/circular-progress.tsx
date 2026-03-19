@@ -23,8 +23,8 @@ export function CircularProgress({
   
   // Color based on percentage: gray for 0%, blue for >0%
   const strokeColor = percentage === 0 
-    ? "stroke-gray-300 dark:stroke-gray-600" 
-    : "stroke-blue-600 dark:stroke-blue-400";
+    ? "stroke-v-gray-300 dark:stroke-v-gray-600" 
+    : "stroke-brand dark:stroke-brand-400";
   
   return (
     <div className={cn("relative inline-flex items-center justify-center", className)}>
@@ -41,7 +41,7 @@ export function CircularProgress({
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="none"
-          className="stroke-gray-200 dark:stroke-gray-700"
+          className="stroke-v-gray-200 dark:stroke-v-gray-700"
         />
         {/* Progress circle */}
         <circle
@@ -66,8 +66,8 @@ export function CircularProgress({
           <span className={cn(
             "text-xs font-semibold",
             percentage === 0 
-              ? "text-gray-400 dark:text-gray-500" 
-              : "text-blue-600 dark:text-blue-400"
+              ? "text-muted-foreground" 
+              : "text-brand"
           )}>
             {percentage}%
           </span>

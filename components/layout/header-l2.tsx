@@ -50,7 +50,7 @@ export function HeaderL2({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="3"
-                    className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
+                    className="text-v-gray-200 dark:text-v-gray-700"
                   />
                   <circle
                     cx="18"
@@ -60,7 +60,7 @@ export function HeaderL2({
                     stroke="currentColor"
                     strokeWidth="3"
                     strokeDasharray={`${progress} ${100 - progress}`}
-                    className="text-[var(--prophero-blue-500)] transition-all duration-300"
+                    className="text-brand-500 transition-all duration-300"
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -75,9 +75,9 @@ export function HeaderL2({
               <span
                 className={cn(
                   "px-2 py-1 text-xs font-medium rounded-full flex-shrink-0",
-                  badge.variant === "destructive" && "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-                  badge.variant === "secondary" && "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-                  !badge.variant && "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                  badge.variant === "destructive" && "bg-danger-bg text-danger dark:bg-danger dark:text-danger",
+                  badge.variant === "secondary" && "bg-v-gray-100 text-v-gray-800 dark:bg-v-gray-800 dark:text-v-gray-200",
+                  !badge.variant && "bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-200"
                 )}
               >
                 {badge.label}

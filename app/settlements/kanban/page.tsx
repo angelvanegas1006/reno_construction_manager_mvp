@@ -55,7 +55,7 @@ export default function SettlementsKanbanPage() {
         {/* Kanban Board */}
         <div 
           className={cn(
-            "flex-1 p-2 md:p-3 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] overflow-y-auto"
+            "flex-1 p-2 md:p-3 lg:p-6 bg-background dark:bg-background overflow-y-auto"
           )}
           data-scroll-container
         >

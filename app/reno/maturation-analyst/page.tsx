@@ -162,7 +162,7 @@ export default function MaturationAnalystHomePage() {
       <div className="flex flex-1 flex-col overflow-hidden w-full md:w-auto">
         <RenoHomeHeader />
 
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-background dark:bg-background">
           {loading ? (
             <VistralLogoLoader className="min-h-[400px]" />
           ) : (
@@ -252,10 +252,10 @@ export default function MaturationAnalystHomePage() {
                     const color = kpi.value === null
                       ? "text-muted-foreground"
                       : kpi.value <= kpi.limit
-                        ? "text-green-600 dark:text-green-400"
+                        ? "text-success dark:text-success"
                         : kpi.value <= kpi.limit * 1.5
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-red-600 dark:text-red-400";
+                          ? "text-warning dark:text-warning"
+                          : "text-danger dark:text-danger";
                     const Icon = kpi.icon;
                     return (
                       <Card key={kpi.label} className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -355,7 +355,7 @@ export default function MaturationAnalystHomePage() {
                               )}
                             </td>
                             <td className="py-2.5 pr-4">
-                              <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                              <span className="inline-flex items-center rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
                                 {p.investment_type || (p as any).type || "—"}
                               </span>
                             </td>

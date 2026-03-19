@@ -152,8 +152,8 @@ export function PropertyCommentsSection({
             className={cn(
               "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors",
               isReminder
-                ? "bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/20 text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]"
-                : "bg-[var(--prophero-gray-100)] dark:bg-[#1a1a1a] text-muted-foreground hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[#262626]"
+                ? "bg-brand-100 dark:bg-brand-900/20 text-brand-700 dark:text-brand-400"
+                : "bg-v-gray-100 dark:bg-secondary text-muted-foreground hover:bg-v-gray-200 dark:hover:bg-muted"
             )}
           >
             {isReminder ? (
@@ -190,7 +190,7 @@ export function PropertyCommentsSection({
             type="submit"
             disabled={!newComment.trim() || isSubmitting || (isReminder && !reminderDate)}
             size="sm"
-            className="w-full bg-[var(--prophero-blue-500)] hover:bg-[var(--prophero-blue-600)] text-white transition-colors"
+            className="w-full bg-brand-500 hover:bg-brand-600 text-white transition-colors"
           >
             {isSubmitting ? (
               <>
@@ -292,18 +292,18 @@ function CommentItem({ comment, formatDate }: CommentItemProps) {
     <div className={cn(
       "p-3 rounded-lg border transition-colors",
       isReminder
-        ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20 border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]"
-        : "bg-[var(--prophero-gray-50)] dark:bg-[#1a1a1a] border-[var(--prophero-gray-200)] dark:border-[#333333]"
+        ? "bg-brand-50 dark:bg-brand-900/20 border-brand-200 dark:border-brand-800"
+        : "bg-background dark:bg-secondary border-v-gray-200 dark:border-border"
     )}>
       <div className="flex items-start gap-3">
         <div className={cn(
           "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
           isReminder
-            ? "bg-[var(--prophero-blue-200)] dark:bg-[var(--prophero-blue-800)]"
-            : "bg-[var(--prophero-gray-200)] dark:bg-[#262626]"
+            ? "bg-brand-200 dark:bg-brand-800"
+            : "bg-v-gray-200 dark:bg-muted"
         )}>
           {isReminder ? (
-            <Bell className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+            <Bell className="h-4 w-4 text-brand-600 dark:text-brand-400" />
           ) : (
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           )}
@@ -312,7 +312,7 @@ function CommentItem({ comment, formatDate }: CommentItemProps) {
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="flex items-center gap-2 flex-wrap">
               {isReminder && (
-                <span className="text-xs font-medium text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)] bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/30 px-1.5 py-0.5 rounded">
+                <span className="text-xs font-medium text-brand-700 dark:text-brand-400 bg-brand-100 dark:bg-brand-900/30 px-1.5 py-0.5 rounded">
                   {t.comments.reminder}
                 </span>
               )}
@@ -343,7 +343,7 @@ function CommentItem({ comment, formatDate }: CommentItemProps) {
                 return (
                   <span
                     key={index}
-                    className="font-medium text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20 px-1.5 py-0.5 rounded"
+                    className="font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 px-1.5 py-0.5 rounded"
                   >
                     {part.content}
                   </span>

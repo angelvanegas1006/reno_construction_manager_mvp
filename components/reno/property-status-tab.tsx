@@ -473,17 +473,17 @@ export function PropertyStatusTab({ propertyId }: PropertyStatusTabProps) {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   {isCompleted ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    <CheckCircle2 className="h-5 w-5 text-success dark:text-success" />
                   ) : (
-                    <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    <Clock className="h-5 w-5 text-warning dark:text-warning" />
                   )}
                   <h3 className="text-lg font-semibold text-foreground">{checklistType}</h3>
                   <span
                     className={cn(
                       "px-2 py-1 text-xs font-medium rounded-full",
                       isCompleted
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                        : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                        ? "bg-success-bg text-success dark:bg-success dark:text-success"
+                        : "bg-warning-bg text-warning dark:bg-warning dark:text-warning"
                     )}
                   >
                     {isCompleted ? t.propertyStatusTab.completed : t.propertyStatusTab.inProgress}

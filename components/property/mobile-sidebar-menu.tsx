@@ -118,15 +118,15 @@ export function MobileSidebarMenu({
           
           {/* Mobile Sidebar */}
           <div 
-            className="fixed left-0 top-0 h-full w-80 bg-card dark:bg-[var(--prophero-gray-900)] z-[60] shadow-xl md:hidden overflow-y-auto transition-transform duration-300 ease-out"
+            className="fixed left-0 top-0 h-full w-80 bg-card dark:bg-v-gray-900 z-[60] shadow-xl md:hidden overflow-y-auto transition-transform duration-300 ease-out"
           >
             {/* Header */}
-            <div className="p-4 border-b sticky top-0 bg-card dark:bg-[var(--prophero-gray-900)] z-10">
+            <div className="p-4 border-b sticky top-0 bg-card dark:bg-v-gray-900 z-10">
               <div className="flex items-center justify-between gap-2 mb-4">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <button
                     onClick={() => setIsOpen(false)}
-                    className="p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)]"
+                    className="p-1.5 rounded-md hover:bg-muted dark:hover:bg-v-gray-800"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -134,10 +134,10 @@ export function MobileSidebarMenu({
                 </div>
                 <button
                   onClick={onDelete}
-                  className="p-1.5 rounded-md hover:bg-red-100 dark:hover:bg-red-900/20"
+                  className="p-1.5 rounded-md hover:bg-danger-bg dark:hover:bg-danger/20"
                   aria-label={t.property.delete}
                 >
-                  <Trash2 className="h-4 w-4 text-red-500" />
+                  <Trash2 className="h-4 w-4 text-danger" />
                 </button>
               </div>
 
@@ -158,7 +158,7 @@ export function MobileSidebarMenu({
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="3"
-                      className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
+                      className="text-v-gray-200 dark:text-v-gray-700"
                     />
                     <circle
                       cx="18"
@@ -168,7 +168,7 @@ export function MobileSidebarMenu({
                       stroke="currentColor"
                       strokeWidth="3"
                       strokeDasharray={`${overallProgress} ${100 - overallProgress}`}
-                      className="text-[var(--prophero-blue-500)] transition-all duration-300"
+                      className="text-brand-500 transition-all duration-300"
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -219,8 +219,8 @@ export function MobileSidebarMenu({
                                 className={cn(
                                   "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2",
                                   activeSection === section.sectionId && !showSubItems
-                                    ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium"
-                                    : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] hover:text-foreground"
+                                    ? "bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 font-medium"
+                                    : "text-muted-foreground hover:bg-muted dark:hover:bg-v-gray-800 hover:text-foreground"
                                 )}
                               >
                                 <span className="flex-1">{section.name}</span>
@@ -247,8 +247,8 @@ export function MobileSidebarMenu({
                                         className={cn(
                                           "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2",
                                           activeSection === subItemId
-                                            ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium"
-                                            : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] hover:text-foreground"
+                                            ? "bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 font-medium"
+                                            : "text-muted-foreground hover:bg-muted dark:hover:bg-v-gray-800 hover:text-foreground"
                                         )}
                                       >
                                         <span className="flex-1">{subItemName}</span>

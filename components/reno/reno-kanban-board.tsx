@@ -1802,7 +1802,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
     return (
       <div className="flex items-center justify-center h-full p-6">
         <div className="text-center space-y-2">
-          <p className="text-red-600 dark:text-red-400 font-semibold">Error al cargar propiedades</p>
+          <p className="text-danger dark:text-danger font-semibold">Error al cargar propiedades</p>
           <p className="text-sm text-muted-foreground">{supabaseError}</p>
         </div>
       </div>
@@ -1840,10 +1840,10 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
         return <ArrowUpDown className="h-3 w-3 text-muted-foreground opacity-50" />;
       }
       if (sortDirection === "asc") {
-        return <ChevronUp className="h-3 w-3 text-[var(--prophero-blue-500)]" />;
+        return <ChevronUp className="h-3 w-3 text-brand-500" />;
       }
       if (sortDirection === "desc") {
-        return <ChevronDown className="h-3 w-3 text-[var(--prophero-blue-500)]" />;
+        return <ChevronDown className="h-3 w-3 text-brand-500" />;
       }
       return <ArrowUpDown className="h-3 w-3 text-muted-foreground opacity-50" />;
     };
@@ -1875,7 +1875,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                     }).length;
                   }, 0);
                   return totalAlertCount > 0 ? (
-                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 text-[9px] font-bold text-white bg-red-500 rounded-full px-1">
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 text-[9px] font-bold text-white bg-danger rounded-full px-1">
                       {totalAlertCount}
                     </span>
                   ) : null;
@@ -1905,7 +1905,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                     {phaseLabel}
                     <span className={cn("text-[10px] tabular-nums", isSelected ? "text-foreground/60" : "text-muted-foreground/70")}>{count}</span>
                     {alertCount > 0 && (
-                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 text-[9px] font-bold text-white bg-red-500 rounded-full px-1">
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 text-[9px] font-bold text-white bg-danger rounded-full px-1">
                         {alertCount}
                       </span>
                     )}
@@ -2010,7 +2010,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                         return isDelayedWork(p, column.key) || shouldShowExpiredBadge(p, column.key);
                       }).length;
                       return alertCount > 0 ? (
-                        <span className="text-[10px] font-bold text-white bg-red-500 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                        <span className="text-[10px] font-bold text-white bg-danger rounded-full px-1.5 py-0.5 flex-shrink-0">
                           {alertCount}
                         </span>
                       ) : null;
@@ -2227,7 +2227,7 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                             onClick={() => setSelectedProperty(property)}
                             className={cn(
                               "cursor-pointer transition-colors relative group",
-                              hasLeftRedBorder && "border-l-[3px] border-l-red-500",
+                              hasLeftRedBorder && "border-l-[3px] border-l-danger",
                               selectedProperty?.id === property.id && "bg-accent/80 dark:bg-accent/30",
                               idx % 2 === 1 ? "bg-muted/20 dark:bg-muted/5" : "",
                               "hover:bg-accent/60 dark:hover:bg-accent/20"
@@ -2273,15 +2273,15 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                   const typeLower = property.renoType.toLowerCase();
                                   const isNoReno = typeLower.includes('no reno') || typeLower.includes('no_reno');
 
-                                  let dotColor = 'bg-green-500';
+                                  let dotColor = 'bg-success';
                                   if (isNoReno) {
-                                    dotColor = 'bg-gray-600 dark:bg-gray-400';
+                                    dotColor = 'bg-v-gray-600 dark:bg-v-gray-400';
                                   } else if (typeLower.includes('light')) {
-                                    dotColor = 'bg-green-600';
+                                    dotColor = 'bg-success';
                                   } else if (typeLower.includes('medium')) {
-                                    dotColor = 'bg-amber-500';
+                                    dotColor = 'bg-warning';
                                   } else if (typeLower.includes('major')) {
-                                    dotColor = 'bg-orange-500';
+                                    dotColor = 'bg-warning';
                                   }
 
                                   return (
@@ -2502,8 +2502,8 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
 
     const renderProjectSortIcon = (col: ProjectSortCol) => {
       if (projectSortCol !== col) return <ArrowUpDown className="h-3 w-3 text-muted-foreground opacity-50" />;
-      if (projectSortDir === "asc") return <ChevronUp className="h-3 w-3 text-[var(--prophero-blue-500)]" />;
-      return <ChevronDown className="h-3 w-3 text-[var(--prophero-blue-500)]" />;
+      if (projectSortDir === "asc") return <ChevronUp className="h-3 w-3 text-brand-500" />;
+      return <ChevronDown className="h-3 w-3 text-brand-500" />;
     };
 
     const ARCHITECT_PHASE_DATE_COLS: Record<string, { cols: { key: ProjectSortCol; label: string; field: string; isLimit?: boolean; baseDateField?: string; limitDays?: number }[] }> = {
@@ -2821,9 +2821,9 @@ export function RenoKanbanBoard({ searchQuery, filters, viewMode = "kanban", onV
                                     {vc.has("propertiesCount") && <td className={tdCls}><span className="text-sm text-foreground">{(() => { const ptc = (proj as any).properties_to_convert; const ptcS = ptc != null ? String(ptc).trim() : ""; return ptcS && ptcS !== "0" ? ptcS : ((proj as any).est_properties ?? "—"); })()}</span></td>}
                                     {vc.has("scouter") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).scouter || "—"}</span></td>}
                                     {vc.has("architect") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).architect || "—"}</span></td>}
-                                    {vc.has("excludedEcu") && <td className={tdCls}>{(proj as any).excluded_from_ecu === true ? (<Badge variant="outline" className="text-xs border-amber-500 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">Sin ECU</Badge>) : (<span className="text-sm text-muted-foreground">Con ECU</span>)}</td>}
-                                    {vc.has("type") && <td className={tdCls}>{typeRaw ? (<span className={cn("inline-flex items-center rounded-full text-xs font-medium px-2 py-1", typeLower === "project" && "bg-blue-600 text-white", typeLower === "wip" && "bg-sky-200 dark:bg-neutral-700/40 text-sky-800 dark:text-neutral-200 border border-sky-300 dark:border-neutral-600/50", typeLower === "new build" && "bg-blue-200 dark:bg-neutral-700/40 text-blue-800 dark:text-neutral-200 border border-blue-200 dark:border-neutral-600/50", !["project", "wip", "new build"].includes(typeLower) && "bg-muted text-muted-foreground border border-border")}>{typeRaw}</span>) : <span className="text-sm text-muted-foreground">—</span>}</td>}
-                                    {vc.has("investmentType") && <td className={tdCls}>{isFlip ? (<Badge variant="outline" className="text-xs border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30">Flip</Badge>) : isYield ? (<Badge variant="outline" className="text-xs border-blue-600 text-blue-700 dark:text-neutral-400 bg-blue-50 dark:bg-white/10">Yield</Badge>) : (proj as any).investment_type ? (<Badge variant="secondary" className="text-xs">{(proj as any).investment_type}</Badge>) : <span className="text-sm text-muted-foreground">—</span>}</td>}
+                                    {vc.has("excludedEcu") && <td className={tdCls}>{(proj as any).excluded_from_ecu === true ? (<Badge variant="outline" className="text-xs border-warning text-warning dark:text-warning bg-warning-subtle dark:bg-warning/30">Sin ECU</Badge>) : (<span className="text-sm text-muted-foreground">Con ECU</span>)}</td>}
+                                    {vc.has("type") && <td className={tdCls}>{typeRaw ? (<span className={cn("inline-flex items-center rounded-full text-xs font-medium px-2 py-1", typeLower === "project" && "bg-brand-600 text-white", typeLower === "wip" && "bg-sky-200 dark:bg-neutral-700/40 text-sky-800 dark:text-neutral-200 border border-sky-300 dark:border-neutral-600/50", typeLower === "new build" && "bg-brand-200 dark:bg-neutral-700/40 text-brand-800 dark:text-neutral-200 border border-brand-200 dark:border-neutral-600/50", !["project", "wip", "new build"].includes(typeLower) && "bg-muted text-muted-foreground border border-border")}>{typeRaw}</span>) : <span className="text-sm text-muted-foreground">—</span>}</td>}
+                                    {vc.has("investmentType") && <td className={tdCls}>{isFlip ? (<Badge variant="outline" className="text-xs border-success text-success dark:text-success bg-success-subtle dark:bg-success/30">Flip</Badge>) : isYield ? (<Badge variant="outline" className="text-xs border-brand text-brand-700 dark:text-neutral-400 bg-brand-50 dark:bg-card/10">Yield</Badge>) : (proj as any).investment_type ? (<Badge variant="secondary" className="text-xs">{(proj as any).investment_type}</Badge>) : <span className="text-sm text-muted-foreground">—</span>}</td>}
                                     {vc.has("area") && <td className={tdCls}><span className="text-sm text-muted-foreground">{area || "—"}</span></td>}
                                     {vc.has("renovator") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).renovator || "—"}</span></td>}
                                     {vc.has("projectStartDate") && <td className={tdCls}><span className="text-sm text-foreground">{(proj as any).project_start_date ? formatDate((proj as any).project_start_date) : "—"}</span></td>}

@@ -61,7 +61,7 @@ export function PartnerHomeTasks({ tasks, onTaskClick }: PartnerHomeTasksProps) 
   }, [activeTab, priorityTasks, normalTasks, displayedCount]);
 
   return (
-    <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
+    <Card className="bg-card dark:bg-v-gray-900">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">{t.dashboard.pendingTasks}</CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
@@ -76,7 +76,7 @@ export function PartnerHomeTasks({ tasks, onTaskClick }: PartnerHomeTasksProps) 
             className={cn(
               "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
               activeTab === "priority"
-                ? "border-[var(--prophero-blue-500)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]"
+                ? "border-brand-500 text-brand-600 dark:text-brand-400"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
@@ -87,7 +87,7 @@ export function PartnerHomeTasks({ tasks, onTaskClick }: PartnerHomeTasksProps) 
             className={cn(
               "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
               activeTab === "normal"
-                ? "border-[var(--prophero-blue-500)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]"
+                ? "border-brand-500 text-brand-600 dark:text-brand-400"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
@@ -109,7 +109,7 @@ export function PartnerHomeTasks({ tasks, onTaskClick }: PartnerHomeTasksProps) 
               <div
                 key={task.id}
                 onClick={() => onTaskClick(task)}
-                className="flex items-start justify-between p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)] cursor-pointer transition-colors"
+                className="flex items-start justify-between p-3 rounded-lg border border-border hover:bg-background dark:hover:bg-v-gray-800 cursor-pointer transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">{task.title}</p>

@@ -288,7 +288,7 @@ export default function RenoProjectDetailPage() {
                   {startingCheck ? "Iniciando..." : "Iniciar Final Check del proyecto"}
                 </Button>
                 {properties.length === 0 && (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">
+                  <p className="text-sm text-warning dark:text-warning">
                     Añade al menos una propiedad al proyecto para poder iniciar el Final Check.
                   </p>
                 )}
@@ -346,7 +346,7 @@ export default function RenoProjectDetailPage() {
   return (
     <div className="flex h-screen overflow-hidden">
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-3 md:px-4 lg:px-6 py-4 md:py-6">
+        <header className="border-b bg-card dark:bg-v-gray-900 px-3 md:px-4 lg:px-6 py-4 md:py-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
               <Button
@@ -400,10 +400,10 @@ export default function RenoProjectDetailPage() {
         <PropertyTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
         <div className="flex flex-1 overflow-hidden pt-2">
-          <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000] pb-24">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 lg:p-6 bg-background dark:bg-background pb-24">
             <div className="max-w-4xl mx-auto">{renderTabContent()}</div>
           </div>
-          <div className="hidden lg:block h-full min-h-0 w-[320px] flex-shrink-0 border-l bg-card dark:bg-[var(--prophero-gray-900)]">
+          <div className="hidden lg:block h-full min-h-0 w-[320px] flex-shrink-0 border-l bg-card dark:bg-v-gray-900">
             <ProjectStatusSidebar
               project={project}
               onAssign={handleAssignSiteManagerProject}
@@ -418,8 +418,8 @@ export default function RenoProjectDetailPage() {
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
-          <div className="fixed right-0 top-0 h-full w-[85vw] max-w-sm bg-card dark:bg-[var(--prophero-gray-900)] border-l z-50 lg:hidden shadow-xl overflow-y-auto">
-            <div className="sticky top-0 bg-card dark:bg-[var(--prophero-gray-900)] border-b p-4 flex items-center justify-between z-10">
+          <div className="fixed right-0 top-0 h-full w-[85vw] max-w-sm bg-card dark:bg-v-gray-900 border-l z-50 lg:hidden shadow-xl overflow-y-auto">
+            <div className="sticky top-0 bg-card dark:bg-v-gray-900 border-b p-4 flex items-center justify-between z-10">
               <h2 className="text-lg font-semibold">Proyecto</h2>
               <button
                 onClick={() => setIsSidebarOpen(false)}

@@ -169,7 +169,7 @@ export default function PartnerHomePage() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden w-full md:w-auto">
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)]">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-background dark:bg-v-gray-950">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* KPIs */}
             <PartnerHomeIndicators

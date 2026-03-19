@@ -17,14 +17,14 @@ export function KanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, onAddP
   const { t } = useI18n();
 
   return (
-    <header className="border-b bg-card dark:bg-[var(--prophero-gray-900)] px-3 md:px-6 py-3 md:py-4">
+    <header className="border-b bg-card dark:bg-v-gray-900 px-3 md:px-6 py-3 md:py-4">
       {/* Mobile Layout */}
       <div className="flex flex-col gap-3 md:hidden">
         {/* Top row: Menu, Title, Filter */}
         <div className="flex items-center gap-3">
           <button
             onClick={onMenuToggle}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors flex-shrink-0"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 transition-colors flex-shrink-0"
             aria-label="Toggle menu"
           >
             <Menu className="h-5 w-5 text-foreground" />
@@ -36,7 +36,7 @@ export function KanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, onAddP
             onClick={() => {
               console.log("Filter - Coming soon");
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors flex-shrink-0"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 transition-colors flex-shrink-0"
             aria-label={t.kanban.filterProperties}
           >
             <FilterIcon className="h-4 w-4 text-foreground" />
@@ -83,7 +83,7 @@ export function KanbanHeader({ searchQuery, setSearchQuery, onMenuToggle, onAddP
             onClick={() => {
               console.log("Filter - Coming soon");
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 transition-colors"
             aria-label={t.kanban.filterProperties}
           >
             <FilterIcon className="h-4 w-4 text-foreground" />

@@ -31,16 +31,16 @@ export function RenoHomeLoader({ className, size = "md" }: RenoHomeLoaderProps) 
         <div 
           className="absolute inset-0 rounded-full border-4 border-transparent animate-spin"
           style={{
-            borderTopColor: "var(--prophero-blue-500)",
-            borderRightColor: "var(--prophero-blue-400)",
+            borderTopColor: "var(--vistral-brand-500)",
+            borderRightColor: "var(--vistral-brand-400)",
           }}
         />
         {/* Inner ring */}
         <div 
           className="absolute inset-2 rounded-full border-4 border-transparent animate-spin"
           style={{
-            borderBottomColor: "var(--prophero-blue-600)",
-            borderLeftColor: "var(--prophero-blue-300)",
+            borderBottomColor: "var(--vistral-interactive-brand-hover)",
+            borderLeftColor: "var(--vistral-brand-300)",
             animationDirection: "reverse",
             animationDuration: "1s",
           }}
@@ -52,7 +52,7 @@ export function RenoHomeLoader({ className, size = "md" }: RenoHomeLoaderProps) 
             dotSizeClasses[size]
           )}
           style={{
-            backgroundColor: "var(--prophero-blue-500)",
+            backgroundColor: "var(--vistral-brand-500)",
             animationDuration: "1.5s",
           }}
         />

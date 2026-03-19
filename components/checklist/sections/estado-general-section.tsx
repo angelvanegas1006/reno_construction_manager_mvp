@@ -222,13 +222,13 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
       <div 
         ref={ref} 
         className={cn(
-          "bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
-          hasError && "border-4 border-red-500 bg-red-50 dark:bg-red-900/10"
+          "bg-card dark:bg-v-gray-900 rounded-lg border p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-6",
+          hasError && "border-4 border-danger bg-danger-subtle dark:bg-danger/10"
         )}
       >
         {hasError && (
-          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
-            <p className="text-sm font-medium text-red-900 dark:text-red-100">
+          <div className="mb-4 p-4 bg-danger-bg dark:bg-danger/20 border border-danger dark:border-danger rounded-lg">
+            <p className="text-sm font-medium text-danger dark:text-danger">
               ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
             </p>
           </div>
@@ -317,7 +317,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                         type="button"
                         onClick={() => handleClimatizationQuantityChange(item.id, -1)}
                         disabled={cantidad === 0}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] hover:bg-[var(--prophero-gray-200)] dark:hover:bg-[var(--prophero-gray-700)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-v-gray-100 dark:bg-v-gray-800 hover:bg-v-gray-200 dark:hover:bg-v-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                         aria-label="Decrementar cantidad"
                       >
                         <Minus className="h-4 w-4 text-foreground" />
@@ -329,10 +329,10 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                         type="button"
                         onClick={() => handleClimatizationQuantityChange(item.id, 1)}
                         disabled={cantidad >= MAX_CLIMATIZATION_QUANTITY}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] hover:bg-[var(--prophero-blue-200)] dark:hover:bg-[var(--prophero-blue-800)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900 hover:bg-brand-200 dark:hover:bg-brand-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
                         aria-label="Incrementar cantidad"
                       >
-                        <Plus className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]" />
+                        <Plus className="h-4 w-4 text-brand-600 dark:text-brand-400" />
                       </button>
                     </div>
                   </div>
@@ -348,7 +348,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                             const unitRequiresDetails = unit.estado === "necesita_reparacion" || unit.estado === "necesita_reemplazo";
 
                             return (
-                              <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)]">
+                              <div key={unit.id || index} className="space-y-4 border-l-2 pl-2 sm:pl-4 border-v-gray-200 dark:border-v-gray-700">
                                 <Label className="text-xs sm:text-sm font-medium text-foreground leading-tight break-words">
                                   {t.checklist.sections.estadoGeneral.climatizacion.items[itemConfig.translationKey]} {index + 1}
                                 </Label>
@@ -367,8 +367,8 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                                         className={cn(
                                           "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                           isSelected
-                                            ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                            : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                            ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                                            : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-v-gray-900"
                                         )}
                                       >
                                         <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -384,7 +384,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                                 {unitRequiresDetails && (
                                   <div className="space-y-2">
                                     <Label className="text-sm font-medium text-foreground leading-tight">
-                                      {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                                      {t.checklist.notes} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
                                     </Label>
                                     <Textarea
                                       value={unit.notes || ""}
@@ -434,8 +434,8 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                                   className={cn(
                                     "flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg border-2 transition-colors w-full",
                                     isSelected
-                                      ? "border-[var(--prophero-gray-400)] dark:border-[var(--prophero-gray-500)] bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
-                                      : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)] bg-white dark:bg-[var(--prophero-gray-900)]"
+                                      ? "border-v-gray-400 dark:border-v-gray-500 bg-v-gray-100 dark:bg-v-gray-800"
+                                      : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500 bg-card dark:bg-v-gray-900"
                                   )}
                                 >
                                   <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", isSelected ? "text-foreground" : "text-muted-foreground")} />
@@ -454,7 +454,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
                           })() && (
                             <div className="space-y-2">
                               <Label className="text-sm font-medium text-foreground leading-tight">
-                                {t.checklist.notes} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+                                {t.checklist.notes} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
                               </Label>
                               <Textarea
                                 value={(item as ChecklistClimatizationItem).notes || ""}
@@ -524,7 +524,7 @@ export const EstadoGeneralSection = forwardRef<HTMLDivElement, EstadoGeneralSect
             <button
               type="button"
               onClick={onContinue}
-              className="px-4 py-2 bg-[var(--prophero-blue-500)] text-white rounded-lg hover:bg-[var(--prophero-blue-600)] transition-colors"
+              className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
             >
               {t.common.continue}
             </button>

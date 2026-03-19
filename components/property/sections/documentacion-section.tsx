@@ -99,7 +99,7 @@ export const DocumentacionSection = forwardRef<HTMLDivElement, DocumentacionSect
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-semibold">
-              {title} {isRequired && <span className="text-red-500">*</span>}
+              {title} {isRequired && <span className="text-danger">*</span>}
               {isOptional && <span className="text-xs text-muted-foreground font-normal ml-1">(Opcional)</span>}
             </Label>
             <span className="text-xs text-muted-foreground">
@@ -114,18 +114,18 @@ export const DocumentacionSection = forwardRef<HTMLDivElement, DocumentacionSect
             className={cn(
               "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
               uploadHook.isDragOver
-                ? "border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20"
-                : "border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-gray-400)] dark:hover:border-[var(--prophero-gray-500)]"
+                ? "border-brand-500 bg-brand-50 dark:bg-brand-950/20"
+                : "border-v-gray-300 dark:border-v-gray-600 hover:border-v-gray-400 dark:hover:border-v-gray-500"
             )}
             onDragOver={uploadHook.handleDragOver}
             onDragLeave={uploadHook.handleDragLeave}
             onDrop={uploadHook.handleDrop}
           >
-            <Upload className="h-8 w-8 mx-auto text-[var(--prophero-gray-400)] mb-2" />
-            <p className="text-sm text-[var(--prophero-gray-600)] dark:text-[var(--prophero-gray-400)] mb-2">
+            <Upload className="h-8 w-8 mx-auto text-v-gray-400 mb-2" />
+            <p className="text-sm text-v-gray-600 dark:text-v-gray-400 mb-2">
               Arrastra archivos aquí o haz clic para seleccionar
             </p>
-            <p className="text-xs text-[var(--prophero-gray-500)] dark:text-[var(--prophero-gray-500)]">
+            <p className="text-xs text-v-gray-500 dark:text-v-gray-500">
               Máximo {MAX_FILE_SIZE}MB por archivo
             </p>
             
@@ -172,13 +172,13 @@ export const DocumentacionSection = forwardRef<HTMLDivElement, DocumentacionSect
               {files.map((file, index) => (
                 <div
                   key={file.id || index}
-                  className="flex items-center justify-between p-3 bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-800)] rounded-lg"
+                  className="flex items-center justify-between p-3 bg-background dark:bg-v-gray-800 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
-                    <File className="h-4 w-4 text-[var(--prophero-gray-500)]" />
+                    <File className="h-4 w-4 text-v-gray-500" />
                     <div>
                       <p className="text-sm font-medium">{file.name}</p>
-                      <p className="text-xs text-[var(--prophero-gray-500)]">
+                      <p className="text-xs text-v-gray-500">
                         {(file.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
@@ -188,7 +188,7 @@ export const DocumentacionSection = forwardRef<HTMLDivElement, DocumentacionSect
                     variant="ghost"
                     size="sm"
                     onClick={() => uploadHook.removeFile(index)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-danger hover:text-danger"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -199,24 +199,24 @@ export const DocumentacionSection = forwardRef<HTMLDivElement, DocumentacionSect
 
           {/* Error display */}
           {uploadHook.error && (
-            <p className="text-sm text-red-500">{uploadHook.error}</p>
+            <p className="text-sm text-danger">{uploadHook.error}</p>
           )}
         </div>
       );
     }, [formData, videoUpload, notaSimpleUpload, certificadoUpload, handleCameraCapture, handleVideoCapture]);
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm space-y-6">
+      <div ref={ref} className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm space-y-6">
         <h1 className="text-2xl font-bold text-foreground">{t.property.sections.documentation}</h1>
 
         {/* Info Banner */}
-        <div className="flex items-start gap-3 p-4 bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20 border border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)] rounded-lg">
-          <Info className="h-5 w-5 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-brand-50 dark:bg-brand-950/20 border border-brand-200 dark:border-brand-800 rounded-lg">
+          <Info className="h-5 w-5 text-brand-600 dark:text-brand-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-[var(--prophero-blue-900)] dark:text-[var(--prophero-blue-200)]">
+            <p className="text-sm font-semibold text-brand-900 dark:text-brand-200">
               Documentos requeridos para la revisión inicial
             </p>
-            <p className="text-sm text-[var(--prophero-blue-800)] dark:text-[var(--prophero-blue-300)] mt-1">
+            <p className="text-sm text-brand-800 dark:text-brand-300 mt-1">
               Sube los documentos necesarios para que PropHero pueda revisar la propiedad.
             </p>
           </div>

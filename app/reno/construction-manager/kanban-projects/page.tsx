@@ -224,13 +224,13 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
 
         {/* Toggle Proyectos L1 / Unidades L2 */}
         <div className="mb-3 flex items-center gap-2 px-4 md:px-3 lg:px-4 pt-2">
-          <div className="flex items-center gap-1 bg-muted/60 dark:bg-[var(--prophero-gray-800)] rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-muted/60 dark:bg-v-gray-800 rounded-lg p-1">
             <button
               onClick={() => setViewLevel("project")}
               className={cn(
                 "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                 viewLevel === "project"
-                  ? "bg-[var(--prophero-blue-500)] text-white shadow-sm"
+                  ? "bg-brand-500 text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -241,7 +241,7 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
               className={cn(
                 "px-3 py-1.5 text-sm font-medium rounded-md transition-all",
                 viewLevel === "property"
-                  ? "bg-[var(--prophero-blue-500)] text-white shadow-sm"
+                  ? "bg-brand-500 text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -252,7 +252,7 @@ export default function RenoConstructionManagerKanbanProjectsPage() {
 
         <div
           className={cn(
-            "flex-1 p-2 md:p-3 lg:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]",
+            "flex-1 p-2 md:p-3 lg:p-6 bg-background dark:bg-background",
             viewMode === "list" ? "overflow-y-auto" : "md:overflow-hidden overflow-y-auto"
           )}
           data-scroll-container

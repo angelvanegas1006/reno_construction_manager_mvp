@@ -39,7 +39,7 @@ export default function LoginPage() {
         <div className="relative">
           <ArchitecturalWireframeBackground />
         </div>
-        <div className="relative flex min-h-screen flex-col items-center justify-center p-8 bg-card dark:bg-[var(--prophero-gray-900)]">
+        <div className="relative flex min-h-screen flex-col items-center justify-center p-8 bg-card dark:bg-v-gray-900">
           <div className="text-center text-muted-foreground">
             Cargando...
           </div>
@@ -56,7 +56,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right column: login form */}
-      <div className="relative flex min-h-screen flex-col items-center justify-center p-8 bg-card dark:bg-[var(--prophero-gray-900)]">
+      <div className="relative flex min-h-screen flex-col items-center justify-center p-8 bg-card dark:bg-v-gray-900">
         {/* Language Selector - Top Right */}
         <div className="absolute top-6 right-6">
           <LoginLanguageSelector />

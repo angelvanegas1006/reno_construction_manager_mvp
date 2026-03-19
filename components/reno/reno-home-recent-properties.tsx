@@ -115,9 +115,9 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
   }, [selectedRenovator, renovatorGroups]);
 
   const getRankIcon = (position: number) => {
-    if (position === 1) return <Trophy className="h-4 w-4 text-yellow-500" />;
-    if (position === 2) return <Medal className="h-4 w-4 text-gray-400" />;
-    if (position === 3) return <Award className="h-4 w-4 text-amber-600" />;
+    if (position === 1) return <Trophy className="h-4 w-4 text-warning" />;
+    if (position === 2) return <Medal className="h-4 w-4 text-v-gray-400" />;
+    if (position === 3) return <Award className="h-4 w-4 text-warning" />;
     return null;
   };
 
@@ -151,11 +151,11 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
     <div
       key={item.renovatorName}
       onClick={() => handleRenovatorClick(item.renovatorName)}
-      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-background dark:hover:bg-secondary transition-colors cursor-pointer"
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Ranking position */}
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex-shrink-0">
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-v-gray-100 dark:bg-v-gray-800 flex-shrink-0">
           {getRankIcon(item.position) || (
             <span className="text-xs font-semibold text-muted-foreground">
               {item.position}
@@ -186,7 +186,7 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
     <div
       key={property.id}
       onClick={() => handlePropertyClick(property)}
-      className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+      className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-background dark:hover:bg-secondary transition-colors cursor-pointer"
     >
       <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
       <div className="flex-1 min-w-0">
@@ -225,11 +225,11 @@ export function RenoHomeRecentProperties({ properties, propertiesByPhase }: Reno
                   <div
                     key={item.renovatorName}
                     onClick={() => handleRenovatorClickInWidget(item.renovatorName)}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-background dark:hover:bg-secondary transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       {/* Ranking position */}
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] flex-shrink-0">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-v-gray-100 dark:bg-v-gray-800 flex-shrink-0">
                         {getRankIcon(item.position) || (
                           <span className="text-xs font-semibold text-muted-foreground">
                             {item.position}

@@ -128,7 +128,7 @@ export default function SetUpAnalystHomePage() {
         <RenoHomeHeader />
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-background dark:bg-background">
           <div className="max-w-[1600px] mx-auto space-y-4 md:space-y-6 px-4 lg:px-8">
 
             {/* KPIs */}

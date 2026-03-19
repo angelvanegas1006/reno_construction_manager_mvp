@@ -132,9 +132,9 @@ export function DatePicker({
         disabled={disabled}
         className={cn(
           "absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors",
-          "hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)]",
+          "hover:bg-muted dark:hover:bg-v-gray-800",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          isFocused && "bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+          isFocused && "bg-v-gray-100 dark:bg-v-gray-800"
         )}
         aria-label="Abrir calendario"
       >

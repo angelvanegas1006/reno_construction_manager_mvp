@@ -115,12 +115,12 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
         ref={ref} 
         className={cn(
           "space-y-8",
-          hasError && "border-4 border-red-500 rounded-lg p-4 bg-red-50 dark:bg-red-900/10"
+          hasError && "border-4 border-danger rounded-lg p-4 bg-danger-subtle dark:bg-danger/10"
         )}
       >
         {hasError && (
-          <div className="mb-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-lg">
-            <p className="text-sm font-medium text-red-900 dark:text-red-100">
+          <div className="mb-4 p-4 bg-danger-bg dark:bg-danger/20 border border-danger dark:border-danger rounded-lg">
+            <p className="text-sm font-medium text-danger dark:text-danger">
               ⚠️ Esta sección tiene campos requeridos sin completar. Por favor, completa todos los campos marcados como obligatorios antes de finalizar el checklist.
             </p>
           </div>
@@ -130,9 +130,9 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
           {/* Portal */}
           <div className="space-y-2">
             <h2 className="text-xl font-bold text-foreground">
-              {t.checklist.sections.entornoZonasComunes.portal} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+              {t.checklist.sections.entornoZonasComunes.portal} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
             </h2>
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">
                 <ChecklistUploadZoneComponent
                   key={`portal-${(section.uploadZones || uploadZones).find(z => z.id === "portal")?.photos.length || 0}-${(section.uploadZones || uploadZones).find(z => z.id === "portal")?.photos.map(p => p.id || p.data?.substring(0, 20)).join(',') || ''}`}
@@ -150,9 +150,9 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
           {/* Fachada */}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold text-foreground">
-              {t.checklist.sections.entornoZonasComunes.fachada} <span className="text-red-500">* <span className="ml-1">{t.formLabels.required}</span></span>
+              {t.checklist.sections.entornoZonasComunes.fachada} <span className="text-danger">* <span className="ml-1">{t.formLabels.required}</span></span>
             </h2>
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <Card className="p-6 space-y-4">
                 <ChecklistUploadZoneComponent
                   key={`fachada-${(section.uploadZones || uploadZones).find(z => z.id === "fachada")?.photos.length || 0}-${(section.uploadZones || uploadZones).find(z => z.id === "fachada")?.photos.map(p => p.id || p.data?.substring(0, 20)).join(',') || ''}`}
@@ -169,7 +169,7 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
         </div>
 
         {/* Questions - Contenedor general para las preguntas */}
-        <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm space-y-6 mt-8">
+        <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm space-y-6 mt-8">
           <div className="space-y-6">
             <Card className="p-6 space-y-4">
               <ChecklistQuestionComponent
@@ -227,7 +227,7 @@ export const EntornoZonasComunesSection = forwardRef<HTMLDivElement, EntornoZona
               <button
                 type="button"
                 onClick={onContinue}
-                className="px-4 py-2 bg-[var(--prophero-blue-500)] text-white rounded-lg hover:bg-[var(--prophero-blue-600)] transition-colors"
+                className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
               >
                 {t.common.continue}
               </button>

@@ -96,7 +96,7 @@ export default function ArchitectHomePage() {
       <div className="flex flex-1 flex-col overflow-hidden w-full md:w-auto">
         <RenoHomeHeader />
 
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-background dark:bg-background">
           {loading ? (
             <VistralLogoLoader className="min-h-[400px]" />
           ) : (
@@ -108,7 +108,7 @@ export default function ArchitectHomePage() {
                     <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                       <Bell className="h-4 w-4 text-primary" />
                       Novedades en tus proyectos
-                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white px-1">
+                      <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white px-1">
                         {notifications.length}
                       </span>
                     </div>
@@ -173,10 +173,10 @@ function AvgTimeKpi({ label, value, limitDays }: { label: string; value: number 
     value === null
       ? "text-foreground"
       : value <= limitDays
-        ? "text-emerald-600 dark:text-emerald-400"
+        ? "text-success dark:text-success"
         : value <= limitDays * 1.5
-          ? "text-amber-500"
-          : "text-red-500";
+          ? "text-warning"
+          : "text-danger";
 
   return (
     <Card className="bg-card border-2 shadow-sm hover:shadow-md transition-shadow duration-200">

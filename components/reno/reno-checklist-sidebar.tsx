@@ -119,7 +119,7 @@ export function RenoChecklistSidebar({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
-                className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
+                className="text-v-gray-200 dark:text-v-gray-700"
               />
               <circle
                 cx="18"
@@ -129,7 +129,7 @@ export function RenoChecklistSidebar({
                 stroke="currentColor"
                 strokeWidth="3"
                 strokeDasharray={`${overallProgress} ${100 - overallProgress}`}
-                className="text-[var(--prophero-blue-500)] transition-all duration-300"
+                className="text-brand-500 transition-all duration-300"
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
@@ -190,8 +190,8 @@ export function RenoChecklistSidebar({
                           className={cn(
                             "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between",
                             activeSection === section.sectionId && !showSubItems
-                              ? "bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] text-foreground font-medium"
-                              : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] hover:text-foreground"
+                              ? "bg-v-gray-100 dark:bg-v-gray-800 text-foreground font-medium"
+                              : "text-muted-foreground hover:bg-muted dark:hover:bg-secondary hover:text-foreground"
                           )}
                         >
                           <span>{section.name}</span>
@@ -350,8 +350,8 @@ export function RenoChecklistSidebar({
                                   className={cn(
                                     "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between",
                                     activeSection === subItemId
-                                      ? "bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] text-foreground font-medium"
-                                      : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[#1a1a1a] hover:text-foreground"
+                                      ? "bg-v-gray-100 dark:bg-v-gray-800 text-foreground font-medium"
+                                      : "text-muted-foreground hover:bg-muted dark:hover:bg-secondary hover:text-foreground"
                                   )}
                                 >
                                   <span>{subItemName}</span>

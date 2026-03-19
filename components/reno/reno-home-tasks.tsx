@@ -99,7 +99,7 @@ export function RenoHomeTasks({ checks, visits, onPropertyClick }: RenoHomeTasks
             className={cn(
               "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
               activeTab === "checks"
-                ? "border-[var(--prophero-blue-500)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]"
+                ? "border-brand-500 text-brand-600 dark:text-brand-400"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
@@ -110,7 +110,7 @@ export function RenoHomeTasks({ checks, visits, onPropertyClick }: RenoHomeTasks
             className={cn(
               "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
               activeTab === "visits"
-                ? "border-[var(--prophero-blue-500)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]"
+                ? "border-brand-500 text-brand-600 dark:text-brand-400"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >

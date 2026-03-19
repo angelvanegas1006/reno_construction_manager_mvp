@@ -181,7 +181,7 @@ export function PropertySummaryTab({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             {/* Imagen principal (izquierda) - ocupa 2 columnas */}
             <div 
-              className="md:col-span-2 aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] cursor-pointer group"
+              className="md:col-span-2 aspect-video relative rounded-lg overflow-hidden bg-v-gray-100 dark:bg-v-gray-800 cursor-pointer group"
               onClick={() => openModal(currentImageIndex)}
             >
               {imageErrors.has(currentImageIndex) ? (
@@ -216,10 +216,10 @@ export function PropertySummaryTab({
               {picsUrls.length > 1 && (
                 <div
                   className={cn(
-                    "aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] cursor-pointer group border-2 transition-all",
+                    "aspect-video relative rounded-lg overflow-hidden bg-v-gray-100 dark:bg-v-gray-800 cursor-pointer group border-2 transition-all",
                     currentImageIndex === 1
-                      ? "border-[var(--prophero-blue-500)] ring-2 ring-[var(--prophero-blue-500)]"
-                      : "border-transparent hover:border-[var(--prophero-gray-300)] dark:hover:border-[var(--prophero-gray-600)]"
+                      ? "border-brand-500 ring-2 ring-brand-500"
+                      : "border-transparent hover:border-v-gray-300 dark:hover:border-v-gray-600"
                   )}
                   onClick={() => {
                     setCurrentImageIndex(1);
@@ -227,7 +227,7 @@ export function PropertySummaryTab({
                   }}
                 >
                   {imageErrors.has(1) ? (
-                    <div className="w-full h-full flex items-center justify-center bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]">
+                    <div className="w-full h-full flex items-center justify-center bg-v-gray-100 dark:bg-v-gray-800">
                       <svg className="h-8 w-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -250,15 +250,15 @@ export function PropertySummaryTab({
               
               {/* Botón "Ver todas" (mismo tamaño que la miniatura) */}
               <button
-                className="aspect-video relative rounded-lg overflow-hidden bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] border-2 border-dashed border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] hover:border-[var(--prophero-blue-500)] transition-all flex flex-col items-center justify-center group"
+                className="aspect-video relative rounded-lg overflow-hidden bg-v-gray-200 dark:bg-v-gray-700 border-2 border-dashed border-v-gray-300 dark:border-v-gray-600 hover:border-brand-500 transition-all flex flex-col items-center justify-center group"
                 onClick={() => {
                   // Abrir modal desde la imagen actual
                   openModal(currentImageIndex);
                 }}
               >
                 <div className="text-center">
-                  <Grid3x3 className="h-8 w-8 text-muted-foreground group-hover:text-[var(--prophero-blue-600)] dark:group-hover:text-[var(--prophero-blue-400)] transition-colors mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-muted-foreground group-hover:text-[var(--prophero-blue-600)] dark:group-hover:text-[var(--prophero-blue-400)] transition-colors">
+                  <Grid3x3 className="h-8 w-8 text-muted-foreground group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-muted-foreground group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                     {t.property.viewAll || "Ver todas"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -269,7 +269,7 @@ export function PropertySummaryTab({
             </div>
           </div>
         ) : (
-          <div className="aspect-video bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)] rounded-lg flex items-center justify-center">
+          <div className="aspect-video bg-v-gray-100 dark:bg-v-gray-800 rounded-lg flex items-center justify-center">
             <div className="text-center">
               <Home className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm font-medium text-muted-foreground">{t.property.gallery || "Galería de imágenes"}</p>
@@ -282,7 +282,7 @@ export function PropertySummaryTab({
       {/* Modal para ver imagen en pantalla completa */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className={cn(
-          "p-0 bg-[var(--prophero-gray-50)] bg-card",
+          "p-0 bg-background bg-card",
           isImageVertical ? "max-w-2xl w-auto h-auto" : "max-w-7xl w-full h-[90vh]"
         )}>
           <DialogTitle className="sr-only">
@@ -296,7 +296,7 @@ export function PropertySummaryTab({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-4 right-4 z-50 bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] hover:bg-[var(--prophero-gray-300)] dark:hover:bg-[var(--prophero-gray-600)] text-foreground rounded-full"
+              className="absolute top-4 right-4 z-50 bg-v-gray-200 dark:bg-v-gray-700 hover:bg-v-gray-300 dark:hover:bg-v-gray-600 text-foreground rounded-full"
               onClick={() => setIsModalOpen(false)}
             >
               <X className="h-5 w-5" />
@@ -358,7 +358,7 @@ export function PropertySummaryTab({
                 <button
                   type="button"
                   onClick={goToPreviousModal}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-[var(--prophero-blue-400)] hover:bg-[var(--prophero-blue-500)] text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-brand-400 hover:bg-brand-500 text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
                   aria-label="Imagen anterior"
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -366,14 +366,14 @@ export function PropertySummaryTab({
                 <button
                   type="button"
                   onClick={goToNextModal}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-[var(--prophero-blue-400)] hover:bg-[var(--prophero-blue-500)] text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-50 w-12 h-12 rounded-full bg-brand-400 hover:bg-brand-500 text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl"
                   aria-label="Imagen siguiente"
                 >
                   <ChevronRight className="h-6 w-6" />
                 </button>
 
                 {/* Contador en el modal */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)] text-foreground px-4 py-2 rounded-full text-sm z-50">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-v-gray-200 dark:bg-v-gray-700 text-foreground px-4 py-2 rounded-full text-sm z-50">
                   {modalImageIndex + 1} / {picsUrls.length}
                 </div>
               </>
@@ -454,7 +454,7 @@ export function PropertySummaryTab({
             {phaseLabel && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Fase</p>
-                <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                <span className="px-2 py-1 text-xs font-medium rounded-full bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-200">
                   {phaseLabel}
                 </span>
               </div>
@@ -567,7 +567,7 @@ export function PropertySummaryTab({
                   href={driveFolderUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"
+                  className="text-sm text-brand dark:text-brand-400 hover:underline flex items-center gap-2"
                 >
                   <Folder className="h-4 w-4 shrink-0" />
                   Abrir carpeta

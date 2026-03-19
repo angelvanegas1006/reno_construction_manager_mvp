@@ -145,11 +145,11 @@ export function ReportProblemModal({
                 className={cn(
                   "flex flex-1 items-center gap-2 rounded-lg border-2 px-4 py-3 text-left transition-colors",
                   reportType === "blocker"
-                    ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-600"
-                    : "border-border hover:border-amber-300 dark:hover:border-amber-800"
+                    ? "border-warning bg-warning-subtle dark:bg-warning/30 dark:border-warning"
+                    : "border-border hover:border-warning dark:hover:border-warning"
                 )}
               >
-                <Ban className="h-5 w-5 text-amber-600 dark:text-amber-500" />
+                <Ban className="h-5 w-5 text-warning dark:text-warning" />
                 <div>
                   <span className="font-medium">Blocker</span>
                   <p className="text-xs text-muted-foreground">Bloquea mi trabajo del día de hoy</p>
@@ -165,11 +165,11 @@ export function ReportProblemModal({
                 className={cn(
                   "flex flex-1 items-center gap-2 rounded-lg border-2 px-4 py-3 text-left transition-colors",
                   reportType === "idea"
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-600"
-                    : "border-border hover:border-blue-300 dark:hover:border-blue-800"
+                    ? "border-brand bg-brand-50 dark:bg-brand-900/30 dark:border-brand"
+                    : "border-border hover:border-brand-300 dark:hover:border-brand-800"
                 )}
               >
-                <Lightbulb className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+                <Lightbulb className="h-5 w-5 text-brand dark:text-brand" />
                 <div>
                   <span className="font-medium">Idea / Propuesta</span>
                   <p className="text-xs text-muted-foreground">Mejora o sugerencia</p>

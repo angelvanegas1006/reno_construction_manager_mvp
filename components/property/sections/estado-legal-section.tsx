@@ -54,17 +54,17 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
     ];
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm space-y-6">
+      <div ref={ref} className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm space-y-6">
         <h1 className="text-2xl font-bold text-foreground">{t.property.sections.legalStatus}</h1>
 
         {/* Info Banner */}
-        <div className="flex items-start gap-3 p-4 bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20 border border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)] rounded-lg">
-          <Info className="h-5 w-5 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-brand-50 dark:bg-brand-950/20 border border-brand-200 dark:border-brand-800 rounded-lg">
+          <Info className="h-5 w-5 text-brand-600 dark:text-brand-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-[var(--prophero-blue-900)] dark:text-[var(--prophero-blue-200)]">
+            <p className="text-sm font-semibold text-brand-900 dark:text-brand-200">
               Campos requeridos para la revisión inicial
             </p>
-            <p className="text-sm text-[var(--prophero-blue-800)] dark:text-[var(--prophero-blue-300)] mt-1">
+            <p className="text-sm text-brand-800 dark:text-brand-300 mt-1">
               Todos los campos de esta sección son obligatorios para poder enviar la propiedad a revisión.
             </p>
           </div>
@@ -74,7 +74,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
           {/* Comunidad de propietarios constituida */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              Comunidad de propietarios constituida <span className="text-red-500">*</span>
+              Comunidad de propietarios constituida <span className="text-danger">*</span>
             </Label>
             <p className="text-xs text-muted-foreground mb-3">
               El edificio ya cuenta con una comunidad de vecinos formalmente establecida.
@@ -86,7 +86,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
                   name="comunidad"
                   checked={formData.comunidadPropietariosConstituida === true}
                   onChange={() => updateField("comunidadPropietariosConstituida", true)}
-                  className="h-4 w-4 text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">Sí</span>
               </label>
@@ -96,7 +96,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
                   name="comunidad"
                   checked={formData.comunidadPropietariosConstituida === false}
                   onChange={() => updateField("comunidadPropietariosConstituida", false)}
-                  className="h-4 w-4 text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">No</span>
               </label>
@@ -106,7 +106,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
           {/* El edificio tiene seguro activo */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              El edificio tiene seguro activo <span className="text-red-500">*</span>
+              El edificio tiene seguro activo <span className="text-danger">*</span>
             </Label>
             <p className="text-xs text-muted-foreground mb-3">
               El edificio cuenta actualmente con una póliza de seguro en vigor.
@@ -118,7 +118,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
                   name="seguro"
                   checked={formData.edificioSeguroActivo === true}
                   onChange={() => updateField("edificioSeguroActivo", true)}
-                  className="h-4 w-4 text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">Sí</span>
               </label>
@@ -128,7 +128,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
                   name="seguro"
                   checked={formData.edificioSeguroActivo === false}
                   onChange={() => updateField("edificioSeguroActivo", false)}
-                  className="h-4 w-4 text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">No</span>
               </label>
@@ -138,7 +138,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
           {/* PropHero se comercializa en exclusiva */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              PropHero se comercializa en exclusiva <span className="text-red-500">*</span>
+              PropHero se comercializa en exclusiva <span className="text-danger">*</span>
             </Label>
             <p className="text-xs text-muted-foreground mb-3">
               Se cuenta con la autorización exclusiva para vender esta propiedad.
@@ -150,7 +150,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
                   name="exclusiva"
                   checked={formData.comercializaExclusiva === true}
                   onChange={() => updateField("comercializaExclusiva", true)}
-                  className="h-4 w-4 text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">Sí</span>
               </label>
@@ -160,7 +160,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
                   name="exclusiva"
                   checked={formData.comercializaExclusiva === false}
                   onChange={() => updateField("comercializaExclusiva", false)}
-                  className="h-4 w-4 text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">No</span>
               </label>
@@ -170,7 +170,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
           {/* El edificio tiene una ITE favorable en vigor */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              El edificio tiene una ITE favorable en vigor <span className="text-red-500">*</span>
+              El edificio tiene una ITE favorable en vigor <span className="text-danger">*</span>
             </Label>
             <p className="text-xs text-muted-foreground mb-3">
               Indica si el edificio ha superado la inspección y cuenta con un informe favorable y vigente.
@@ -182,7 +182,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
                   name="ite"
                   checked={formData.edificioITEfavorable === true}
                   onChange={() => updateField("edificioITEfavorable", true)}
-                  className="h-4 w-4 text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">Sí</span>
               </label>
@@ -192,7 +192,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
                   name="ite"
                   checked={formData.edificioITEfavorable === false}
                   onChange={() => updateField("edificioITEfavorable", false)}
-                  className="h-4 w-4 text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">No</span>
               </label>
@@ -202,7 +202,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
           {/* La propiedad está actualmente alquilada */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">
-              La propiedad está actualmente alquilada <span className="text-red-500">*</span>
+              La propiedad está actualmente alquilada <span className="text-danger">*</span>
             </Label>
             <p className="text-xs text-muted-foreground mb-3">
               La vivienda tiene un inquilino activo o un contrato de alquiler vigente.
@@ -214,7 +214,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
                   name="alquilada"
                   checked={formData.propiedadAlquilada === true}
                   onChange={() => handlePropiedadAlquiladaChange("Sí")}
-                  className="h-4 w-4 text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">Sí</span>
               </label>
@@ -224,7 +224,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
                   name="alquilada"
                   checked={formData.propiedadAlquilada === false}
                   onChange={() => handlePropiedadAlquiladaChange("No")}
-                  className="h-4 w-4 text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm">No</span>
               </label>
@@ -234,7 +234,7 @@ export const EstadoLegalSection = forwardRef<HTMLDivElement, EstadoLegalSectionP
             {showInquilinoDropdown && (
               <div className="mt-4 space-y-2">
                 <Label htmlFor="situacionInquilinos" className="text-sm font-semibold">
-                  Situación de los inquilinos tras la compra <span className="text-red-500">*</span>
+                  Situación de los inquilinos tras la compra <span className="text-danger">*</span>
                 </Label>
                 <Select
                   value={formData.situacionInquilinos || ""}

@@ -119,24 +119,24 @@ const ACTIVE_PHASES = [
 
 const RENO_TYPE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   light: {
-    bg: "bg-green-600 dark:bg-green-600",
+    bg: "bg-success dark:bg-success",
     text: "text-white dark:text-white",
-    dot: "bg-white/70",
+    dot: "bg-card/70",
   },
   medium: {
-    bg: "bg-green-100 dark:bg-green-900/30",
-    text: "text-green-800 dark:text-green-300",
-    dot: "bg-green-600 dark:bg-green-400",
+    bg: "bg-success-bg dark:bg-success/30",
+    text: "text-success dark:text-success",
+    dot: "bg-success dark:bg-success",
   },
   major: {
-    bg: "bg-yellow-200 dark:bg-yellow-900/30",
-    text: "text-yellow-900 dark:text-yellow-200",
-    dot: "bg-yellow-600 dark:bg-yellow-400",
+    bg: "bg-warning-bg dark:bg-warning/30",
+    text: "text-warning dark:text-warning",
+    dot: "bg-warning dark:bg-warning",
   },
   other: {
-    bg: "bg-gray-700 dark:bg-gray-800",
-    text: "text-white dark:text-gray-100",
-    dot: "bg-white/50",
+    bg: "bg-v-gray-700 dark:bg-v-gray-800",
+    text: "text-white dark:text-v-gray-100",
+    dot: "bg-card/50",
   },
 };
 
@@ -298,13 +298,13 @@ export function RenovatorAnalysisPanel({
     let colorClass: string;
     if (ratio <= 1) {
       colorClass =
-        "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400";
+        "bg-success-bg text-success dark:bg-success/40 dark:text-success";
     } else if (ratio <= 1.5) {
       colorClass =
-        "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400";
+        "bg-warning-bg text-warning dark:bg-warning/40 dark:text-warning";
     } else {
       colorClass =
-        "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400";
+        "bg-danger-bg text-danger dark:bg-danger/40 dark:text-danger";
     }
     return (
       <span
@@ -327,8 +327,8 @@ export function RenovatorAnalysisPanel({
         className={cn(
           "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold tabular-nums",
           isNegative
-            ? "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400"
-            : "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400"
+            ? "bg-success-bg text-success dark:bg-success/40 dark:text-success"
+            : "bg-danger-bg text-danger dark:bg-danger/40 dark:text-danger"
         )}
       >
         {value > 0 ? "+" : ""}
@@ -415,15 +415,15 @@ export function RenovatorAnalysisPanel({
             </div>
             <div className="hidden md:flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-success" />
                 Dentro del límite
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-warning" />
                 Cerca del límite
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-red-500" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-danger" />
                 Excede límite
               </span>
             </div>
@@ -978,11 +978,11 @@ function MetricCard({
       className={cn(
         "rounded-lg border p-3 flex flex-col gap-1",
         status === "ok" &&
-          "border-green-200 bg-green-50 dark:border-green-800/40 dark:bg-green-950/20",
+          "border-success bg-success-subtle dark:border-success/40 dark:bg-success/20",
         status === "warn" &&
-          "border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/20",
+          "border-warning bg-warning-subtle dark:border-warning/40 dark:bg-warning/20",
         status === "over" &&
-          "border-red-200 bg-red-50 dark:border-red-800/40 dark:bg-red-950/20",
+          "border-danger bg-danger-subtle dark:border-danger/40 dark:bg-danger/20",
         !status && "border-border"
       )}
     >
@@ -995,9 +995,9 @@ function MetricCard({
       <span
         className={cn(
           "text-lg font-bold",
-          status === "ok" && "text-green-600 dark:text-green-400",
-          status === "warn" && "text-amber-600 dark:text-amber-400",
-          status === "over" && "text-red-500",
+          status === "ok" && "text-success dark:text-success",
+          status === "warn" && "text-warning dark:text-warning",
+          status === "over" && "text-danger",
           !status && "text-foreground"
         )}
       >

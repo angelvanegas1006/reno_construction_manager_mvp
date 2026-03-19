@@ -1,102 +1,41 @@
-# Actualización del Design System PropHero - Checklist
+# Design System Vistral - Migration Complete
 
-## Estado actual
+> **Storybook de referencia:** https://vistral-design-system.vercel.app/
 
-### Tokens definidos (prophero.css)
-- ✅ Brand Blues (blue-50 a blue-950)
-- ✅ Semantic Colors (success, warning, danger, info)
-- ✅ Neutral Grays (gray-50 a gray-950)
-- ✅ Typography Scale (font-family, sizes, weights, line-heights)
-- ✅ Spacing Scale (spacing-0 a spacing-20)
-- ✅ Border Radius (radius-none a radius-full)
-- ✅ Shadows (shadow-sm a shadow-xl)
-- ✅ Transitions (transition-fast, base, slow)
+## Migration Status: COMPLETE
 
-### Problemas encontrados
+### Token Foundation
+- ✅ `app/vistral-tokens.css` — All `--vistral-*` tokens defined from Storybook
+- ✅ `--prophero-*` backward-compatible aliases pointing to `--vistral-*`
+- ✅ `app/globals.css` — Semantic layer mapped to `--vistral-*`
+- ✅ Old `prophero.css` replaced by `vistral-tokens.css` import
 
-**64 instancias** de clases hardcodeadas en componentes que deberían usar tokens:
-- `bg-blue-50`, `bg-blue-100`, etc. → debería usar `bg-[var(--prophero-blue-50)]` o variables CSS
-- `text-blue-600`, `text-blue-400`, etc. → debería usar `text-[var(--prophero-blue-600)]`
-- `bg-zinc-900`, `bg-zinc-800`, etc. → debería usar tokens de gray
-- `border-blue-200`, `border-blue-800`, etc. → debería usar tokens
+### Semantic Utilities Available (via @theme inline)
+- `bg-brand`, `text-brand`, `border-brand` + scale (`brand-50` to `brand-900`)
+- `bg-success`, `text-success`, `border-success` + `success-subtle`, `success-bg`
+- `bg-warning`, `text-warning`, `border-warning` + `warning-subtle`, `warning-bg`
+- `bg-danger`, `text-danger`, `border-danger` + `danger-subtle`, `danger-bg`
+- `bg-info`, `text-info`, `border-info` + `info-subtle`, `info-bg`
+- `bg-v-gray-*`, `text-v-gray-*`, `border-v-gray-*` (50-950)
+- `shadow-level-1` through `shadow-level-4`
 
-### Archivos afectados
-1. `components/property/sections/info-propiedad-section.tsx` (8 instancias)
-2. `components/property/sections/info-economica-section.tsx` (7 instancias)
-3. `components/property/sections/estado-legal-section.tsx` (15 instancias)
-4. `components/property/sections/documentacion-section.tsx` (6 instancias)
-5. `components/property/edit-sidebar.tsx` (6 instancias)
-6. `components/property/mobile-sidebar-menu.tsx` (9 instancias)
-7. `components/partner/kanban-header.tsx` (3 instancias)
-8. `components/partner/sidebar.tsx` (2 instancias)
-9. `components/kanban/property-card.tsx` (4 instancias)
-10. `components/kanban/kanban-column.tsx` (1 instancia)
-11. Otros componentes
+### Components Migrated
+- ✅ `components/ui/` (form, circular-progress)
+- ✅ `components/reno/` (~55 files, ~930 instances)
+- ✅ `components/checklist/` (~10 files)
+- ✅ `components/property/` (~12 files)
+- ✅ `components/partner/` (~2 files)
+- ✅ `components/layout/` (~6 files)
+- ✅ `components/rent/` (~4 files)
+- ✅ `components/kanban/` (~1 file)
+- ✅ `app/reno/` pages
+- ✅ `app/admin/` pages
+- ✅ `app/rent/` pages
+- ✅ `lib/html/checklist-html-generator.ts`
 
-## Plan de acción
-
-### Paso 1: Actualizar tokens en prophero.css
-- [ ] Verificar colores actualizados en design system
-- [ ] Actualizar valores si han cambiado
-- [ ] Agregar nuevos tokens si existen
-
-### Paso 2: Reemplazar clases hardcodeadas
-- [ ] Crear utilidades CSS o clases de Tailwind que usen tokens
-- [ ] Reemplazar `bg-blue-*` con tokens de PropHero
-- [ ] Reemplazar `text-blue-*` con tokens de PropHero
-- [ ] Reemplazar `bg-zinc-*` con tokens de gray
-- [ ] Reemplazar `border-*` con tokens
-
-### Paso 3: Verificar componentes UI base
-- [ ] Button component usa tokens correctamente
-- [ ] Input component usa tokens correctamente
-- [ ] Otros componentes UI (Select, Dialog, etc.)
-
-### Paso 4: Dark mode
-- [ ] Verificar tokens de dark mode
-- [ ] Asegurar contraste correcto
-- [ ] Probar transiciones entre modos
-
-## Información necesaria del usuario
-
-Para completar la actualización correctamente, necesito:
-
-1. **¿Qué cambió específicamente en el design system de PropHero?**
-   - ¿Colores nuevos o modificados?
-   - ¿Valores hexadecimales actualizados?
-   - ¿Nuevos tokens agregados?
-
-2. **¿Hay documentación actualizada disponible?**
-   - Link a la documentación
-   - Screenshots de los nuevos tokens
-   - Lista de cambios
-
-3. **¿Qué componentes del design system fueron actualizados?**
-   - ¿Hay nuevos componentes?
-   - ¿Cambios en componentes existentes?
-
-## Mapeo de clases a tokens (propuesto)
-
-### Backgrounds
-- `bg-blue-50` → `bg-[var(--prophero-blue-50)]` o crear clase utility
-- `bg-blue-100` → `bg-[var(--prophero-blue-100)]`
-- `bg-zinc-900` → `bg-[var(--prophero-gray-900)]`
-- `bg-white` → `bg-background` o `bg-card`
-
-### Text
-- `text-blue-600` → `text-[var(--prophero-blue-600)]`
-- `text-blue-900` → `text-[var(--prophero-blue-900)]`
-- `text-zinc-400` → `text-[var(--prophero-gray-400)]`
-
-### Borders
-- `border-blue-200` → `border-[var(--prophero-blue-200)]`
-- `border-zinc-800` → `border-[var(--prophero-gray-800)]`
-
-## Notas
-
-- Los componentes de shadcn/ui ya usan variables CSS (`bg-background`, `text-foreground`, etc.) que están mapeadas a tokens de PropHero en `globals.css`
-- Necesitamos extender este patrón a todos los componentes
-- Considerar crear clases de utilidad Tailwind personalizadas para los tokens de PropHero
+### Cleanup
+- ✅ 67 duplicate files (suffix " 2" and " 3") deleted
+- ✅ Zero remaining hardcoded color instances
 
 
 

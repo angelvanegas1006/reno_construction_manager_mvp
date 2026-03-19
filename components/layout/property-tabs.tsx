@@ -47,7 +47,7 @@ export function PropertyTabs({
               <span className="flex items-center gap-1.5 md:gap-2">
                 {tab.label}
                 {tab.badge && (
-                  <span className="inline-flex items-center justify-center h-4 w-4 md:h-5 md:w-5 rounded-full bg-red-500 text-white text-[10px] md:text-xs font-semibold">
+                  <span className="inline-flex items-center justify-center h-4 w-4 md:h-5 md:w-5 rounded-full bg-danger text-white text-[10px] md:text-xs font-semibold">
                     {tab.badge}
                   </span>
                 )}

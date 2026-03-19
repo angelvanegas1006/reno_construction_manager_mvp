@@ -227,7 +227,7 @@ function EventFormDialog({
           <div className="flex items-center gap-3 py-1 px-3 rounded-lg bg-muted/40 border border-border/40">
             <Switch checked={form.addMeet} onCheckedChange={(v) => set("addMeet", v)} />
             <Label className="text-xs font-medium flex items-center gap-1.5">
-              <Video className="h-3.5 w-3.5 text-blue-500" /> Añadir Google Meet
+              <Video className="h-3.5 w-3.5 text-brand" /> Añadir Google Meet
             </Label>
           </div>
           <div>
@@ -277,7 +277,7 @@ function EventDetailDialog({
                     {event.source === "google" ? "Google Calendar" : "Evento interno"}
                   </Badge>
                   {event.meetLink && (
-                    <Badge className="text-[10px] px-1.5 py-0 h-4 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border-0">
+                    <Badge className="text-[10px] px-1.5 py-0 h-4 bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300 border-0">
                       <Video className="h-2.5 w-2.5 mr-0.5" /> Meet
                     </Badge>
                   )}
@@ -330,7 +330,7 @@ function EventDetailDialog({
               href={event.meetLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/60 transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-900/40 text-brand dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/60 transition-colors text-sm font-medium"
             >
               <Video className="h-4 w-4" /> Unirse a Google Meet
               <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
@@ -383,8 +383,8 @@ function NowLine() {
   return (
     <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ top: `${pct}%` }}>
       <div className="flex items-center">
-        <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1 shadow-sm shadow-red-500/30" />
-        <div className="flex-1 h-[2px] bg-red-500 shadow-sm shadow-red-500/20" />
+        <div className="w-2.5 h-2.5 rounded-full bg-danger -ml-1 shadow-sm shadow-red-500/30" />
+        <div className="flex-1 h-[2px] bg-danger shadow-sm shadow-red-500/20" />
       </div>
     </div>
   );

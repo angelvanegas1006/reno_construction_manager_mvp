@@ -162,7 +162,7 @@ export function EditSidebar({
   ];
 
   return (
-    <div className="hidden md:flex flex-col h-screen w-80 border-r bg-card dark:bg-[var(--prophero-gray-900)]">
+    <div className="hidden md:flex flex-col h-screen w-80 border-r bg-card dark:bg-v-gray-900">
       {/* Header */}
       <div className="p-4 border-b">
         <div className="flex items-start justify-between gap-2 mb-4">
@@ -171,10 +171,10 @@ export function EditSidebar({
           </div>
           <button
             onClick={onDelete}
-            className="flex-shrink-0 p-1.5 rounded-md hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] transition-colors"
+            className="flex-shrink-0 p-1.5 rounded-md hover:bg-muted dark:hover:bg-v-gray-800 transition-colors"
             aria-label={t.property.delete}
           >
-            <Trash2 className="h-4 w-4 text-red-500" />
+            <Trash2 className="h-4 w-4 text-danger" />
           </button>
         </div>
         
@@ -189,7 +189,7 @@ export function EditSidebar({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
-                className="text-[var(--prophero-gray-200)] dark:text-[var(--prophero-gray-700)]"
+                className="text-v-gray-200 dark:text-v-gray-700"
               />
               <circle
                 cx="18"
@@ -199,7 +199,7 @@ export function EditSidebar({
                 stroke="currentColor"
                 strokeWidth="3"
                 strokeDasharray={`${overallProgress} ${100 - overallProgress}`}
-                className="text-[var(--prophero-blue-500)] transition-all duration-300"
+                className="text-brand-500 transition-all duration-300"
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
@@ -247,8 +247,8 @@ export function EditSidebar({
                           className={cn(
                             "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between",
                             activeSection === section.sectionId && !showSubItems
-                              ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium"
-                              : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] hover:text-foreground"
+                              ? "bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 font-medium"
+                              : "text-muted-foreground hover:bg-muted dark:hover:bg-v-gray-800 hover:text-foreground"
                           )}
                         >
                           <span>{section.name}</span>
@@ -272,8 +272,8 @@ export function EditSidebar({
                                   className={cn(
                                     "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center justify-between",
                                     activeSection === subItemId
-                                      ? "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)] text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] font-medium"
-                                      : "text-muted-foreground hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)] hover:text-foreground"
+                                      ? "bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400 font-medium"
+                                      : "text-muted-foreground hover:bg-muted dark:hover:bg-v-gray-800 hover:text-foreground"
                                   )}
                                 >
                                   <span>{subItemName}</span>

@@ -194,7 +194,7 @@ export default function ProjectFinalCheckPage() {
           </Button>
         </div>
         {properties.length === 0 && (
-          <p className="text-sm text-amber-600 dark:text-amber-400">
+          <p className="text-sm text-warning dark:text-warning">
             El proyecto no tiene propiedades asociadas todavía.
           </p>
         )}
@@ -308,7 +308,7 @@ export default function ProjectFinalCheckPage() {
           </div>
         </aside>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-background dark:bg-background">
           <div className="max-w-2xl mx-auto space-y-8">
             {dwellings.map((d) => {
               const prop = propertyById(d.property_id);
@@ -334,7 +334,7 @@ export default function ProjectFinalCheckPage() {
                       <span className="text-xs text-muted-foreground">Guardando...</span>
                     )}
                     {justSaved && !isSaving && (
-                      <span className="text-xs text-emerald-600 flex items-center gap-1">
+                      <span className="text-xs text-success flex items-center gap-1">
                         <Check className="h-3 w-3" /> Guardado
                       </span>
                     )}

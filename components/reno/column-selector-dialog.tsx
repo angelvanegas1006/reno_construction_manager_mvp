@@ -250,8 +250,8 @@ export function ColumnSelectorDialog<K extends string = string>({
         onDrop={(e) => isDraggable && isVisible && handleDrop(e, column.key)}
         className={cn(
           "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-          "hover:bg-accent dark:hover:bg-[var(--prophero-gray-800)]",
-          isVisible && "bg-accent/50 dark:bg-[var(--prophero-gray-800)]/50",
+          "hover:bg-accent dark:hover:bg-v-gray-800",
+          isVisible && "bg-accent/50 dark:bg-v-gray-800/50",
           isDragging && "opacity-50 cursor-grabbing",
           isDraggable && isVisible && "cursor-grab active:cursor-grabbing"
         )}
@@ -379,7 +379,7 @@ export function ColumnSelectorDialog<K extends string = string>({
         </ScrollArea>
 
         {/* Footer with Save Button */}
-        <div className="px-6 py-4 border-t bg-accent/50 dark:bg-[var(--prophero-gray-800)]/50">
+        <div className="px-6 py-4 border-t bg-accent/50 dark:bg-v-gray-800/50">
           <Button
             onClick={handleSave}
             disabled={!hasChanges}

@@ -68,7 +68,7 @@ export function PartnerHomeRecentProperties({ properties }: PartnerHomeRecentPro
   };
 
   return (
-    <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
+    <Card className="bg-card dark:bg-v-gray-900">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">{t.dashboard.recentProperties}</CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
@@ -86,7 +86,7 @@ export function PartnerHomeRecentProperties({ properties }: PartnerHomeRecentPro
               <div
                 key={property.id}
                 onClick={() => handlePropertyClick(property)}
-                className="flex items-start justify-between p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)] cursor-pointer transition-colors"
+                className="flex items-start justify-between p-3 rounded-lg border border-border hover:bg-background dark:hover:bg-v-gray-800 cursor-pointer transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">

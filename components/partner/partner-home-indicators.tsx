@@ -37,7 +37,7 @@ export function PartnerHomeIndicators({
     description: string;
     icon: typeof Building2;
   }) => (
-    <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
+    <Card className="bg-card dark:bg-v-gray-900">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           <Icon className="h-4 w-4 text-muted-foreground" />
@@ -46,7 +46,7 @@ export function PartnerHomeIndicators({
         {delta && (
           <div className={cn(
             "flex items-center gap-1 text-xs font-medium",
-            delta.isPositive ? "text-[var(--prophero-success)]" : "text-[var(--prophero-danger)]"
+            delta.isPositive ? "text-success" : "text-danger"
           )}>
             {delta.isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
             {delta.value}%

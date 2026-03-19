@@ -172,7 +172,7 @@ function CommentCard({ comment, onDelete }: CommentCardProps) {
               </div>
             )}
             {comment.synced_to_airtable && (
-              <span className="text-xs bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 px-2 py-1 rounded">
+              <span className="text-xs bg-success-bg dark:bg-success/20 text-success dark:text-success px-2 py-1 rounded">
                 Sincronizado con Airtable
               </span>
             )}

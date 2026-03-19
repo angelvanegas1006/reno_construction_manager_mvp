@@ -219,7 +219,7 @@ export default function PropertyEditPage() {
         <PartnerSidebar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--prophero-gray-900)] mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-v-gray-900 mx-auto mb-4"></div>
             <p className="text-muted-foreground">{t.messages.loading}</p>
           </div>
         </div>
@@ -364,7 +364,7 @@ export default function PropertyEditPage() {
       case "datos-inquilino":
         if (!showInquilino) {
           return (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <p className="text-muted-foreground">
                 {t.sectionMessages.tenantSectionUnavailable}
               </p>
@@ -383,7 +383,7 @@ export default function PropertyEditPage() {
       case "checklist-entorno-zonas-comunes":
         if (!checklist) {
           return (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <p className="text-muted-foreground">Cargando checklist...</p>
             </div>
           );
@@ -407,7 +407,7 @@ export default function PropertyEditPage() {
       case "checklist-estado-general":
         if (!checklist) {
           return (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <p className="text-muted-foreground">Cargando checklist...</p>
             </div>
           );
@@ -442,7 +442,7 @@ export default function PropertyEditPage() {
       case "checklist-entrada-pasillos":
         if (!checklist) {
           return (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <p className="text-muted-foreground">Cargando checklist...</p>
             </div>
           );
@@ -486,7 +486,7 @@ export default function PropertyEditPage() {
         console.log("page.tsx - checklist:", checklist);
         if (!checklist) {
           return (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <p className="text-muted-foreground">Cargando checklist...</p>
             </div>
           );
@@ -551,7 +551,7 @@ export default function PropertyEditPage() {
       case "checklist-salon":
         if (!checklist) {
           return (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <p className="text-muted-foreground">Cargando checklist...</p>
             </div>
           );
@@ -582,7 +582,7 @@ export default function PropertyEditPage() {
       case "checklist-banos":
         if (!checklist) {
           return (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <p className="text-muted-foreground">Cargando checklist...</p>
             </div>
           );
@@ -625,7 +625,7 @@ export default function PropertyEditPage() {
       case "checklist-cocina":
         if (!checklist) {
           return (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <p className="text-muted-foreground">Cargando checklist...</p>
             </div>
           );
@@ -672,7 +672,7 @@ export default function PropertyEditPage() {
       case "checklist-exteriores":
         if (!checklist) {
           return (
-            <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+            <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
               <p className="text-muted-foreground">Cargando checklist...</p>
             </div>
           );
@@ -712,7 +712,7 @@ export default function PropertyEditPage() {
             const banoIndex = banoNumber - 1; // Convert to 0-based index
             if (!checklist) {
               return (
-                <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+                <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
                   <p className="text-muted-foreground">Cargando checklist...</p>
                 </div>
               );
@@ -797,7 +797,7 @@ export default function PropertyEditPage() {
             console.log("page.tsx - checklist:", checklist);
             if (!checklist) {
               return (
-                <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+                <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
                   <p className="text-muted-foreground">Cargando checklist...</p>
                 </div>
               );
@@ -887,7 +887,7 @@ export default function PropertyEditPage() {
           }
         }
         return (
-          <div className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm">
+          <div className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm">
             <p className="text-muted-foreground">
               {t.sectionMessages.sectionInDevelopment}: {activeSection}
             </p>
@@ -921,7 +921,7 @@ export default function PropertyEditPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Header */}
-        <div className="md:hidden bg-card dark:bg-[var(--prophero-gray-900)] border-b px-4 py-3 flex items-center justify-between">
+        <div className="md:hidden bg-card dark:bg-v-gray-900 border-b px-4 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button
               variant="ghost"
@@ -935,8 +935,8 @@ export default function PropertyEditPage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)] rounded-full flex items-center justify-center">
-                <span className="text-xs font-medium text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)]">
+              <div className="w-8 h-8 bg-brand-100 dark:bg-brand-900 rounded-full flex items-center justify-center">
+                <span className="text-xs font-medium text-brand-600 dark:text-brand-400">
                   {Math.round(overallProgress)}%
                 </span>
               </div>
@@ -960,7 +960,7 @@ export default function PropertyEditPage() {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto bg-[var(--prophero-gray-50)] dark:bg-[var(--prophero-gray-950)] p-4 md:p-6">
+        <div className="flex-1 overflow-y-auto bg-background dark:bg-v-gray-950 p-4 md:p-6">
           {renderActiveSection()}
         </div>
       </div>

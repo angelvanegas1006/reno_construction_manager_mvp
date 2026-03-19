@@ -358,8 +358,8 @@ export function CategoryUpdateDialog({
 
                 {/* Mostrar archivos subidos */}
                 {(uploadedPhotos.length > 0 || uploadedVideos.length > 0) && (
-                  <div className="mt-2 p-2 bg-green-50 dark:bg-green-950 rounded-lg">
-                    <p className="text-sm text-green-700 dark:text-green-300">
+                  <div className="mt-2 p-2 bg-success-subtle dark:bg-success rounded-lg">
+                    <p className="text-sm text-success dark:text-success">
                       ✅ {uploadedPhotos.length + uploadedVideos.length} archivo(s) subido(s) correctamente
                     </p>
                   </div>

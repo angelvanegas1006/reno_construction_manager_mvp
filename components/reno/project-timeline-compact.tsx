@@ -21,14 +21,14 @@ const WIP_BLOCK_COLORS: Record<WipBlock, { bar: string; bg: string; text: string
     text: "text-violet-700 dark:text-violet-300",
   },
   obra: {
-    bar: "bg-orange-500",
-    bg: "bg-orange-100 dark:bg-orange-900/30",
-    text: "text-orange-700 dark:text-orange-300",
+    bar: "bg-warning",
+    bg: "bg-warning-bg dark:bg-warning/30",
+    text: "text-warning dark:text-warning",
   },
   "post-obra": {
-    bar: "bg-emerald-500",
-    bg: "bg-emerald-100 dark:bg-emerald-900/30",
-    text: "text-emerald-700 dark:text-emerald-300",
+    bar: "bg-success",
+    bg: "bg-success-bg dark:bg-success/30",
+    text: "text-success dark:text-success",
   },
 };
 
@@ -170,17 +170,17 @@ function getOverallHealth(phases: CompactPhase[]): "on-track" | "slight-delay" |
 /* ------------------------------------------------------------------ */
 
 const STATUS_COLORS: Record<PhaseStatus, string> = {
-  completed: "bg-emerald-500",
-  "completed-late": "bg-red-500",
-  "in-progress": "bg-blue-500",
-  "in-progress-late": "bg-amber-500",
+  completed: "bg-success",
+  "completed-late": "bg-danger",
+  "in-progress": "bg-brand",
+  "in-progress-late": "bg-warning",
   pending: "bg-muted",
 };
 
 const HEALTH_BADGE: Record<string, { label: string; className: string; icon: typeof CheckCircle2 }> = {
-  "on-track": { label: "En tiempo", className: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400", icon: CheckCircle2 },
-  "slight-delay": { label: "Retraso leve", className: "text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400", icon: Timer },
-  delayed: { label: "Retrasado", className: "text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400", icon: AlertTriangle },
+  "on-track": { label: "En tiempo", className: "text-success bg-success-subtle dark:bg-success/30 dark:text-success", icon: CheckCircle2 },
+  "slight-delay": { label: "Retraso leve", className: "text-warning bg-warning-subtle dark:bg-warning/30 dark:text-warning", icon: Timer },
+  delayed: { label: "Retrasado", className: "text-danger bg-danger-subtle dark:bg-danger/30 dark:text-danger", icon: AlertTriangle },
   "not-started": { label: "Sin iniciar", className: "text-muted-foreground bg-muted", icon: Clock },
 };
 
@@ -407,8 +407,8 @@ export function ProjectTimelineOverview({
               className={cn(
                 "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
                 filterHealth === "delayed"
-                  ? "border-red-400 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300"
-                  : "border-red-200 bg-red-50/60 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  ? "border-danger bg-danger-subtle dark:bg-danger/30 text-danger dark:text-danger"
+                  : "border-danger bg-danger-subtle/60 dark:bg-danger/20 text-danger dark:text-danger hover:border-danger hover:bg-danger-subtle dark:hover:bg-danger/30"
               )}
             >
               <AlertTriangle className="h-3.5 w-3.5" />
@@ -422,8 +422,8 @@ export function ProjectTimelineOverview({
                 className={cn(
                   "flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
                   filterHealth === "slight-delay"
-                    ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300"
-                    : "border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                    ? "border-warning bg-warning-subtle dark:bg-warning/30 text-warning dark:text-warning"
+                    : "border-warning bg-warning-subtle/60 dark:bg-warning/20 text-warning dark:text-warning hover:border-warning hover:bg-warning-subtle dark:hover:bg-warning/30"
                 )}
               >
                 <Timer className="h-3.5 w-3.5" />
@@ -444,7 +444,7 @@ export function ProjectTimelineOverview({
               onChange={(e) => { setFilterCluster(e.target.value); setExpanded(false); }}
               className={cn(
                 "h-8 rounded-md border border-input bg-background px-3 pr-8 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
-                filterCluster && "border-blue-400 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300"
+                filterCluster && "border-brand-400 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300"
               )}
             >
               <option value="">Área cluster</option>
@@ -460,7 +460,7 @@ export function ProjectTimelineOverview({
               onChange={(e) => { setFilterArchitect(e.target.value); setExpanded(false); }}
               className={cn(
                 "h-8 rounded-md border border-input bg-background px-3 pr-8 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
-                filterArchitect && "border-blue-400 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300"
+                filterArchitect && "border-brand-400 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300"
               )}
             >
               <option value="">Arquitecto</option>
@@ -476,7 +476,7 @@ export function ProjectTimelineOverview({
               onChange={(e) => { setFilterHealth(e.target.value); setExpanded(false); }}
               className={cn(
                 "h-8 rounded-md border border-input bg-background px-3 pr-8 text-xs appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring",
-                filterHealth && "border-blue-400 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300"
+                filterHealth && "border-brand-400 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300"
               )}
             >
               <option value="">Estado</option>
@@ -501,10 +501,10 @@ export function ProjectTimelineOverview({
 
           {/* Legend — pushed to the right */}
           <div className="ml-auto hidden lg:flex flex-wrap gap-3 text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> En tiempo</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500" /> En progreso</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500" /> Retraso leve</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" /> Retrasado</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-success" /> En tiempo</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-brand" /> En progreso</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-warning" /> Retraso leve</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-danger" /> Retrasado</span>
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-muted border border-border" /> Pendiente</span>
           </div>
         </div>
@@ -538,7 +538,7 @@ export function ProjectTimelineOverview({
               return (
                 <div
                   key={project.id}
-                  className="group relative rounded-lg border border-border bg-card p-4 cursor-pointer transition-all hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700"
+                  className="group relative rounded-lg border border-border bg-card p-4 cursor-pointer transition-all hover:shadow-md hover:border-brand-300 dark:hover:border-brand-700"
                   onClick={() => router.push(getProjectUrl ? getProjectUrl(project) : `/reno/maturation-analyst/project/${project.id}?viewMode=kanban&from=maturation-home&tab=timeline`)}
                 >
                   {/* Top row: badge + arrow */}
@@ -550,12 +550,12 @@ export function ProjectTimelineOverview({
                       <BadgeIcon className="h-2.5 w-2.5" />
                       {badge.label}
                     </span>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-blue-500 transition-colors" />
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-brand transition-colors" />
                   </div>
 
                   {/* Project name + meta */}
                   <div className="mb-3 min-w-0">
-                    <p className="text-sm font-semibold truncate text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
+                    <p className="text-sm font-semibold truncate text-foreground group-hover:text-brand dark:group-hover:text-brand-400 transition-colors leading-tight">
                       {project.name || "Sin nombre"}
                     </p>
                     <p className="text-[11px] text-muted-foreground truncate mt-0.5">
@@ -617,7 +617,7 @@ export function ProjectTimelineOverview({
                       {completedPhases.map((ph, i) => (
                         <span key={ph.id} className="text-[10px]">
                           <span className={cn(
-                            ph.status === "completed-late" ? "text-red-500" : "text-emerald-600 dark:text-emerald-400"
+                            ph.status === "completed-late" ? "text-danger" : "text-success dark:text-success"
                           )}>
                             {ph.label}
                           </span>
@@ -664,8 +664,8 @@ export function ProjectTimelineOverview({
           {/* WIP Legend */}
           <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-violet-500" /> Maduración</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-500" /> Obra</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Post-Obra</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-warning" /> Obra</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-success" /> Post-Obra</span>
           </div>
 
           {/* WIP Cards grid */}
@@ -771,7 +771,7 @@ export function ProjectTimelineOverview({
                             <span
                               className={cn(
                                 block.status === "completed"
-                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  ? "text-success dark:text-success"
                                   : block.status === "in-progress"
                                   ? WIP_BLOCK_COLORS[block.id].text
                                   : "text-muted-foreground/50"

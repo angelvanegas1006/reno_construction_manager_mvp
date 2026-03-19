@@ -1641,15 +1641,15 @@ export default function RenoChecklistPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Content con padding-top para no quedar oculto bajo el header */}
         {/* El header tiene aproximadamente 80-90px de altura (py-3 + contenido), así que necesitamos más espacio */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto bg-background dark:bg-background">
           <div className="pt-32 px-4 md:px-6 pb-24 md:pb-6">
             <div className="max-w-4xl mx-auto">
               {/* Banner de solo lectura cuando está completado */}
               {isChecklistCompleted && (
-                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="mb-4 p-4 bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-800 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    <CheckCircle2 className="h-5 w-5 text-brand dark:text-brand-400" />
+                    <p className="text-sm font-medium text-brand-900 dark:text-brand-100">
                       Este checklist está completado y es solo lectura. Puedes revisar la información pero no realizar cambios.
                     </p>
                   </div>
@@ -1719,7 +1719,7 @@ export default function RenoChecklistPage() {
       {isCompleting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-card rounded-lg p-8 shadow-lg flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-[var(--prophero-blue-600)]" />
+            <Loader2 className="h-8 w-8 animate-spin text-brand-600" />
             <div className="text-center">
               <p className="text-lg font-semibold text-foreground">
                 {t.checklist.submitting || "Enviando checklist..."}

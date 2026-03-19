@@ -51,18 +51,18 @@ interface CalendarEvent {
 type EventType = keyof typeof EVENT_CONFIG;
 
 const EVENT_CONFIG = {
-  draft_order_date:                { label: "Encargo Anteproyecto",    icon: FileText,     colorClass: "text-blue-500",    borderClass: "border-l-blue-500",    bgClass: "bg-blue-50 dark:bg-blue-950/30",    filterKey: "drafts" as const },
-  measurement_date:                { label: "Medición",                icon: Ruler,        colorClass: "text-indigo-500",  borderClass: "border-l-indigo-500",  bgClass: "bg-indigo-50 dark:bg-indigo-950/30",  filterKey: "measurements" as const },
+  draft_order_date:                { label: "Encargo Anteproyecto",    icon: FileText,     colorClass: "text-brand",    borderClass: "border-l-brand",    bgClass: "bg-brand-50 dark:bg-brand-900/30",    filterKey: "drafts" as const },
+  measurement_date:                { label: "Medición",                icon: Ruler,        colorClass: "text-brand",  borderClass: "border-l-brand",  bgClass: "bg-brand-50 dark:bg-brand/30",  filterKey: "measurements" as const },
   project_draft_date:              { label: "Borrador Proyecto",       icon: FileText,     colorClass: "text-violet-500",  borderClass: "border-l-violet-500",  bgClass: "bg-violet-50 dark:bg-violet-950/30",  filterKey: "drafts" as const },
-  project_start_date:              { label: "Inicio Proyecto",         icon: Hammer,       colorClass: "text-orange-500",  borderClass: "border-l-orange-500",  bgClass: "bg-orange-50 dark:bg-orange-950/30",  filterKey: "projectDates" as const },
-  estimated_project_end_date:      { label: "Fin Estimado",           icon: Clock,        colorClass: "text-amber-500",   borderClass: "border-l-amber-500",   bgClass: "bg-amber-50 dark:bg-amber-950/30",   filterKey: "projectDates" as const },
-  project_end_date:                { label: "Fin Proyecto",           icon: CalendarCheck, colorClass: "text-green-500",   borderClass: "border-l-green-500",   bgClass: "bg-green-50 dark:bg-green-950/30",   filterKey: "projectDates" as const },
-  arras_deadline:                  { label: "Fecha Límite Arras",     icon: Euro,         colorClass: "text-red-500",     borderClass: "border-l-red-500",     bgClass: "bg-red-50 dark:bg-red-950/30",     filterKey: "arras" as const },
+  project_start_date:              { label: "Inicio Proyecto",         icon: Hammer,       colorClass: "text-warning",  borderClass: "border-l-warning",  bgClass: "bg-warning-subtle dark:bg-warning/30",  filterKey: "projectDates" as const },
+  estimated_project_end_date:      { label: "Fin Estimado",           icon: Clock,        colorClass: "text-warning",   borderClass: "border-l-warning",   bgClass: "bg-warning-subtle dark:bg-warning/30",   filterKey: "projectDates" as const },
+  project_end_date:                { label: "Fin Proyecto",           icon: CalendarCheck, colorClass: "text-success",   borderClass: "border-l-success",   bgClass: "bg-success-subtle dark:bg-success/30",   filterKey: "projectDates" as const },
+  arras_deadline:                  { label: "Fecha Límite Arras",     icon: Euro,         colorClass: "text-danger",     borderClass: "border-l-danger",     bgClass: "bg-danger-subtle dark:bg-danger/30",     filterKey: "arras" as const },
   ecu_delivery_date:               { label: "Entrega ECU",           icon: ShieldCheck,  colorClass: "text-teal-500",    borderClass: "border-l-teal-500",    bgClass: "bg-teal-50 dark:bg-teal-950/30",    filterKey: "ecu" as const },
   estimated_first_correction_date: { label: "1ª Corrección Est.",     icon: Clock,        colorClass: "text-cyan-500",    borderClass: "border-l-cyan-500",    bgClass: "bg-cyan-50 dark:bg-cyan-950/30",    filterKey: "corrections" as const },
   first_correction_date:           { label: "1ª Corrección",         icon: CalendarCheck, colorClass: "text-sky-500",     borderClass: "border-l-sky-500",     bgClass: "bg-sky-50 dark:bg-sky-950/30",     filterKey: "corrections" as const },
-  definitive_validation_date:      { label: "Validación Definitiva", icon: FileSignature, colorClass: "text-emerald-500", borderClass: "border-l-emerald-500", bgClass: "bg-emerald-50 dark:bg-emerald-950/30", filterKey: "corrections" as const },
-  settlement_date:                 { label: "Escrituración",         icon: FileSignature, colorClass: "text-purple-500",  borderClass: "border-l-purple-500",  bgClass: "bg-purple-50 dark:bg-purple-950/30",  filterKey: "arras" as const },
+  definitive_validation_date:      { label: "Validación Definitiva", icon: FileSignature, colorClass: "text-success", borderClass: "border-l-success", bgClass: "bg-success-subtle dark:bg-success/30", filterKey: "corrections" as const },
+  settlement_date:                 { label: "Escrituración",         icon: FileSignature, colorClass: "text-brand",  borderClass: "border-l-brand",  bgClass: "bg-brand-50 dark:bg-brand/30",  filterKey: "arras" as const },
 };
 
 const DATE_FIELDS = Object.keys(EVENT_CONFIG) as EventType[];

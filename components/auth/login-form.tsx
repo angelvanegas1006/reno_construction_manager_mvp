@@ -238,10 +238,10 @@ export function LoginForm() {
           </div>
 
           {error && (
-            <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 p-3 rounded-md space-y-2">
+            <div className="text-sm text-danger dark:text-danger bg-danger-subtle dark:bg-danger/50 p-3 rounded-md space-y-2">
               <div>{error}</div>
               {error.includes('Auth0') && (
-                <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-red-200 dark:border-red-800">
+                <div className="text-xs text-muted-foreground mt-2 pt-2 border-t border-danger dark:border-danger">
                   💡 Tip: Si tu cuenta fue creada con Auth0, no puedes usar email/password. Usa el botón "Continuar con Auth0" debajo.
                 </div>
               )}

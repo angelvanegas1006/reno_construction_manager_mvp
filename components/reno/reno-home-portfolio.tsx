@@ -226,7 +226,7 @@ export function RenoHomePortfolio({ properties, propertiesByPhase: propsProperti
                       className="h-full rounded-full transition-all duration-300 group-hover:opacity-90 relative overflow-hidden"
                       style={{ 
                         width: `${width}%`,
-                        backgroundColor: count > 0 ? "var(--prophero-blue-400)" : "transparent",
+                        backgroundColor: count > 0 ? "var(--vistral-brand-400)" : "transparent",
                         minWidth: count > 0 ? "4px" : "0"
                       }}
                     >

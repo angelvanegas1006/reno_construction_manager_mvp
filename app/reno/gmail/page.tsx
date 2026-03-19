@@ -257,7 +257,7 @@ export default function GmailPage() {
         <p className="text-sm text-muted-foreground max-w-md">
           Para leer y enviar correos desde la aplicación necesitas vincular tu cuenta de Google.
           {gmail.isConnected && !gmail.hasGmailScope && (
-            <span className="block mt-2 text-amber-600 dark:text-amber-400 font-medium">
+            <span className="block mt-2 text-warning dark:text-warning font-medium">
               Tu cuenta está conectada a Google Calendar pero necesitas reconectar para habilitar
               los permisos de Gmail.
             </span>
@@ -410,7 +410,7 @@ export default function GmailPage() {
                   key={msg.id}
                   className={cn(
                     "flex items-start gap-0 border-b transition-colors group",
-                    msg.isUnread && "bg-blue-50/60 dark:bg-blue-950/20",
+                    msg.isUnread && "bg-brand-50/60 dark:bg-brand-900/20",
                     isSelected && "bg-primary/5",
                     selectedMessage?.id === msg.id && "bg-accent",
                     "hover:bg-accent/50"
@@ -600,7 +600,7 @@ export default function GmailPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-hidden bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div className="flex-1 overflow-hidden bg-background dark:bg-background">
           {loading ? (
             <VistralLogoLoader className="min-h-[400px]" />
           ) : !gmail.isConnected || !gmail.hasGmailScope ? (

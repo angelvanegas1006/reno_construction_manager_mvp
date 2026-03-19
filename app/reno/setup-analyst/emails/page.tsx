@@ -279,22 +279,22 @@ export default function EmailsPage() {
       label: "Pendientes",
       value: stats.pending,
       icon: Clock,
-      color: "text-amber-500",
-      bgColor: "bg-amber-50 dark:bg-amber-900/20",
+      color: "text-warning",
+      bgColor: "bg-warning-subtle dark:bg-warning/20",
     },
     {
       label: "Enviados esta semana",
       value: stats.sentThisWeek,
       icon: TrendingUp,
-      color: "text-blue-500",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20",
+      color: "text-brand",
+      bgColor: "bg-brand-50 dark:bg-brand-900/20",
     },
     {
       label: "Enviados este mes",
       value: stats.sentThisMonth,
       icon: CalendarDays,
-      color: "text-green-500",
-      bgColor: "bg-green-50 dark:bg-green-900/20",
+      color: "text-success",
+      bgColor: "bg-success-subtle dark:bg-success/20",
     },
     {
       label: "Total enviados",
@@ -315,7 +315,7 @@ export default function EmailsPage() {
       <div className="flex flex-1 flex-col overflow-hidden w-full md:w-auto">
         <RenoHomeHeader />
 
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 xl:px-12 py-4 md:py-6 lg:py-8 bg-background dark:bg-background">
           <div className="max-w-[1600px] mx-auto space-y-5 md:space-y-6 px-4 lg:px-8">
             {/* Page title */}
             <div className="flex items-center gap-3">
@@ -465,7 +465,7 @@ export default function EmailsPage() {
                             {email.status === "draft" ? (
                               <Badge
                                 variant="secondary"
-                                className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 gap-1"
+                                className="bg-warning-bg text-warning dark:bg-warning/30 dark:text-warning gap-1"
                               >
                                 <Clock className="h-3 w-3" />
                                 Pendiente
@@ -473,7 +473,7 @@ export default function EmailsPage() {
                             ) : (
                               <Badge
                                 variant="secondary"
-                                className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 gap-1"
+                                className="bg-success-bg text-success dark:bg-success/30 dark:text-success gap-1"
                               >
                                 <CheckCircle2 className="h-3 w-3" />
                                 Enviado
@@ -568,7 +568,7 @@ export default function EmailsPage() {
                   previewEmail.property_id}
               </div>
             </DialogHeader>
-            <div className="flex-1 overflow-y-auto border rounded-md bg-white min-h-0">
+            <div className="flex-1 overflow-y-auto border rounded-md bg-card min-h-0">
               <EmailHtmlPreview html={previewEmail.html_content} />
             </div>
             <div className="flex justify-end gap-2 pt-2">

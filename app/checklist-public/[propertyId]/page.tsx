@@ -82,7 +82,7 @@ export default function PublicChecklistSelectorPage({
 
   if (!propertyId) {
     return (
-      <div className="min-h-screen bg-[var(--prophero-gray-50)] dark:bg-[#000000] flex items-center justify-center">
+      <div className="min-h-screen bg-background dark:bg-background flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md px-4">
           <h1 className="text-2xl font-bold">Parámetros inválidos</h1>
           <p className="text-muted-foreground">Falta el ID de la propiedad.</p>
@@ -100,7 +100,7 @@ export default function PublicChecklistSelectorPage({
       property.bathrooms != null);
 
   return (
-    <div className="min-h-screen bg-[var(--prophero-gray-50)] dark:bg-[#000000] flex flex-col items-center px-4 py-8">
+    <div className="min-h-screen bg-background dark:bg-background flex flex-col items-center px-4 py-8">
       {/* Logo Vistral */}
       <div className="mb-8 flex justify-center">
         <Image
@@ -122,7 +122,7 @@ export default function PublicChecklistSelectorPage({
       </div>
 
       {/* Dirección e información básica */}
-      <div className="w-full max-w-md space-y-4 rounded-lg border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] bg-white dark:bg-card p-4 text-left shadow-sm">
+      <div className="w-full max-w-md space-y-4 rounded-lg border border-v-gray-200 dark:border-v-gray-700 bg-card dark:bg-card p-4 text-left shadow-sm">
         {loading ? (
           <p className="text-sm text-muted-foreground">Cargando datos de la vivienda...</p>
         ) : (
@@ -134,7 +134,7 @@ export default function PublicChecklistSelectorPage({
               </div>
             )}
             {hasBasicInfo && (
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground border-t border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] pt-3 mt-3">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground border-t border-v-gray-200 dark:border-v-gray-700 pt-3 mt-3">
                 {property?.uniqueId && (
                   <span className="flex items-center gap-1">
                     <Home className="h-3.5 w-3" />
@@ -171,7 +171,7 @@ export default function PublicChecklistSelectorPage({
           {!checksLoading && hasInitialCheck && (
             <Link
               href={`${basePath}/initial`}
-              className="flex items-center justify-center gap-3 w-full py-4 px-6 rounded-lg border-2 border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-white dark:bg-card hover:border-[var(--prophero-blue-500)] hover:bg-[var(--prophero-blue-50)] dark:hover:bg-[var(--prophero-blue-950)]/20 transition-colors text-foreground font-medium"
+              className="flex items-center justify-center gap-3 w-full py-4 px-6 rounded-lg border-2 border-v-gray-300 dark:border-v-gray-600 bg-card dark:bg-card hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/20 transition-colors text-foreground font-medium"
             >
               <ClipboardCheck className="h-6 w-6 shrink-0" />
               Ver Initial check
@@ -180,7 +180,7 @@ export default function PublicChecklistSelectorPage({
           {!checksLoading && hasFinalCheck && (
             <Link
               href={`${basePath}/final`}
-              className="flex items-center justify-center gap-3 w-full py-4 px-6 rounded-lg border-2 border-[var(--prophero-gray-300)] dark:border-[var(--prophero-gray-600)] bg-white dark:bg-card hover:border-[var(--prophero-blue-500)] hover:bg-[var(--prophero-blue-50)] dark:hover:bg-[var(--prophero-blue-950)]/20 transition-colors text-foreground font-medium"
+              className="flex items-center justify-center gap-3 w-full py-4 px-6 rounded-lg border-2 border-v-gray-300 dark:border-v-gray-600 bg-card dark:bg-card hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/20 transition-colors text-foreground font-medium"
             >
               <FileCheck className="h-6 w-6 shrink-0" />
               Ver Final check

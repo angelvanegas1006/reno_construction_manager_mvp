@@ -237,7 +237,7 @@ export default function ChecklistPDFViewerPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--prophero-gray-50)] dark:bg-[#000000] flex items-center justify-center">
+      <div className="min-h-screen bg-background dark:bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Cargando checklist...</p>
         </div>
@@ -247,9 +247,9 @@ export default function ChecklistPDFViewerPage() {
 
   if (error || !htmlUrl) {
     return (
-      <div className="min-h-screen bg-[var(--prophero-gray-50)] dark:bg-[#000000] flex items-center justify-center">
+      <div className="min-h-screen bg-background dark:bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <p className="text-red-600 dark:text-red-400">{error || "Checklist no encontrado"}</p>
+          <p className="text-danger dark:text-danger">{error || "Checklist no encontrado"}</p>
           <Button 
             variant="outline"
             onClick={handleBack}
@@ -263,9 +263,9 @@ export default function ChecklistPDFViewerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--prophero-gray-50)] dark:bg-[#000000]">
+    <div className="min-h-screen bg-background dark:bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-card dark:bg-[var(--prophero-gray-900)] border-b p-4 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-card dark:bg-v-gray-900 border-b p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 

@@ -642,9 +642,9 @@ export function SendUpdateEmailPreview({
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
               {/* Indicador de carga al generar textos */}
               {isGeneratingTexts && (
-                <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm text-blue-700 dark:text-blue-300">
+                <div className="flex items-center gap-2 p-3 bg-brand-50 dark:bg-brand-900/30 rounded-lg border border-brand-200 dark:border-brand-800">
+                  <Loader2 className="h-4 w-4 animate-spin text-brand dark:text-brand-400" />
+                  <span className="text-sm text-brand-700 dark:text-brand-300">
                     Generando textos automáticamente con IA...
                   </span>
                 </div>
@@ -691,7 +691,7 @@ export function SendUpdateEmailPreview({
                         />
                       )}
                       {generationErrors[categoryId] && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                        <p className="text-xs text-warning dark:text-warning">
                           {generationErrors[categoryId]}
                         </p>
                       )}
@@ -734,7 +734,7 @@ export function SendUpdateEmailPreview({
                       />
                     )}
                     {generationErrors[category.id] && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <p className="text-xs text-warning dark:text-warning">
                         {generationErrors[category.id]}
                       </p>
                     )}
@@ -767,7 +767,7 @@ export function SendUpdateEmailPreview({
               {/* Preview HTML */}
               <div className="space-y-2">
                 <Label className="text-base font-semibold">Vista Previa</Label>
-                <div className="border rounded-lg overflow-hidden bg-white">
+                <div className="border rounded-lg overflow-hidden bg-card">
                   <iframe
                     srcDoc={emailHTML}
                     className="w-full h-[600px] border-0"
@@ -782,7 +782,7 @@ export function SendUpdateEmailPreview({
               <Button
                 onClick={handleSend}
                 disabled={isSending || isGeneratingTexts}
-                className="w-full h-12 text-base font-medium bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)]"
+                className="w-full h-12 text-base font-medium bg-brand-600 hover:bg-brand-700"
               >
                 {isSending ? 'Enviando a revisión...' : isGeneratingTexts ? 'Generando textos...' : 'Enviar para revisión'}
               </Button>
@@ -814,9 +814,9 @@ export function SendUpdateEmailPreview({
           <div className="space-y-4">
             {/* Indicador de carga al generar textos */}
             {isGeneratingTexts && (
-              <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
-                <span className="text-sm text-blue-700 dark:text-blue-300">
+              <div className="flex items-center gap-2 p-3 bg-brand-50 dark:bg-brand-900/30 rounded-lg border border-brand-200 dark:border-brand-800">
+                <Loader2 className="h-4 w-4 animate-spin text-brand dark:text-brand-400" />
+                <span className="text-sm text-brand-700 dark:text-brand-300">
                   Generando textos automáticamente con IA...
                 </span>
               </div>
@@ -861,7 +861,7 @@ export function SendUpdateEmailPreview({
                     />
                   )}
                   {generationErrors[categoryId] && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                    <p className="text-xs text-warning dark:text-warning">
                       {generationErrors[categoryId]}
                     </p>
                   )}
@@ -904,7 +904,7 @@ export function SendUpdateEmailPreview({
                   />
                 )}
                 {generationErrors[category.id] && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                  <p className="text-xs text-warning dark:text-warning">
                     {generationErrors[category.id]}
                   </p>
                 )}
@@ -937,7 +937,7 @@ export function SendUpdateEmailPreview({
           {/* Preview HTML */}
           <div className="space-y-2">
             <Label className="text-base font-semibold">Vista Previa</Label>
-            <div className="border rounded-lg overflow-hidden bg-white sticky top-0">
+            <div className="border rounded-lg overflow-hidden bg-card sticky top-0">
               <iframe
                 srcDoc={emailHTML}
                 className="w-full h-[700px] border-0"
@@ -954,7 +954,7 @@ export function SendUpdateEmailPreview({
           <Button
             onClick={handleSend}
             disabled={isSending || isGeneratingTexts}
-            className="bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)]"
+            className="bg-brand-600 hover:bg-brand-700"
           >
             {isSending ? 'Enviando a revisión...' : isGeneratingTexts ? 'Generando textos...' : 'Enviar para revisión'}
           </Button>

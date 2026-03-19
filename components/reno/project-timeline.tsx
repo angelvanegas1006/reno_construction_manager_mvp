@@ -289,7 +289,7 @@ function PhaseTooltip({ data, originDate }: { data: TooltipData; originDate: Dat
         {diff != null && diff !== 0 && phase.plannedDuration > 0 && (
           <>
             <span className="text-muted-foreground">Diferencia:</span>
-            <span className={cn(diff > 0 ? "text-red-500 font-medium" : "text-emerald-500 font-medium")}>
+            <span className={cn(diff > 0 ? "text-danger font-medium" : "text-success font-medium")}>
               {diff > 0 ? `+${diff} días (retraso)` : `${diff} días (adelanto)`}
             </span>
           </>
@@ -547,9 +547,9 @@ export function ProjectTimeline({
     const actualDays = daysBetween(actualStart, actualEnd);
     const ratio = actualDays / phase.plannedDuration;
 
-    if (ratio <= 1) return "bg-emerald-500/80";
-    if (ratio <= 1.2) return "bg-amber-500/80";
-    return "bg-red-500/80";
+    if (ratio <= 1) return "bg-success/80";
+    if (ratio <= 1.2) return "bg-warning/80";
+    return "bg-danger/80";
   };
 
   const handleMouseEnter = (e: React.MouseEvent, phase: TimelinePhase) => {
@@ -614,23 +614,23 @@ export function ProjectTimeline({
           Planeado
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-5 h-2.5 rounded-sm bg-emerald-500/80" />
+          <span className="inline-block w-5 h-2.5 rounded-sm bg-success/80" />
           En tiempo
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-5 h-2.5 rounded-sm bg-amber-500/80" />
+          <span className="inline-block w-5 h-2.5 rounded-sm bg-warning/80" />
           Retraso leve
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-5 h-2.5 rounded-sm bg-red-500/80" />
+          <span className="inline-block w-5 h-2.5 rounded-sm bg-danger/80" />
           Retraso
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-2.5 h-2.5 rotate-45 border-2 border-blue-500 bg-blue-500/20" />
+          <span className="inline-block w-2.5 h-2.5 rotate-45 border-2 border-brand bg-brand/20" />
           Hito
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-0.5 h-4 bg-blue-500" />
+          <span className="inline-block w-0.5 h-4 bg-brand" />
           Hoy
         </span>
       </div>
@@ -655,7 +655,7 @@ export function ProjectTimeline({
                   "flex items-center px-4 border-b text-sm",
                   phase.type === "parallel" && "pl-8 text-xs text-muted-foreground",
                   phase.type === "milestone" && "text-xs font-medium",
-                  phase.milestoneStyle === "major" && "text-blue-600 dark:text-blue-400 font-semibold text-xs",
+                  phase.milestoneStyle === "major" && "text-brand dark:text-brand-400 font-semibold text-xs",
                 )}
                 style={{ height }}
               >
@@ -664,7 +664,7 @@ export function ProjectTimeline({
                     className={cn(
                       "inline-block w-2 h-2 rotate-45 mr-2 flex-shrink-0",
                       phase.milestoneStyle === "major"
-                        ? "border-2 border-blue-500 bg-blue-500/30"
+                        ? "border-2 border-brand bg-brand/30"
                         : "border border-muted-foreground bg-muted-foreground/20"
                     )}
                   />
@@ -720,10 +720,10 @@ export function ProjectTimeline({
             {/* Today line */}
             {todayDay >= 0 && todayDay <= totalDays && (
               <div
-                className="absolute z-10 top-0 bottom-0 border-l-2 border-blue-500"
+                className="absolute z-10 top-0 bottom-0 border-l-2 border-brand"
                 style={{ left: todayDay * DAY_WIDTH }}
               >
-                <span className="absolute -top-0 -translate-x-1/2 text-[9px] font-semibold text-blue-500 bg-card px-1 rounded">
+                <span className="absolute -top-0 -translate-x-1/2 text-[9px] font-semibold text-brand bg-card px-1 rounded">
                   Hoy
                 </span>
               </div>
@@ -750,7 +750,7 @@ export function ProjectTimeline({
                         className={cn(
                           "w-3 h-3 rotate-45",
                           phase.milestoneStyle === "major"
-                            ? cn("border-2", completed ? "border-blue-500 bg-blue-500" : "border-blue-500/50 bg-blue-500/20")
+                            ? cn("border-2", completed ? "border-brand bg-brand" : "border-brand/50 bg-brand/20")
                             : cn("border", completed ? "border-foreground bg-foreground" : "border-muted-foreground bg-muted-foreground/20"),
                         )}
                       />

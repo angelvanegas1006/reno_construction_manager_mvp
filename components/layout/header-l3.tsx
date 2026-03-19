@@ -42,7 +42,7 @@ export function HeaderL3({
 }: HeaderL3Props) {
   return (
     <header className={cn(
-      "absolute top-0 left-0 right-0 z-10 bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-900)] border-b px-4 md:px-6 py-3",
+      "absolute top-0 left-0 right-0 z-10 bg-v-gray-100 dark:bg-v-gray-900 border-b px-4 md:px-6 py-3",
       className
     )}>
       <div className="flex items-center justify-between gap-4">
@@ -75,7 +75,7 @@ export function HeaderL3({
           <Button
             onClick={previewAction.onClick}
             disabled={previewAction.disabled}
-            className="flex items-center gap-2 rounded-full bg-[var(--prophero-blue-600)] hover:bg-[var(--prophero-blue-700)] text-white flex-shrink-0"
+            className="flex items-center gap-2 rounded-full bg-brand-600 hover:bg-brand-700 text-white flex-shrink-0"
           >
             {previewAction.label}
           </Button>

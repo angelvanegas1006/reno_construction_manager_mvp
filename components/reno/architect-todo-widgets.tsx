@@ -167,7 +167,7 @@ export function ArchitectTodoWidgets({
                   onClick={() => handleProjectClick(project)}
                   className={cn(
                     "p-3 rounded-lg cursor-pointer transition-all duration-150",
-                    "bg-white dark:bg-[#0a0a0a]",
+                    "bg-card dark:bg-background",
                     "hover:bg-muted/40 hover:shadow-sm",
                     "border-2 overflow-hidden",
                     "min-w-0 w-full",
@@ -278,7 +278,7 @@ export function ArchitectTodoWidgets({
                             onClick={() => handleProjectClick(project)}
                             className={cn(
                               "p-3 rounded-lg cursor-pointer transition-all duration-150",
-                              "bg-white dark:bg-[#0a0a0a]",
+                              "bg-card dark:bg-background",
                               "hover:bg-muted/40 hover:shadow-sm",
                               "border-2 overflow-hidden",
                               "min-w-0 w-full",

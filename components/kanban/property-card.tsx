@@ -36,13 +36,13 @@ export function PropertyCard({
     <div 
       data-property-id={id}
       className={cn(
-        "rounded-lg border border-border bg-card dark:bg-[var(--prophero-gray-900)] p-4 shadow-sm w-full",
+        "rounded-lg border border-border bg-card dark:bg-v-gray-900 p-4 shadow-sm w-full",
         "transition-all duration-500 ease-out",
         disabled 
           ? "cursor-not-allowed opacity-60" 
           : "cursor-pointer hover:border-2 hover:shadow-[0_4px_12px_0_rgba(0,0,0,0.15)]",
         isHighlighted 
-          ? "ring-2 ring-[var(--prophero-blue-500)] shadow-lg border-[var(--prophero-blue-500)] bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/30" 
+          ? "ring-2 ring-brand-500 shadow-lg border-brand-500 bg-brand-50 dark:bg-brand-950/30" 
           : "",
       )}
       onClick={disabled ? undefined : onClick}
@@ -69,7 +69,7 @@ export function PropertyCard({
       {stage === "review" && analyst && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700">
               <span className="text-xs font-semibold text-foreground">{analyst}</span>
             </div>
             <span className="text-xs text-muted-foreground">Supply Analyst</span>
@@ -81,13 +81,13 @@ export function PropertyCard({
       {stage === "needs-correction" && analyst && correctionsCount !== undefined && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700">
               <span className="text-xs font-semibold text-foreground">{analyst}</span>
             </div>
             <span className="text-xs text-muted-foreground">Supply Analyst</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400">
+            <span className="rounded-full bg-danger-bg dark:bg-danger/30 px-2 py-1 text-xs font-medium text-danger dark:text-danger">
               {correctionsCount} correcciones pendientes
             </span>
           </div>
@@ -105,7 +105,7 @@ export function PropertyCard({
             }).format(price)}
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700">
               <span className="text-xs font-semibold text-foreground">{analyst}</span>
             </div>
             <span className="text-xs text-muted-foreground">Supply Analyst</span>
@@ -135,7 +135,7 @@ export function PropertyCard({
           </div>
           {analyst && (
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700">
                 <span className="text-xs font-semibold text-foreground">{analyst}</span>
               </div>
               <span className="text-xs text-muted-foreground">Jefe de Obra</span>
@@ -148,7 +148,7 @@ export function PropertyCard({
       {stage === "reno-in-progress" && analyst && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700">
               <span className="text-xs font-semibold text-foreground">{analyst}</span>
             </div>
             <span className="text-xs text-muted-foreground">Jefe de Obra</span>
@@ -169,7 +169,7 @@ export function PropertyCard({
       {stage === "furnishing-cleaning" && analyst && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700">
               <span className="text-xs font-semibold text-foreground">{analyst}</span>
             </div>
             <span className="text-xs text-muted-foreground">Jefe de Obra</span>
@@ -181,7 +181,7 @@ export function PropertyCard({
       {stage === "reno-fixes" && analyst && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--prophero-gray-200)] dark:bg-[var(--prophero-gray-700)]">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-v-gray-200 dark:bg-v-gray-700">
               <span className="text-xs font-semibold text-foreground">{analyst}</span>
             </div>
             <span className="text-xs text-muted-foreground">Jefe de Obra</span>

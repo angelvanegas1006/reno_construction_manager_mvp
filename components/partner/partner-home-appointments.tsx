@@ -43,7 +43,7 @@ export function PartnerHomeAppointments({
   };
 
   return (
-    <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
+    <Card className="bg-card dark:bg-v-gray-900">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-lg font-semibold">{t.dashboard.upcomingAppointments}</CardTitle>
@@ -53,7 +53,7 @@ export function PartnerHomeAppointments({
         </div>
         <button
           onClick={onAddAppointment}
-          className="text-sm font-medium text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] hover:underline"
+          className="text-sm font-medium text-brand-600 dark:text-brand-400 hover:underline"
         >
           {t.dashboard.addAppointment}
         </button>
@@ -69,7 +69,7 @@ export function PartnerHomeAppointments({
               <div
                 key={appointment.id}
                 onClick={() => onAppointmentClick(appointment)}
-                className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[var(--prophero-gray-800)] cursor-pointer transition-colors"
+                className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-background dark:hover:bg-v-gray-800 cursor-pointer transition-colors"
               >
                 <Calendar className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">

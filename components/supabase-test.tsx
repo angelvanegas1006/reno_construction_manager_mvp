@@ -19,9 +19,9 @@ export function SupabaseTest() {
   if (error) {
     return (
       <div className="p-6">
-        <Card className="p-6 border-red-500">
-          <h2 className="text-xl font-bold text-red-600 mb-2">Error de conexión</h2>
-          <p className="text-red-500">{error}</p>
+        <Card className="p-6 border-danger">
+          <h2 className="text-xl font-bold text-danger mb-2">Error de conexión</h2>
+          <p className="text-danger">{error}</p>
         </Card>
       </div>
     );
@@ -154,7 +154,7 @@ export function SupabaseTest() {
                     )}
                   </div>
                   {inspection.has_elevator && (
-                    <span className="text-sm bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">
+                    <span className="text-sm bg-brand-100 dark:bg-brand-900 px-2 py-1 rounded">
                       Tiene ascensor
                     </span>
                   )}
@@ -166,7 +166,7 @@ export function SupabaseTest() {
       </Card>
 
       {/* Summary */}
-      <Card className="p-6 bg-green-50 dark:bg-green-950">
+      <Card className="p-6 bg-success-subtle dark:bg-success">
         <h2 className="text-xl font-bold mb-2">✅ Conexión exitosa</h2>
         <p className="text-sm text-muted-foreground">
           Se leyeron datos de Supabase correctamente. Total de registros:

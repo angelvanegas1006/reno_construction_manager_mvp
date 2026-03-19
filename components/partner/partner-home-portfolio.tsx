@@ -72,7 +72,7 @@ export function PartnerHomePortfolio({ properties }: PartnerHomePortfolioProps) 
   };
 
   return (
-    <Card className="bg-card dark:bg-[var(--prophero-gray-900)]">
+    <Card className="bg-card dark:bg-v-gray-900">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">{t.dashboard.portfolio}</CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
@@ -95,7 +95,7 @@ export function PartnerHomePortfolio({ properties }: PartnerHomePortfolioProps) 
                 >
                   <div className="relative w-full flex items-end justify-center">
                     <div
-                      className="w-full bg-[var(--prophero-blue-500)] dark:bg-[var(--prophero-blue-600)] rounded-t transition-all hover:opacity-80"
+                      className="w-full bg-brand-500 dark:bg-brand-600 rounded-t transition-all hover:opacity-80"
                       style={{ height: `${height}px`, minHeight: count > 0 ? "4px" : "0" }}
                       title={`${getStageLabel(stage)}: ${count}`}
                     />

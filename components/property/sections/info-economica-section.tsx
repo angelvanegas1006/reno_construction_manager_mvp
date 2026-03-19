@@ -39,17 +39,17 @@ export const InfoEconomicaSection = forwardRef<HTMLDivElement, InfoEconomicaSect
     }, []);
 
     return (
-      <div ref={ref} className="bg-card dark:bg-[var(--prophero-gray-900)] rounded-lg border p-6 shadow-sm space-y-6">
+      <div ref={ref} className="bg-card dark:bg-v-gray-900 rounded-lg border p-6 shadow-sm space-y-6">
         <h1 className="text-2xl font-bold text-foreground">{t.property.sections.economicInfo}</h1>
 
         {/* Info Banner */}
-        <div className="flex items-start gap-3 p-4 bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-950)]/20 border border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)] rounded-lg">
-          <Info className="h-5 w-5 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-brand-50 dark:bg-brand-950/20 border border-brand-200 dark:border-brand-800 rounded-lg">
+          <Info className="h-5 w-5 text-brand-600 dark:text-brand-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-[var(--prophero-blue-900)] dark:text-[var(--prophero-blue-200)]">
+            <p className="text-sm font-semibold text-brand-900 dark:text-brand-200">
               Campos requeridos para la revisión inicial
             </p>
-            <p className="text-sm text-[var(--prophero-blue-800)] dark:text-[var(--prophero-blue-300)] mt-1">
+            <p className="text-sm text-brand-800 dark:text-brand-300 mt-1">
               Todos los campos de esta sección son obligatorios para poder enviar la propiedad a revisión.
             </p>
           </div>
@@ -59,7 +59,7 @@ export const InfoEconomicaSection = forwardRef<HTMLDivElement, InfoEconomicaSect
           {/* Precio de venta */}
           <div className="space-y-2">
             <Label htmlFor="precioVenta" className="text-sm font-semibold">
-              Precio de venta <span className="text-red-500">*</span>
+              Precio de venta <span className="text-danger">*</span>
             </Label>
             <div className="relative">
               <Input
@@ -82,7 +82,7 @@ export const InfoEconomicaSection = forwardRef<HTMLDivElement, InfoEconomicaSect
           {/* Gastos de comunidad mensuales */}
           <div className="space-y-2">
             <Label htmlFor="gastosComunidad" className="text-sm font-semibold">
-              Gastos de comunidad mensuales <span className="text-red-500">*</span>
+              Gastos de comunidad mensuales <span className="text-danger">*</span>
             </Label>
             <div className="relative">
               <Input
@@ -105,7 +105,7 @@ export const InfoEconomicaSection = forwardRef<HTMLDivElement, InfoEconomicaSect
                 type="checkbox"
                   checked={formData.confirmacionGastosComunidad || false}
                   onChange={(e) => updateField("confirmacionGastosComunidad", e.target.checked)}
-                  className="h-4 w-4 rounded border-[var(--prophero-gray-300)] text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 rounded border-v-gray-300 text-brand-600 focus:ring-brand-500"
               />
               <span className="text-sm text-muted-foreground">
                 Confirmo que este es el importe exacto.
@@ -116,7 +116,7 @@ export const InfoEconomicaSection = forwardRef<HTMLDivElement, InfoEconomicaSect
           {/* IBI Anual */}
           <div className="space-y-2">
             <Label htmlFor="ibiAnual" className="text-sm font-semibold">
-              IBI Anual <span className="text-red-500">*</span>
+              IBI Anual <span className="text-danger">*</span>
             </Label>
             <div className="relative">
               <Input
@@ -139,7 +139,7 @@ export const InfoEconomicaSection = forwardRef<HTMLDivElement, InfoEconomicaSect
                 type="checkbox"
                   checked={formData.confirmacionIBI || false}
                   onChange={(e) => updateField("confirmacionIBI", e.target.checked)}
-                  className="h-4 w-4 rounded border-[var(--prophero-gray-300)] text-[var(--prophero-blue-600)] focus:ring-[var(--prophero-blue-500)]"
+                  className="h-4 w-4 rounded border-v-gray-300 text-brand-600 focus:ring-brand-500"
               />
               <span className="text-sm text-muted-foreground">
                 Confirmo que este es el importe exacto.

@@ -71,7 +71,7 @@ export default function UpdatesPage() {
           Abrir en nueva pestaña <ExternalLink className="h-3 w-3" />
         </a>
       </div>
-      <div className="flex-1 rounded-xl border border-border/50 overflow-hidden shadow-sm bg-white relative">
+      <div className="flex-1 rounded-xl border border-border/50 overflow-hidden shadow-sm bg-card relative">
         {!iframeLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

@@ -217,7 +217,7 @@ export function DateTimePicker({
         disabled={disabled}
         className={cn(
           "pr-20",
-          error && "border-red-500 focus-visible:ring-red-500"
+          error && "border-danger focus-visible:ring-danger"
         )}
       />
       
@@ -252,9 +252,9 @@ export function DateTimePicker({
         disabled={disabled}
         className={cn(
           "absolute right-10 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors",
-          "hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)]",
+          "hover:bg-muted dark:hover:bg-v-gray-800",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          isFocused && "bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+          isFocused && "bg-v-gray-100 dark:bg-v-gray-800"
         )}
         aria-label="Abrir calendario"
       >
@@ -268,9 +268,9 @@ export function DateTimePicker({
         disabled={disabled}
         className={cn(
           "absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors",
-          "hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-800)]",
+          "hover:bg-muted dark:hover:bg-v-gray-800",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          isFocused && "bg-[var(--prophero-gray-100)] dark:bg-[var(--prophero-gray-800)]"
+          isFocused && "bg-v-gray-100 dark:bg-v-gray-800"
         )}
         aria-label="Abrir selector de hora"
       >
@@ -279,7 +279,7 @@ export function DateTimePicker({
 
       {/* Error message */}
       {error && (
-        <div className="flex items-center gap-1 mt-1 text-sm text-red-600 dark:text-red-400">
+        <div className="flex items-center gap-1 mt-1 text-sm text-danger dark:text-danger">
           <AlertCircle className="h-3 w-3" />
           <span>{error}</span>
         </div>

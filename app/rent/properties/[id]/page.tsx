@@ -158,7 +158,7 @@ export default function PropertyDetailPage() {
           <TabsTrigger value="idealista">
             Idealista
             {listing && listing.status === 'published' && (
-              <span className="ml-2 h-2 w-2 rounded-full bg-green-500" />
+              <span className="ml-2 h-2 w-2 rounded-full bg-success" />
             )}
           </TabsTrigger>
           <TabsTrigger value="leads">

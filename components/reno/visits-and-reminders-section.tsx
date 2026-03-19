@@ -503,14 +503,14 @@ export function VisitsAndRemindersSection({
                 key={visit.id}
                 className={cn(
                   "w-full flex items-start gap-3 p-3 rounded-lg border transition-all",
-                  "hover:bg-[var(--prophero-gray-50)] dark:hover:bg-[#1a1a1a]",
+                  "hover:bg-background dark:hover:bg-secondary",
                   "hover:shadow-md dark:hover:shadow-none",
                   visit.visit_type === "reminder" &&
-                    "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20 border-[var(--prophero-blue-200)] dark:border-[var(--prophero-blue-800)]"
+                    "bg-brand-50 dark:bg-brand-900/20 border-brand-200 dark:border-brand-800"
                 )}
               >
                 {visit.visit_type === "reminder" ? (
-                  <Bell className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] mt-0.5 flex-shrink-0" />
+                  <Bell className="h-4 w-4 text-brand-600 dark:text-brand-400 mt-0.5 flex-shrink-0" />
                 ) : (
                   <Calendar className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                 )}
@@ -529,7 +529,7 @@ export function VisitsAndRemindersSection({
                           {formatDate(visit.visit_date)}
                         </span>
                         {visit.visit_type === "reminder" && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/30 text-[var(--prophero-blue-700)] dark:text-[var(--prophero-blue-400)]">
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400">
                             Recordatorio
                           </span>
                         )}

@@ -141,7 +141,7 @@ export function PropertyCombobox({
       {open && filteredProperties.length > 0 && (
         <div
           ref={listRef}
-          className="absolute z-50 w-full mt-1 bg-card dark:bg-[var(--prophero-gray-800)] border border-[var(--prophero-gray-200)] dark:border-[var(--prophero-gray-700)] rounded-md shadow-md max-h-60 overflow-y-auto"
+          className="absolute z-50 w-full mt-1 bg-card dark:bg-v-gray-800 border border-v-gray-200 dark:border-v-gray-700 rounded-md shadow-md max-h-60 overflow-y-auto"
         >
           {filteredProperties.map((property, index) => {
             const address = property.fullAddress || property.address || property.id;
@@ -155,9 +155,9 @@ export function PropertyCombobox({
                 onClick={() => handleSelect(property)}
                 className={cn(
                   "w-full text-left px-3 py-2 transition-colors",
-                  "hover:bg-[var(--prophero-gray-100)] dark:hover:bg-[var(--prophero-gray-700)]",
-                  isHighlighted && "bg-[var(--prophero-blue-50)] dark:bg-[var(--prophero-blue-900)]/20",
-                  isSelected && "bg-[var(--prophero-blue-100)] dark:bg-[var(--prophero-blue-900)]/30"
+                  "hover:bg-muted dark:hover:bg-v-gray-700",
+                  isHighlighted && "bg-brand-50 dark:bg-brand-900/20",
+                  isSelected && "bg-brand-100 dark:bg-brand-900/30"
                 )}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -170,7 +170,7 @@ export function PropertyCombobox({
                     )}
                   </div>
                   {isSelected && (
-                    <Check className="h-4 w-4 text-[var(--prophero-blue-600)] dark:text-[var(--prophero-blue-400)] flex-shrink-0" />
+                    <Check className="h-4 w-4 text-brand-600 dark:text-brand-400 flex-shrink-0" />
                   )}
                 </div>
               </button>
